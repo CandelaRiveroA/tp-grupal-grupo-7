@@ -1,0 +1,23 @@
+name: Check Main Merge Source
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-source:
+    runs-on: ubuntu-latest
+    steps:
+      data:
+      - name: Check if PR comes from develop
+        run: |
+          echo "Rama de origen: ${{ github.head_ref }}"
+          echo "Rama de destino: ${{ github.base_ref }}"
+          
+          if [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "❌ Error: Las Pull Requests hacia main solo pueden venir desde la rama 'develop'."
+            exit 1
+          else
+            echo "✅ Éxito: La Pull Request proviene de 'develop'."
+          fi

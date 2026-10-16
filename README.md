@@ -1,45 +1,95 @@
-# Ejemplo de CMAKE para el TP Final
+## Compilar y ejecutar
 
-**Importante:** el primer commit de este repositorio tiene el setup
-básico para el TP Final que incluye la instalación de la lib de Google
-Tests, `SDL2` y `SDL2pp` (el wrapper de C++).
+### Requisitos
 
-El resto de los commits son a modo de ejemplo de como se pueden
-agregar mas código fuente al proyecto.
+- CMake 3.24 o superior.
+- Un compilador compatible con C++20.
+- Git, porque CMake descarga SDL2, SDL2pp y GoogleTest durante la
+  configuración.
 
-Este ejemplo **no** incluye instalarse otras libs que son dependencias
-tanto de `SDL2` como de `SDL2pp` (pero si estan documentadas en el
-`CMakeFile` para Xubuntu 24.04).
+El cliente y el editor utilizan SDL2 y SDL2pp. En Linux también pueden ser
+necesarias las dependencias de desarrollo indicadas en
+[`CMakeLists.txt`](CMakeLists.txt).
 
-Este repo **no** incluye tampoco un instalador.
+### Compilación general con CMake
 
-**Se deben agregar las librerias necesarias y el instalador.**
+Desde la raíz del repositorio, configurar el proyecto:
 
-También el ejemplo usa una estructura de carpetas muy simple:
-
-```
-client/
-server/
-editor/
-common/
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
-Bien se puede mejorar (cambiando el cmakefile) agregando mas
-sub-carpetas.
+Luego compilar todos los targets habilitados:
 
-Asi tambien **deben** ser cambiados los *targets* del cmake (`taller_client`,
-`taller_server`, ...) por nombres mas acordes al TP que se este
-haciendo.
+```sh
+cmake --build build
+```
 
-Tambien, por default solo se compila una version *debug* sin
-optimizar. Si se quiere compilar binarios optimizados
-(lo que cmake llama *release*) se puede, solo hay modificar
-cmake.
+La configuración por defecto habilita el cliente, el servidor, el editor y
+los tests. Para una compilación más rápida se pueden deshabilitar los
+componentes que no se necesitan:
 
-Aprender del ejemplo para saber como extenderlo!
+```sh
+cmake -S . -B build \
+  -DTALLER_CLIENT=ON \
+  -DTALLER_SERVER=ON \
+  -DTALLER_EDITOR=OFF \
+  -DTALLER_TESTS=OFF \
+  -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
 
-**Importante:** este repositorio **no** incluye pre-commits hooks,
-ni scripts adicionales (como correr valgrind).
+Para una compilación optimizada, reemplazar `Debug` por `Release`:
 
-**Eso esta a cargo de los estudiantes,** tal como fue mostrado
-en los tps individuales, recaps y hands-on.
+```sh
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release
+```
+
+### Ejecución de los programas
+
+#### Cliente y servidor
+
+El servidor escucha en el puerto indicado y, al aceptar una conexión, envía
+`hola mundo` usando un protocolo. El cliente recibe e imprime ese mensaje.
+
+Con el proyecto compilado, en una terminal ejecutar el servidor:
+
+```sh
+./build/taller_server 8080
+```
+
+En otra terminal ejecutar el cliente:
+
+```sh
+./build/taller_client 127.0.0.1 8080
+```
+
+El primer argumento del servidor es el puerto de escucha. El cliente recibe
+como argumentos el hostname y el puerto del servidor.
+
+#### Editor
+
+Si el editor fue habilitado durante la configuración, ejecutarlo con:
+
+```sh
+./build/taller_editor
+```
+
+#### Tests
+
+Los tests usan [GoogleTest](https://github.com/google/googletest), una
+biblioteca estándar para C++ que ya está integrada en el proyecto mediante
+CMake.
+
+Los tests se ejecutan con:
+
+```sh
+./build/taller_tests
+```
+
+También se pueden ejecutar mediante:
+
+```sh
+make run-tests
+```

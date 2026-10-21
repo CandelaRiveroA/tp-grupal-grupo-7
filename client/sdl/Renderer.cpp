@@ -24,6 +24,7 @@ void Renderer::render(const world::Scenario& scenario) {
 				       player.width(), player.height()),
 			  kPlayerColor);
 
+	context_.present();
 }
 
 }

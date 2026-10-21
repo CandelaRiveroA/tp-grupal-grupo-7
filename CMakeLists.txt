@@ -118,7 +118,9 @@ if(TALLER_CLIENT)
     target_include_directories(taller_client PRIVATE ${libSDL2pp_SOURCE_DIR})
 
     # Link the taller_common lib target
-    target_link_libraries(taller_client taller_common SDL2pp::SDL2pp)
+    # (keyword form: required so client/ can link imported targets
+    # like Qt6::Widgets from its own directory scope)
+    target_link_libraries(taller_client PRIVATE taller_common SDL2pp::SDL2pp)
 endif()
 
 if(TALLER_SERVER)

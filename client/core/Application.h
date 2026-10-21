@@ -2,21 +2,21 @@
 
 #include <QApplication>
 
-#include "GameLoop.h"
-#include "InputManager.h"
-#include "WindowConfig.h"
-#include "qt/MainWindow.h"
-#include "sdl/Renderer.h"
-#include "sdl/SdlContext.h"
-#include "world/Player.h"
-#include "world/Scenario.h"
+#include "core/SessionConfig.h"
+#include "core/WindowConfig.h"
+
+#include <optional>
 
 namespace qt {
-class GameView;
+class LobbyWindow;
 }
 
 namespace core {
 
+// Orquestador del cliente. Secuencia:
+//   1. runLobby(): ventanita Qt para crear/unirse a partida y elegir personaje.
+//   2. Si el jugador confirmó, runGame(): el "main SDL", con todo el juego
+//      (loop, input, render, config y multiplayer) adentro de SDL.
 class Application {
 public:
 	Application(int& argc, char** argv);
@@ -24,16 +24,14 @@ public:
 	int run();
 
 private:
+	// Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
+	std::optional<SessionConfig> runLobby();
+
+	// "main SDL": loop del juego. Corre hasta que se cierra la ventana.
+	int runGame(const SessionConfig& session);
+
 	WindowConfig config_;
 	QApplication app_;
-	core::InputManager input_;
-	qt::MainWindow window_;
-	world::Player player_;
-	world::Scenario scenario_;
-	sdl::SdlContext sdlContext_;
-	sdl::Renderer renderer_;
-	qt::GameView* view_;
-	core::GameLoop loop_;
 };
 
 }

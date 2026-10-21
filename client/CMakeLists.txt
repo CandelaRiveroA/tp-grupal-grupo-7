@@ -12,11 +12,10 @@ target_sources(taller_client
     # .cpp files
     main.cpp
     core/Application.cpp
-    core/GameLoop.cpp
-    core/InputManager.cpp
     core/WindowConfig.cpp
-    qt/MainWindow.cpp
-    qt/GameView.cpp
+    qt/LobbyWindow.cpp
+    sdl/GameLoop.cpp
+    sdl/InputManager.cpp
     sdl/SdlContext.cpp
     sdl/Renderer.cpp
     world/Player.cpp
@@ -24,11 +23,11 @@ target_sources(taller_client
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
-    core/GameLoop.h
-    core/InputManager.h
+    core/SessionConfig.h
     core/WindowConfig.h
-    qt/MainWindow.h
-    qt/GameView.h
+    qt/LobbyWindow.h
+    sdl/GameLoop.h
+    sdl/InputManager.h
     sdl/SdlContext.h
     sdl/Renderer.h
     world/Player.h

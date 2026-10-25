@@ -1,5 +1,9 @@
 #include "Application.h"
 
+#include <QFile>
+#include <QString>
+#include <QtGlobal>
+
 #include <optional>
 
 #include "qt/LobbyWindow.h"
@@ -20,7 +24,18 @@ constexpr int kPlayerSpeed = 5;
 
 Application::Application(int& argc, char** argv)
 	: config_(640, 480, "TP Final — Grupo 7")
-	, app_(argc, argv) {}
+	, app_(argc, argv) {
+	loadStyleSheet();
+}
+
+void Application::loadStyleSheet() {
+	QFile file(":/ui.qss");
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		qWarning("No se pudo abrir el recurso :/ui.qss");
+		return;
+	}
+	app_.setStyleSheet(QString::fromUtf8(file.readAll()));
+}
 
 int Application::run() {
 

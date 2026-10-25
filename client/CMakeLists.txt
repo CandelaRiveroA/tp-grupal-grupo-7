@@ -14,6 +14,7 @@ target_sources(taller_client
     core/Application.cpp
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
+    qt/resources/resources.qrc
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
     sdl/SdlContext.cpp
@@ -34,8 +35,8 @@ target_sources(taller_client
     world/Scenario.h
     )
 
-# AUTOMOC solo para este target (no afecta a server ni a tests)
-set_target_properties(taller_client PROPERTIES AUTOMOC ON)
+# AUTOMOC y AUTORCC solo para este target (no afectan a server ni a tests)
+set_target_properties(taller_client PROPERTIES AUTOMOC ON AUTORCC ON)
 
 # La raíz solo expone el repo root como include ("common/foo.h");
 # con esto los includes del cliente son "core/...", "qt/...", etc.

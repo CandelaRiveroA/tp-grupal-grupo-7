@@ -24,6 +24,10 @@ public:
 	int run();
 
 private:
+	// Carga el QSS embebido en el .qrc. Se llama al construir, cuando
+	// QApplication ya existe.
+	void loadStyleSheet();
+
 	// Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
 	std::optional<SessionConfig> runLobby();
 

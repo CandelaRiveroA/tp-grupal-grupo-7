@@ -17,7 +17,6 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	, stack_(nullptr)
 	, screens_()
 	, current_(nullptr)
-	, worldService_(nullptr)
 	, world_(std::nullopt)
 	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
@@ -31,8 +30,8 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	auto* menu = new MainMenuScreen(stack_);
 	registerScreen(ScreenId::MainMenu, menu);
 
-	worldService_ = new FakeWorldService(std::nullopt, this);
-	auto* worlds = new WorldSelectScreen(worldService_, stack_);
+	auto* worldService = new FakeWorldService(std::nullopt, this);
+	auto* worlds = new WorldSelectScreen(worldService, stack_);
 	registerScreen(ScreenId::WorldSelect, worlds);
 	connect(worlds, &WorldSelectScreen::worldChosen, this,
 		&LobbyWindow::onWorldChosen);

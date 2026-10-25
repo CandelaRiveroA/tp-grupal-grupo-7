@@ -16,6 +16,10 @@ project(taller_tp
     LANGUAGES CXX
     )
 
+# Genera compile_commands.json en el build dir: lo usan IntelliSense de
+# VS Code (cpptools) y clangd para resolver los include paths reales.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for IntelliSense/clangd")
+
 option(TALLER_TESTS "Enable / disable tests." ON)
 option(TALLER_CLIENT "Enable / disable client program." ON)
 option(TALLER_SERVER "Enable / disable server program." ON)

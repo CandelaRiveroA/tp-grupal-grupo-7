@@ -29,7 +29,6 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	stack_->setCurrentWidget(menu);
 	menu->onEnter();
 
-	// Esc vuelve al menú. En el menú no hace nada: para salir se usa la X.
 	auto* back = new QShortcut(QKeySequence(Qt::Key_Escape), this);
 	connect(back, &QShortcut::activated, this, &LobbyWindow::goBack);
 }

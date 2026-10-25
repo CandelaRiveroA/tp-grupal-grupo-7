@@ -11,7 +11,7 @@ MainMenuScreen::MainMenuScreen(QWidget* parent) : Screen(parent) {
 	layout->setContentsMargins(96, 64, 96, 64);
 	layout->addStretch();
 
-	auto* logo = new QLabel("Nombre del juego", this);
+	auto* logo = new QLabel("Stardew Valley", this);
 	logo->setObjectName("gameLogo");
 	layout->addWidget(logo);
 

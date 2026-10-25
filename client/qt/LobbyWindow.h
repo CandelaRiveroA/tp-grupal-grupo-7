@@ -27,19 +27,12 @@ public:
 	std::optional<core::SessionConfig> result() const;
 
 private:
+	QStackedWidget* stack_;
+	std::map<ScreenId, Screen*> screens_;
+	std::optional<core::SessionConfig> selection_;
+	
 	void registerScreen(ScreenId id, Screen* screen);
 	void navigateTo(ScreenId id);
 	void goBack();
-
-	// La llama la pantalla que termina el flujo: fija el resultado, cierra
-	// la ventana y corta app_.exec().
 	void acceptSelection(core::SessionConfig session);
-
-	// Punteros raw: QWidget y derivados no son copiables y Qt gestiona la
-	// jerarquía padre/hijo con punteros internos; es la única opción idiomática.
-	QStackedWidget* stack_;
-	std::map<ScreenId, Screen*> screens_;
-	// La pantalla actual se consulta en stack_->currentWidget(), no se guarda
-	// un puntero duplicado: el stack es la única fuente de verdad.
-	std::optional<core::SessionConfig> selection_;
 };

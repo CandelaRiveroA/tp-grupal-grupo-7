@@ -2,8 +2,7 @@
 
 #include <QWidget>
 
-// Identifica cada página del lobby. El shell las registra y navega por id;
-// las pantallas no se conocen entre sí.
+
 enum class ScreenId {
 	MainMenu,
 	WorldSelect,
@@ -20,7 +19,6 @@ class Screen : public QWidget {
 public:
 	explicit Screen(QWidget* parent = nullptr);
 
-	// Se llaman al entrar y al salir de la página. Vacías en la base.
 	virtual void onEnter();
 	virtual void onExit();
 

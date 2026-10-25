@@ -17,6 +17,7 @@ target_sources(taller_client
     qt/resources/resources.qrc
     qt/screens/MainMenuScreen.cpp
     qt/screens/Screen.cpp
+    qt/screens/WorldSelectScreen.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
     qt/services/WorldService.cpp
@@ -38,6 +39,7 @@ target_sources(taller_client
     qt/LobbyWindow.h
     qt/screens/MainMenuScreen.h
     qt/screens/Screen.h
+    qt/screens/WorldSelectScreen.h
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h

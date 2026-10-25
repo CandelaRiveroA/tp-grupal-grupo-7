@@ -9,12 +9,16 @@
 
 #include "core/WindowConfig.h"
 #include "qt/screens/MainMenuScreen.h"
+#include "qt/screens/WorldSelectScreen.h"
+#include "qt/services/fakes/FakeWorldService.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	: QWidget(parent)
 	, stack_(nullptr)
 	, screens_()
 	, current_(nullptr)
+	, worldService_(nullptr)
+	, world_(std::nullopt)
 	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
 	setFixedSize(1280, 720);
@@ -26,6 +30,12 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 
 	auto* menu = new MainMenuScreen(stack_);
 	registerScreen(ScreenId::MainMenu, menu);
+
+	worldService_ = new FakeWorldService(std::nullopt, this);
+	auto* worlds = new WorldSelectScreen(worldService_, stack_);
+	registerScreen(ScreenId::WorldSelect, worlds);
+	connect(worlds, &WorldSelectScreen::worldChosen, this,
+		&LobbyWindow::onWorldChosen);
 
 	current_ = menu;
 	stack_->setCurrentWidget(menu);
@@ -64,4 +74,10 @@ void LobbyWindow::acceptSelection(core::SessionConfig session) {
 	selection_ = std::move(session);
 	close();
 	QApplication::quit();
+}
+
+void LobbyWindow::onWorldChosen(WorldSummary world) {
+	world_ = std::move(world);
+	// Character todavía no está registrado: navigateTo no hace nada.
+	navigateTo(ScreenId::Character);
 }

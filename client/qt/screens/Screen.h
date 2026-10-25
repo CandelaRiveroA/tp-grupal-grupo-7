@@ -10,6 +10,16 @@ enum class ScreenId {
 	JoinCode,
 };
 
+// Estado de una pantalla que espera datos de un servicio asíncrono.
+// No todas las pantallas usan todos los valores.
+enum class ScreenState {
+	Idle,
+	Loading,
+	Ready,
+	Empty,
+	Error,
+};
+
 // Base de las pantallas del lobby. El shell la muestra dentro de un
 // QStackedWidget y llama a onEnter()/onExit() al cambiar de página.
 class Screen : public QWidget {

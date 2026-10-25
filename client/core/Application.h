@@ -7,9 +7,7 @@
 
 #include <optional>
 
-namespace qt {
 class LobbyWindow;
-}
 
 namespace core {
 

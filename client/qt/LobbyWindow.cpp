@@ -1,105 +1,66 @@
 #include "LobbyWindow.h"
 
-#include <QComboBox>
 #include <QApplication>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QPushButton>
+#include <QShortcut>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
-#include "core/WindowConfig.h"
+#include <utility>
 
-namespace qt {
+#include "core/WindowConfig.h"
+#include "qt/screens/MainMenuScreen.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	: QWidget(parent)
-	, nameEdit_(nullptr)
-	, gamesList_(nullptr)
-	, skinBox_(nullptr)
-	, joinButton_(nullptr)
-	, session_()
-	, confirmed_(false) {
+	, stack_(nullptr)
+	, screens_()
+	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
-	setFixedSize(360, 420);
+	setFixedSize(1280, 720);
 
+	stack_ = new QStackedWidget(this);
 	auto* layout = new QVBoxLayout(this);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->addWidget(stack_);
 
-	// --- Crear partida ---
-	layout->addWidget(new QLabel("Crear partida", this));
-	nameEdit_ = new QLineEdit(this);
-	nameEdit_->setPlaceholderText("Nombre de la partida");
-	layout->addWidget(nameEdit_);
+	auto* menu = new MainMenuScreen(stack_);
+	registerScreen(ScreenId::MainMenu, menu);
 
-	auto* createButton = new QPushButton("Crear", this);
-	layout->addWidget(createButton);
+	stack_->setCurrentWidget(menu);
+	menu->onEnter();
 
-	// --- Unirse a partida existente ---
-	layout->addWidget(new QLabel("Partidas existentes (doble clic para unirse)", this));
-	gamesList_ = new QListWidget(this);
-	layout->addWidget(gamesList_);
-
-	joinButton_ = new QPushButton("Unirme", this);
-	joinButton_->setEnabled(false);
-	layout->addWidget(joinButton_);
-
-	// --- Personaje ---
-	auto* skinRow = new QHBoxLayout();
-	skinRow->addWidget(new QLabel("Personaje", this));
-	skinBox_ = new QComboBox(this);
-	skinBox_->addItems({ "Granjero", "Minero" });
-	skinRow->addWidget(skinBox_, 1);
-	layout->addLayout(skinRow);
-
-	connect(createButton, &QPushButton::clicked, this, &LobbyWindow::createGame);
-	connect(joinButton_, &QPushButton::clicked, this, &LobbyWindow::joinSelectedGame);
-	connect(gamesList_, &QListWidget::itemDoubleClicked, this,
-		[this](QListWidgetItem*) { joinSelectedGame(); });
-	connect(gamesList_, &QListWidget::itemSelectionChanged, this, [this]() {
-		joinButton_->setEnabled(gamesList_->currentItem() != nullptr);
-	});
-	connect(nameEdit_, &QLineEdit::returnPressed, this, &LobbyWindow::createGame);
+	// Esc vuelve al menú. En el menú no hace nada: para salir se usa la X.
+	auto* back = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+	connect(back, &QShortcut::activated, this, &LobbyWindow::goBack);
 }
 
-void LobbyWindow::createGame() {
-	session_.partida = nameEdit_->text().trimmed().toStdString();
-	if (session_.partida.empty()) {
+std::optional<core::SessionConfig> LobbyWindow::result() const {
+	return selection_;
+}
+
+void LobbyWindow::registerScreen(ScreenId id, Screen* screen) {
+	screens_[id] = screen;
+	stack_->addWidget(screen);
+	connect(screen, &Screen::requestNavigate, this, &LobbyWindow::navigateTo);
+}
+
+void LobbyWindow::navigateTo(ScreenId id) {
+	auto it = screens_.find(id);
+	if (it == screens_.end() || it->second == stack_->currentWidget()) {
+		// Destino todavía no implementado: no hay a dónde ir.
 		return;
 	}
 
-	// TODO(protocolo): acá se le pediría al server crear la partida
-	// y validar que el usuario no esté tomado.
-	confirm();
+	// onExit se llama al widget actual (origen), no al destino.
+	stack_->currentWidget()->onExit();
+	stack_->setCurrentWidget(it->second);
+	it->second->onEnter();
 }
 
-void LobbyWindow::joinSelectedGame() {
-	auto* item = gamesList_->currentItem();
-	if (item == nullptr) {
-		return;
-	}
-	session_.partida = item->text().toStdString();
+void LobbyWindow::goBack() { navigateTo(ScreenId::MainMenu); }
 
-	// TODO(protocolo): acá se valida con el server que la partida
-	// exista y que el usuario no esté tomado.
-	confirm();
-}
-
-void LobbyWindow::confirm() {
-	session_.personaje = skinBox_->currentText().toStdString();
-	confirmed_ = true;
+void LobbyWindow::acceptSelection(core::SessionConfig session) {
+	selection_ = std::move(session);
 	close();
 	QApplication::quit();
-}
-
-void LobbyWindow::cancel() {
-	confirmed_ = false;
-	close();
-	QApplication::quit();
-}
-
-bool LobbyWindow::confirmed() const { return confirmed_; }
-
-const core::SessionConfig& LobbyWindow::session() const { return session_; }
-
 }

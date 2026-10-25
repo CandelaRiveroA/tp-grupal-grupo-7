@@ -2,47 +2,44 @@
 
 #include <QWidget>
 
-#include "core/SessionConfig.h"
+#include <map>
+#include <optional>
 
-class QLineEdit;
-class QListWidget;
-class QComboBox;
-class QPushButton;
+#include "core/SessionConfig.h"
+#include "qt/screens/Screen.h"
 
 namespace core {
 class WindowConfig;
 }
 
-namespace qt {
+class QStackedWidget;
 
-// Lobby mínimo (Qt): crear partida o unirse a una existente y elegir
-// personaje. Al confirmar, devuelve el SessionConfig con el que arranca
-// el "main SDL". No tiene lógica de juego ni red.
+// Shell del lobby: contiene las pantallas, navega entre ellas y entrega el
+// resultado a Application. No tiene lógica de juego ni red.
 class LobbyWindow : public QWidget {
 	Q_OBJECT
 
 public:
 	explicit LobbyWindow(const core::WindowConfig& config,
-			    QWidget* parent = nullptr);
+			     QWidget* parent = nullptr);
 
-	// Cierra el lobby y deja la sesión lista para delegar en SDL.
-	void confirm();
-	void cancel();
-
-	bool confirmed() const;
-	const core::SessionConfig& session() const;
+	// Resultado del lobby. Vacío si el usuario cerró sin confirmar.
+	std::optional<core::SessionConfig> result() const;
 
 private:
-	void createGame();
-	void joinSelectedGame();
+	void registerScreen(ScreenId id, Screen* screen);
+	void navigateTo(ScreenId id);
+	void goBack();
 
-	QLineEdit* nameEdit_;
-	QListWidget* gamesList_;
-	QComboBox* skinBox_;
-	QPushButton* joinButton_;
+	// La llama la pantalla que termina el flujo: fija el resultado, cierra
+	// la ventana y corta app_.exec().
+	void acceptSelection(core::SessionConfig session);
 
-	core::SessionConfig session_;
-	bool confirmed_;
+	// Punteros raw: QWidget y derivados no son copiables y Qt gestiona la
+	// jerarquía padre/hijo con punteros internos; es la única opción idiomática.
+	QStackedWidget* stack_;
+	std::map<ScreenId, Screen*> screens_;
+	// La pantalla actual se consulta en stack_->currentWidget(), no se guarda
+	// un puntero duplicado: el stack es la única fuente de verdad.
+	std::optional<core::SessionConfig> selection_;
 };
-
-}

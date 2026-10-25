@@ -50,14 +50,11 @@ int Application::run() {
 
 std::optional<SessionConfig> Application::runLobby() {
 
-	qt::LobbyWindow lobby(config_);
+	LobbyWindow lobby(config_);
 	lobby.show();
 	app_.exec();
 
-	if (!lobby.confirmed()) {
-		return std::nullopt;
-	}
-	return lobby.session();
+	return lobby.result();
 }
 
 int Application::runGame(const SessionConfig& session) {

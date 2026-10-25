@@ -46,28 +46,6 @@ cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
 ```
 
-### Ejecución de los programas
-
-#### Cliente y servidor
-
-El servidor escucha en el puerto indicado y, al aceptar una conexión, envía
-`hola mundo` usando un protocolo. El cliente recibe e imprime ese mensaje.
-
-Con el proyecto compilado, en una terminal ejecutar el servidor:
-
-```sh
-./build/taller_server 8080
-```
-
-En otra terminal ejecutar el cliente:
-
-```sh
-./build/taller_client 127.0.0.1 8080
-```
-
-El primer argumento del servidor es el puerto de escucha. El cliente recibe
-como argumentos el hostname y el puerto del servidor.
-
 #### Editor
 
 Si el editor fue habilitado durante la configuración, ejecutarlo con:

@@ -45,9 +45,3 @@ target_include_directories(taller_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # find_package de arriba): hay que linkearlo con forma keyword (PRIVATE)
 # para que CMake lo resuelva desde acá y no desde la raíz.
 target_link_libraries(taller_client PRIVATE Qt6::Widgets)
-
-# Cliente de consola (prueba de red sin GUI): binario aparte para no
-# duplicar main() con el taller_client.
-add_executable(taller_client_cli client_main.cpp client.cpp)
-target_link_libraries(taller_client_cli PRIVATE taller_common)
-target_include_directories(taller_client_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

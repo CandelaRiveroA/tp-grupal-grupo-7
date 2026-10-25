@@ -2,7 +2,6 @@
 
 #include <QWidget>
 
-
 enum class ScreenId {
 	MainMenu,
 	WorldSelect,

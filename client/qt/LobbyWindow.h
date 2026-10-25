@@ -31,7 +31,7 @@ private:
 	std::map<ScreenId, Screen*> screens_;
 	Screen* current_;
 	std::optional<core::SessionConfig> selection_;
-	
+
 	void registerScreen(ScreenId id, Screen* screen);
 	void navigateTo(ScreenId id);
 	void goBack();

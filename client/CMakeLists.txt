@@ -15,6 +15,8 @@ target_sources(taller_client
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
     qt/resources/resources.qrc
+    qt/screens/MainMenuScreen.cpp
+    qt/screens/Screen.cpp
     qt/util/IndexCycle.cpp
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
@@ -28,6 +30,8 @@ target_sources(taller_client
     core/SessionConfig.h
     core/WindowConfig.h
     qt/LobbyWindow.h
+    qt/screens/MainMenuScreen.h
+    qt/screens/Screen.h
     qt/util/IndexCycle.h
     sdl/GameLoop.h
     sdl/InputManager.h

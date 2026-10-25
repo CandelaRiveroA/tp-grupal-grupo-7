@@ -17,6 +17,9 @@ target_sources(taller_client
     qt/resources/resources.qrc
     qt/screens/MainMenuScreen.cpp
     qt/screens/Screen.cpp
+    qt/services/SaveService.cpp
+    qt/services/SessionService.cpp
+    qt/services/WorldService.cpp
     qt/util/IndexCycle.cpp
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
@@ -32,6 +35,10 @@ target_sources(taller_client
     qt/LobbyWindow.h
     qt/screens/MainMenuScreen.h
     qt/screens/Screen.h
+    qt/services/SaveService.h
+    qt/services/ServiceError.h
+    qt/services/SessionService.h
+    qt/services/WorldService.h
     qt/util/IndexCycle.h
     sdl/GameLoop.h
     sdl/InputManager.h

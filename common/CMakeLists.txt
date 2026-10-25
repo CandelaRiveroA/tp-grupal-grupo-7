@@ -7,6 +7,7 @@ target_sources(taller_common
     common_socket.cpp
     common_protocol_sender.cpp
     common_protocol_receiver.cpp
+    common_worker.cpp
     PUBLIC
     # .h files
     common_liberror.h
@@ -17,4 +18,6 @@ target_sources(taller_common
     common_command.h
     common_protocol_sender.h
     common_protocol_receiver.h
+    common_server_status.h
+    common_worker.h
     )

@@ -7,6 +7,7 @@
 #include <string>
 
 #include "common_command.h"
+#include "common_server_status.h"
 #include "common_socket.h"
 
 class ProtocolReceiver {
@@ -29,9 +30,11 @@ private:
     static Direction direction_from_byte(uint8_t value);
 
 public:
+    explicit ProtocolReceiver(Socket& socket);
     ProtocolReceiver(Socket& socket, PlayerId expected_player_id);
 
     std::optional<Command> receive_command();
+    ServerStatus receive_server_status();
 };
 
 #endif

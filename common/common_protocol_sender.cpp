@@ -63,3 +63,14 @@ void ProtocolSender::send_move_command(PlayerId player_id, uint8_t x, uint8_t y,
     send_uint8(y);
     send_uint8(static_cast<uint8_t>(direction));
 }
+
+void ProtocolSender::send_server_status(const ServerStatus& status) {
+    validate_player_id(status.player_id);
+    validate_direction(status.direction);
+
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Status));
+    send_uint8(status.player_id);
+    send_uint8(status.x);
+    send_uint8(status.y);
+    send_uint8(static_cast<uint8_t>(status.direction));
+}

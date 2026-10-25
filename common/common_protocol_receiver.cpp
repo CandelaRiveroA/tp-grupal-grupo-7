@@ -5,6 +5,8 @@
 
 #include <arpa/inet.h>
 
+ProtocolReceiver::ProtocolReceiver(Socket& socket): socket(socket), expected_player_id(0) {}
+
 ProtocolReceiver::ProtocolReceiver(Socket& socket, PlayerId expected_player_id):
         socket(socket),
         expected_player_id(expected_player_id),
@@ -70,7 +72,7 @@ Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
 Command ProtocolReceiver::receive_move_command() {
     const PlayerId player_id = receive_uint8();
     validate_player_id(player_id);
-    if (player_id != expected_player_id) {
+    if (expected_player_id != 0 && player_id != expected_player_id) {
         throw std::invalid_argument("El comando no pertenece al jugador de la conexion.");
     }
 
@@ -93,4 +95,18 @@ std::optional<Command> ProtocolReceiver::receive_command() {
     }
 
     return (this->*(receiver->second))();
+}
+
+ServerStatus ProtocolReceiver::receive_server_status() {
+    const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
+    if (type != ServerMessageType::Status) {
+        throw std::invalid_argument("El tipo de mensaje del servidor no es valido.");
+    }
+
+    const PlayerId player_id = receive_uint8();
+    validate_player_id(player_id);
+    const uint8_t x = receive_uint8();
+    const uint8_t y = receive_uint8();
+    const Direction direction = direction_from_byte(receive_uint8());
+    return ServerStatus(player_id, x, y, direction);
 }

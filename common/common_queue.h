@@ -7,6 +7,7 @@
 #include <mutex>
 #include <queue>
 #include <stdexcept>
+#include <utility>
 
 struct ClosedQueue: public std::runtime_error {
     ClosedQueue(): std::runtime_error("The queue is closed") {}
@@ -60,6 +61,25 @@ public:
         return true;
     }
 
+    bool try_push(T&& val) {
+        std::unique_lock<std::mutex> lck(mtx);
+
+        if (closed) {
+            throw ClosedQueue();
+        }
+
+        if (q.size() == this->max_size) {
+            return false;
+        }
+
+        if (q.empty()) {
+            is_not_empty.notify_all();
+        }
+
+        q.push(std::move(val));
+        return true;
+    }
+
     bool try_pop(T& val) {
         std::unique_lock<std::mutex> lck(mtx);
 
@@ -74,7 +94,7 @@ public:
             is_not_full.notify_all();
         }
 
-        val = q.front();
+        val = std::move(q.front());
         q.pop();
         return true;
     }
@@ -86,8 +106,10 @@ public:
             throw ClosedQueue();
         }
 
-        while (q.size() == this->max_size) {
-            is_not_full.wait(lck);
+        is_not_full.wait(lck, [this] { return closed || q.size() < max_size; });
+        // cppcheck-suppress knownConditionTrueFalse
+        if (closed) {
+            throw ClosedQueue();
         }
 
         if (q.empty()) {
@@ -95,6 +117,26 @@ public:
         }
 
         q.push(val);
+    }
+
+    void push(T&& val) {
+        std::unique_lock<std::mutex> lck(mtx);
+
+        if (closed) {
+            throw ClosedQueue();
+        }
+
+        is_not_full.wait(lck, [this] { return closed || q.size() < max_size; });
+        // cppcheck-suppress knownConditionTrueFalse
+        if (closed) {
+            throw ClosedQueue();
+        }
+
+        if (q.empty()) {
+            is_not_empty.notify_all();
+        }
+
+        q.push(std::move(val));
     }
 
 
@@ -112,7 +154,7 @@ public:
             is_not_full.notify_all();
         }
 
-        T const val = q.front();
+        T val = std::move(q.front());
         q.pop();
 
         return val;
@@ -127,6 +169,7 @@ public:
 
         closed = true;
         is_not_empty.notify_all();
+        is_not_full.notify_all();
     }
 
 private:

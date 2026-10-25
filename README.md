@@ -25,14 +25,15 @@ Luego compilar todos los targets habilitados:
 cmake --build build
 ```
 
-La configuración por defecto habilita el cliente, el servidor, el editor y
-los tests. Para una compilación más rápida se pueden deshabilitar los
-componentes que no se necesitan:
+La configuración por defecto habilita el cliente, el editor y los tests. El
+servidor todavía no tiene un ejecutable integrado, por lo que permanece
+deshabilitado hasta completar la etapa de integración. Para una compilación
+más rápida se pueden deshabilitar los componentes que no se necesitan:
 
 ```sh
 cmake -S . -B build \
   -DTALLER_CLIENT=ON \
-  -DTALLER_SERVER=ON \
+  -DTALLER_SERVER=OFF \
   -DTALLER_EDITOR=OFF \
   -DTALLER_TESTS=OFF \
   -DCMAKE_BUILD_TYPE=Debug

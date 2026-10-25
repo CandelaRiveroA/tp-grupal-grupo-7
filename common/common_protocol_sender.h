@@ -5,6 +5,7 @@
 #include <string>
 
 #include "common_command_types.h"
+#include "common_server_status.h"
 #include "common_socket.h"
 
 class ProtocolSender {
@@ -25,6 +26,7 @@ public:
     explicit ProtocolSender(Socket& socket);
 
     void send_move_command(PlayerId player_id, uint8_t x, uint8_t y, Direction direction);
+    void send_server_status(const ServerStatus& status);
 };
 
 #endif

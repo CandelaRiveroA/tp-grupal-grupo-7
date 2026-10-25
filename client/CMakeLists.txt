@@ -11,6 +11,8 @@ target_sources(taller_client
     PRIVATE
     # .cpp files
     main.cpp
+    client_sender.cpp
+    client_receiver.cpp
     core/Application.cpp
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
@@ -24,6 +26,8 @@ target_sources(taller_client
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
     core/SessionConfig.h
+    client_sender.h
+    client_receiver.h
     core/WindowConfig.h
     qt/LobbyWindow.h
     sdl/GameLoop.h

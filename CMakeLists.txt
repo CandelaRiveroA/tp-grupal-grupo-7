@@ -12,13 +12,13 @@ set(CMAKE_CXX_EXTENSIONS ON)
 
 project(taller_tp
     VERSION 1.0
-    HOMEPAGE_URL "https://github.com/URL-HERE"
+    HOMEPAGE_URL "https://github.com/CandelaRiveroA/tp-grupal-grupo-7"
     LANGUAGES CXX
     )
 
 option(TALLER_TESTS "Enable / disable tests." ON)
 option(TALLER_CLIENT "Enable / disable client program." ON)
-option(TALLER_SERVER "Enable / disable server program." ON)
+option(TALLER_SERVER "Enable / disable server program." OFF)
 option(TALLER_EDITOR "Enable / disable editor program." ON)
 option(TALLER_MAKE_WARNINGS_AS_ERRORS "Enable / disable warnings as errors." ON)
 
@@ -40,7 +40,9 @@ set_project_warnings(taller_common ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 # Say where the headers will be found required by library target
 # Make this PUBLIC so any dependant linking lib will inherit this
 # location (so our dependants will not have to explicitly request this)
-target_include_directories(taller_common PUBLIC .)
+# "." permite "#include \"common/foo.h\""; "common" permite el estilo corto
+# "#include \"common_foo.h\"" que usan client/ y server/.
+target_include_directories(taller_common PUBLIC . common)
 
 # HEY!! TODO XXX: you need to install some runtime and dev libraries *before*
 # compiling the client/editor code.

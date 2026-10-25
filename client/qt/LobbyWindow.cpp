@@ -14,6 +14,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	: QWidget(parent)
 	, stack_(nullptr)
 	, screens_()
+	, current_(nullptr)
 	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
 	setFixedSize(1280, 720);
@@ -26,6 +27,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	auto* menu = new MainMenuScreen(stack_);
 	registerScreen(ScreenId::MainMenu, menu);
 
+	current_ = menu;
 	stack_->setCurrentWidget(menu);
 	menu->onEnter();
 
@@ -45,15 +47,15 @@ void LobbyWindow::registerScreen(ScreenId id, Screen* screen) {
 
 void LobbyWindow::navigateTo(ScreenId id) {
 	auto it = screens_.find(id);
-	if (it == screens_.end() || it->second == stack_->currentWidget()) {
+	if (it == screens_.end() || it->second == current_) {
 		// Destino todavía no implementado: no hay a dónde ir.
 		return;
 	}
 
-	// onExit se llama al widget actual (origen), no al destino.
-	stack_->currentWidget()->onExit();
-	stack_->setCurrentWidget(it->second);
-	it->second->onEnter();
+	current_->onExit();
+	current_ = it->second;
+	stack_->setCurrentWidget(current_);
+	current_->onEnter();
 }
 
 void LobbyWindow::goBack() { navigateTo(ScreenId::MainMenu); }

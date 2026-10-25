@@ -12,9 +12,14 @@ struct SavePlayer {
 };
 
 // Resumen de una partida guardada, para la pantalla "Retomar".
-// En multiplayer hay más de un jugador.
 struct SaveSummary {
+	// Identifica la partida al cargarla. No se muestra en la UI.
+	std::uint32_t id = 0;
+	// Mundo en el que vive la partida. Tampoco se muestra: lo necesita SDL
+	// para armar el GameSelection al retomar.
+	std::uint32_t worldId = 0;
 	std::string gameName;
+	// En multiplayer hay más de un jugador. El primero es el jugador local.
 	std::vector<SavePlayer> players;
 	bool multiplayer = false;
 	std::string inGameDate;

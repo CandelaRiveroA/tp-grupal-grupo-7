@@ -15,6 +15,7 @@ target_sources(taller_client
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
     qt/resources/resources.qrc
+    qt/util/IndexCycle.cpp
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
     sdl/SdlContext.cpp
@@ -27,6 +28,7 @@ target_sources(taller_client
     core/SessionConfig.h
     core/WindowConfig.h
     qt/LobbyWindow.h
+    qt/util/IndexCycle.h
     sdl/GameLoop.h
     sdl/InputManager.h
     sdl/SdlContext.h

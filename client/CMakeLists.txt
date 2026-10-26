@@ -16,6 +16,7 @@ target_sources(taller_client
     qt/LobbyWindow.cpp
     qt/resources/resources.qrc
     qt/screens/CharacterScreen.cpp
+    qt/screens/JoinCodeScreen.cpp
     qt/screens/MainMenuScreen.cpp
     qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
@@ -45,6 +46,7 @@ target_sources(taller_client
     core/WindowConfig.h
     qt/LobbyWindow.h
     qt/screens/CharacterScreen.h
+    qt/screens/JoinCodeScreen.h
     qt/screens/MainMenuScreen.h
     qt/screens/SaveListScreen.h
     qt/screens/Screen.h

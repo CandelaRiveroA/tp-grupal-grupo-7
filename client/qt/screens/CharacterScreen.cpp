@@ -45,7 +45,15 @@ CharacterScreen::CharacterScreen(SessionService* session,
 }
 
 void CharacterScreen::startNewGame(const WorldSummary& world) {
+	mode_ = Mode::NewGame;
 	world_ = world;
+	resetDraft();
+}
+
+void CharacterScreen::startJoinGame(const std::string& gameName) {
+	mode_ = Mode::JoinGame;
+	selection_.gameName = gameName;
+	world_ = std::nullopt;
 	resetDraft();
 }
 
@@ -105,7 +113,9 @@ void CharacterScreen::buildUi() {
 	backButton_ = new QPushButton("Volver", this);
 	backButton_->setObjectName("backButton");
 	connect(backButton_, &QPushButton::clicked, this, [this]() {
-		emit requestNavigate(ScreenId::WorldSelect);
+		emit requestNavigate(mode_ == Mode::JoinGame
+					      ? ScreenId::JoinCode
+					      : ScreenId::WorldSelect);
 	});
 	buttons->addStretch();
 	buttons->addWidget(backButton_);
@@ -153,6 +163,7 @@ QWidget* CharacterScreen::makeFormColumn() {
 	nameLabel->setMinimumWidth(110);
 	nameRow->addWidget(nameLabel);
 	characterName_ = new QLineEdit(column);
+	characterName_->setObjectName("characterInput");
 	characterName_->setMaxLength(16);
 	characterName_->setMaximumWidth(420);
 	characterName_->setPlaceholderText("Nombre del personaje");
@@ -164,6 +175,7 @@ QWidget* CharacterScreen::makeFormColumn() {
 	gameLabel->setMinimumWidth(110);
 	gameRow->addWidget(gameLabel);
 	gameName_ = new QLineEdit(column);
+	gameName_->setObjectName("gameInput");
 	gameName_->setMaxLength(20);
 	gameName_->setMaximumWidth(420);
 	gameName_->setPlaceholderText("Nombre de la partida");
@@ -171,6 +183,7 @@ QWidget* CharacterScreen::makeFormColumn() {
 	layout->addLayout(gameRow);
 
 	worldLabel_ = new QLabel(column);
+	worldLabel_->setObjectName("worldLabel");
 	layout->addWidget(worldLabel_);
 
 	layout->addSpacing(16);
@@ -317,7 +330,20 @@ void CharacterScreen::updateValidation() {
 }
 
 void CharacterScreen::submit() {
-	if (submitting_ || !canSubmit() || !world_.has_value()) {
+	if (submitting_ || !canSubmit()) {
+		return;
+	}
+
+	if (mode_ == Mode::JoinGame) {
+		// La sesión ya se unió al aceptar el código: acá solo queda
+		// confirmar el personaje. TODO con protocolo: confirmar cómo
+		// viaja el personaje del joiner (ver
+		// docs/ui/plan-e2-servicios.md).
+		emit characterConfirmed(selection_);
+		return;
+	}
+
+	if (!world_.has_value()) {
 		return;
 	}
 
@@ -338,16 +364,35 @@ void CharacterScreen::onCreated() {
 }
 
 void CharacterScreen::onSessionFailed(ServiceError error) {
+	if (!submitting_) {
+		// Falló otro pedido (unirse, cargar): no es error de esta
+		// pantalla.
+		return;
+	}
 	submitting_ = false;
 	showState(ScreenState::Error, messageFor(error));
 }
 
 void CharacterScreen::resetDraft() {
+	// En modo unirse el nombre de la partida lo puso el server: fuera del
+	// draft, queda como info read-only de a qué partida entraste. La
+	// granja no se customiza (el enunciado: "sin poder customizar la
+	// granja"): sin campo editable y sin rastro del mundo.
+	const std::string joinedName =
+		mode_ == Mode::JoinGame ? selection_.gameName : std::string();
 	selection_ = CharacterSelection{};
 	submitting_ = false;
 
 	characterName_->clear();
 	gameName_->clear();
+
+	gameName_->setReadOnly(mode_ == Mode::JoinGame);
+	worldLabel_->setVisible(mode_ != Mode::JoinGame);
+	if (mode_ == Mode::JoinGame) {
+		selection_.gameName = joinedName;
+		const QSignalBlocker blocker(gameName_);
+		gameName_->setText(QString::fromStdString(joinedName));
+	}
 
 	if (world_.has_value()) {
 		worldLabel_->setText(
@@ -356,6 +401,8 @@ void CharacterScreen::resetDraft() {
 	} else {
 		worldLabel_->clear();
 	}
+
+	create_->setText(mode_ == Mode::JoinGame ? "Aceptar" : "Crear");
 
 	showState(ScreenState::Ready, QString());
 	applyDraft();
@@ -375,6 +422,10 @@ void CharacterScreen::showState(ScreenState state, const QString& message) {
 }
 
 bool CharacterScreen::canSubmit() const {
+	if (mode_ == Mode::JoinGame) {
+		// Solo el personaje: la partida y el mundo ya están definidos.
+		return !selection_.characterName.empty();
+	}
 	return world_.has_value() && !selection_.characterName.empty() &&
 	       !selection_.gameName.empty();
 }

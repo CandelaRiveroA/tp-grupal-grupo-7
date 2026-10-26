@@ -9,6 +9,7 @@
 
 #include "core/WindowConfig.h"
 #include "qt/screens/CharacterScreen.h"
+#include "qt/screens/JoinCodeScreen.h"
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/SaveListScreen.h"
 #include "qt/screens/WorldSelectScreen.h"
@@ -44,6 +45,11 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 
 	auto* sessionService = new FakeSessionService(std::nullopt, this);
 	auto* catalog = new FakeAssetCatalog(this);
+
+	auto* joins = new JoinCodeScreen(sessionService, stack_);
+	registerScreen(ScreenId::JoinCode, joins);
+	connect(joins, &JoinCodeScreen::joinAccepted, this,
+		&LobbyWindow::onJoinAccepted);
 
 	auto* saveService = new FakeSaveService(std::nullopt, this);
 	auto* saves =
@@ -115,4 +121,12 @@ void LobbyWindow::onSaveLoaded(SaveSummary save) {
 		save.players.empty() ? std::string()
 				     : save.players.front().name;
 	acceptSelection(core::SessionConfig{save.gameName, character});
+}
+
+void LobbyWindow::onJoinAccepted(std::string gameName) {
+	// Solo queda customizar el personaje: la partida y el mundo ya los
+	// definió el anfitrión. El worldId del server no nos alcanza acá.
+	// TODO con protocolo: cómo viaja el personaje del joiner al server.
+	character_->startJoinGame(gameName);
+	navigateTo(ScreenId::Character);
 }

@@ -42,6 +42,11 @@ public:
 	// El shell llama antes de navegar: fija el mundo y limpia el borrador.
 	void startNewGame(const WorldSummary& world);
 
+	// El shell llama antes de navegar: la partida y el mundo ya los definió
+	// el anfitrión; solo queda customizar el personaje. Volver lleva a la
+	// pantalla del código.
+	void startJoinGame(const std::string& gameName);
+
 	void onEnter() override;
 
 signals:
@@ -66,6 +71,13 @@ private:
 
 	CharacterSelection selection_;
 	std::optional<WorldSummary> world_;
+
+	// Modo de la pantalla: nueva partida (partida + mundo a cargo del
+	// jugador) o unirse (partida y mundo ya definidos por el anfitrión).
+	enum class Mode { NewGame, JoinGame };
+
+	Mode mode_ = Mode::NewGame;
+	// Un createGame en vuelo: bloquea reenvío y respuestas ajenas.
 	bool submitting_ = false;
 
 	static constexpr int kWindowMaxWidth = 960;

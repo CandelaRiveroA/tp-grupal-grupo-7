@@ -4,6 +4,7 @@
 
 #include <map>
 #include <optional>
+#include <string>
 
 #include "common/model/draft/WorldSummary.h"
 #include "core/SessionConfig.h"
@@ -45,4 +46,5 @@ private:
 	void onWorldChosen(WorldSummary world);
 	void onCharacterConfirmed(CharacterSelection selection);
 	void onSaveLoaded(SaveSummary save);
+	void onJoinAccepted(std::string gameName);
 };

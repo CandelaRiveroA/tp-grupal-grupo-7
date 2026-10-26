@@ -1,7 +1,7 @@
 #ifndef ITEM_H
 #define ITEM_H
 
-#include "Item_Types.h"
+#include "item_types.h"
 
 class Item {
 protected:

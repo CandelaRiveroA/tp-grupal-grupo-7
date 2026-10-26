@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <cstdint>
-#include "Item.h"
+#include "item.h"
 
 struct Slot {
     std::unique_ptr<Item> item;

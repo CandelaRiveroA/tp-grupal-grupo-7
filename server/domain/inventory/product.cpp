@@ -1,4 +1,4 @@
-#include "Product.h"
+#include "product.h"
 #include <typeinfo> // para que es el type info
 
 Product::Product(ItemID id, uint16_t base_price, Quality quality) 

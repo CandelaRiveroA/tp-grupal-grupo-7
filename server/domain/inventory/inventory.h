@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
-#include "Slot.h"
-#include "Item.h"
+#include "slot.h"
+#include "item.h"
 
 class Inventory {
 private:

@@ -1,4 +1,4 @@
-#include "Inventory.h"
+#include "inventory.h"
 #include <utility>
 
 Inventory::Inventory(uint8_t max) : max_slots(max) {

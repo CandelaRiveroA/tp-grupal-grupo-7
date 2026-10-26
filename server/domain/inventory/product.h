@@ -1,7 +1,7 @@
 #ifndef PRODUCT_H
 #define PRODUCT_H
 
-#include "Item.h"
+#include "item.h"
 #include <cstdint>
 
 class Product : public Item {

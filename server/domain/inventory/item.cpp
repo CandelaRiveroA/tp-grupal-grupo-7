@@ -1,4 +1,4 @@
-#include "Item.h"
+#include "item.h"
 
 Item::Item(ItemID id, bool tradable) : id(id), is_tradable(tradable) {}
 

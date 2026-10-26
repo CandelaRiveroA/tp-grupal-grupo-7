@@ -8,6 +8,7 @@
 #include "common/model/draft/WorldSummary.h"
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
+#include "qt/widgets/AsyncStateView.h"
 
 class QButtonGroup;
 class QGridLayout;
@@ -40,6 +41,7 @@ private:
 	QLabel* status_;
 	QPushButton* retry_;
 	QPushButton* continue_;
+	AsyncStateView states_;
 
 	std::vector<WorldSummary> worlds_;
 	std::uint32_t selectedWorldId_ = 0;

@@ -29,6 +29,7 @@ target_sources(taller_client
     qt/services/fakes/FakeWorldService.cpp
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
+    qt/widgets/AsyncStateView.cpp
     qt/widgets/CharacterPreview.cpp
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
@@ -59,6 +60,7 @@ target_sources(taller_client
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
+    qt/widgets/AsyncStateView.h
     qt/widgets/CharacterPreview.h
     sdl/GameLoop.h
     sdl/InputManager.h

@@ -26,7 +26,8 @@ WorldSelectScreen::WorldSelectScreen(WorldService* service, QWidget* parent)
 	, group_(nullptr)
 	, status_(nullptr)
 	, retry_(nullptr)
-	, continue_(nullptr) {
+	, continue_(nullptr)
+	, states_() {
 	setObjectName("worldSelect");
 
 	auto* layout = new QVBoxLayout(this);
@@ -94,6 +95,12 @@ WorldSelectScreen::WorldSelectScreen(WorldService* service, QWidget* parent)
 		&WorldSelectScreen::showWorlds);
 	connect(service_, &WorldService::worldsFailed, this,
 		&WorldSelectScreen::showError);
+
+	states_.bind(ScreenState::Ready, scroll_);
+	states_.bind(ScreenState::Loading, status_);
+	states_.bind(ScreenState::Empty, status_);
+	states_.bind(ScreenState::Error, status_);
+	states_.bind(ScreenState::Error, retry_);
 }
 
 void WorldSelectScreen::onEnter() {
@@ -149,15 +156,12 @@ void WorldSelectScreen::showError(ServiceError error) {
 }
 
 void WorldSelectScreen::showState(ScreenState state, const QString& message) {
-	const bool ready = state == ScreenState::Ready;
-
-	scroll_->setVisible(ready);
-	status_->setVisible(!ready);
-	if (!ready) {
+	if (state != ScreenState::Ready) {
 		status_->setText(message);
 	}
-	retry_->setVisible(state == ScreenState::Error);
-	continue_->setEnabled(ready && selectedWorldId_ != 0);
+	states_.setState(state);
+	continue_->setEnabled(state == ScreenState::Ready &&
+			      selectedWorldId_ != 0);
 }
 
 void WorldSelectScreen::clearCards() {

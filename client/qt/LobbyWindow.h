@@ -16,6 +16,7 @@ class WindowConfig;
 class CharacterScreen;
 class QStackedWidget;
 struct CharacterSelection;
+struct SaveSummary;
 
 // Shell del lobby: contiene las pantallas, navega entre ellas y entrega el
 // resultado a Application. No tiene lógica de juego ni red.
@@ -43,4 +44,5 @@ private:
 	void acceptSelection(core::SessionConfig session);
 	void onWorldChosen(WorldSummary world);
 	void onCharacterConfirmed(CharacterSelection selection);
+	void onSaveLoaded(SaveSummary save);
 };

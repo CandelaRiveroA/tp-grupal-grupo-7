@@ -10,8 +10,10 @@
 #include "core/WindowConfig.h"
 #include "qt/screens/CharacterScreen.h"
 #include "qt/screens/MainMenuScreen.h"
+#include "qt/screens/SaveListScreen.h"
 #include "qt/screens/WorldSelectScreen.h"
 #include "qt/services/fakes/FakeAssetCatalog.h"
+#include "qt/services/fakes/FakeSaveService.h"
 #include "qt/services/fakes/FakeSessionService.h"
 #include "qt/services/fakes/FakeWorldService.h"
 
@@ -42,6 +44,15 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 
 	auto* sessionService = new FakeSessionService(std::nullopt, this);
 	auto* catalog = new FakeAssetCatalog(this);
+
+	auto* saveService = new FakeSaveService(std::nullopt, this);
+	auto* saves =
+		new SaveListScreen(saveService, sessionService, catalog,
+				   stack_);
+	registerScreen(ScreenId::SaveList, saves);
+	connect(saves, &SaveListScreen::saveLoaded, this,
+		&LobbyWindow::onSaveLoaded);
+
 	character_ = new CharacterScreen(sessionService, catalog, stack_);
 	registerScreen(ScreenId::Character, character_);
 	connect(character_, &CharacterScreen::characterConfirmed, this,
@@ -94,4 +105,14 @@ void LobbyWindow::onWorldChosen(WorldSummary world) {
 void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
 	acceptSelection(core::SessionConfig{selection.gameName,
 					    selection.characterName});
+}
+
+void LobbyWindow::onSaveLoaded(SaveSummary save) {
+	// El jugador local al retomar es el primero de la partida guardada.
+	// TODO con protocolo: confirmar cómo se identifica al jugador que
+	// pide la carga.
+	const std::string character =
+		save.players.empty() ? std::string()
+				     : save.players.front().name;
+	acceptSelection(core::SessionConfig{save.gameName, character});
 }

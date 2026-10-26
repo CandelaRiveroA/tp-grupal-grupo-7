@@ -17,6 +17,7 @@ target_sources(taller_client
     qt/resources/resources.qrc
     qt/screens/CharacterScreen.cpp
     qt/screens/MainMenuScreen.cpp
+    qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
     qt/screens/WorldSelectScreen.cpp
     qt/services/AssetCatalog.cpp
@@ -45,6 +46,7 @@ target_sources(taller_client
     qt/LobbyWindow.h
     qt/screens/CharacterScreen.h
     qt/screens/MainMenuScreen.h
+    qt/screens/SaveListScreen.h
     qt/screens/Screen.h
     qt/screens/WorldSelectScreen.h
     qt/services/AssetCatalog.h

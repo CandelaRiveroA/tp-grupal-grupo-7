@@ -32,6 +32,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 
 	auto* menu = new MainMenuScreen(stack_);
 	registerScreen(ScreenId::MainMenu, menu);
+	connect(menu, &MainMenuScreen::exitRequested, this, &QWidget::close);
 
 	auto* worldService = new FakeWorldService(std::nullopt, this);
 	auto* worlds = new WorldSelectScreen(worldService, stack_);

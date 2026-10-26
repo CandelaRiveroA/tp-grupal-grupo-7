@@ -22,6 +22,10 @@ public:
     Inventory& operator=(Inventory&&) = default;
 
     bool add_item(std::unique_ptr<Item> new_item);
+    bool is_slot_empty(uint8_t index) const;
+    const Item* peek_item(uint8_t index) const;
+    uint8_t get_amount(uint8_t index) const;
+    
 };
 
 #endif // INVENTORY_H

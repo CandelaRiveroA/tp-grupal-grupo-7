@@ -22,3 +22,5 @@ bool Product::is_stackable_with(const Item& other) const {
     // Si por algún motivo 'other' no fuera un Product (raro, porque tendrían distinto ID), retorna false.
     return other_prod != nullptr && this->quality == other_prod->quality;
 }
+
+Quality Product::get_quality() const { return this->quality; }

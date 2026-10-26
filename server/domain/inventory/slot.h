@@ -17,6 +17,7 @@ struct Slot {
     Slot& operator=(Slot&&) = default;
 
     bool is_empty() const;
+    bool is_full() const;
 };
 
 #endif // SLOT_H

@@ -16,6 +16,7 @@ public:
     uint16_t get_final_price() const;
 
     bool is_stackable_with(const Item& other) const override;
+    Quality get_quality() const;
 };
 
 #endif // PRODUCT_H

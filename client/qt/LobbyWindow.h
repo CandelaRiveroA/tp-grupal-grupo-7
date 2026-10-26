@@ -13,7 +13,9 @@ namespace core {
 class WindowConfig;
 }
 
+class CharacterScreen;
 class QStackedWidget;
+struct CharacterSelection;
 
 // Shell del lobby: contiene las pantallas, navega entre ellas y entrega el
 // resultado a Application. No tiene lógica de juego ni red.
@@ -31,7 +33,8 @@ private:
 	QStackedWidget* stack_;
 	std::map<ScreenId, Screen*> screens_;
 	Screen* current_;
-	std::optional<WorldSummary> world_;
+	// Se usa después de construirla: recibe el mundo antes de navegar.
+	CharacterScreen* character_;
 	std::optional<core::SessionConfig> selection_;
 
 	void registerScreen(ScreenId id, Screen* screen);
@@ -39,4 +42,5 @@ private:
 	void goBack();
 	void acceptSelection(core::SessionConfig session);
 	void onWorldChosen(WorldSummary world);
+	void onCharacterConfirmed(CharacterSelection selection);
 };

@@ -15,16 +15,21 @@ target_sources(taller_client
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
     qt/resources/resources.qrc
+    qt/screens/CharacterScreen.cpp
     qt/screens/MainMenuScreen.cpp
     qt/screens/Screen.cpp
     qt/screens/WorldSelectScreen.cpp
+    qt/services/AssetCatalog.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
     qt/services/WorldService.cpp
+    qt/services/fakes/FakeAssetCatalog.cpp
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
+    qt/widgets/CharacterPreview.cpp
     sdl/GameLoop.cpp
     sdl/InputManager.cpp
     sdl/SdlContext.cpp
@@ -37,18 +42,24 @@ target_sources(taller_client
     core/SessionConfig.h
     core/WindowConfig.h
     qt/LobbyWindow.h
+    qt/screens/CharacterScreen.h
     qt/screens/MainMenuScreen.h
     qt/screens/Screen.h
     qt/screens/WorldSelectScreen.h
+    qt/services/AssetCatalog.h
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h
     qt/services/WorldService.h
+    qt/services/fakes/FakeAssetCatalog.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/util/CharacterLayer.h
+    qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
+    qt/widgets/CharacterPreview.h
     sdl/GameLoop.h
     sdl/InputManager.h
     sdl/SdlContext.h

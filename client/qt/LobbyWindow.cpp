@@ -8,8 +8,11 @@
 #include <utility>
 
 #include "core/WindowConfig.h"
+#include "qt/screens/CharacterScreen.h"
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/WorldSelectScreen.h"
+#include "qt/services/fakes/FakeAssetCatalog.h"
+#include "qt/services/fakes/FakeSessionService.h"
 #include "qt/services/fakes/FakeWorldService.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
@@ -17,7 +20,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	, stack_(nullptr)
 	, screens_()
 	, current_(nullptr)
-	, world_(std::nullopt)
+	, character_(nullptr)
 	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
 	setFixedSize(1280, 720);
@@ -35,6 +38,13 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	registerScreen(ScreenId::WorldSelect, worlds);
 	connect(worlds, &WorldSelectScreen::worldChosen, this,
 		&LobbyWindow::onWorldChosen);
+
+	auto* sessionService = new FakeSessionService(std::nullopt, this);
+	auto* catalog = new FakeAssetCatalog(this);
+	character_ = new CharacterScreen(sessionService, catalog, stack_);
+	registerScreen(ScreenId::Character, character_);
+	connect(character_, &CharacterScreen::characterConfirmed, this,
+		&LobbyWindow::onCharacterConfirmed);
 
 	current_ = menu;
 	stack_->setCurrentWidget(menu);
@@ -76,7 +86,11 @@ void LobbyWindow::acceptSelection(core::SessionConfig session) {
 }
 
 void LobbyWindow::onWorldChosen(WorldSummary world) {
-	world_ = std::move(world);
-	// Character todavía no está registrado: navigateTo no hace nada.
+	character_->startNewGame(world);
 	navigateTo(ScreenId::Character);
+}
+
+void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
+	acceptSelection(core::SessionConfig{selection.gameName,
+					    selection.characterName});
 }

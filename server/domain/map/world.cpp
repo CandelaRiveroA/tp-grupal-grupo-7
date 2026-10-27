@@ -44,11 +44,8 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // MOVIMIENTO DEL JUGADOR
 // ---------------------------------------------------------
 void World::move_player(uint8_t player_id, Direction dir) {
-    // Buscamos al jugador por ID.
-    // En el futuro será importante para saber si se desconectó y no está en el mapa.
     Player& p = *this->players.at(player_id);
     
-    // Siempre actualizamos hacia dónde mira antes de moverlo
     p.set_facing(dir);
 
     // Calculamos qué coordenada tiene enfrente ahora mismo
@@ -58,6 +55,11 @@ void World::move_player(uint8_t player_id, Direction dir) {
     if (this->can_walk_to(next_x, next_y)) {
         // Finalmente, movemos fsicamente al jugador
         p.set_position(next_x, next_y);
+        Cell& current_cell = this->grid[next_y][next_x];
+        
+        if (!current_cell.is_empty()) {
+            current_cell.entity->interact(p, ToolType::HAND, *this);
+        }
     }
 }
 

@@ -30,7 +30,7 @@ public:
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
     
     // Método para que las entidades se actualicen en cada frame del GameLoop.
-    virtual void update() {}
+    virtual void update();
 };
 
 #endif // IENTITY_H

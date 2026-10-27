@@ -20,7 +20,6 @@ void ProtocolSender::send_uint16(uint16_t value) {
     }
 }
 
-// cppcheck-suppress unusedPrivateFunction
 void ProtocolSender::send_string(const std::string& value) {
     if (value.size() > std::numeric_limits<uint16_t>::max()) {
         throw std::length_error("La cadena del protocolo es demasiado larga.");

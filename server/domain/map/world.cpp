@@ -1,7 +1,9 @@
 #include "world.h"
-#include <stdexcept>
 
-World::World(uint16_t w, uint16_t h) : width(w), height(h) {
+#include <stdexcept>
+#include <utility>
+
+World::World(uint16_t w, uint16_t h): width(w), height(h) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -16,7 +18,7 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
     if (x >= this->width || y >= this->height) {
         return false;
     }
-    
+
     const Cell& target_cell = this->grid[y][x];
 
     // 2. ¿Es una pared estática del escenario?
@@ -28,9 +30,9 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
     if (!target_cell.is_empty() && !target_cell.entity->is_walkable()) {
         return false;
     }
-    
+
     // 4. ¿Hay otro jugador parado ahí?
-    for (const auto& [id, player] : this->players) {
+    for (const auto& [id, player]: this->players) {
         if (player->get_x() == x && player->get_y() == y) {
             return false;
         }
@@ -43,11 +45,11 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // ---------------------------------------------------------
 // MOVIMIENTO DEL JUGADOR
 // ---------------------------------------------------------
-void World::move_player(uint32_t player_id, Direction dir) {
+void World::move_player(uint8_t player_id, Direction dir) {
     // Buscamos al jugador por ID.
     // En el futuro será importante para saber si se desconectó y no está en el mapa.
     Player& p = *this->players.at(player_id);
-    
+
     // Siempre actualizamos hacia dónde mira antes de moverlo
     p.set_facing(dir);
 
@@ -61,32 +63,39 @@ void World::move_player(uint32_t player_id, Direction dir) {
     }
 }
 
+const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }
+
 // ---------------------------------------------------------
 // GESTIÓN DE ENTIDADES en O(1)
 // ---------------------------------------------------------
 void World::set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity) {
     // Simpre chequeamos que no salga del maa.
-    if (x >= this->width || y >= this->height) return;
-    
+    if (x >= this->width || y >= this->height)
+        return;
+
     // TODO: (Opción A - Manejo de múltiples entidades por celda)
     // Actualmente, reasignar `grid[y][x].entity` destruye la entidad previa por RAII.
     // Esto funciona para el flujo básico (SilverRock -> DroppedItem).
-    // Si en el futuro se spawnea un drop sobre una celda ya ocupada (ej. varios huevos o drops simultáneos):
+    // Si en el futuro se spawnea un drop sobre una celda ya ocupada (ej. varios huevos o drops
+    // simultáneos):
     // 1. Verificar si !grid[y][x].is_empty().
     // 2. Si está ocupada, buscar la celda adyacente desocupada más cercana (UP, DOWN, LEFT, RIGHT).
     // 3. Colocar el nuevo `new_entity` allí para evitar sobreescribir y perder el drop existente.
 
     new_entity->set_position(x, y);
-    
+
     this->grid[y][x].entity = std::move(new_entity);
 }
 
 void World::remove_entity_at(uint16_t x, uint16_t y) {
-    if (x >= this->width || y >= this->height) return;
-    
-    this->grid[y][x].entity.reset(); 
+    if (x >= this->width || y >= this->height)
+        return;
+
+    this->grid[y][x].entity.reset();
 }
 
-void World::add_player(uint32_t player_id, std::unique_ptr<Player> player) {
+void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
     this->players[player_id] = std::move(player);
 }
+
+void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }

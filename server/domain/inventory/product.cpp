@@ -1,5 +1,5 @@
 #include "product.h"
-#include <typeinfo> // para que es el type info
+#include <typeinfo>
 
 Product::Product(ItemID id, uint16_t base_price, Quality quality) 
     : Item(id, true), base_price(base_price), quality(quality) {}

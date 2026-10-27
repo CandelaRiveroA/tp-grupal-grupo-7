@@ -1,5 +1,6 @@
 target_sources(taller_tests PRIVATE 
     inventory_test.cpp
+    world_test.cpp
     ../server/domain/inventory/item.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
@@ -25,4 +26,8 @@ target_sources(taller_tests PRIVATE
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/slot.cpp
     ../server/domain/inventory/inventory.cpp
+    ../server/domain/entities/player.cpp
+    ../server/domain/entities/i_entity.cpp
+    ../server/domain/map/world.cpp
+    ../server/domain/map/cell.cpp
 )

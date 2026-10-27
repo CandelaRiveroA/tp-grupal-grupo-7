@@ -93,6 +93,5 @@ bool Player::is_walkable() const {
     return false;
 }
 
-void Player::interact(Player& p, ToolType tool, World& w) {
-    // Sin acción directa entre jugadores por ahora
+void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {
 }

@@ -1,7 +1,6 @@
-target_sources(taller_tests
-    PRIVATE
-    # .cpp files
-    protocol.cpp
+target_sources(taller_tests PRIVATE 
+    inventory_test.cpp
+    ../server/domain/inventory/item.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
@@ -23,6 +22,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
-    PUBLIC
-    # .h files
-    )
+    ../server/domain/inventory/product.cpp
+    ../server/domain/inventory/slot.cpp
+    ../server/domain/inventory/inventory.cpp
+)

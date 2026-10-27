@@ -1,0 +1,23 @@
+#ifndef SLOT_H
+#define SLOT_H
+
+#include <memory>
+#include <cstdint>
+#include "item.h"
+
+struct Slot {
+    std::unique_ptr<Item> item;
+    uint8_t amount;
+    Slot();
+    ~Slot() = default;
+    Slot(const Slot&) = delete;
+    Slot& operator=(const Slot&) = delete;
+
+    Slot(Slot&&) = default;
+    Slot& operator=(Slot&&) = default;
+
+    bool is_empty() const;
+    bool is_full() const;
+};
+
+#endif // SLOT_H

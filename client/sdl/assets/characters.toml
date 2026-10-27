@@ -140,3 +140,60 @@ cadence = { step = 24, frame = 12 }
       [ [3, 16, 1, 2], [9, 16, 1, 2] ],
       [ [4, 16, 1, 2], [10, 16, 1, 2] ],
     ]
+
+# --- Gallina -----------------------------------------------------------
+# Relevada con taller_tile_inspector sobre Farm/Chicken.png (64x112 px,
+# celdas de 16x16 => 4 columnas x 7 filas). Fila 0: caminata de frente
+# (4 cuadros, cols 0-3). Fila 1: caminata de derecha. Fila 2: de espaldas.
+# Fila 3: de izquierda (la hoja trae izquierda explícita: NO se espeja).
+# Fila 4: descanso — parada de frente (0,4), sentada de frente (1,4),
+# parada de lado derecho (2,4), sentada de lado derecho (3,4). Fila 5:
+# parada de espaldas (0,5), sentada de espaldas (1,5), parada de lado
+# izquierdo (2,5), sentada de lado izquierdo (3,5). Fila 6: picoteando
+# de frente, 4 cuadros (cols 0-3), disponible para una acción futura.
+#
+# idle = pose "parada" de cada dirección (capa única 1x1). La variante
+# "sentada" queda relevada para un idle más rico (dato, sin código).
+# cadence: walk son 4 cuadros => invariante step == frame * 4
+# (32 == 8 * 4). Cada capa es 1x1: el cuerpo entero es un cuadro.
+[characters.chicken]
+sheet   = "Farm/Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 32, frame = 8 }
+
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [ [0, 4] ] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]
+
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [ [2, 4] ] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]
+
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [ [0, 5] ] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]
+
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [ [2, 5] ] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [ [0, 3] ], [ [1, 3] ], [ [2, 3] ], [ [3, 3] ] ]

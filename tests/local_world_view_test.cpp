@@ -43,6 +43,7 @@ bool isValidDirection(protocol::Direction d) {
 bool isValidKind(world::CreatureKind k) {
 	switch (k) {
 	case world::CreatureKind::Player:
+	case world::CreatureKind::Chicken:
 		return true;
 	}
 	return false;
@@ -150,6 +151,15 @@ TEST(LocalWorldViewContract, ViewIsStableUntilNextCommand) {
 	EXPECT_EQ(second.entities[0].cellY, y);
 	EXPECT_EQ(second.entities[0].moving, moving);
 	EXPECT_EQ(second.entities[0].facing, facing);
+}
+
+TEST(LocalWorldViewContract, LocalPlayerCarriesStableIdZero) {
+	game::MockGameClient concrete = buildClient(10, 10, 5, 5);
+	GameClient& client = concrete;
+
+	EXPECT_EQ(client.worldState().entities[0].id, 0);
+	client.sendCommand(walk(6, 5, protocol::Direction::Right));
+	EXPECT_EQ(client.worldState().entities[0].id, 0);
 }
 
 }

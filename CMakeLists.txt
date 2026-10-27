@@ -154,6 +154,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/EntityAppearance.cpp
         client/game/FootstepCue.cpp
         client/game/MockGameClient.cpp
+        client/game/MockAnimalSimulation.cpp
         client/game/MoveCommand.cpp
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp

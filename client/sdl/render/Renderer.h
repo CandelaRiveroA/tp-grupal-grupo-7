@@ -48,9 +48,6 @@ private:
 	void drawElement(const world::SceneDescription& scene,
 			 const world::ElementPlacement& element);
 
-	SpriteSheet characterSheet_;
-	CharacterSprite character_;
-
 	SheetCache sheetCache_;
 };
 

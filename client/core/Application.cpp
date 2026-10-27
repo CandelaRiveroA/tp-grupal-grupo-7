@@ -80,7 +80,7 @@ int Application::runGame(const SessionConfig& session) {
 				core::assetPath(core::kInventoryFile));
 		const world::GridSpan& grid = scenario.scene().grid;
 		std::unique_ptr<game::GameClient> gameClient =
-			createGameClient(grid);
+			createGameClient(grid, characters);
 		return runGameLoop(session, scenario, *gameClient, characters,
 				   inventory);
 	} catch (const world::ConfigError& error) {
@@ -93,9 +93,11 @@ int Application::runGame(const SessionConfig& session) {
 }
 
 std::unique_ptr<game::GameClient> Application::createGameClient(
-	const world::GridSpan& grid) const {
+	const world::GridSpan& grid,
+	const world::CharacterCatalog& characters) const {
 	return std::make_unique<game::MockGameClient>(
-		grid.columns, grid.rows, grid.columns / 2, grid.rows / 2);
+		grid.columns, grid.rows, grid.columns / 2, grid.rows / 2,
+		characters);
 }
 
 int Application::runGameLoop(const SessionConfig& session,
@@ -144,6 +146,11 @@ int Application::runGameLoop(const SessionConfig& session,
 
 	sdl::GameLoop loop(input, [&](int it) {
 
+
+		// (1) Tick de simulación: avanza lo que corre del lado del
+		// server ANTES de leer el estado (seam marcado en
+		// connection-point.md §4).
+		gameClient.update(it);
 
 		const game::LocalWorldView& state = gameClient.worldState();
 

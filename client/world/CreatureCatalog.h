@@ -11,6 +11,7 @@ namespace world {
 
 enum class CreatureKind {
 	Player,
+	Chicken,
 };
 
 struct MoveCadence {

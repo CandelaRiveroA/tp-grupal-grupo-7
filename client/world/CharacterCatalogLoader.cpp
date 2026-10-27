@@ -27,8 +27,9 @@ struct CreatureBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<CreatureBinding, 1> kCreatureBindings = {{
+constexpr std::array<CreatureBinding, 2> kCreatureBindings = {{
 	{CreatureKind::Player, "characters.player"},
+	{CreatureKind::Chicken, "characters.chicken"},
 }};
 
 class CharacterTomlReader {

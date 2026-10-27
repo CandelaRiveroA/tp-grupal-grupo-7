@@ -37,7 +37,8 @@ private:
 	int runGame(const SessionConfig& session);
 
 	std::unique_ptr<game::GameClient> createGameClient(
-		const world::GridSpan& grid) const;
+		const world::GridSpan& grid,
+		const world::CharacterCatalog& characters) const;
 
 	int runGameLoop(const SessionConfig& session,
 			const world::Scenario& scenario,

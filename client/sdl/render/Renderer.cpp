@@ -14,14 +14,6 @@ Renderer::Renderer(SdlContext& context,
 		   const world::CharacterCatalog& characters)
 	: context_(context)
 	, catalog_(characters)
-	, characterSheet_(context,
-			  core::assetPath(characters.sheetFile(
-				  world::CreatureKind::Player)),
-			  characters.sheetCellWidth(world::CreatureKind::Player),
-			  characters.sheetCellHeight(world::CreatureKind::Player))
-	, character_(characterSheet_,
-		     characters.drawnWidth(world::CreatureKind::Player),
-		     characters.drawnHeight(world::CreatureKind::Player))
 	, sheetCache_(context) {}
 
 void Renderer::render(const world::SceneDescription& scene,
@@ -74,13 +66,22 @@ void Renderer::drawEntity(const world::SceneDescription& scene,
 
 	const game::PixelOffset offset = motion.offsetFor(
 		entityIndex, animationTick, scene.cellPixelSize);
+	
+	SpriteSheet& sheet = sheetCache_.sheet(
+		catalog_.sheetFile(entity.kind),
+		core::assetPath(catalog_.sheetFile(entity.kind)),
+		catalog_.sheetCellWidth(entity.kind),
+		catalog_.sheetCellHeight(entity.kind));
+	const CharacterSprite sprite(
+		sheet, catalog_.drawnWidth(entity.kind),
+		catalog_.drawnHeight(entity.kind));
 
 	const Flip flip =
 		appearance.mirrored ? Flip::Horizontal : Flip::None;
-	character_.draw(*appearance.pose,
-			SDL2pp::Rect(box.x + offset.x, box.y + offset.y,
-				     box.width, box.height),
-			flip);
+	sprite.draw(*appearance.pose,
+		    SDL2pp::Rect(box.x + offset.x, box.y + offset.y,
+				 box.width, box.height),
+		    flip);
 }
 
 void Renderer::drawElement(const world::SceneDescription& scene,

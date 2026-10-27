@@ -11,6 +11,7 @@ target_sources(taller_tests
     scene_pixel_mapper_test.cpp
     world_contract_test.cpp
     mock_game_client_test.cpp
+    mock_animal_simulation_test.cpp
     local_world_view_test.cpp
     frame_clock_test.cpp
     move_command_test.cpp

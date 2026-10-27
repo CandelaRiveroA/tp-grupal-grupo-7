@@ -29,9 +29,9 @@ public:
 		       bool serverMoving) const;
 
 private:
-	bool inTransit(std::size_t index, int iteration) const;
-
 	struct Track {
+		int id = 0;
+
 		bool known = false;
 
 		int cellX = 0;
@@ -44,6 +44,15 @@ private:
 
 		world::MoveCadence cadence{0, 0};
 	};
+
+	std::vector<Track> relinkTracks(const LocalWorldView& view,
+					int iteration);
+
+	// Estado interno de UN track: interpolación del paso en curso.
+	PixelOffset offsetFor(const Track& track, int iteration,
+			      int cellPixelSize) const;
+
+	bool inTransit(const Track& track, int iteration) const;
 
 	std::vector<Track> tracks_;
 

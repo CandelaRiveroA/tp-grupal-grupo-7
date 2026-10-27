@@ -17,6 +17,7 @@ struct ViewEntity {
 	protocol::Direction facing;
 	bool moving;
 	world::ActionKind action = world::ActionKind::Idle;
+	int id = 0;
 };
 
 struct ViewInventorySlot {

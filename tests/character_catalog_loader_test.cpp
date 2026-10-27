@@ -1,3 +1,4 @@
+#include <array>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -80,6 +81,46 @@ cadence = { step = 24, frame = 12 }
       [[3, 16, 1, 2], [9, 16, 1, 2]],
       [[4, 16, 1, 2], [10, 16, 1, 2]],
     ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 CharacterCatalog loadPlayer() {
@@ -400,6 +441,68 @@ TEST(CharacterCatalogLoaderTest, RealFileToolUseDurationIsUniform) {
 			<< "la primera que la define";
 	}
 	ASSERT_GT(expectedTicks, 0);
+}
+
+TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
+	CharacterCatalogLoader loader;
+	const CharacterCatalog catalog =
+		loader.loadFromFile(TALLER_CHARACTERS_TOML);
+	ASSERT_TRUE(catalog.has(CreatureKind::Chicken));
+
+	EXPECT_EQ(catalog.sheetFile(CreatureKind::Chicken),
+		  "Farm/Chicken.png");
+	EXPECT_EQ(catalog.sheetCellWidth(CreatureKind::Chicken), 16);
+	EXPECT_EQ(catalog.sheetCellHeight(CreatureKind::Chicken), 16);
+	EXPECT_EQ(catalog.drawnWidth(CreatureKind::Chicken), 32);
+	EXPECT_EQ(catalog.drawnHeight(CreatureKind::Chicken), 32);
+
+	const world::CreatureData& data =
+		catalog.dataFor(CreatureKind::Chicken);
+	EXPECT_EQ(data.cadence.stepTicks, 32);
+	EXPECT_EQ(data.cadence.frameTicks, 8);
+
+	// Caminata relevada: 4 cuadros por dirección. Filas de la hoja en
+	// orden de hoja front/right/back/left; el enum es Front, Back,
+	// Left, Right (0: front -> fila 0, 1: back -> fila 2, 2: left ->
+	// fila 3, 3: right -> fila 1).
+	const std::array<int, 4> kWalkRows = {0, 2, 3, 1};
+	for (std::size_t d = 0; d < kWalkRows.size(); ++d) {
+		const world::DirectionAppearance& dir =
+			(*data.directions)[d];
+		EXPECT_FALSE(dir.mirrored)
+			<< "la hoja trae las cuatro direcciones explícitas";
+		const auto walk = dir.actions->find(ActionKind::Walk);
+		ASSERT_NE(walk, dir.actions->end());
+		EXPECT_EQ(walk->second.frames.size(), 4u);
+		for (std::size_t f = 0; f < walk->second.frames.size(); ++f) {
+			EXPECT_EQ(walk->second.frames[f][0].frame.col,
+				  static_cast<int>(f));
+			EXPECT_EQ(walk->second.frames[f][0].frame.row,
+				  kWalkRows[d]);
+		}
+	}
+
+	// Idle = pose "parada" de cada dirección (capa única 1x1), en
+	// orden del enum (Front, Back, Left, Right): (0,4), (0,5), (2,5),
+	// (2,4) según el relevamiento.
+	const std::array<int, 4> kIdleRows = {4, 5, 5, 4};
+	const std::array<int, 4> kIdleCols = {0, 0, 2, 2};
+	for (std::size_t d = 0; d < kIdleCols.size(); ++d) {
+		const world::DirectionAppearance& dir =
+			(*data.directions)[d];
+		const auto idle = dir.actions->find(ActionKind::Idle);
+		ASSERT_NE(idle, dir.actions->end());
+		EXPECT_EQ(idle->second.frames.size(), 1u);
+		EXPECT_EQ(idle->second.frames[0][0].frame.col, kIdleCols[d]);
+		EXPECT_EQ(idle->second.frames[0][0].frame.row, kIdleRows[d]);
+	}
+
+	// La gallina no declara use_tool: pedirlo cae a idle (sin romper).
+	const world::EntityAppearance idleFallBack =
+		world::appearanceFor(data, Direction::Front,
+				     ActionKind::UseTool, 0);
+	EXPECT_EQ((*idleFallBack.pose)[0].frame.col, 0);
+	EXPECT_EQ((*idleFallBack.pose)[0].frame.row, 4);
 }
 #endif
 

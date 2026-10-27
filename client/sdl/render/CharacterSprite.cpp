@@ -11,7 +11,7 @@ CharacterSprite::CharacterSprite(SpriteSheet& sheet, int drawnWidth,
 	, drawnHeight_(drawnHeight) {}
 
 void CharacterSprite::draw(const world::Pose& pose,
-			   const SDL2pp::Rect& logicalBox, Flip flip) {
+			   const SDL2pp::Rect& logicalBox, Flip flip) const {
 	if (pose.empty()) {
 		return;
 	}

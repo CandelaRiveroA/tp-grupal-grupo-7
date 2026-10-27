@@ -60,9 +60,10 @@ compartido.
 Mientras tanto, el cliente dibuja a partir de una **vista local
 provisional** (`client/game/LocalWorldView.h`), que NO es un contrato de
 red: es solo "lo que el render necesita hoy". Hoy la llena el mock con el
-jugador y con el tamaño de su mundo (`grid`). Su forma (una lista de
-entidades con celda + dirección + si se mueve, más las dimensiones de la
-grilla) sirve de referencia de qué necesita el cliente para dibujar.
+jugador, los animales de su simulación (ver `animals-entry-point.md`) y el
+tamaño de su mundo (`grid`). Su forma (una lista de entidades con celda +
+dirección + si se mueve, más las dimensiones de la grilla) sirve de
+referencia de qué necesita el cliente para dibujar.
 
 **Las dimensiones del mundo también son estado del servidor.** `LocalWorldView`
 lleva `grid` (`columns`/`rows`); el mock lo completa con el tamaño de su
@@ -77,7 +78,10 @@ sprites ni layout.
   traduce a píxeles con `ScenePixelMapper`), para desacoplar al servidor de
   la resolución.
 - Qué entidades incluye (jugador, otros jugadores, gallinas, vacas) e
-  **id estable** para seguirlas entre frames.
+  **id estable** para seguirlas entre frames. La vista local YA lleva ese
+  campo: `ViewEntity.id` (`int`, el jugador es `0`, los animales del mock son
+  `1..N`) — cuando se defina el estado, la implementación de red llena ese
+  campo con el id que mande el servidor.
 - Si el **inventario** viaja en ese mensaje o por otro.
 - **Frecuencia / formato** (estado completo por tick vs. deltas).
 - **Dimensiones del mundo:** `columns`/`rows` de la grilla lógica, para que
@@ -95,10 +99,19 @@ esta interfaz.
 ```cpp
 class GameClient {
 public:
+    virtual ~GameClient() = default;
     virtual void sendCommand(const protocol::Command&) = 0;  // ENVIAR
     virtual const LocalWorldView& worldState() const = 0;    // RECIBIR
+    virtual void update(int iteration) = 0;                  // TICK de simulación
 };
 ```
+
+`update(it)` es el hook del tick: **UNA llamada por iteración del loop, al
+inicio del tick** (sección 4). Hoy avanza la simulación de animales del
+mock; mañana, la implementación de red drena acá su Receiver (hace el pop
+no bloqueante de la cola y actualiza el estado que devolverá
+`worldState()`). Así el intercambio completo de red vive en un solo lugar
+del tick.
 
 - Hoy corre **`MockGameClient`** (`client/game/MockGameClient.*`): simula al
   servidor sin red (lleva al jugador a la celda propuesta con clamp a la
@@ -137,12 +150,14 @@ loop**, y corre una vez por iteración (~60 por segundo):
 
 ```
 cada iteración (número `it`):
-  (1) ACÁ SE DRENA EL RECEIVER  → worldState() actualiza el estado
-  (2) ACÁ SE MANDA AL SENDER    → sendCommand() pushea el comando
-  (3) ACÁ SE PRESENTA           → motion.observe(vista, it)
-                                  → isWalking(): ¿se ve caminando?
-                                  → ¿suena el paso? (FootstepCue)
-                                  → renderer.render(..., motion, it)
+  (1) TICK DE SIMULACIÓN      → gameClient.update(it): hoy avanza los
+                               animales del mock; mañana, acá drena el
+                               Receiver y worldState() queda actualizada
+  (2) ACÁ SE MANDA AL SENDER  → sendCommand() pushea el comando
+  (3) ACÁ SE PRESENTA         → motion.observe(vista, it)
+                                → isWalking(): ¿se ve caminando?
+                                → ¿suena el paso? (FootstepCue)
+                                → renderer.render(..., motion, it)
 ```
 
 El paso (3) es presentación entera: **el sonido del paso vive ahí, no en
@@ -160,14 +175,16 @@ hasta terminar la celda: sin ese cierre, los pies se plantarían y el
 cuerpo seguiría resbalando.
 
 Los marcadores están en dos archivos: `client/core/Application.cpp` (el
-tick, con el orden paso a paso) y `client/game/GameClient.h` (los dos
-métodos por donde entra y sale la información).
+tick, con el orden paso a paso: la primera línea del tick es
+`gameClient.update(it)`) y `client/game/GameClient.h` (los tres métodos por
+donde entra, sale y late la información).
 
 Por qué dentro del tick y no en un while aparte:
 
 - El pop es **no bloqueante**: si no hay mensajes se sigue con el último
   estado conocido y el juego sigue dibujando a tasa constante; si el
-  servidor tarda, la pantalla **no se congela**.
+  servidor tarda, la pantalla **no se congela**. Hoy el mock lo replica:
+  `update(it)` es no bloqueante y deja el último estado conocido.
 - Hay **un** loop que coordina red, input y render; no dos compitiendo.
 - `it` (el número de iteración) es el que sincroniza la animación: si el
   loop descarta iteraciones, el render saltea los cuadros que

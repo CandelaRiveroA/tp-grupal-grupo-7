@@ -16,6 +16,7 @@ target_sources(taller_client
     main.cpp
     client_sender.cpp
     client_receiver.cpp
+    game/NetworkGameClient.cpp
     core/Application.cpp
     core/Constants.cpp
     core/StartupScreens.cpp
@@ -46,6 +47,7 @@ target_sources(taller_client
     game/FootstepCue.h
     game/GameClient.h
     game/LocalWorldView.h
+    game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
     game/ViewMotion.h

@@ -36,8 +36,11 @@ inline constexpr const char* kCharactersFile = "characters.toml";
 
 inline constexpr const char* kInventoryFile = "inventory.toml";
 
+inline constexpr const char* kServerHost = "127.0.0.1";
+inline constexpr const char* kServerPort = "8080";
+
 std::string assetPath(const std::string& file);
 
 std::string soundPath(const std::string& file);
 
-}
+}  // namespace core

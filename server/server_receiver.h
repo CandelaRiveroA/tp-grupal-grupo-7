@@ -1,24 +1,20 @@
 #ifndef SERVER_RECEIVER_H
 #define SERVER_RECEIVER_H
 
-#include <map>
+#include <cstdint>
 
-#include "common_command.h"
 #include "common_protocol_receiver.h"
-#include "common_queue.h"
 #include "common_worker.h"
+#include "match.h"
 
 class ServerReceiver: public Worker {
 private:
     ProtocolReceiver& protocol;
-    Queue<Command>& commands;
-    using CommandHandler = void (ServerReceiver::*)(const Command&);
-    std::map<CommandType, CommandHandler> handlers;
-
-    void handle_move_command(const Command& command);
+    Queue<MatchEvent>& events;
+    uint8_t player_id;
 
 public:
-    ServerReceiver(ProtocolReceiver& protocol, Queue<Command>& commands);
+    ServerReceiver(ProtocolReceiver& protocol, Queue<MatchEvent>& events, uint8_t player_id);
 
 protected:
     void execute() override;

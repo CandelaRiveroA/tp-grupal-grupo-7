@@ -2,34 +2,33 @@
 
 #include <optional>
 
-#include "common/common_game_direction.h"
 #include "world/CreatureCatalog.h"
+#include "world/ViewDirection.h"
 
 namespace game {
 
 enum class WalkIntent {
-	None,
-	Step,
-	Stop,
+    None,
+    Step,
+    Stop,
 };
 
 class WalkPacer {
 public:
-	explicit WalkPacer(const world::MoveCadence& cadence);
+    explicit WalkPacer(const world::MoveCadence& cadence);
 
-	WalkIntent intentFor(int iteration,
-			     const std::optional<protocol::Direction>& pressed);
+    WalkIntent intentFor(int iteration, const std::optional<world::Direction>& pressed);
 
-	protocol::Direction lastDirection() const;
+    world::Direction lastDirection() const;
 
 private:
-	world::MoveCadence cadence_;
+    world::MoveCadence cadence_;
 
-	int lastStepIteration_;
+    int lastStepIteration_;
 
-	protocol::Direction lastDirection_;
+    world::Direction lastDirection_;
 
-	bool pressedBefore_;
+    bool pressedBefore_;
 };
 
-}
+}  // namespace game

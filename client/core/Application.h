@@ -1,12 +1,11 @@
 #pragma once
 
 #include <QApplication>
+#include <memory>
+#include <optional>
 
 #include "core/SessionConfig.h"
 #include "core/WindowConfig.h"
-
-#include <memory>
-#include <optional>
 
 namespace qt {
 class LobbyWindow;
@@ -21,32 +20,29 @@ class Scenario;
 struct GridSpan;
 class CharacterCatalog;
 struct InventoryLayout;
-}
+}  // namespace world
 
 namespace core {
 
 class Application {
 public:
-	Application(int& argc, char** argv);
+    Application(int& argc, char** argv);
 
-	int run();
+    int run();
 
 private:
-	std::optional<SessionConfig> runLobby();
+    std::optional<SessionConfig> runLobby();
 
-	int runGame(const SessionConfig& session);
+    int runGame(const SessionConfig& session);
 
-	std::unique_ptr<game::GameClient> createGameClient(
-		const world::GridSpan& grid) const;
+    std::unique_ptr<game::GameClient> createGameClient() const;
 
-	int runGameLoop(const SessionConfig& session,
-			const world::Scenario& scenario,
-			game::GameClient& gameClient,
-			const world::CharacterCatalog& characters,
-			const world::InventoryLayout& inventory);
+    int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
+                    game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                    const world::InventoryLayout& inventory);
 
-	WindowConfig config_;
-	QApplication app_;
+    WindowConfig config_;
+    QApplication app_;
 };
 
-}
+}  // namespace core

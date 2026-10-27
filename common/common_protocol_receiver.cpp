@@ -5,14 +5,9 @@
 
 #include <arpa/inet.h>
 
-ProtocolReceiver::ProtocolReceiver(Socket& socket): socket(socket), expected_player_id(0) {}
-
-ProtocolReceiver::ProtocolReceiver(Socket& socket, PlayerId expected_player_id):
+ProtocolReceiver::ProtocolReceiver(Socket& socket):
         socket(socket),
-        expected_player_id(expected_player_id),
-        receivers{{CommandType::Move, &ProtocolReceiver::receive_move_command}} {
-    validate_player_id(expected_player_id);
-}
+        handlers{{protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message}} {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
     uint8_t value = 0;
@@ -39,14 +34,6 @@ uint16_t ProtocolReceiver::receive_uint16() {
     return ntohs(network_value);
 }
 
-uint32_t ProtocolReceiver::receive_uint32() {
-    uint32_t network_value = 0;
-    if (socket.recvall(&network_value, sizeof(network_value)) != sizeof(network_value)) {
-        throw std::runtime_error("La conexion se cerro al recibir un entero de 32 bits.");
-    }
-    return ntohl(network_value);
-}
-
 std::string ProtocolReceiver::receive_string() {
     const uint16_t size = receive_uint16();
     std::vector<char> value(size);
@@ -56,45 +43,31 @@ std::string ProtocolReceiver::receive_string() {
     return std::string(value.begin(), value.end());
 }
 
-void ProtocolReceiver::validate_player_id(PlayerId player_id) {
-    if (player_id == 0 || player_id > MAX_PLAYER_ID) {
-        throw std::invalid_argument("El identificador de jugador debe estar entre 1 y 4.");
-    }
-}
-
 Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
-    if (value > static_cast<uint8_t>(Direction::Right)) {
+    if (value > static_cast<uint8_t>(Direction::RIGHT)) {
         throw std::invalid_argument("La direccion recibida no es valida.");
     }
     return static_cast<Direction>(value);
 }
 
-Command ProtocolReceiver::receive_move_command() {
-    const PlayerId player_id = receive_uint8();
-    validate_player_id(player_id);
-    if (expected_player_id != 0 && player_id != expected_player_id) {
-        throw std::invalid_argument("El comando no pertenece al jugador de la conexion.");
-    }
-
-    const uint8_t x = receive_uint8();
-    const uint8_t y = receive_uint8();
+protocol::ClientMessage ProtocolReceiver::receive_move_message() {
     const Direction direction = direction_from_byte(receive_uint8());
-    return Command(player_id, CommandType::Move, x, y, direction);
+    return protocol::MoveMessage{direction};
 }
 
-std::optional<Command> ProtocolReceiver::receive_command() {
+std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
     const std::optional<uint8_t> type_byte = receive_uint8_or_end();
     if (!type_byte.has_value()) {
         return std::nullopt;
     }
 
-    const CommandType type = static_cast<CommandType>(type_byte.value());
-    const auto receiver = receivers.find(type);
-    if (receiver == receivers.end()) {
+    const auto type = static_cast<protocol::ClientMessageType>(type_byte.value());
+    const auto handler = handlers.find(type);
+    if (handler == handlers.end()) {
         throw std::invalid_argument("El tipo de comando recibido no es valido.");
     }
 
-    return (this->*(receiver->second))();
+    return (this->*(handler->second))();
 }
 
 ServerStatus ProtocolReceiver::receive_server_status() {
@@ -103,10 +76,18 @@ ServerStatus ProtocolReceiver::receive_server_status() {
         throw std::invalid_argument("El tipo de mensaje del servidor no es valido.");
     }
 
-    const PlayerId player_id = receive_uint8();
-    validate_player_id(player_id);
-    const uint8_t x = receive_uint8();
-    const uint8_t y = receive_uint8();
+    const uint8_t player_id = receive_uint8();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
     const Direction direction = direction_from_byte(receive_uint8());
     return ServerStatus(player_id, x, y, direction);
+}
+
+ServerWelcome ProtocolReceiver::receive_welcome() {
+    const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
+    if (type != ServerMessageType::Welcome) {
+        throw std::invalid_argument("Se esperaba un mensaje de bienvenida.");
+    }
+
+    return ServerWelcome{receive_uint8()};
 }

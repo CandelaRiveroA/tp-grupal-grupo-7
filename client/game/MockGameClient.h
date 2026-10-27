@@ -6,30 +6,29 @@
 
 namespace game {
 
-class MockGameClient : public GameClient {
+class MockGameClient: public GameClient {
 public:
-	MockGameClient(int gridColumns, int gridRows, int startX,
-		       int startY);
+    MockGameClient(int gridColumns, int gridRows, int startX, int startY);
 
-	void sendCommand(const protocol::Command& command) override;
-	const LocalWorldView& worldState() const override;
+    void sendCommand(const protocol::ClientMessage& message) override;
+    const LocalWorldView& worldState() const override;
 
 private:
-	void walkTo(int targetX, int targetY, protocol::Direction direction);
+    void walk(::Direction direction);
 
-	void rebuildView();
+    void rebuildView();
 
-	void rebuildInventory();
+    void rebuildInventory();
 
-	int gridColumns_;
-	int gridRows_;
+    int gridColumns_;
+    int gridRows_;
 
-	int playerCellX_;
-	int playerCellY_;
-	protocol::Direction playerFacing_;
-	bool playerMoving_;
+    int playerCellX_;
+    int playerCellY_;
+    world::Direction playerFacing_;
+    bool playerMoving_;
 
-	LocalWorldView view_;
+    LocalWorldView view_;
 };
 
-}
+}  // namespace game

@@ -7,11 +7,11 @@ namespace game {
 
 class GameClient {
 public:
-	virtual ~GameClient() = default;
+    virtual ~GameClient() = default;
 
-	virtual void sendCommand(const protocol::Command& command) = 0;
+    virtual void sendCommand(const protocol::ClientMessage& message) = 0;
 
-	virtual const LocalWorldView& worldState() const = 0;
+    virtual const LocalWorldView& worldState() const = 0;
 };
 
-}
+}  // namespace game

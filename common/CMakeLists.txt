@@ -14,11 +14,9 @@ target_sources(taller_common
     common_resolver.h
     common_resolvererror.h
     common_socket.h
-    common_command_types.h
     common_command.h
     common_protocol_sender.h
     common_protocol_receiver.h
     common_server_status.h
     common_worker.h
-    common_game_direction.h
     )

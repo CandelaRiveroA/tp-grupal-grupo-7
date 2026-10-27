@@ -3,18 +3,22 @@
 
 #include <cstdint>
 
-#include "common_command_types.h"
+#include "common_constants.h"
 
-enum class ServerMessageType : uint8_t { Status = 1 };
+enum class ServerMessageType : uint8_t { Status = 1, Welcome = 2 };
 
 struct ServerStatus {
-    PlayerId player_id;
-    uint8_t x;
-    uint8_t y;
+    uint8_t player_id;
+    uint16_t x;
+    uint16_t y;
     Direction direction;
 
-    ServerStatus(PlayerId player_id, uint8_t x, uint8_t y, Direction direction):
+    ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction):
             player_id(player_id), x(x), y(y), direction(direction) {}
+};
+
+struct ServerWelcome {
+    uint8_t player_id;
 };
 
 #endif

@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 
+if (NOT DEFINED CMAKE_CXX_COMPILER)
+    set(CMAKE_CXX_COMPILER g++)
+endif()
+
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
@@ -18,7 +22,7 @@ project(taller_tp
 
 option(TALLER_TESTS "Enable / disable tests." ON)
 option(TALLER_CLIENT "Enable / disable client program." ON)
-option(TALLER_SERVER "Enable / disable server program." OFF)
+option(TALLER_SERVER "Enable / disable server program." ON)
 option(TALLER_EDITOR "Enable / disable editor program." ON)
 # Herramienta PROVISORIA para inspeccionar celdas de una hoja de sprites
 # (ver client/sdl/dev/tile_inspector_main.cpp). OFF por defecto: no afecta

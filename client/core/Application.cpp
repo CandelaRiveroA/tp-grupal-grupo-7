@@ -3,94 +3,197 @@
 #include <QFile>
 #include <QString>
 #include <QtGlobal>
-
+#include <cstddef>
+#include <cstdlib>
+#include <exception>
+#include <memory>
 #include <optional>
 
+#include "common/common_command.h"
+#include "core/Constants.h"
+#include "core/StartupScreens.h"
+#include "core/StartupSequence.h"
+#include "game/ActionResolver.h"
+#include "game/FootstepCue.h"
+#include "game/GameClient.h"
+#include "game/LocalWorldView.h"
+#include "game/MoveCommand.h"
+#include "game/NetworkGameClient.h"
+#include "game/ToolUse.h"
+#include "game/ViewMotion.h"
+#include "game/WalkPacer.h"
 #include "qt/LobbyWindow.h"
-#include "sdl/GameLoop.h"
-#include "sdl/InputManager.h"
-#include "sdl/Renderer.h"
-#include "sdl/SdlContext.h"
-#include "world/Player.h"
+#include "sdl/audio/AudioPlayer.h"
+#include "sdl/context/SdlContext.h"
+#include "sdl/input/InputManager.h"
+#include "sdl/log/Logger.h"
+#include "sdl/loop/GameLoop.h"
+#include "sdl/render/InventoryHud.h"
+#include "sdl/render/Renderer.h"
+#include "world/CharacterCatalog.h"
+#include "world/CharacterCatalogLoader.h"
+#include "world/ConfigError.h"
+#include "world/CreatureCatalog.h"
+#include "world/EntityAppearance.h"
+#include "world/InventoryConfigLoader.h"
+#include "world/InventoryLayout.h"
 #include "world/Scenario.h"
+#include "world/SceneConfigLoader.h"
+#include "world/SceneDescription.h"
 
 namespace core {
 
-namespace {
-
-constexpr int kPlayerSize = 32;
-constexpr int kPlayerSpeed = 5;
-}
-
 Application::Application(int& argc, char** argv)
-	: config_(640, 480, "TP Final — Grupo 7")
-	, app_(argc, argv) {
-	loadStyleSheet();
+    : config_(kWindowWidth, kWindowHeight, kWindowTitle)
+    , app_(argc, argv) {
+    loadStyleSheet();
 }
 
 void Application::loadStyleSheet() {
-	QFile file(":/ui.qss");
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		qWarning("No se pudo abrir el recurso :/ui.qss");
-		return;
-	}
-	app_.setStyleSheet(QString::fromUtf8(file.readAll()));
+    QFile file(":/ui.qss");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("No se pudo abrir el recurso :/ui.qss");
+        return;
+    }
+    app_.setStyleSheet(QString::fromUtf8(file.readAll()));
 }
 
 int Application::run() {
 
-	std::optional<SessionConfig> session = runLobby();
-	if (!session.has_value()) {
-		return 0;
-	}
+    std::optional<SessionConfig> session = runLobby();
+    if (!session.has_value()) {
+        return 0;
+    }
 
-	// Delegación Qt → SDL: acá empieza el "main SDL".
-	return runGame(*session);
+    return runGame(*session);
 }
 
 std::optional<SessionConfig> Application::runLobby() {
 
-	LobbyWindow lobby(config_);
-	lobby.show();
-	app_.exec();
+    LobbyWindow lobby(config_);
+    lobby.show();
+    app_.exec();
 
-	return lobby.result();
+    return lobby.result();
 }
 
 int Application::runGame(const SessionConfig& session) {
-
-	(void)session;
-
-	world::Player player((config_.width() - kPlayerSize) / 2,
-			     (config_.height() - kPlayerSize) / 2,
-			     kPlayerSize, kPlayerSize, kPlayerSpeed);
-	world::Scenario scenario(config_, player);
-
-	sdl::SdlContext sdlContext(config_);
-	sdl::Renderer renderer(sdlContext);
-	sdl::InputManager input;
-
-	sdl::GameLoop loop(input, [&]() {
-
-		// Flujo de movimiento SDL: la tecla se detecta acá. Hoy la
-		// validación es local (clamp contra los bordes); cuando el
-		// server mande el status de "¿me puedo mover?" se consultará
-		// antes de aplicar el move.
-		int dx = 0;
-		int dy = 0;
-		if (input.left()) dx -= player.speed();
-		if (input.right()) dx += player.speed();
-		if (input.up()) dy -= player.speed();
-		if (input.down()) dy += player.speed();
-		if (dx != 0 || dy != 0) {
-			player.move(dx, dy, scenario.width(), scenario.height());
-		}
-
-		renderer.render(scenario);
-	});
-
-	loop.run();
-	return 0;
+    const sdl::Logger logger;
+    try {
+        world::Scenario scenario(config_, core::assetPath(core::kScenesFile), core::kInitialRoom);
+        const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+                core::assetPath(core::kCharactersFile));
+        const world::InventoryLayout inventory =
+                world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
+        std::unique_ptr<game::GameClient> gameClient = createGameClient();
+        return runGameLoop(session, scenario, *gameClient, characters, inventory);
+    } catch (const world::ConfigError& error) {
+        logger.error(error.what());
+        return EXIT_FAILURE;
+    } catch (const std::exception& error) {
+        logger.error(error.what());
+        return EXIT_FAILURE;
+    }
 }
 
+std::unique_ptr<game::GameClient> Application::createGameClient() const {
+    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort);
 }
+
+int Application::runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
+                             game::GameClient& gameClient,
+                             const world::CharacterCatalog& characters,
+                             const world::InventoryLayout& inventory) {
+
+    (void)session;
+
+    sdl::SdlContext sdlContext(config_);
+    sdl::Renderer renderer(sdlContext, characters);
+    sdl::InventoryHud inventoryHud(sdlContext, inventory);
+    sdl::InputManager input;
+    sdl::AudioPlayer audio;
+
+    const StartupScreens screens(sdlContext, renderer, audio, scenario);
+    const game::MoveCommand moveCommand;
+
+    game::ViewMotion motion(characters);
+
+    game::FootstepCue footstepCue;
+
+    const world::CreatureData& localCreature = characters.dataFor(world::CreatureKind::Player);
+    game::WalkPacer walkPacer(localCreature.cadence);
+
+    const auto useToolAction = [](const world::CreatureData& c) -> const world::ActionData* {
+        for (const world::DirectionAppearance& dir: *c.directions) {
+            const auto it = dir.actions->find(world::ActionKind::UseTool);
+            if (it != dir.actions->end()) {
+                return &it->second;
+            }
+        }
+        return nullptr;
+    };
+    const world::ActionData* const useTool = useToolAction(localCreature);
+    game::ToolUse toolUse = useTool != nullptr ? game::ToolUse(*useTool) : game::ToolUse(1);
+
+    constexpr std::size_t kPlayerIndex = 0;
+    const game::ActionResolver actionResolver(motion, toolUse, kPlayerIndex);
+
+    sdl::GameLoop loop(input, [&](int it) {
+        const game::LocalWorldView& state = gameClient.worldState();
+
+        const GamePhase phase = phaseForIteration(it);
+        if (screens.draw(phase, it, state, motion, actionResolver)) {
+            return;
+        }
+
+        std::optional<world::Direction> pressed;
+        if (input.left()) {
+            pressed = world::Direction::Left;
+        } else if (input.right()) {
+            pressed = world::Direction::Right;
+        } else if (input.up()) {
+            pressed = world::Direction::Back;
+        } else if (input.down()) {
+            pressed = world::Direction::Front;
+        }
+
+        switch (walkPacer.intentFor(it, pressed)) {
+            case game::WalkIntent::None:
+                break;
+            case game::WalkIntent::Step: {
+                gameClient.sendCommand(moveCommand.propose(walkPacer.lastDirection()));
+                break;
+            }
+            case game::WalkIntent::Stop:
+                break;
+        }
+
+        if (input.takeUseTool() && !pressed.has_value()) {
+            toolUse.trigger(it);
+        }
+
+        const game::LocalWorldView& drawing = gameClient.worldState();
+        motion.observe(drawing, it);
+
+        if (!drawing.entities.empty()) {
+            const game::ViewEntity& player = drawing.entities[kPlayerIndex];
+            const world::CreatureData& creature = characters.dataFor(player.kind);
+            const int walkFrame =
+                    world::frameIndexFor(creature, player.facing, world::ActionKind::Walk,
+                                         motion.animationTickFor(kPlayerIndex, it));
+            const bool walking = motion.isWalking(kPlayerIndex, it, player.moving);
+            if (footstepCue.update(walking, walkFrame)) {
+                audio.play(sdl::SoundId::Step);
+            }
+        }
+
+        renderer.renderScene(scenario.scene(), drawing, motion, actionResolver, it);
+        inventoryHud.draw(drawing.inventory);
+        sdlContext.present();
+    });
+
+    loop.run();
+    return 0;
+}
+
+}  // namespace core

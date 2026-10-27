@@ -4,7 +4,6 @@ target_sources(taller_tests
     character_layers.cpp
     index_cycle.cpp
     invite_code_format.cpp
-    protocol.cpp
     inventory_test.cpp
     world_test.cpp
     ../server/domain/inventory/item.cpp
@@ -15,6 +14,27 @@ target_sources(taller_tests
     ../server/domain/entities/i_entity.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
+    toml_document_test.cpp
+    scene_config_loader_test.cpp
+    scene_config_error_test.cpp
+    character_catalog_loader_test.cpp
+    inventory_config_loader_test.cpp
+    inventory_slots_test.cpp
+    scene_pixel_mapper_test.cpp
+    world_contract_test.cpp
+    mock_game_client_test.cpp
+    local_world_view_test.cpp
+    frame_clock_test.cpp
+    move_command_test.cpp
+    walk_pacer_test.cpp
+    view_motion_test.cpp
+    footstep_cue_test.cpp
+    tool_use_test.cpp
+    action_resolver_test.cpp
+    tile_layout_test.cpp
+    entity_appearance_test.cpp
+    startup_sequence_test.cpp
+    logger.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

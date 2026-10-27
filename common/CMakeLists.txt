@@ -5,7 +5,9 @@ target_sources(taller_common
     common_resolver.cpp
     common_resolvererror.cpp
     common_socket.cpp
-    common_protocol.cpp
+    common_protocol_sender.cpp
+    common_protocol_receiver.cpp
+    common_worker.cpp
     model/draft/ProvisionalInviteCodeFormat.cpp
     PUBLIC
     # .h files
@@ -13,7 +15,11 @@ target_sources(taller_common
     common_resolver.h
     common_resolvererror.h
     common_socket.h
-    common_protocol.h
+    common_command.h
+    common_protocol_sender.h
+    common_protocol_receiver.h
+    common_server_status.h
+    common_worker.h
     model/draft/CharacterAppearance.h
     model/draft/GameSelection.h
     model/draft/InviteCodeFormat.h

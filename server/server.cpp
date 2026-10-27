@@ -1,8 +1,24 @@
 #include "server.h"
 
-Server::Server(const char* port): protocol(port) {}
+#include <iostream>
+#include <string>
+
+Server::Server(const char* service): match(events, output), acceptor(service, events, output) {}
 
 void Server::run() {
-    protocol.accept_connection();
-    protocol.send_message("hola mundo");
+    match.start();
+    acceptor.start();
+
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        if (line == "q") {
+            break;
+        }
+    }
+
+    acceptor.stop();
+    acceptor.join();
+
+    events.close();
+    match.join();
 }

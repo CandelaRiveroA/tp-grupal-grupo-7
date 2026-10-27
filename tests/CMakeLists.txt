@@ -6,6 +6,7 @@ target_sources(taller_tests
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     sound_cue_catalog_test.cpp
+    sound_gate_test.cpp
     character_catalog_loader_test.cpp
     inventory_config_loader_test.cpp
     inventory_slots_test.cpp

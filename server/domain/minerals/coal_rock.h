@@ -9,7 +9,7 @@ public:
     ~CoalRock() override = default;
 
 protected:
-    void mine_mineral(Player& p, World& w) override;
+    void mine_mineral(World& w) override;
 };
 
 #endif // COAL_ROCK_H

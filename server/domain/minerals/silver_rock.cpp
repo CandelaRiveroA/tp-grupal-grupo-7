@@ -6,7 +6,7 @@
 
 SilverRock::SilverRock(uint16_t x, uint16_t y) : Mineral(x, y, 3) {}
 
-void SilverRock::mine_mineral(Player& p, World& w) {
+void SilverRock::mine_mineral(World& w) {
     uint16_t rx = this->pos_x;
     uint16_t ry = this->pos_y;
     //TODO: Separar logica de randomizado?

@@ -5,7 +5,7 @@
 
 GoldRock::GoldRock(uint16_t x, uint16_t y) : Mineral(x, y, 4) {}
 
-void GoldRock::mine_mineral(Player& p, World& w) {
+void GoldRock::mine_mineral(World& w) {
     uint16_t rx = this->pos_x;
     uint16_t ry = this->pos_y;
 

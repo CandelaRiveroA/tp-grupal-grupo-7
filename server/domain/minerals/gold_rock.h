@@ -10,7 +10,7 @@ public:
     ~GoldRock() override = default;
 
 protected:
-    void mine_mineral(Player& p, World& w) override;
+    void mine_mineral(World& w) override;
 };
 
 #endif // GOLD_ROCK_H

@@ -9,7 +9,7 @@ public:
     ~LapisRock() override = default;
 
 protected:
-    void mine_mineral(Player& p, World& w) override;
+    void mine_mineral(World& w) override;
 };
 
 #endif // LAPIS_ROCK_H

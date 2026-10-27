@@ -17,8 +17,13 @@ target_sources(taller_tests
     walk_pacer_test.cpp
     view_motion_test.cpp
     footstep_cue_test.cpp
-    tool_use_test.cpp
+    resource_audio_cue_test.cpp
+    obtained_banner_config_loader_test.cpp
+    obtained_banner_queue_test.cpp
+    obtained_banner_layout_test.cpp
     action_resolver_test.cpp
+    tool_overlay_loader_test.cpp
+    resource_config_loader_test.cpp
     tile_layout_test.cpp
     entity_appearance_test.cpp
     startup_sequence_test.cpp

@@ -146,19 +146,32 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/SceneTomlReader.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
+        client/world/CharacterTomlReader.cpp
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
         client/world/ItemCatalog.cpp
+        client/world/ToolOverlay.cpp
+        client/world/ToolOverlayLoader.cpp
+        client/world/ToolOverlayTomlReader.cpp
+        client/world/ResourceCatalog.cpp
+        client/world/ResourceConfigLoader.cpp
+        client/world/ResourceTomlReader.cpp
+        client/world/ObtainedBannerCatalog.cpp
+        client/world/ObtainedBannerConfigLoader.cpp
+        client/world/ObtainedBannerTomlReader.cpp
+        client/world/ObtainedBannerLayout.cpp
         client/world/ScenePixelMapper.cpp
         client/world/EntityAppearance.cpp
         client/game/FootstepCue.cpp
+        client/game/ResourceAudioCue.cpp
+        client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
         client/game/MoveCommand.cpp
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
-        client/game/ToolUse.cpp
+        client/game/InventorySelector.cpp
         client/core/StartupSequence.cpp
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp

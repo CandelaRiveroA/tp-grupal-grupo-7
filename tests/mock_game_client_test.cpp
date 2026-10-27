@@ -101,4 +101,11 @@ TEST(MockGameClientTest, InventoryStaysWhenPlayerMoves) {
 	EXPECT_EQ(client.worldState().inventory.size(), 4u);
 }
 
+TEST(MockGameClientTest, WorldStateReportsGridDimensions) {
+	game::MockGameClient client(10, 7, 5, 5);
+	const game::LocalWorldView& view = client.worldState();
+	EXPECT_EQ(view.grid.columns, 10);
+	EXPECT_EQ(view.grid.rows, 7);
+}
+
 }

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "world/CreatureCatalog.h"
+#include "world/Grid.h"
 
 namespace game {
 
@@ -45,6 +46,7 @@ void MockGameClient::walkTo(int targetX, int targetY,
 
 void MockGameClient::rebuildView() {
 	view_.entities.clear();
+	view_.grid = world::GridSpan{gridColumns_, gridRows_};
 
 	ViewEntity player;
 	player.kind = world::CreatureKind::Player;

@@ -4,6 +4,7 @@
 
 #include "common/common_game_direction.h"
 #include "world/CreatureCatalog.h"
+#include "world/Grid.h"
 #include "world/ItemCatalog.h"
 
 namespace game {
@@ -26,6 +27,7 @@ struct ViewInventorySlot {
 struct LocalWorldView {
 	std::vector<ViewEntity> entities;
 	std::vector<ViewInventorySlot> inventory;
+	world::GridSpan grid{0, 0};
 };
 
 }

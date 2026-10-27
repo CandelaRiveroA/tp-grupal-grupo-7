@@ -13,22 +13,14 @@ namespace world {
 
 class CharacterCatalog {
 public:
-	struct DirectionData {
-		std::map<ActionKind, ActionData> actions;
-		bool mirrored = false;
-	};
-
 	struct CreatureEntry {
 		std::string sheetFile;
 		int sheetCellWidth = 0;
 		int sheetCellHeight = 0;
 		int drawnWidth = 0;
 		int drawnHeight = 0;
-		MoveCadence cadence{0, 0};
 
-		std::array<DirectionData, 4> directionData;
-		std::array<DirectionAppearance, 4> appearance;
-		CreatureData data{nullptr, {0, 0}};
+		CreatureData data;
 	};
 
 	CharacterCatalog() = default;
@@ -48,8 +40,6 @@ public:
 private:
 	std::size_t indexOf(CreatureKind kind) const;
 	const CreatureEntry& entryFor(CreatureKind kind) const;
-
-	void relink(CreatureEntry& entry) const;
 
 	std::vector<std::unique_ptr<CreatureEntry>> entries_;
 };

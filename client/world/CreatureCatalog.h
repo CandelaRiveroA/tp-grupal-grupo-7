@@ -19,13 +19,13 @@ struct MoveCadence {
 };
 
 struct DirectionAppearance {
-	const std::map<ActionKind, ActionData>* actions;
-	bool mirrored;
+	std::map<ActionKind, ActionData> actions;
+	bool mirrored = false;
 };
 
 struct CreatureData {
-	const std::array<DirectionAppearance, 4>* directions;
-	MoveCadence cadence;
+	std::array<DirectionAppearance, 4> directions;
+	MoveCadence cadence{0, 0};
 };
 
 }

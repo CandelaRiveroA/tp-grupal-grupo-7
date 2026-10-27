@@ -2,6 +2,10 @@
 
 #include <SDL2pp/SDL2pp.hh>
 
+#include <string>
+
+#include "sdl/context/SdlConstants.h"
+
 namespace core {
 class WindowConfig;
 }
@@ -19,8 +23,15 @@ public:
 	void clear(const SDL2pp::Color& color);
 	void fillRect(const SDL2pp::Rect& rect, const SDL2pp::Color& color);
 
-	// Manda lo dibujado a la ventana (fin de frame).
+	SDL2pp::Texture createTexture(const std::string& path);
+
+	void drawTexture(SDL2pp::Texture& texture, const SDL2pp::Rect& src,
+			 const SDL2pp::Rect& dest, Flip flip = Flip::None);
+
 	void present();
+
+	int width() const;
+	int height() const;
 
 private:
 	SDL2pp::SDL sdl_;

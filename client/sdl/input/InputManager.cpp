@@ -4,7 +4,8 @@
 
 namespace sdl {
 
-InputManager::InputManager() : keymap_(defaultBindings()) {}
+InputManager::InputManager()
+	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE) {}
 
 bool InputManager::up() const { return flags_[static_cast<std::size_t>(Action::Up)]; }
 
@@ -40,12 +41,26 @@ void InputManager::handleEvent(const SDL_Event& event) {
 		return;
 	}
 
-	// Ignorar el auto-repeat: mantiene presionada la acción hasta el KEYUP.
 	if (event.key.repeat != 0) {
 		return;
 	}
 
+	if (event.type == SDL_KEYDOWN && event.key.keysym.sym == useToolKey_) {
+		useToolTriggered_ = true;
+		return;
+	}
+
 	setKey(event.key.keysym.sym, event.type == SDL_KEYDOWN);
+}
+
+bool InputManager::takeUseTool() {
+	const bool triggered = useToolTriggered_;
+	useToolTriggered_ = false;
+	return triggered;
+}
+
+void InputManager::rebindUseTool(SDL_Keycode newKey) {
+	useToolKey_ = newKey;
 }
 
 void InputManager::setKey(SDL_Keycode key, bool pressed) {

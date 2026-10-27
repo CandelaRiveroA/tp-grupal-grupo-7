@@ -43,7 +43,7 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // ---------------------------------------------------------
 // MOVIMIENTO DEL JUGADOR
 // ---------------------------------------------------------
-void World::move_player(uint32_t player_id, Direction dir) {
+void World::move_player(uint8_t player_id, Direction dir) {
     // Buscamos al jugador por ID.
     // En el futuro será importante para saber si se desconectó y no está en el mapa.
     Player& p = *this->players.at(player_id);
@@ -87,6 +87,19 @@ void World::remove_entity_at(uint16_t x, uint16_t y) {
     this->grid[y][x].entity.reset(); 
 }
 
-void World::add_player(uint32_t player_id, std::unique_ptr<Player> player) {
+void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
     this->players[player_id] = std::move(player);
+}
+
+void World::use_tool(uint8_t player_id) {
+    Player& p = *this->players.at(player_id);
+    auto [tx, ty] = p.get_target_tile(); 
+
+    if (tx >= this->width || ty >= this->height) return;
+
+    Cell& target_cell = this->grid[ty][tx];
+    
+    if (!target_cell.is_empty()) {
+        target_cell.entity->interact(p, p.get_equipped_tool(), *this);
+    }
 }

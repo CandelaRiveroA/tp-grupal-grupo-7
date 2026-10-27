@@ -13,9 +13,10 @@ private:
     uint16_t height;
 
     std::vector<std::vector<Cell>> grid; 
+    //TODO: Persistencia del inventario del jugador.
     
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
-    std::unordered_map<uint32_t, std::unique_ptr<Player>> players;
+    std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
 public:
     World(uint16_t w, uint16_t h);
     ~World() = default;
@@ -28,12 +29,15 @@ public:
     // --- Gestión de Jugadores ---
     // TODO: Implementar  disconnect_player para 
     // cuando el Acceptor limpie al ClientHandler.
-    void add_player(uint32_t player_id, std::unique_ptr<Player> player);
-    void move_player(uint32_t player_id, Direction dir);
+    void add_player(uint8_t player_id, std::unique_ptr<Player> player);
+    void move_player(uint8_t player_id, Direction dir);
 
     // --- Gestión de Entidades Físicas ---
     void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity);
     void remove_entity_at(uint16_t x, uint16_t y);
+
+    // ---
+    void use_tool(uint8_t player_id);
 };
 
 #endif // WORLD_H

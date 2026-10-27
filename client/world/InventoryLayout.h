@@ -74,6 +74,8 @@ struct InventoryLayout {
 
 	FrameCells slotFrame;
 
+	FrameCells activeSlotFrame;
+
 	ItemCatalog items;
 
 
@@ -108,6 +110,8 @@ struct InventoryLayout {
 	FrameLayout frameLayout(int windowWidth, int windowHeight) const;
 
 	FrameLayout slotFrameLayout(const PixelBox& slot) const;
+
+	FrameLayout activeSlotFrameLayout(const PixelBox& slot) const;
 
 	PixelBox iconBox(const PixelBox& slot) const;
 

@@ -26,7 +26,10 @@ public:
 	SDL2pp::Texture createTexture(const std::string& path);
 
 	void drawTexture(SDL2pp::Texture& texture, const SDL2pp::Rect& src,
-			 const SDL2pp::Rect& dest, Flip flip = Flip::None);
+			 const SDL2pp::Rect& dest, Flip flip = Flip::None,
+			 double angle = 0.0,
+			 SDL2pp::Optional<SDL2pp::Point> center =
+				 SDL2pp::NullOpt);
 
 	void present();
 

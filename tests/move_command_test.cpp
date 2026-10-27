@@ -12,7 +12,8 @@ LocalWorldView viewAt(int cellX, int cellY) {
 	LocalWorldView view;
 	view.entities.push_back(
 		ViewEntity{world::CreatureKind::Player, cellX, cellY,
-			   protocol::Direction::Front, false});
+			   protocol::Direction::Front, false,
+			   world::ActionKind::Idle, std::nullopt});
 	return view;
 }
 

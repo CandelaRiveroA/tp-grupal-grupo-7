@@ -19,6 +19,15 @@ void ViewMotion::observe(const LocalWorldView& view, int iteration) {
 
 		track.cadence = catalog_.dataFor(entity.kind).cadence;
 
+		// Flanco de entrada a UseTool: la fuente acaba de reportar el
+		// golpe. Guarda el tick de inicio para el reloj de animación.
+		const bool usingToolNow =
+			(entity.action == world::ActionKind::UseTool);
+		if (usingToolNow && !track.usingTool) {
+			track.toolStartIteration = iteration;
+		}
+		track.usingTool = usingToolNow;
+
 		if (!track.known) {
 			track.known = true;
 			track.cellX = entity.cellX;
@@ -71,6 +80,15 @@ int ViewMotion::animationTickFor(const std::size_t index,
 		return iteration;
 	}
 	return iteration - tracks_[index].stepIteration;
+}
+
+int ViewMotion::toolTickFor(const std::size_t index,
+			    const int iteration) const {
+	if (index >= tracks_.size()) {
+		return 0;
+	}
+	const int elapsed = iteration - tracks_[index].toolStartIteration;
+	return elapsed > 0 ? elapsed : 0;
 }
 
 bool ViewMotion::isWalking(const std::size_t index, const int iteration,

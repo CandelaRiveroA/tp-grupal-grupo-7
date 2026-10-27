@@ -303,6 +303,49 @@ TEST(InventoryConfigLoaderTest, NoSlotFrameLeavesItDisabled) {
 	EXPECT_FALSE(bar.slotFrame.enabled);
 }
 
+TEST(InventoryConfigLoaderTest, LoadsActiveSlotFrame) {
+	const std::string toml = kBarToml + R"(
+[active_slot_frame]
+border_cells = 1
+thickness    = 20
+corners_only = false
+top_left     = [0, 56]
+top_right    = [3, 56]
+bottom_left  = [0, 59]
+bottom_right = [3, 59]
+top          = [2, 56]
+bottom       = [2, 59]
+left         = [0, 58]
+right        = [3, 58]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.activeSlotFrame.enabled);
+	EXPECT_EQ(bar.activeSlotFrame.borderCells, 1);
+	EXPECT_EQ(bar.activeSlotFrame.thickness, 20);
+	EXPECT_FALSE(bar.activeSlotFrame.cornersOnly);
+	EXPECT_EQ(bar.activeSlotFrame.topLeft.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.topLeft.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.topRight.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.topRight.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.bottomLeft.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.bottomLeft.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.bottomRight.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.bottomRight.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.top.col, 2);
+	EXPECT_EQ(bar.activeSlotFrame.top.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.bottom.col, 2);
+	EXPECT_EQ(bar.activeSlotFrame.bottom.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.left.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.left.row, 58);
+	EXPECT_EQ(bar.activeSlotFrame.right.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.right.row, 58);
+}
+
+TEST(InventoryConfigLoaderTest, NoActiveSlotFrameLeavesItDisabled) {
+	const world::InventoryLayout bar = loadBar();
+	EXPECT_FALSE(bar.activeSlotFrame.enabled);
+}
+
 TEST(InventoryConfigLoaderTest, ZeroBorderCellsIsInvalidValue) {
 	const std::string toml = R"(
 [sheet]

@@ -25,6 +25,7 @@ constexpr const char* kBarItemPad = "bar.item_pad";
 
 constexpr const char* kFrame = "frame";
 constexpr const char* kSlotFrame = "slot_frame";
+constexpr const char* kActiveSlotFrame = "active_slot_frame";
 
 constexpr const char* kBorderCells = "border_cells";
 constexpr const char* kThickness = "thickness";
@@ -112,6 +113,10 @@ InventoryLayout InventoryTomlReader::read() const {
 		readFrame(kSlotFrame, layout.slotFrame);
 	}
 
+	if (doc_.hasKey(kActiveSlotFrame)) {
+		readFrame(kActiveSlotFrame, layout.activeSlotFrame);
+	}
+
 	if (doc_.hasKey(kItems)) {
 		readItems(layout.items);
 	}
@@ -188,10 +193,13 @@ void InventoryTomlReader::readFrame(const std::string& section,
 	frame.topRight = readCell(join(section, kTopRight));
 	frame.bottomLeft = readCell(join(section, kBottomLeft));
 	frame.bottomRight = readCell(join(section, kBottomRight));
-	frame.top = readCell(join(section, kTop));
-	frame.bottom = readCell(join(section, kBottom));
-	frame.left = readCell(join(section, kLeft));
-	frame.right = readCell(join(section, kRight));
+
+	if (!frame.cornersOnly) {
+		frame.top = readCell(join(section, kTop));
+		frame.bottom = readCell(join(section, kBottom));
+		frame.left = readCell(join(section, kLeft));
+		frame.right = readCell(join(section, kRight));
+	}
 }
 
 std::string InventoryTomlReader::join(const std::string& section,

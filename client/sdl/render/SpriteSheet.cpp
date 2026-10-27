@@ -27,7 +27,8 @@ void SpriteSheet::draw(int col, int row, const SDL2pp::Rect& dest,
 
 void SpriteSheet::drawBlock(int col, int row, int cols, int rows,
 			    const SDL2pp::Rect& dest, Flip flip,
-			    double fracW, double fracH) {
+			    double fracW, double fracH, double angle,
+			    SDL2pp::Optional<SDL2pp::Point> center) {
 	if (cols <= 0 || rows <= 0 || dest.w <= 0 || dest.h <= 0) {
 		return;
 	}
@@ -40,7 +41,7 @@ void SpriteSheet::drawBlock(int col, int row, int cols, int rows,
 		return;
 	}
 	const SDL2pp::Rect src(base.x, base.y, srcW, srcH);
-	context_.drawTexture(texture_, src, dest, flip);
+	context_.drawTexture(texture_, src, dest, flip, angle, center);
 }
 
 }

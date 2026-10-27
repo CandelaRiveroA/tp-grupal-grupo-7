@@ -12,8 +12,7 @@ namespace world {
 
 class Scenario {
 public:
-	Scenario(const core::WindowConfig& config,
-		 const std::string& scenesPath, const std::string& roomName);
+	Scenario(const core::WindowConfig& config, SceneDescription scene);
 
 	int width() const;
 	int height() const;

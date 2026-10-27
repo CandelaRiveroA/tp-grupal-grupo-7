@@ -45,13 +45,19 @@ SDL2pp::Texture SdlContext::createTexture(const std::string& path) {
 
 void SdlContext::drawTexture(SDL2pp::Texture& texture,
 			     const SDL2pp::Rect& src,
-			     const SDL2pp::Rect& dest, Flip flip) {
-	if (flip == Flip::None) {
+			     const SDL2pp::Rect& dest, Flip flip,
+			     double angle,
+			     SDL2pp::Optional<SDL2pp::Point> center) {
+	if (flip == Flip::None && angle == 0.0) {
 		renderer_.Copy(texture, src, dest);
 		return;
 	}
-	renderer_.Copy(texture, src, dest, 0.0, SDL2pp::NullOpt,
-		       SDL_FLIP_HORIZONTAL);
+	const SDL_RendererFlip sdlFlip = (flip == Flip::None)
+		? SDL_FLIP_NONE
+		: SDL_FLIP_HORIZONTAL;
+	// center = NullOpt → SDL rota sobre el centro del dest; si viene un
+	// punto, rota sobre ese punto (pivote del mango de la herramienta).
+	renderer_.Copy(texture, src, dest, angle, center, sdlFlip);
 }
 
 }

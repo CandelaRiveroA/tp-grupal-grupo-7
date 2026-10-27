@@ -90,8 +90,8 @@ const world::ActionData& actionOf(const CharacterCatalog& catalog,
 				  Direction facing, ActionKind action) {
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 	const world::DirectionAppearance& dir =
-		(*data.directions)[static_cast<int>(facing)];
-	return dir.actions->at(action);
+		data.directions[static_cast<int>(facing)];
+	return dir.actions.at(action);
 }
 
 
@@ -215,9 +215,9 @@ TEST(CharacterCatalogLoaderTest, LeftIsMirroredRightIsNot) {
 	const CharacterCatalog catalog = loadPlayer();
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 	const world::DirectionAppearance& left =
-		(*data.directions)[static_cast<int>(Direction::Left)];
+		data.directions[static_cast<int>(Direction::Left)];
 	const world::DirectionAppearance& right =
-		(*data.directions)[static_cast<int>(Direction::Right)];
+		data.directions[static_cast<int>(Direction::Right)];
 	EXPECT_TRUE(left.mirrored);
 	EXPECT_FALSE(right.mirrored);
 }
@@ -227,12 +227,10 @@ TEST(CharacterCatalogLoaderTest, LoadedDataDrivesAppearance) {
 	const CharacterCatalog catalog = loadPlayer();
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 
-	const world::EntityAppearance idle = world::appearanceFor(
-		data, Direction::Front, ActionKind::Idle, 0);
+	const world::EntityAppearance idle = world::AppearanceResolver(data).appearanceFor( Direction::Front, ActionKind::Idle, 0);
 	EXPECT_EQ((*idle.pose)[0].frame.col, 0);
 
-	const world::EntityAppearance walking = world::appearanceFor(
-		data, Direction::Front, ActionKind::Walk, 0);
+	const world::EntityAppearance walking = world::AppearanceResolver(data).appearanceFor( Direction::Front, ActionKind::Walk, 0);
 	EXPECT_EQ((*walking.pose)[0].frame.col, 1);
 }
 
@@ -240,8 +238,8 @@ TEST(CharacterCatalogLoaderTest, WalkCycleFitsExactlyOneStep) {
 	const CharacterCatalog catalog = loadPlayer();
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 	EXPECT_GT(data.cadence.frameTicks, 0);
-	for (const world::DirectionAppearance& dir : *data.directions) {
-		const world::ActionData& walk = dir.actions->at(ActionKind::Walk);
+	for (const world::DirectionAppearance& dir : data.directions) {
+		const world::ActionData& walk = dir.actions.at(ActionKind::Walk);
 		EXPECT_EQ(data.cadence.stepTicks,
 			  data.cadence.frameTicks *
 				  static_cast<int>(walk.frames.size()));
@@ -384,9 +382,9 @@ TEST(CharacterCatalogLoaderTest, RealFileToolUseDurationIsUniform) {
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 
 	int expectedTicks = -1;
-	for (const world::DirectionAppearance& dir : *data.directions) {
-		const auto it = dir.actions->find(ActionKind::UseTool);
-		if (it == dir.actions->end()) {
+	for (const world::DirectionAppearance& dir : data.directions) {
+		const auto it = dir.actions.find(ActionKind::UseTool);
+		if (it == dir.actions.end()) {
 			continue;
 		}
 		const int ticks = static_cast<int>(it->second.frames.size()) *

@@ -7,9 +7,17 @@ namespace sdl {
 
 enum class SoundCategory { Sfx, Music };
 
-enum class SoundId { Step, RoosterCrow };
+enum class SoundId {
+	Step,
+	RoosterCrow,
+	ToolSwitch,
+	MineralHit,
+	MineralCrack,
+	MineralObtained,
+};
 
-inline constexpr int kSoundCount = static_cast<int>(SoundId::RoosterCrow) + 1;
+inline constexpr int kSoundCount =
+	static_cast<int>(SoundId::MineralObtained) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -19,6 +27,10 @@ struct SoundSpec {
 inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/movement/step.ogg", SoundCategory::Sfx},
 	 {"sfx/farm/rooster.ogg", SoundCategory::Sfx},
+	 {"sfx/ui/change_tool.ogg", SoundCategory::Sfx},
+	 {"sfx/tools/hammer.ogg", SoundCategory::Sfx},
+	 {"sfx/mining/brick2.ogg", SoundCategory::Sfx},
+	 {"sfx/mining/discoverMineral.ogg", SoundCategory::Sfx},
 }};
 
 }

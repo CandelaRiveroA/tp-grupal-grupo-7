@@ -33,7 +33,10 @@ protocol::Command MoveCommand::hold(const LocalWorldView& state,
 
 protocol::Command MoveCommand::use(const LocalWorldView& state,
 				   protocol::Direction direction) const {
-	protocol::Command command = walkTo(state, 0, 0, direction);
+	// Picar apunta a la celda que el jugador tiene ENFRENTE (según la
+	// dirección que mira), no a la propia. Reusa el mismo offset por
+	// dirección que propose(), pero con move = Pick.
+	protocol::Command command = propose(state, direction);
 	command.move = protocol::Move::Pick;
 	return command;
 }

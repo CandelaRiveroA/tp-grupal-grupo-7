@@ -36,6 +36,14 @@ inline constexpr const char* kCharactersFile = "characters.toml";
 
 inline constexpr const char* kInventoryFile = "inventory.toml";
 
+inline constexpr const char* kToolsOverlayFile = "tools_overlay.toml";
+
+inline constexpr const char* kResourcesFile = "resources.toml";
+
+// Cantidad de slots del inventario ocupados por el mock (pico, pala,
+// regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.
+inline constexpr int kInventorySlots = 4;
+
 std::string assetPath(const std::string& file);
 
 std::string soundPath(const std::string& file);

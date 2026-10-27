@@ -33,7 +33,7 @@ void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 }
 
 void InventoryHud::draw(
-	const std::vector<game::ViewInventorySlot>& inventory) {
+	const std::vector<game::ViewInventorySlot>& inventory, int activeSlot) {
 	const std::vector<world::PixelBox> boxes =
 		layout_.slotBoxes(context_.width(), context_.height());
 
@@ -52,6 +52,17 @@ void InventoryHud::draw(
 		for (const world::PixelBox& box : boxes) {
 			drawFrame(layout_.slotFrameLayout(box), drawEdges);
 		}
+	}
+
+	if (layout_.activeSlotFrame.enabled) {
+		const int clampedSlot =
+			(activeSlot >= 0 && activeSlot < static_cast<int>(boxes.size()))
+				? activeSlot
+				: 0;
+		const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
+		drawFrame(layout_.activeSlotFrameLayout(
+				  boxes[static_cast<std::size_t>(clampedSlot)]),
+			  drawEdges);
 	}
 
 	const int slots = static_cast<int>(boxes.size());

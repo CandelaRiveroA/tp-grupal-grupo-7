@@ -17,7 +17,8 @@ using game::ViewEntity;
 
 game::MockGameClient buildClient(int columns, int rows, int startX,
 				 int startY) {
-	return game::MockGameClient(columns, rows, startX, startY);
+	constexpr int kToolTicks = 30;
+	return game::MockGameClient(columns, rows, startX, startY, kToolTicks);
 }
 
 protocol::Command walk(int x, int y, protocol::Direction direction) {

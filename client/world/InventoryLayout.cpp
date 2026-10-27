@@ -149,6 +149,12 @@ FrameLayout InventoryLayout::slotFrameLayout(const PixelBox& slot) const {
 			       true);
 }
 
+FrameLayout InventoryLayout::activeSlotFrameLayout(const PixelBox& slot) const {
+	const int t = scaled(activeSlotFrame.thickness);
+	return nineSliceInside(slot, t, activeSlotFrame.borderCells,
+			       activeSlotFrame, false);
+}
+
 PixelBox InventoryLayout::iconBox(const PixelBox& slot) const {
 	int pad;
 	if (itemPad >= 0) {

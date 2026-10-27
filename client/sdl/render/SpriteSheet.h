@@ -30,7 +30,10 @@ public:
 
 	void drawBlock(int col, int row, int cols, int rows,
 		       const SDL2pp::Rect& dest, Flip flip = Flip::None,
-		       double fracW = 1.0, double fracH = 1.0);
+		       double fracW = 1.0, double fracH = 1.0,
+		       double angle = 0.0,
+		       SDL2pp::Optional<SDL2pp::Point> center =
+			       SDL2pp::NullOpt);
 
 private:
 	SdlContext& context_;

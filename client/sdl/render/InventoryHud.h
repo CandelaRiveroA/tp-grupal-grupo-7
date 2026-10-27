@@ -17,7 +17,8 @@ class InventoryHud {
 public:
 	InventoryHud(SdlContext& context, const world::InventoryLayout& layout);
 
-	void draw(const std::vector<game::ViewInventorySlot>& inventory);
+	void draw(const std::vector<game::ViewInventorySlot>& inventory,
+		  int activeSlot);
 
 private:
 	void drawFrame(const world::FrameLayout& fl, bool drawEdges = true);

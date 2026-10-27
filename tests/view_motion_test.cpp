@@ -67,7 +67,8 @@ const int kStepTicks =
 
 ViewEntity entityAt(int cellX, int cellY) {
 	return ViewEntity{world::CreatureKind::Player, cellX, cellY,
-			  protocol::Direction::Front, false};
+			  protocol::Direction::Front, false,
+			  world::ActionKind::Idle, std::nullopt};
 }
 
 LocalWorldView viewAt(int cellX, int cellY) {

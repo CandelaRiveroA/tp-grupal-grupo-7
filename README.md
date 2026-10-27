@@ -25,14 +25,15 @@ Luego compilar todos los targets habilitados:
 cmake --build build
 ```
 
-La configuración por defecto habilita el cliente, el servidor, el editor y
-los tests. Para una compilación más rápida se pueden deshabilitar los
-componentes que no se necesitan:
+La configuración por defecto habilita el cliente, el editor y los tests. El
+servidor todavía no tiene un ejecutable integrado, por lo que permanece
+deshabilitado hasta completar la etapa de integración. Para una compilación
+más rápida se pueden deshabilitar los componentes que no se necesitan:
 
 ```sh
 cmake -S . -B build \
   -DTALLER_CLIENT=ON \
-  -DTALLER_SERVER=ON \
+  -DTALLER_SERVER=OFF \
   -DTALLER_EDITOR=OFF \
   -DTALLER_TESTS=OFF \
   -DCMAKE_BUILD_TYPE=Debug
@@ -45,28 +46,6 @@ Para una compilación optimizada, reemplazar `Debug` por `Release`:
 cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
 ```
-
-### Ejecución de los programas
-
-#### Cliente y servidor
-
-El servidor escucha en el puerto indicado y, al aceptar una conexión, envía
-`hola mundo` usando un protocolo. El cliente recibe e imprime ese mensaje.
-
-Con el proyecto compilado, en una terminal ejecutar el servidor:
-
-```sh
-./build/taller_server 8080
-```
-
-En otra terminal ejecutar el cliente:
-
-```sh
-./build/taller_client 127.0.0.1 8080
-```
-
-El primer argumento del servidor es el puerto de escucha. El cliente recibe
-como argumentos el hostname y el puerto del servidor.
 
 #### Editor
 

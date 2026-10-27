@@ -1,0 +1,19 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Unix Makefiles",
+    "cmake.configureOnOpen": true,
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "TALLER_EDITOR": false,
+        "SDL2MIXER_MIDI": false
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c17",
+    "C_Cpp.intelliSenseEngine": "default",
+    "files.associations": {
+        "*.h": "cpp"
+    }
+}

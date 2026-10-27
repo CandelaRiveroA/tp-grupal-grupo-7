@@ -2,12 +2,13 @@
 
 compile-debug:
 	mkdir -p build/
-	cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Debug $(EXTRA_GENERATE)
+	cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ $(EXTRA_GENERATE)
 	cmake --build  build/ $(EXTRA_COMPILE)
 
 run-tests:
 	mkdir -p build-tests
 	cmake -S . -B ./build-tests -DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_CXX_COMPILER=g++ \
 		-DTALLER_CLIENT=OFF -DTALLER_SERVER=OFF \
 		-DTALLER_EDITOR=OFF -DTALLER_TESTS=ON
 	cmake --build build-tests

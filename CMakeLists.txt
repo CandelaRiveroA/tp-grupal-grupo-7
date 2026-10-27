@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 
+if (NOT DEFINED CMAKE_CXX_COMPILER)
+    set(CMAKE_CXX_COMPILER g++)
+endif()
+
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
@@ -12,14 +16,23 @@ set(CMAKE_CXX_EXTENSIONS ON)
 
 project(taller_tp
     VERSION 1.0
-    HOMEPAGE_URL "https://github.com/URL-HERE"
+    HOMEPAGE_URL "https://github.com/CandelaRiveroA/tp-grupal-grupo-7"
     LANGUAGES CXX
     )
+
+# Genera compile_commands.json en el build dir: lo usan IntelliSense de
+# VS Code (cpptools) y clangd para resolver los include paths reales.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands for IntelliSense/clangd")
 
 option(TALLER_TESTS "Enable / disable tests." ON)
 option(TALLER_CLIENT "Enable / disable client program." ON)
 option(TALLER_SERVER "Enable / disable server program." ON)
 option(TALLER_EDITOR "Enable / disable editor program." ON)
+# Herramienta PROVISORIA para inspeccionar celdas de una hoja de sprites
+# (ver client/sdl/dev/tile_inspector_main.cpp). OFF por defecto: no afecta
+# el build normal del cliente/servidor/editor. Encenderla con
+# -DTALLER_TILE_INSPECTOR=ON compila el ejecutable taller_tile_inspector.
+option(TALLER_TILE_INSPECTOR "Enable / disable provisional tile inspector." OFF)
 option(TALLER_MAKE_WARNINGS_AS_ERRORS "Enable / disable warnings as errors." ON)
 
 message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}")
@@ -40,7 +53,9 @@ set_project_warnings(taller_common ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 # Say where the headers will be found required by library target
 # Make this PUBLIC so any dependant linking lib will inherit this
 # location (so our dependants will not have to explicitly request this)
-target_include_directories(taller_common PUBLIC .)
+# "." permite "#include \"common/foo.h\""; "common" permite el estilo corto
+# "#include \"common_foo.h\"" que usan client/ y server/.
+target_include_directories(taller_common PUBLIC . common)
 
 # HEY!! TODO XXX: you need to install some runtime and dev libraries *before*
 # compiling the client/editor code.
@@ -52,8 +67,16 @@ target_include_directories(taller_common PUBLIC .)
 
 # Install libSDL2 and libSDL2pp (for client or editor)
 # HEY!! TODO XXX: add more dependendies (either for client, server or editor)
-if(TALLER_CLIENT OR TALLER_EDITOR)
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
     include(FetchContent)
+
+    # libsdl2pp, al traerse vía FetchContent, no declara sus propias
+    # options (solo lo hace cuando es el proyecto raíz): el padre tiene
+    # que setearlas. SDL2PP_WITH_IMAGE habilita los constructores
+    # Texture(renderer, path) / Surface(path) para cargar sprites desde
+    # un archivo (PNG) sin recortar nada por frame en disco.
+    set(SDL2PP_WITH_IMAGE ON)
+
     FetchContent_Declare(
         SDL2
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -99,6 +122,63 @@ if(TALLER_CLIENT OR TALLER_EDITOR)
     FetchContent_MakeAvailable(SDL2 SDL2_image SDL2_mixer SDL2_ttf libSDL2pp)
 endif()
 
+# toml++: parser TOML header-only (C++17). Se usa para describir los
+# escenarios como datos (ver client/world/scenes.toml) y cargarlos sin
+# recompilar. Se trae con FetchContent igual que SDL2/GoogleTest; tag
+# pinned (no rango abierto) para builds reproducibles. Lo necesitan el
+# cliente (lo dibuja) y los tests (prueban el loader), así que se trae
+# siempre que alguno de los dos esté habilitado.
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS)
+    include(FetchContent)
+    FetchContent_Declare(
+        tomlplusplus
+        GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+        GIT_TAG v3.4.0
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(tomlplusplus)
+endif()
+
+# Librería del cliente SIN dependencia de SDL: datos puros de la escena,
+# el loader de TOML, el logger de la sección SDL (que solo escribe a
+# stderr, no usa SDL), el FrameClock del game loop (cálculo puro de
+# std::chrono, sin SDL ni sleeps) y la geometría de TileLayout (solo
+# aritmética, el blit vive en ElementPainter). Al no depender de SDL, los tests la
+# pueden linkear y probar esta lógica sin levantar una ventana. El
+# cliente también la linkea. Se crea acá (raíz) porque la necesitan
+# client y tests.
+if(TALLER_CLIENT OR TALLER_TESTS)
+    add_library(taller_client_world STATIC
+        client/toml/TomlDocument.cpp
+        client/world/ConfigError.cpp
+        client/world/SceneConfigLoader.cpp
+        client/world/SceneTomlReader.cpp
+        client/world/CharacterCatalog.cpp
+        client/world/CharacterCatalogLoader.cpp
+        client/world/InventoryTomlReader.cpp
+        client/world/InventoryConfigLoader.cpp
+        client/world/InventoryLayout.cpp
+        client/world/ItemCatalog.cpp
+        client/world/ScenePixelMapper.cpp
+        client/world/EntityAppearance.cpp
+        client/game/FootstepCue.cpp
+        client/game/MockGameClient.cpp
+        client/game/MoveCommand.cpp
+        client/game/ViewMotion.cpp
+        client/game/WalkPacer.cpp
+        client/game/ActionResolver.cpp
+        client/game/ToolUse.cpp
+        client/core/StartupSequence.cpp
+        client/sdl/log/Logger.cpp
+        client/sdl/loop/FrameClock.cpp
+        client/sdl/render/TileLayout.cpp)
+    target_include_directories(taller_client_world PUBLIC client)
+    target_link_libraries(taller_client_world PUBLIC tomlplusplus::tomlplusplus
+                          taller_common)
+    set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+endif()
+
 # Program section
 # ---------------
 if(TALLER_CLIENT)
@@ -106,7 +186,7 @@ if(TALLER_CLIENT)
     add_executable(taller_client)
 
     # Make them depend on taller_common lib
-    add_dependencies(taller_client taller_common SDL2pp::SDL2pp)
+    add_dependencies(taller_client taller_common SDL2pp::SDL2pp SDL2_mixer)
 
     # Add source files and enable warnings
     # HEY!! TODO XXX: add more subfolders here
@@ -120,7 +200,67 @@ if(TALLER_CLIENT)
     # Link the taller_common lib target
     # (keyword form: required so client/ can link imported targets
     # like Qt6::Widgets from its own directory scope)
-    target_link_libraries(taller_client PRIVATE taller_common SDL2pp::SDL2pp)
+    target_link_libraries(taller_client PRIVATE taller_common SDL2pp::SDL2pp
+                          SDL2_mixer::SDL2_mixer taller_client_world)
+
+    # Assets: se copian junto al binario al terminar el build (el cliente
+    # los busca por TALLER_ASSET_DIR, definido en client/CMakeLists.txt),
+    # así corre sin importar desde qué directorio se ejecute.
+    add_custom_command(TARGET taller_client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/sdl/assets
+                ${CMAKE_BINARY_DIR}/assets
+        COMMENT "Copiando assets del cliente al directorio del build")
+
+    # Sonidos: mismo criterio que los assets, pero en su propio árbol
+    # (el cliente los busca por TALLER_SOUNDS_DIR). Van aparte porque son
+    # muchos y pesados; mantenerlos separados de las imágenes deja claro
+    # qué es cada cosa y no mezcla los dos orígenes.
+    add_custom_command(TARGET taller_client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/sdl/sounds
+                ${CMAKE_BINARY_DIR}/sounds
+        COMMENT "Copiando sonidos del cliente al directorio del build")
+endif()
+
+# ------------------------------------------------------------
+# Herramienta PROVISORIA: inspector de celdas de una hoja de sprites.
+# Ejecutable aparte (no toca taller_client): su propio main() abre la
+# ventana directo, sin lobby ni intro. Reusa SOLO las fuentes SDL que
+# necesita (contexto, spritesheet, config de ventana) y nada de Qt.
+# Borrar este bloque y client/sdl/dev/ lo elimina del proyecto.
+# ------------------------------------------------------------
+if(TALLER_TILE_INSPECTOR)
+    add_executable(taller_tile_inspector
+        client/sdl/dev/tile_inspector_main.cpp
+        client/core/Constants.cpp
+        client/core/WindowConfig.cpp
+        client/sdl/context/SdlContext.cpp
+        client/sdl/render/SpriteSheet.cpp)
+
+    add_dependencies(taller_tile_inspector taller_common SDL2pp::SDL2pp)
+
+    set_project_warnings(taller_tile_inspector
+                         ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+
+    # Headers del cliente ("core/...", "sdl/...") y de libSDL2pp.
+    target_include_directories(taller_tile_inspector PRIVATE
+        ${CMAKE_SOURCE_DIR}/client
+        ${libSDL2pp_SOURCE_DIR})
+
+    target_link_libraries(taller_tile_inspector PRIVATE
+        taller_common SDL2pp::SDL2pp)
+
+    # Mismo mecanismo de assets que el cliente: el inspector busca la
+    # hoja por TALLER_ASSET_DIR y los assets se copian junto al binario.
+    target_compile_definitions(taller_tile_inspector PRIVATE
+        TALLER_ASSET_DIR=\"${CMAKE_BINARY_DIR}/assets\")
+
+    add_custom_command(TARGET taller_tile_inspector POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/sdl/assets
+                ${CMAKE_BINARY_DIR}/assets
+        COMMENT "Copiando assets para el tile inspector")
 endif()
 
 if(TALLER_SERVER)
@@ -208,6 +348,15 @@ if(TALLER_TESTS)
     # Change this if you have to.
     target_link_libraries(taller_tests
         taller_common
+        taller_client_world
         GTest::gtest_main
     )
+
+    # Ruta del scenes.toml real (en el árbol de fuentes) para el test de
+    # integración del loader: así se verifica que el archivo que usa el
+    # juego parsea y produce la escena esperada, sin copiarlo a mano.
+    target_compile_definitions(taller_tests PRIVATE
+        TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
+        TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
+        TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\")
 endif()

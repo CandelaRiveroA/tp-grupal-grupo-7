@@ -1,11 +1,13 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include <vector>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
+#include <vector>
+
+#include "../entities/player.h"
+
 #include "cell.h"
-#include "../entities/player.h" 
 
 class World {
 private:
@@ -27,10 +29,10 @@ public:
     bool can_walk_to(uint16_t x, uint16_t y) const;
 
     // --- Gestión de Jugadores ---
-    // TODO: Implementar  disconnect_player para 
-    // cuando el Acceptor limpie al ClientHandler.
     void add_player(uint8_t player_id, std::unique_ptr<Player> player);
+    void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
+    const Player& get_player(uint8_t player_id) const;
 
     // --- Gestión de Entidades Físicas ---
     void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity);
@@ -40,4 +42,4 @@ public:
     void use_tool(uint8_t player_id);
 };
 
-#endif // WORLD_H
+#endif  // WORLD_H

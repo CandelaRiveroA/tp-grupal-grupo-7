@@ -1,26 +1,21 @@
+// TODO(tp2): punto de entrada provisional del servidor.
+// Reemplazar por la construccion de Server / acceptor y el loop de aceptacion
+// de clientes.
 #include <exception>
-#include <iostream>
 
 #include "server.h"
 
-#define SERVER_SERVICE_ARG_IDX 1
-#define EXPECTED_SERVER_ARGS 2
-
 int main(int argc, char* argv[]) {
-    if (argc != EXPECTED_SERVER_ARGS) {
-        std::cerr << "Uso: ./server <servicename>" << std::endl;
-        return EXIT_FAILURE;
+    if (argc != 2) {
+        return 1;
     }
 
     try {
-        Server server(argv[SERVER_SERVICE_ARG_IDX]);
+        Server server(argv[1]);
         server.run();
-        return EXIT_SUCCESS;
-    } catch (const std::exception& e) {
-        std::cerr << "Error en el servidor: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    } catch (...) {
-        std::cerr << "Error desconocido en el servidor." << std::endl;
-        return EXIT_FAILURE;
+    } catch (const std::exception&) {
+        return 1;
     }
+
+    return 0;
 }

@@ -1,0 +1,142 @@
+# ============================================================
+# Personajes del juego, descritos como DATOS.
+#
+# Describe la APARIENCIA de cada criatura sin que el código la conozca: la
+# hoja de sprites, el tamaño de celda de esa hoja, el tamaño dibujado, la
+# cadencia y las ACCIONES por dirección. Agregar/cambiar una criatura —o
+# sumarle una acción— es editar este archivo; no hace falta recompilar.
+#
+# Lo carga world::CharacterCatalogLoader hacia un world::CharacterCatalog
+# (datos puros, sin SDL), y el sdl::Renderer lo consume. Ver
+# client/world/characters-format.md para el detalle de cada campo.
+# ============================================================
+
+# --- Jugador -----------------------------------------------------------
+# sheet:   hoja de sprites (ruta relativa al directorio de assets).
+# grid:    tamaño de celda de ESA hoja [ancho, alto] en píxeles (16x16).
+# drawn:   tamaño con el que se dibuja el CUERPO en pantalla [ancho, alto].
+# cadence: step = ticks por celda (velocidad); frame = ticks por cuadro.
+#          Invariante: step == frame * (cuadros de la acción walk).
+[characters.player]
+sheet   = "Players/main/Character_Base.png"
+grid    = [16, 16]
+drawn   = [32, 64]
+cadence = { step = 24, frame = 12 }
+
+  # Cada dirección: si se dibuja espejada y una subtabla por ACCIÓN
+  # (idle, walk, ...). Cada acción: frames (lista de cuadros) + loops, y
+  # opcionalmente `frame` (ticks por cuadro) con ritmo PROPIO; si no lo
+  # declara, usa cadence.frame de la criatura.
+  # Cada cuadro es una lista de CAPAS en orden de dibujo (cuerpo, brazos).
+  # Una capa es [col, row, cols, rows]: celda origen + tamaño en celdas.
+  # El cuerpo es 1x2 (16x32); los brazos 1x1 (bajos, se anclan abajo) o
+  # 1x2 (cuando suben). idle y walk son dos acciones más, sin trato
+  # especial en el código.
+
+  # Frente (mira a la cámara) — RELEVADA.
+  [characters.player.front]
+  mirrored = false
+    [characters.player.front.idle]
+    loops  = false
+    frames = [ [ [0, 0, 1, 2], [6, 1, 1, 1] ] ]
+    [characters.player.front.walk]
+    loops  = true
+    frames = [
+      [ [1, 0, 1, 2], [7, 1, 1, 1] ],
+      [ [2, 0, 1, 2], [8, 1, 1, 1] ],
+    ]
+    # Picar de frente: 5 cuadros, one-shot (loops=false). Brazos 1x2.
+    # frame = 6: ritmo propio (5x6 = 30 ticks ≈ 500 ms), igual que
+    # left/right para que la duración del golpe sea uniforme en todas
+    # las direcciones. Sin `frame` usaría cadence.frame.
+    [characters.player.front.use_tool]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 22, 1, 2], [6, 22, 1, 2] ],
+      [ [1, 22, 1, 2], [7, 22, 1, 2] ],
+      [ [2, 22, 1, 2], [8, 22, 1, 2] ],
+      [ [3, 22, 1, 2], [9, 22, 1, 2] ],
+      [ [4, 22, 1, 2], [10, 22, 1, 2] ],
+    ]
+
+  # Espaldas (caminar hacia arriba) — RELEVADA. Brazos 1x2 (suben).
+  [characters.player.back]
+  mirrored = false
+    [characters.player.back.idle]
+    loops  = false
+    frames = [ [ [0, 4, 1, 2], [6, 4, 1, 2] ] ]
+    [characters.player.back.walk]
+    loops  = true
+    frames = [
+      [ [1, 4, 1, 2], [7, 4, 1, 2] ],
+      [ [2, 4, 1, 2], [8, 4, 1, 2] ],
+    ]
+    # Picar de espaldas: 5 cuadros, one-shot (loops=false). Cuerpo
+    # (cols 0-4) y brazos (cols 6-10) en la fila 12; los brazos son
+    # 1x2 porque las piezas cruzan el borde fila 12/13 (verificado con
+    # grilla sobre la hoja). Mismo ritmo que el resto de las
+    # direcciones (frame = 6 => 5x6 = 30 ticks): el golpe es uniforme.
+    [characters.player.back.use_tool]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 12, 1, 2], [6, 12, 1, 2] ],
+      [ [1, 12, 1, 2], [7, 12, 1, 2] ],
+      [ [2, 12, 1, 2], [8, 12, 1, 2] ],
+      [ [3, 12, 1, 2], [9, 12, 1, 2] ],
+      [ [4, 12, 1, 2], [10, 12, 1, 2] ],
+    ]
+
+  # Izquierda — RELEVADA (mismas celdas que derecha, espejada).
+  [characters.player.left]
+  mirrored = true
+    [characters.player.left.idle]
+    loops  = false
+    frames = [ [ [0, 2, 1, 2], [6, 3, 1, 1] ] ]
+    [characters.player.left.walk]
+    loops  = true
+    frames = [
+      [ [1, 2, 1, 2], [7, 3, 1, 1] ],
+      [ [2, 2, 1, 2], [8, 3, 1, 1] ],
+    ]
+    # Picar espejado (mismas celdas que derecha, mirrored=true las voltea).
+    # frame = 6: ritmo PROPIO de esta acción (ticks por cuadro), más ágil
+    # que la caminata (cadence.frame = 12). Sin `frame` usaría ese default.
+    [characters.player.left.use_tool]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 16, 1, 2], [6, 16, 1, 2] ],
+      [ [1, 16, 1, 2], [7, 16, 1, 2] ],
+      [ [2, 16, 1, 2], [8, 16, 1, 2] ],
+      [ [3, 16, 1, 2], [9, 16, 1, 2] ],
+      [ [4, 16, 1, 2], [10, 16, 1, 2] ],
+    ]
+
+  # Derecha — RELEVADA. Brazos 1x1 (bajos, se anclan abajo).
+  [characters.player.right]
+  mirrored = false
+    [characters.player.right.idle]
+    loops  = false
+    frames = [ [ [0, 2, 1, 2], [6, 3, 1, 1] ] ]
+    [characters.player.right.walk]
+    loops  = true
+    frames = [
+      [ [1, 2, 1, 2], [7, 3, 1, 1] ],
+      [ [2, 2, 1, 2], [8, 3, 1, 1] ],
+    ]
+    # Picar: 5 cuadros, one-shot (loops=false). Brazos 1x2 (levantados).
+    # Al terminar, el estado de juego vuelve a idle (lo maneja el mock).
+    # frame = 6: ritmo PROPIO (5x6 = 30 ticks ≈ 500 ms), más ágil que
+    # cadence.frame (12, el de caminar). Sin `frame` usaría ese default.
+    [characters.player.right.use_tool]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 16, 1, 2], [6, 16, 1, 2] ],
+      [ [1, 16, 1, 2], [7, 16, 1, 2] ],
+      [ [2, 16, 1, 2], [8, 16, 1, 2] ],
+      [ [3, 16, 1, 2], [9, 16, 1, 2] ],
+      [ [4, 16, 1, 2], [10, 16, 1, 2] ],
+    ]

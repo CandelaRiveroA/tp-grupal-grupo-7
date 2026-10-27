@@ -2,14 +2,16 @@
 #define PLAYER_H
 
 #include <cstdint>
-#include <utility>
 #include <memory>
-#include "i_entity.h"
+#include <utility>
+
+#include "../../../common/common_constants.h"
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
-#include "../../../common/common_constants.h"
 
-class Player : public IEntity {
+#include "i_entity.h"
+
+class Player: public IEntity {
 private:
     uint8_t player_id;
     Direction facing;
@@ -29,7 +31,7 @@ public:
     // Necesario para el DTO
     uint8_t get_id() const;
     Direction get_facing() const;
-    const Inventory& get_inventory() const; 
+    const Inventory& get_inventory() const;
 
     // Movimiento y orientación
     void set_facing(Direction dir);
@@ -45,4 +47,4 @@ public:
     void interact(Player& p, ToolType tool, World& w) override;
 };
 
-#endif // PLAYER_H
+#endif  // PLAYER_H

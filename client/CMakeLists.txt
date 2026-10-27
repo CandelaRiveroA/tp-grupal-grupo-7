@@ -7,6 +7,9 @@ find_package(Qt6 COMPONENTS Widgets REQUIRED)
 # acá (único lugar donde se puede setear) evita "No target Qt6::Widgets".
 set_target_properties(Qt6::Widgets PROPERTIES IMPORTED_GLOBAL TRUE)
 
+# Ordenados por carpeta: core/ (composición), qt/, game/, world/, toml/
+# y sdl/ (con sus subcarpetas por responsabilidad: context, loop, render,
+# input, audio, log).
 target_sources(taller_client
     PRIVATE
     # .cpp files
@@ -14,32 +17,87 @@ target_sources(taller_client
     client_sender.cpp
     client_receiver.cpp
     core/Application.cpp
+    core/Constants.cpp
+    core/StartupScreens.cpp
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
-    sdl/GameLoop.cpp
-    sdl/InputManager.cpp
-    sdl/SdlContext.cpp
-    sdl/Renderer.cpp
-    world/Player.cpp
     world/Scenario.cpp
+    sdl/context/SdlContext.cpp
+    sdl/loop/GameLoop.cpp
+    sdl/render/Renderer.cpp
+    sdl/render/ElementPainter.cpp
+    sdl/render/SheetCache.cpp
+    sdl/render/SpriteSheet.cpp
+    sdl/render/CharacterSprite.cpp
+    sdl/render/InventoryHud.cpp
+    sdl/input/InputManager.cpp
+    sdl/audio/AudioPlayer.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
+    core/Constants.h
     core/SessionConfig.h
-    client_sender.h
-    client_receiver.h
+    core/StartupSequence.h
+    core/StartupScreens.h
     core/WindowConfig.h
     qt/LobbyWindow.h
-    sdl/GameLoop.h
-    sdl/InputManager.h
-    sdl/SdlContext.h
-    sdl/Renderer.h
-    world/Player.h
+    client_sender.h
+    client_receiver.h
+    game/FootstepCue.h
+    game/GameClient.h
+    game/LocalWorldView.h
+    game/MockGameClient.h
+    game/MoveCommand.h
+    game/ViewMotion.h
+    game/WalkPacer.h
+    game/ActionResolver.h
+    game/ToolUse.h
+    world/CharacterAppearance.h
+    world/CharacterCatalog.h
+    world/CharacterCatalogLoader.h
+    world/Color.h
+    world/ConfigError.h
+    world/CreatureCatalog.h
+    world/EntityAppearance.h
+    world/Grid.h
     world/Scenario.h
+    world/InventoryLayout.h
+    world/InventoryTomlReader.h
+    world/InventoryConfigLoader.h
+    world/ItemCatalog.h
+    world/SceneConfigLoader.h
+    world/SceneDescription.h
+    world/SceneKeys.h
+    world/ScenePixelMapper.h
+    world/SceneTomlReader.h
+    toml/TomlDocument.h
+    sdl/context/SdlConstants.h
+    sdl/context/SdlContext.h
+    sdl/loop/FrameClock.h
+    sdl/loop/GameLoop.h
+    sdl/render/Renderer.h
+    sdl/render/ElementPainter.h
+    sdl/render/SheetCache.h
+    sdl/render/SpriteSheet.h
+    sdl/render/TileLayout.h
+    sdl/render/CharacterSprite.h
+    sdl/render/InventoryHud.h
+    sdl/input/InputManager.h
+    sdl/audio/AudioCatalog.h
+    sdl/audio/AudioPlayer.h
+    sdl/log/Logger.h
     )
 
 # AUTOMOC solo para este target (no afecta a server ni a tests)
 set_target_properties(taller_client PROPERTIES AUTOMOC ON)
+
+# La copia de assets al build (add_custom_command POST_BUILD) vive en la
+# raíz: el target taller_client se crea ahí y CMake solo permite esa
+# forma del comando en el directorio donde se creó el target.
+target_compile_definitions(taller_client PRIVATE
+    # \" produce comillas literales: el macro llega como "…/assets"
+    TALLER_ASSET_DIR=\"${CMAKE_BINARY_DIR}/assets\"
+    TALLER_SOUNDS_DIR=\"${CMAKE_BINARY_DIR}/sounds\")
 
 # La raíz solo expone el repo root como include ("common/foo.h");
 # con esto los includes del cliente son "core/...", "qt/...", etc.

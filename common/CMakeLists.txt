@@ -20,4 +20,5 @@ target_sources(taller_common
     common_protocol_receiver.h
     common_server_status.h
     common_worker.h
+    common_game_direction.h
     )

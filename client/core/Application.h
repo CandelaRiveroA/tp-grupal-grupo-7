@@ -5,18 +5,26 @@
 #include "core/SessionConfig.h"
 #include "core/WindowConfig.h"
 
+#include <memory>
 #include <optional>
 
 namespace qt {
 class LobbyWindow;
 }
 
+namespace game {
+class GameClient;
+}
+
+namespace world {
+class Scenario;
+struct GridSpan;
+class CharacterCatalog;
+struct InventoryLayout;
+}
+
 namespace core {
 
-// Orquestador del cliente. Secuencia:
-//   1. runLobby(): ventanita Qt para crear/unirse a partida y elegir personaje.
-//   2. Si el jugador confirmó, runGame(): el "main SDL", con todo el juego
-//      (loop, input, render, config y multiplayer) adentro de SDL.
 class Application {
 public:
 	Application(int& argc, char** argv);
@@ -24,11 +32,18 @@ public:
 	int run();
 
 private:
-	// Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
 	std::optional<SessionConfig> runLobby();
 
-	// "main SDL": loop del juego. Corre hasta que se cierra la ventana.
 	int runGame(const SessionConfig& session);
+
+	std::unique_ptr<game::GameClient> createGameClient(
+		const world::GridSpan& grid) const;
+
+	int runGameLoop(const SessionConfig& session,
+			const world::Scenario& scenario,
+			game::GameClient& gameClient,
+			const world::CharacterCatalog& characters,
+			const world::InventoryLayout& inventory);
 
 	WindowConfig config_;
 	QApplication app_;

@@ -4,7 +4,7 @@
 #include <cstdint>
 
 enum class ItemID : uint16_t {
-    PICKAXE, HAND, BED,
+    PICKAXE, SHOVEL, WATERING_CAN, SWORD, BED,
     STRAWBERRY, ONION, POTATO, PUMPKIN,
     COAL_ORB, LAPIS_ORB, SILVER_ORB, GOLD_ORB
 };

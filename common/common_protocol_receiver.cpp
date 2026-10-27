@@ -7,7 +7,11 @@
 
 ProtocolReceiver::ProtocolReceiver(Socket& socket):
         socket(socket),
-        handlers{{protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message}} {}
+        handlers{{protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message}},
+        server_handlers{
+                {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
+                {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
+        } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
     uint8_t value = 0;
@@ -70,17 +74,24 @@ std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
     return (this->*(handler->second))();
 }
 
-ServerStatus ProtocolReceiver::receive_server_status() {
-    const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
-    if (type != ServerMessageType::Status) {
-        throw std::invalid_argument("El tipo de mensaje del servidor no es valido.");
-    }
-
+ServerMessage ProtocolReceiver::receive_status_message() {
     const uint8_t player_id = receive_uint8();
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     const Direction direction = direction_from_byte(receive_uint8());
     return ServerStatus(player_id, x, y, direction);
+}
+
+ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
+
+ServerMessage ProtocolReceiver::receive_server_message() {
+    const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
+    const auto handler = server_handlers.find(type);
+    if (handler == server_handlers.end()) {
+        throw std::invalid_argument("El tipo de mensaje del servidor no es valido.");
+    }
+
+    return (this->*(handler->second))();
 }
 
 ServerWelcome ProtocolReceiver::receive_welcome() {

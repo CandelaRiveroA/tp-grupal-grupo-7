@@ -9,10 +9,10 @@
 class ServerSender: public Worker {
 private:
     ProtocolSender& protocol;
-    Queue<ServerStatus>& statuses;
+    Queue<ServerMessage>& messages;
 
 public:
-    ServerSender(ProtocolSender& protocol, Queue<ServerStatus>& statuses);
+    ServerSender(ProtocolSender& protocol, Queue<ServerMessage>& messages);
 
 protected:
     void execute() override;

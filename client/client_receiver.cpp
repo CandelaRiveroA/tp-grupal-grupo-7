@@ -1,10 +1,10 @@
 #include "client_receiver.h"
 
-ClientReceiver::ClientReceiver(ProtocolReceiver& protocol, Queue<ServerStatus>& statuses):
-        protocol(protocol), statuses(statuses) {}
+ClientReceiver::ClientReceiver(ProtocolReceiver& protocol, Queue<ServerMessage>& messages):
+        protocol(protocol), messages(messages) {}
 
 void ClientReceiver::execute() {
     while (should_keep_running()) {
-        statuses.push(protocol.receive_server_status());
+        messages.push(protocol.receive_server_message());
     }
 }

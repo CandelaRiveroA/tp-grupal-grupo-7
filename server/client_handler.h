@@ -22,7 +22,7 @@ private:
     uint8_t player_id;
     Queue<MatchEvent>& events;
     ServerOutputMonitor& output;
-    std::shared_ptr<Queue<ServerStatus>> statuses;
+    std::shared_ptr<Queue<ServerMessage>> statuses;
     ProtocolSender protocol_sender;
     ProtocolReceiver protocol_receiver;
     ServerReceiver receiver;

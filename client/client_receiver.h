@@ -9,10 +9,10 @@
 class ClientReceiver: public Worker {
 private:
     ProtocolReceiver& protocol;
-    Queue<ServerStatus>& statuses;
+    Queue<ServerMessage>& messages;
 
 public:
-    ClientReceiver(ProtocolReceiver& protocol, Queue<ServerStatus>& statuses);
+    ClientReceiver(ProtocolReceiver& protocol, Queue<ServerMessage>& messages);
 
 protected:
     void execute() override;

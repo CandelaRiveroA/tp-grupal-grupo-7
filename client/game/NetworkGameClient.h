@@ -39,7 +39,7 @@ private:
     ProtocolSender sender_;
     ProtocolReceiver receiver_;
     Queue<protocol::ClientMessage> commands_;
-    mutable Queue<ServerStatus> statuses_;
+    mutable Queue<ServerMessage> messages_;
     ClientSender clientSender_;
     ClientReceiver clientReceiver_;
 

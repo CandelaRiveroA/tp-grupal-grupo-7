@@ -13,7 +13,7 @@ NetworkGameClient::NetworkGameClient(const char* host, const char* port):
         sender_(socket_),
         receiver_(socket_),
         clientSender_(sender_, commands_),
-        clientReceiver_(receiver_, statuses_),
+        clientReceiver_(receiver_, messages_),
         localPlayerId_(receiver_.receive_welcome().player_id) {
     rebuildInventory();
     clientSender_.start();
@@ -38,8 +38,13 @@ const LocalWorldView& NetworkGameClient::worldState() const {
         entry.second.moving = false;
     }
 
-    ServerStatus status(0, 0, 0, ::Direction::DOWN);
-    while (statuses_.try_pop(status)) {
+    ServerMessage message = ServerLeave{0};
+    while (messages_.try_pop(message)) {
+        if (const auto* leave = std::get_if<ServerLeave>(&message)) {
+            players_.erase(leave->player_id);
+            continue;
+        }
+        const ServerStatus& status = std::get<ServerStatus>(message);
         RemotePlayer& player = players_[status.player_id];
         player.moving = player.cellX != status.x || player.cellY != status.y;
         player.cellX = status.x;

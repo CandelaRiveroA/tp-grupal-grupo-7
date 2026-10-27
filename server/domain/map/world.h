@@ -29,9 +29,8 @@ public:
     bool can_walk_to(uint16_t x, uint16_t y) const;
 
     // --- Gestión de Jugadores ---
-    // TODO: Implementar  disconnect_player para
-    // cuando el Acceptor limpie al ClientHandler.
     void add_player(uint8_t player_id, std::unique_ptr<Player> player);
+    void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
     const Player& get_player(uint8_t player_id) const;
 

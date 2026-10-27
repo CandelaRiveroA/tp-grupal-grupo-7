@@ -31,9 +31,12 @@ void Acceptor::clear() {
 void Acceptor::run() {
     try {
         while (should_keep_running()) {
-            collectFinishedHandlers();
-
             Socket peer = listening.accept();
+            collectFinishedHandlers();
+            if (handlers.size() >= static_cast<size_t>(MAX_JUGADORES)) {
+                output.printError("Conexion rechazada: ", "la partida esta llena.");
+                continue;
+            }
             handlers.push_back(std::make_unique<ClientHandler>(std::move(peer), next_player_id,
                                                                events, output));
             handlers.back()->start();

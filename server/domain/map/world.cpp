@@ -97,3 +97,5 @@ void World::remove_entity_at(uint16_t x, uint16_t y) {
 void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
     this->players[player_id] = std::move(player);
 }
+
+void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }

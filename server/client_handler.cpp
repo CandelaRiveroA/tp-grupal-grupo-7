@@ -11,7 +11,7 @@ ClientHandler::ClientHandler(Socket&& client_socket, uint8_t player_id, Queue<Ma
         player_id(player_id),
         events(events),
         output(output),
-        statuses(std::make_shared<Queue<ServerStatus>>()),
+        statuses(std::make_shared<Queue<ServerMessage>>()),
         protocol_sender(peer),
         protocol_receiver(peer),
         receiver(protocol_receiver, events, player_id),
@@ -43,7 +43,12 @@ void ClientHandler::run() {
     receiver.start();
     receiver.join();
 
-    statuses->close();
+    try {
+        events.push(MatchEvent(PlayerLeft{player_id}));
+    } catch (const ClosedQueue&) {
+        statuses->close();
+    }
+
     sender.join();
 
     reportFailure(receiver);
@@ -53,7 +58,7 @@ void ClientHandler::run() {
 void ClientHandler::stop() {
     Thread::stop();
     try {
-        peer.shutdown(SHUT_RDWR);
+        peer.shutdown(SHUT_RD);
     } catch (const std::exception&) {
         // El cliente ya se desconecto por su lado.
     }

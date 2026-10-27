@@ -21,22 +21,29 @@ struct PlayerMessage {
 
 struct PlayerJoined {
     uint8_t player_id;
-    std::shared_ptr<Queue<ServerStatus>> statuses;
+    std::shared_ptr<Queue<ServerMessage>> statuses;
 };
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage>;
+struct PlayerLeft {
+    uint8_t player_id;
+};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft>;
 
 class Match: public Worker {
 private:
     Queue<MatchEvent>& events;
     ServerOutputMonitor& output;
     World world;
-    std::map<uint8_t, std::shared_ptr<Queue<ServerStatus>>> outputs;
+    std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
+    void handle(const PlayerLeft& left);
     void apply(uint8_t player_id, const protocol::MoveMessage& message);
     void publish(uint8_t player_id);
+    void broadcast(const ServerMessage& message);
+    void closeOutputs();
 
 public:
     Match(Queue<MatchEvent>& events, ServerOutputMonitor& output);

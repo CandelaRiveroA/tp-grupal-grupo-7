@@ -50,7 +50,7 @@ void ProtocolSender::send_client_message(const protocol::ClientMessage& message)
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
 
-void ProtocolSender::send_server_status(const ServerStatus& status) {
+void ProtocolSender::send_message(const ServerStatus& status) {
     validate_direction(status.direction);
 
     send_uint8(static_cast<uint8_t>(ServerMessageType::Status));
@@ -58,6 +58,15 @@ void ProtocolSender::send_server_status(const ServerStatus& status) {
     send_uint16(status.x);
     send_uint16(status.y);
     send_uint8(static_cast<uint8_t>(status.direction));
+}
+
+void ProtocolSender::send_message(const ServerLeave& leave) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Leave));
+    send_uint8(leave.player_id);
+}
+
+void ProtocolSender::send_server_message(const ServerMessage& message) {
+    std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
 
 void ProtocolSender::send_welcome(const ServerWelcome& welcome) {

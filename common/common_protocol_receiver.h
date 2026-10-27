@@ -15,12 +15,16 @@ private:
     Socket& socket;
     using Handler = protocol::ClientMessage (ProtocolReceiver::*)();
     std::map<protocol::ClientMessageType, Handler> handlers;
+    using ServerHandler = ServerMessage (ProtocolReceiver::*)();
+    std::map<ServerMessageType, ServerHandler> server_handlers;
 
     std::optional<uint8_t> receive_uint8_or_end();
     uint8_t receive_uint8();
     uint16_t receive_uint16();
     std::string receive_string();
     protocol::ClientMessage receive_move_message();
+    ServerMessage receive_status_message();
+    ServerMessage receive_leave_message();
 
     static Direction direction_from_byte(uint8_t value);
 
@@ -28,7 +32,7 @@ public:
     explicit ProtocolReceiver(Socket& socket);
 
     std::optional<protocol::ClientMessage> receive_command();
-    ServerStatus receive_server_status();
+    ServerMessage receive_server_message();
     ServerWelcome receive_welcome();
 };
 

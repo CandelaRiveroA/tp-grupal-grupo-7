@@ -1,6 +1,10 @@
 #ifndef ACCEPTOR_H
 #define ACCEPTOR_H
 
+#ifndef MAX_JUGADORES
+#define MAX_JUGADORES 4
+#endif
+
 #include <cstdint>
 #include <memory>
 #include <vector>

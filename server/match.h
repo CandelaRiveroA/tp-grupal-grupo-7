@@ -40,7 +40,6 @@ private:
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
-    void apply(uint8_t player_id, const protocol::MoveMessage& message);
     void publish(uint8_t player_id);
     void broadcast(const ServerMessage& message);
     void closeOutputs();

@@ -8,6 +8,7 @@ target_sources(taller_server
     server_sender.cpp
     server_receiver.cpp
     match.cpp
+    commands/move_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
@@ -25,6 +26,8 @@ target_sources(taller_server
     server_sender.h
     server_receiver.h
     match.h
+    commands/commands.h
+    commands/pick_command.h
     server_output_monitor.h
     )
 

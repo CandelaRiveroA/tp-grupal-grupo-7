@@ -4,6 +4,8 @@
 #include <memory>
 #include <stdexcept>
 
+#include "commands/commands.h"
+
 #define kWidth 20
 #define kHeight 15
 #define kSpawnX 0
@@ -20,13 +22,10 @@ void Match::handle(const PlayerJoined& joined) {
 }
 
 void Match::handle(const PlayerMessage& event) {
-    std::visit([this, &event](const auto& message) { apply(event.player_id, message); },
+    std::visit([this,
+                &event](const auto& message) { commands::apply(world, event.player_id, message); },
                event.message);
-}
-
-void Match::apply(uint8_t player_id, const protocol::MoveMessage& message) {
-    world.move_player(player_id, message.direction);
-    publish(player_id);
+    publish(event.player_id);
 }
 
 void Match::handle(const PlayerLeft& left) {

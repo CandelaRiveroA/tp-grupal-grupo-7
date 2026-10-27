@@ -91,6 +91,36 @@ TEST(SceneConfigLoaderTest, MissingRoomThrows) {
 		     world::ConfigError);
 }
 
+TEST(SceneConfigLoaderTest, RoomWithoutSoundsIsSilent) {
+	// La key `sounds` es OPCIONAL: una sala sin ella no declara
+	// cues y la presentación no reproduce nada ahí.
+	const world::SceneDescription scene = loadBedroom();
+	EXPECT_TRUE(scene.soundCues.empty());
+}
+
+TEST(SceneConfigLoaderTest, LoadsRoomSoundCues) {
+	const std::string toml = R"(
+[tilesets.farm]
+image = "x.png"
+cell  = [16, 16]
+[rooms.barn]
+floor_color = [0,0,0,255]
+grid = [4,4]
+scale = 2
+sounds = ["chicken_cluck", "rooster"]
+  [[rooms.barn.elements]]
+  tileset = "farm"
+  region  = [0,0,1,1]
+  draw    = { mode = "single" }
+  at      = [0,0]
+  span    = [1,1]
+)";
+	const world::SceneDescription scene = loadString(toml, "barn");
+	ASSERT_EQ(scene.soundCues.size(), 2u);
+	EXPECT_EQ(scene.soundCues[0], "chicken_cluck");
+	EXPECT_EQ(scene.soundCues[1], "rooster");
+}
+
 TEST(SceneConfigLoaderTest, InvalidTomlThrows) {
 	EXPECT_THROW(loadString("not = = toml", "bedroom"),
 		     world::ConfigError);
@@ -107,6 +137,10 @@ TEST(SceneConfigLoaderTest, LoadsRealBedroomFile) {
 	EXPECT_EQ(scene.elements[1].draw.mode,
 		  world::DrawMode::HorizontalStrip);
 	EXPECT_EQ(scene.elements[1].draw.scaleY, 3);
+	// La sala inicial declara sus cues audibles (cacareos: las
+	// gallinas están acá hoy; el granero los declarará mañana).
+	ASSERT_EQ(scene.soundCues.size(), 1u);
+	EXPECT_EQ(scene.soundCues[0], "chicken_cluck");
 }
 #endif
 

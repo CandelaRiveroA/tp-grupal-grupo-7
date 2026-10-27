@@ -17,6 +17,7 @@ inline constexpr const char* kKeyFloorColor = "floor_color";
 inline constexpr const char* kKeyGrid = "grid";
 inline constexpr const char* kKeyScale = "scale";
 inline constexpr const char* kKeyElements = "elements";
+inline constexpr const char* kKeySounds = "sounds";
 
 inline constexpr const char* kKeyTileset = "tileset";
 inline constexpr const char* kKeyRegion = "region";

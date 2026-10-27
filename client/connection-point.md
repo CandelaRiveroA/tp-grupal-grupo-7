@@ -59,13 +59,14 @@ compartido.
 
 Mientras tanto, el cliente dibuja a partir de una **vista local
 provisional** (`client/game/LocalWorldView.h`), que NO es un contrato de
-red: es solo "lo que el render necesita hoy". Hoy la llena el mock con el
+red: es solo "lo que la presentación necesita hoy". Hoy la llena el mock con el
 jugador, los animales de su simulación, los ítems del suelo que esos
-animales sueltan (ej. huevos: ver `animals-entry-point.md`) y el tamaño de
-su mundo (`grid`). Su forma (una lista de entidades con celda + dirección +
-si se mueve, una lista de ítems del suelo con celda + ítem, más las
-dimensiones de la grilla) sirve de referencia de qué necesita el cliente
-para dibujar.
+animales sueltan (ej. huevos: ver `animals-entry-point.md`), los
+**eventos de sonido del tick** (cacareos: `soundEvents`, ver abajo) y el
+tamaño de su mundo (`grid`). Su forma (una lista de entidades con celda +
+dirección + si se mueve, una lista de ítems del suelo con celda + ítem,
+una lista de eventos de sonido, más las dimensiones de la grilla) sirve
+de referencia de qué necesita el cliente para dibujar y sonar.
 
 **Las dimensiones del mundo también son estado del servidor.** `LocalWorldView`
 lleva `grid` (`columns`/`rows`); el mock lo completa con el tamaño de su
@@ -88,6 +89,13 @@ sprites ni layout.
   provisional ya los lleva (`groundItems`, cada uno con id estable + celda +
   `ItemKind`) para que el DTO los incluya; el server también define las
   reglas de recogida, tope y despawn (hoy el mock topa en 3, silencioso).
+- Los **eventos de sonido** (cacareos y mañana otros): la vista provisional
+  ya los lleva (`soundEvents`, cada uno con cue + id del emisor) y son
+  **per-tick** — duran un tick, no se acumulan. Acordar si viajan en el
+  mismo mensaje o por otro (son perfectos para deltas/UDP: perder uno no
+  rompe nada); el server también define el **filtrado por relevancia**
+  (hoy el mock emite siempre y el cliente silencia lo que su sala no
+  declara en `scenes.toml`; el server real puede filtrar antes de mandar).
 - Si el **inventario** viaja en ese mensaje o por otro.
 - **Frecuencia / formato** (estado completo por tick vs. deltas).
 - **Dimensiones del mundo:** `columns`/`rows` de la grilla lógica, para que

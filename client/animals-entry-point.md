@@ -21,6 +21,8 @@ pasa al servidor y el cliente no cambia.
   tick) → la simulación avanza → `worldState()` devuelve la vista actualizada.
 - Las gallinas también **ponen huevos**: aparecen como ítems en el suelo
   (`LocalWorldView.groundItems`) que el render dibuja bajo las criaturas.
+- Y **cacarean**: eventos de sonido per-tick (`LocalWorldView.soundEvents`)
+  que la presentación reproduce si la sala renderizada declara el cue.
 - El render ya dibuja cualquier criatura: la hoja se resuelve por
   `entity.kind` vía el catálogo (`characters.toml`); **agregar una criatura no
   toca el render**.
@@ -109,6 +111,43 @@ Las gallinas **ponen huevos**; es la misma lógica de "server falso":
 inventario. La vista ya lleva `ItemKind`, así que la recogida futura solo
 agrega la regla del "servidor" (quitar del suelo + sumar slot) — el dibujo
 del ícono ya existe.
+
+## Los cacareos: sonido ambiental → evento per-tick
+Las gallinas también **suenan**; mismo modelo que todo lo demás: el
+"server" decide CUÁNDO, la presentación decide CÓMO suena.
+
+1. **Decisión** (`MockAnimalSimulation`, patrón `tryLay`): cada gallina
+   suelta un cacareo cada `cluckPeriod` ticks, al azar en una gama LARGA
+   (`kMinCluckPeriodTicks`/`kMaxCluckPeriodTicks` = 1200–2700 ticks ≈ 20–45 s
+   a 60 FPS) al spawn, y reasignada tras cada cacareo: las gallinas no se
+   sincronizan entre sí y la vista no se inunda de sonidos. Qué cue suelta
+   cada kind lo decide el **`game::SoundCueCatalog`** (atributo `cues_` de
+   la simulación: `cueOf(kind)` → `CueKind` o nullopt). El chequeo usa un
+   **stream de RNG separado** (`cluckRandom_`, seed derivada): tocar el RNG
+   del wander/postura cambiaría esas secuencias deterministas que los tests
+   pinean.
+2. **Drenaje** (`takeClucks()` → `MockGameClient::update`): cada evento es
+   un `ViewSoundEvent` (cue + `emitterId`, el id estable de la vista) y va
+   a `LocalWorldView.soundEvents`. Son **per-tick**: cada `update()` los
+   reemplaza (vacío si no hubo), no se acumulan ni son estado.
+3. **Reproducción** (`Application.cpp`, junto al footstep): por cada
+   evento del tick, el `game::SoundGate` (puro y testeado) consulta si
+   la sala renderizada declara el cue (`sounds` en `scenes.toml`, ver
+   `world/scenes-format.md` §2) y, si lo declara, `audio.playCue(cue)`:
+   el `sdl::AudioPlayer` es dueño del diccionario cue → `SoundId`
+   (atributo `cueSounds_`) y decide CÓMO suena cada cue localmente.
+   **Agrega un sonido nuevo = una fila en `kSounds` (`AudioCatalog.h`)
+   y una fila en `cueSounds_`; el gate por sala es puro TOML.**
+4. **Con la red:** el server decide cuándo suena algo y a quién le interesa
+   (hoy el mock emite siempre y el cliente silencia lo que su sala no
+   declara; el server real puede filtrar ANTES de mandar, y así viaja
+   menos). El mensaje "soná X (emisor Y)" llena el mismo `soundEvents` y
+   el cliente no cambia.
+
+**Mañana la vaca muuge** = valor en `CueKind` + fila en
+`SoundCueCatalog` (nombres y emisores) + fila en `sdl::kSounds` +
+fila en `cueSounds_` de `AudioPlayer` + su sala declarándolo en
+`scenes.toml`. Cero lógica nueva.
 
 ## Integrar la implementación de red
 1. Implementar una clase que herede de `game::GameClient` (`sendCommand` +

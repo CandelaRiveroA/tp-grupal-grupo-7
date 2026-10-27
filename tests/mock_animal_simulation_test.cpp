@@ -333,4 +333,121 @@ TEST(MockAnimalSimulationTest, KindNotInTheLayTableDoesNotLay) {
 	EXPECT_TRUE(laysOver(simulation, 2000).empty());
 }
 
+// --- Cacareos -----------------------------------------------------------
+
+// Recolecta lo que los animales soltaron durante una caminata de
+// ticks, drenando la simulación en cada tick.
+std::vector<game::ViewSoundEvent> clucksOver(
+	MockAnimalSimulation& simulation, int lastIteration) {
+	std::vector<game::ViewSoundEvent> clucks;
+	for (int it = 0; it <= lastIteration; ++it) {
+		simulation.update(it, 5, 5);
+		for (game::ViewSoundEvent& cluck : simulation.takeClucks()) {
+			clucks.push_back(std::move(cluck));
+		}
+	}
+	return clucks;
+}
+
+TEST(MockAnimalSimulationTest, DoesNotCluckRightAfterSpawning) {
+	// El período del cacareo es LARGO (gama en el .cpp): drenar
+	// 100 ticks no produce cacareos inmediatos.
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+	EXPECT_TRUE(clucksOver(simulation, 100).empty());
+}
+
+TEST(MockAnimalSimulationTest, ClucksWhenItsPeriodEnds) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+
+	std::optional<game::ViewSoundEvent> firstCluck;
+	for (int it = 0; it <= 3000 && !firstCluck.has_value(); ++it) {
+		simulation.update(it, 5, 5);
+		std::vector<game::ViewSoundEvent> clucks =
+			simulation.takeClucks();
+		if (!clucks.empty()) {
+			firstCluck = std::move(clucks.front());
+		}
+	}
+	ASSERT_TRUE(firstCluck.has_value())
+		<< "con esta seed la gallina debería cacarear dentro de "
+		   "la ventana escaneada";
+
+	// El evento referencia a la gallina que lo soltó (id estable,
+	// el de la vista) y trae el cue que el SoundCueCatalog asocia
+	// al kind.
+	EXPECT_EQ(firstCluck->emitterId, onlyAnimal(simulation).id);
+	EXPECT_EQ(firstCluck->cue, game::CueKind::ChickenCluck);
+}
+
+TEST(MockAnimalSimulationTest, TakeClucksDrains) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+	EXPECT_FALSE(clucksOver(simulation, 3000).empty());
+	// Drenar dos veces: la segunda no repite lo ya entregado.
+	EXPECT_TRUE(simulation.takeClucks().empty());
+}
+
+TEST(MockAnimalSimulationTest, ClucksAgainAfterRescheduling) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+
+	// La caminata completa produce al menos DOS cacareos: tras
+	// soltar uno, el período se reasigna y vuelve a cacarear más
+	// tarde.
+	EXPECT_GE(clucksOver(simulation, 9000).size(), 2u);
+}
+
+TEST(MockAnimalSimulationTest, CluckGapsStayInTheAmbientRange) {
+	// Cada cacareo queda programado a la gama ambiental del anterior
+	// (~20-45 s a 60 FPS): ni silencio infinito ni metralla de
+	// cacareos.
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+
+	constexpr int kMinGap = 1200;
+	constexpr int kMaxGap = 2700;
+	int lastCluckIteration = 0;
+	std::size_t clucks = 0;
+	for (int it = 0; it <= 9000; ++it) {
+		simulation.update(it, 5, 5);
+		if (!simulation.takeClucks().empty()) {
+			const int gap = it - lastCluckIteration;
+			EXPECT_GE(gap, kMinGap) << "it=" << it;
+			EXPECT_LE(gap, kMaxGap) << "it=" << it;
+			lastCluckIteration = it;
+			++clucks;
+		}
+	}
+	EXPECT_GE(clucks, 2u) << "la caminata debería producir cacareos";
+}
+
+TEST(MockAnimalSimulationTest, SameSeedProducesTheSameClucks) {
+	MockAnimalSimulation first = makeSimulation(kSeed);
+	MockAnimalSimulation second = makeSimulation(kSeed);
+	EXPECT_TRUE(spawnAt(first, world::GridCell{3, 3}));
+	EXPECT_TRUE(spawnAt(second, world::GridCell{3, 3}));
+
+	const std::vector<game::ViewSoundEvent> firstClucks =
+		clucksOver(first, 3000);
+	const std::vector<game::ViewSoundEvent> secondClucks =
+		clucksOver(second, 3000);
+	ASSERT_EQ(firstClucks.size(), secondClucks.size());
+	for (std::size_t i = 0; i < firstClucks.size(); ++i) {
+		EXPECT_EQ(firstClucks[i].emitterId,
+			  secondClucks[i].emitterId);
+		EXPECT_EQ(firstClucks[i].cue, secondClucks[i].cue);
+	}
+}
+
+TEST(MockAnimalSimulationTest, KindNotInTheCluckTableDoesNotCluck) {
+	MockAnimalSimulation simulation = makeSimulation();
+	const bool spawned = simulation.spawn(
+		world::CreatureKind::Player, cadence(), world::GridCell{3, 3},
+		5, 5);
+	ASSERT_TRUE(spawned);
+	EXPECT_TRUE(clucksOver(simulation, 3000).empty());
+}
+
 }

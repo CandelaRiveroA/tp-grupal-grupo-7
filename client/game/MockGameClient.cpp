@@ -86,6 +86,10 @@ void MockGameClient::update(int iteration) {
 	simulation_->update(iteration, playerCellX_, playerCellY_);
 	collectLaidEggs();
 	rebuildView();
+	// Los cacareos del tick: eventos PER-TICK (drena, no acumula).
+	// Quedan en la vista hasta el próximo update: sendCommand no
+	// los borra, así el loop los lee aunque el jugador camine.
+	view_.soundEvents = simulation_->takeClucks();
 }
 
 const LocalWorldView& MockGameClient::worldState() const { return view_; }

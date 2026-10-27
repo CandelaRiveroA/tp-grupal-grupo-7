@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/common_game_direction.h"
+#include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 #include "world/ItemCatalog.h"
@@ -53,6 +54,11 @@ struct AnimalRecord {
 	// estos valores al spawn con la iteración real.
 	int layPeriod;
 	int nextLayIteration;
+	// Datos del cacareo: un cue cada cluckPeriod ticks, con gama
+	// LARGA al spawn y reasignada tras cada cacareo (no se
+	// sincronizan entre gallinas).
+	int cluckPeriod;
+	int nextCluckIteration;
 };
 
 // MOCK: simulación de movimiento automático (wander) de animales que hoy
@@ -88,6 +94,9 @@ public:
 	// postura para su kind.
 	std::vector<LaidEgg> takeLaidEggs();
 
+	// Cacareos desde la ÚLTIMA llamada (drena igual que los huevos).
+	std::vector<ViewSoundEvent> takeClucks();
+
 private:
 	DirectionDelta randomDirection();
 
@@ -95,11 +104,15 @@ private:
 
 	int randomLayPeriod();
 
+	int randomCluckPeriod();
+
 	// Qué ítem pone este kind, o nullptr si no pone nada (tabla
 	// kLays en el .cpp: diccionario, convención §4).
 	const world::ItemKind* laidItem(world::CreatureKind kind) const;
 
 	void tryLay(AnimalRecord& animal, int iteration);
+
+	void tryCluck(AnimalRecord& animal, int iteration);
 
 	bool canEnter(int cellX, int cellY, int playerCellX, int playerCellY,
 		      const AnimalRecord& self) const;
@@ -112,11 +125,20 @@ private:
 
 	std::mt19937 random_;
 
+	// Stream de RNG SEPARADO para los cacareos: no consume el
+	// random_ del wander/postura, cuyas secuencias deterministas
+	// pinean los tests.
+	std::mt19937 cluckRandom_;
+
+	SoundCueCatalog cues_;
+
 	int nextId_;
 
 	std::vector<AnimalRecord> animals_;
 
 	std::vector<LaidEgg> laidEggs_;
+
+	std::vector<ViewSoundEvent> clucks_;
 };
 
 }

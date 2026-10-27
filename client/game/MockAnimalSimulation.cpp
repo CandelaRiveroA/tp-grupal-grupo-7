@@ -1,6 +1,7 @@
 #include "game/MockAnimalSimulation.h"
 
 #include <array>
+#include <optional>
 #include <utility>
 
 #include "world/ItemCatalog.h"
@@ -18,12 +19,23 @@ constexpr int kMaxRestTicks = 32;
 // Reintento tras destino ocupado: 1 tick (el animal "vuelve a mirar").
 constexpr int kRetryTicks = 1;
 
+// Seed derivada para el stream de cacareos: decorrela de la secuencia
+// base sin perder determinismo.
+constexpr unsigned int kCluckSeedOffset = 0x9E3779B9u;
+
 // Datos de la POSTURA (ticks del loop): cada animal pone un huevo cada
 // `layPeriod` ticks, con layPeriod al azar en esta gama al spawn (y
 // reasignado tras cada postura). Gama LARGA a propósito: la vista no se
 // llena de huevos. Es dato del bot, no presentación.
 constexpr int kMinLayPeriodTicks = 600;
 constexpr int kMaxLayPeriodTicks = 900;
+
+// Datos del CACAREO ambiental (ticks del loop): cada gallina suelta un
+// cacareo cada `cluckPeriod` ticks, al azar en esta gama al spawn (y
+// reasignado tras cada cacareo). A 60 FPS la gama es ~20-45 s: con
+// varias gallinas salen más seguido sin sincronizarse entre sí.
+constexpr int kMinCluckPeriodTicks = 1200;
+constexpr int kMaxCluckPeriodTicks = 2700;
 
 // Diccionario kind -> ítem que pone (convención §4: tabla sobre switch;
 // otra criatura que ponga algo = sumar una fila, ej. vaca -> leche).
@@ -48,6 +60,7 @@ MockAnimalSimulation::MockAnimalSimulation(int gridColumns,
 	: gridColumns_(gridColumns)
 	, gridRows_(gridRows)
 	, random_(seed)
+	, cluckRandom_(seed ^ kCluckSeedOffset)
 	, nextId_(1) {}
 
 bool MockAnimalSimulation::spawn(world::CreatureKind kind,
@@ -74,6 +87,8 @@ bool MockAnimalSimulation::spawn(world::CreatureKind kind,
 	// spawn (el mock spawnea antes del primer update).
 	animal.layPeriod = randomLayPeriod();
 	animal.nextLayIteration = animal.layPeriod;
+	animal.cluckPeriod = randomCluckPeriod();
+	animal.nextCluckIteration = animal.cluckPeriod;
 
 	animals_.push_back(animal);
 	nextId_ += 1;
@@ -84,6 +99,7 @@ void MockAnimalSimulation::update(int iteration, int playerCellX,
 			      int playerCellY) {
 	for (AnimalRecord& animal : animals_) {
 		tryLay(animal, iteration);
+		tryCluck(animal, iteration);
 
 		const int elapsed = iteration - animal.stepIteration;
 
@@ -116,6 +132,12 @@ std::vector<LaidEgg> MockAnimalSimulation::takeLaidEggs() {
 	return taken;
 }
 
+std::vector<ViewSoundEvent> MockAnimalSimulation::takeClucks() {
+	std::vector<ViewSoundEvent> taken;
+	taken.swap(clucks_);
+	return taken;
+}
+
 DirectionDelta MockAnimalSimulation::randomDirection() {
 	std::uniform_int_distribution<int> pick(0, 3);
 	return kDirectionDeltas[static_cast<std::size_t>(pick(random_))];
@@ -130,6 +152,12 @@ int MockAnimalSimulation::randomLayPeriod() {
 	std::uniform_int_distribution<int> pick(kMinLayPeriodTicks,
 						kMaxLayPeriodTicks);
 	return pick(random_);
+}
+
+int MockAnimalSimulation::randomCluckPeriod() {
+	std::uniform_int_distribution<int> pick(kMinCluckPeriodTicks,
+						kMaxCluckPeriodTicks);
+	return pick(cluckRandom_);
 }
 
 const world::ItemKind* MockAnimalSimulation::laidItem(
@@ -162,6 +190,23 @@ void MockAnimalSimulation::tryLay(AnimalRecord& animal, int iteration) {
 	// las gallinas no se sincronizan entre sí).
 	animal.layPeriod = randomLayPeriod();
 	animal.nextLayIteration = iteration + animal.layPeriod;
+}
+
+void MockAnimalSimulation::tryCluck(AnimalRecord& animal, int iteration) {
+	const std::optional<CueKind> cue = cues_.cueOf(animal.kind);
+	if (!cue.has_value() || iteration < animal.nextCluckIteration) {
+		return;
+	}
+
+	// El cacareo es ambiental: la celda no va (el id habilita
+	// audio posicional mañana).
+	ViewSoundEvent cluck;
+	cluck.emitterId = animal.id;
+	cluck.cue = *cue;
+	clucks_.push_back(cluck);
+
+	animal.cluckPeriod = randomCluckPeriod();
+	animal.nextCluckIteration = iteration + animal.cluckPeriod;
 }
 
 bool MockAnimalSimulation::canEnter(int cellX, int cellY, int playerCellX,

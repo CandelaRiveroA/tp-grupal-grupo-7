@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "common/common_game_direction.h"
+#include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 #include "world/ItemCatalog.h"
@@ -36,6 +37,7 @@ struct LocalWorldView {
 	std::vector<ViewEntity> entities;
 	std::vector<ViewGroundItem> groundItems;
 	std::vector<ViewInventorySlot> inventory;
+	std::vector<ViewSoundEvent> soundEvents;
 	world::GridSpan grid{0, 0};
 };
 

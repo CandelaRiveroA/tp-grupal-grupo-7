@@ -407,4 +407,64 @@ TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoGroundItems) {
 	EXPECT_TRUE(eggs.empty());
 }
 
+// --- Cacareos: eventos de sonido per-tick en la vista -------------------
+
+namespace {
+
+// Camina el mundo hasta ver el primer cacareo en la vista; devuelve el
+// tick en que apareció (o -1 si no apareció).
+int firstCluckTick(game::MockGameClient& client, int limit) {
+	for (int it = 0; it <= limit; ++it) {
+		client.update(it);
+		if (!client.worldState().soundEvents.empty()) {
+			return it;
+		}
+	}
+	return -1;
+}
+
+}
+
+TEST(MockGameClientTest, ChickenClucksArriveAsSoundEvents) {
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+
+	// El período del cacareo es largo pero acotado: con esta seed
+	// algún cacareo cae dentro de la ventana.
+	const int cluckTick = firstCluckTick(client, 3000);
+	ASSERT_GE(cluckTick, 0)
+		<< "con esta seed alguna gallina debería cacarear";
+
+	const game::LocalWorldView& view = client.worldState();
+	const game::ViewSoundEvent& cluck = view.soundEvents.front();
+	// El evento referencia a una ENTIDAD visible (id estable).
+	EXPECT_EQ(cluck.cue, game::CueKind::ChickenCluck);
+	bool emitterVisible = false;
+	for (const game::ViewEntity& entity : view.entities) {
+		emitterVisible = emitterVisible ||
+				 entity.id == cluck.emitterId;
+	}
+	EXPECT_TRUE(emitterVisible)
+		<< "el cacareo referencia a una gallina de la vista";
+}
+
+TEST(MockGameClientTest, SoundEventsLastOneTick) {
+	// Los eventos de sonido son PER-TICK: al tick siguiente del
+	// cacareo (sin otro cacareo: los períodos son de ~1200+ ticks)
+	// la vista ya no lleva ninguno.
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+	const int cluckTick = firstCluckTick(client, 3000);
+	ASSERT_GE(cluckTick, 0);
+
+	client.update(cluckTick + 1);
+	EXPECT_TRUE(client.worldState().soundEvents.empty());
+}
+
+TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoSoundEvents) {
+	game::MockGameClient client(10, 10, 5, 5);
+	EXPECT_TRUE(firstCluckTick(client, 100) == -1);
+	EXPECT_TRUE(client.worldState().soundEvents.empty());
+}
+
 }

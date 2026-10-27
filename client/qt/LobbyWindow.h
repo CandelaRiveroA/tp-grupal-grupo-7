@@ -2,47 +2,49 @@
 
 #include <QWidget>
 
-#include "core/SessionConfig.h"
+#include <map>
+#include <optional>
+#include <string>
 
-class QLineEdit;
-class QListWidget;
-class QComboBox;
-class QPushButton;
+#include "common/model/draft/WorldSummary.h"
+#include "core/SessionConfig.h"
+#include "qt/screens/Screen.h"
 
 namespace core {
 class WindowConfig;
 }
 
-namespace qt {
+class CharacterScreen;
+class QStackedWidget;
+struct CharacterSelection;
+struct SaveSummary;
 
-// Lobby mínimo (Qt): crear partida o unirse a una existente y elegir
-// personaje. Al confirmar, devuelve el SessionConfig con el que arranca
-// el "main SDL". No tiene lógica de juego ni red.
+// Shell del lobby: contiene las pantallas, navega entre ellas y entrega el
+// resultado a Application. No tiene lógica de juego ni red.
 class LobbyWindow : public QWidget {
 	Q_OBJECT
 
 public:
 	explicit LobbyWindow(const core::WindowConfig& config,
-			    QWidget* parent = nullptr);
+			     QWidget* parent = nullptr);
 
-	// Cierra el lobby y deja la sesión lista para delegar en SDL.
-	void confirm();
-	void cancel();
-
-	bool confirmed() const;
-	const core::SessionConfig& session() const;
+	// Resultado del lobby. Vacío si el usuario cerró sin confirmar.
+	std::optional<core::SessionConfig> result() const;
 
 private:
-	void createGame();
-	void joinSelectedGame();
+	QStackedWidget* stack_;
+	std::map<ScreenId, Screen*> screens_;
+	Screen* current_;
+	// Se usa después de construirla: recibe el mundo antes de navegar.
+	CharacterScreen* character_;
+	std::optional<core::SessionConfig> selection_;
 
-	QLineEdit* nameEdit_;
-	QListWidget* gamesList_;
-	QComboBox* skinBox_;
-	QPushButton* joinButton_;
-
-	core::SessionConfig session_;
-	bool confirmed_;
+	void registerScreen(ScreenId id, Screen* screen);
+	void navigateTo(ScreenId id);
+	void goBack();
+	void acceptSelection(core::SessionConfig session);
+	void onWorldChosen(WorldSummary world);
+	void onCharacterConfirmed(CharacterSelection selection);
+	void onSaveLoaded(SaveSummary save);
+	void onJoinAccepted(std::string gameName);
 };
-
-}

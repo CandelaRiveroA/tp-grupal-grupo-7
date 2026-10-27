@@ -22,6 +22,25 @@ target_sources(taller_client
     core/StartupScreens.cpp
     core/WindowConfig.cpp
     qt/LobbyWindow.cpp
+    qt/resources/resources.qrc
+    qt/screens/CharacterScreen.cpp
+    qt/screens/JoinCodeScreen.cpp
+    qt/screens/MainMenuScreen.cpp
+    qt/screens/SaveListScreen.cpp
+    qt/screens/Screen.cpp
+    qt/screens/WorldSelectScreen.cpp
+    qt/services/AssetCatalog.cpp
+    qt/services/SaveService.cpp
+    qt/services/SessionService.cpp
+    qt/services/WorldService.cpp
+    qt/services/fakes/FakeAssetCatalog.cpp
+    qt/services/fakes/FakeSaveService.cpp
+    qt/services/fakes/FakeSessionService.cpp
+    qt/services/fakes/FakeWorldService.cpp
+    qt/util/CharacterLayers.cpp
+    qt/util/IndexCycle.cpp
+    qt/widgets/AsyncStateView.cpp
+    qt/widgets/CharacterPreview.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
     sdl/loop/GameLoop.cpp
@@ -42,6 +61,27 @@ target_sources(taller_client
     core/StartupScreens.h
     core/WindowConfig.h
     qt/LobbyWindow.h
+    qt/screens/CharacterScreen.h
+    qt/screens/JoinCodeScreen.h
+    qt/screens/MainMenuScreen.h
+    qt/screens/SaveListScreen.h
+    qt/screens/Screen.h
+    qt/screens/WorldSelectScreen.h
+    qt/services/AssetCatalog.h
+    qt/services/SaveService.h
+    qt/services/ServiceError.h
+    qt/services/SessionService.h
+    qt/services/WorldService.h
+    qt/services/fakes/FakeAssetCatalog.h
+    qt/services/fakes/FakeLatency.h
+    qt/services/fakes/FakeSaveService.h
+    qt/services/fakes/FakeSessionService.h
+    qt/services/fakes/FakeWorldService.h
+    qt/util/CharacterLayer.h
+    qt/util/CharacterLayers.h
+    qt/util/IndexCycle.h
+    qt/widgets/AsyncStateView.h
+    qt/widgets/CharacterPreview.h
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
@@ -90,8 +130,8 @@ target_sources(taller_client
     sdl/log/Logger.h
     )
 
-# AUTOMOC solo para este target (no afecta a server ni a tests)
-set_target_properties(taller_client PROPERTIES AUTOMOC ON)
+# AUTOMOC y AUTORCC solo para este target (no afectan a server ni a tests)
+set_target_properties(taller_client PROPERTIES AUTOMOC ON AUTORCC ON)
 
 # La copia de assets al build (add_custom_command POST_BUILD) vive en la
 # raíz: el target taller_client se crea ahí y CMake solo permite esa

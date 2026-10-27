@@ -1,5 +1,8 @@
 #include "Application.h"
 
+#include <QFile>
+#include <QString>
+#include <QtGlobal>
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -40,8 +43,20 @@
 
 namespace core {
 
-Application::Application(int& argc, char** argv):
-        config_(kWindowWidth, kWindowHeight, kWindowTitle), app_(argc, argv) {}
+Application::Application(int& argc, char** argv)
+    : config_(kWindowWidth, kWindowHeight, kWindowTitle)
+    , app_(argc, argv) {
+    loadStyleSheet();
+}
+
+void Application::loadStyleSheet() {
+    QFile file(":/ui.qss");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("No se pudo abrir el recurso :/ui.qss");
+        return;
+    }
+    app_.setStyleSheet(QString::fromUtf8(file.readAll()));
+}
 
 int Application::run() {
 
@@ -55,14 +70,11 @@ int Application::run() {
 
 std::optional<SessionConfig> Application::runLobby() {
 
-    qt::LobbyWindow lobby(config_);
+    LobbyWindow lobby(config_);
     lobby.show();
     app_.exec();
 
-    if (!lobby.confirmed()) {
-        return std::nullopt;
-    }
-    return lobby.session();
+    return lobby.result();
 }
 
 int Application::runGame(const SessionConfig& session) {

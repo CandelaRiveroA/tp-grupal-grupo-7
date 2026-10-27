@@ -1,105 +1,132 @@
 #include "LobbyWindow.h"
 
-#include <QComboBox>
 #include <QApplication>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QPushButton>
+#include <QShortcut>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
-#include "core/WindowConfig.h"
+#include <utility>
 
-namespace qt {
+#include "core/WindowConfig.h"
+#include "qt/screens/CharacterScreen.h"
+#include "qt/screens/JoinCodeScreen.h"
+#include "qt/screens/MainMenuScreen.h"
+#include "qt/screens/SaveListScreen.h"
+#include "qt/screens/WorldSelectScreen.h"
+#include "qt/services/fakes/FakeAssetCatalog.h"
+#include "qt/services/fakes/FakeSaveService.h"
+#include "qt/services/fakes/FakeSessionService.h"
+#include "qt/services/fakes/FakeWorldService.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent)
 	: QWidget(parent)
-	, nameEdit_(nullptr)
-	, gamesList_(nullptr)
-	, skinBox_(nullptr)
-	, joinButton_(nullptr)
-	, session_()
-	, confirmed_(false) {
+	, stack_(nullptr)
+	, screens_()
+	, current_(nullptr)
+	, character_(nullptr)
+	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
-	setFixedSize(360, 420);
+	setFixedSize(1280, 720);
 
+	stack_ = new QStackedWidget(this);
 	auto* layout = new QVBoxLayout(this);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->addWidget(stack_);
 
-	// --- Crear partida ---
-	layout->addWidget(new QLabel("Crear partida", this));
-	nameEdit_ = new QLineEdit(this);
-	nameEdit_->setPlaceholderText("Nombre de la partida");
-	layout->addWidget(nameEdit_);
+	auto* menu = new MainMenuScreen(stack_);
+	registerScreen(ScreenId::MainMenu, menu);
+	connect(menu, &MainMenuScreen::exitRequested, this, &QWidget::close);
 
-	auto* createButton = new QPushButton("Crear", this);
-	layout->addWidget(createButton);
+	auto* worldService = new FakeWorldService(std::nullopt, this);
+	auto* worlds = new WorldSelectScreen(worldService, stack_);
+	registerScreen(ScreenId::WorldSelect, worlds);
+	connect(worlds, &WorldSelectScreen::worldChosen, this,
+		&LobbyWindow::onWorldChosen);
 
-	// --- Unirse a partida existente ---
-	layout->addWidget(new QLabel("Partidas existentes (doble clic para unirse)", this));
-	gamesList_ = new QListWidget(this);
-	layout->addWidget(gamesList_);
+	auto* sessionService = new FakeSessionService(std::nullopt, this);
+	auto* catalog = new FakeAssetCatalog(this);
 
-	joinButton_ = new QPushButton("Unirme", this);
-	joinButton_->setEnabled(false);
-	layout->addWidget(joinButton_);
+	auto* joins = new JoinCodeScreen(sessionService, stack_);
+	registerScreen(ScreenId::JoinCode, joins);
+	connect(joins, &JoinCodeScreen::joinAccepted, this,
+		&LobbyWindow::onJoinAccepted);
 
-	// --- Personaje ---
-	auto* skinRow = new QHBoxLayout();
-	skinRow->addWidget(new QLabel("Personaje", this));
-	skinBox_ = new QComboBox(this);
-	skinBox_->addItems({ "Granjero", "Minero" });
-	skinRow->addWidget(skinBox_, 1);
-	layout->addLayout(skinRow);
+	auto* saveService = new FakeSaveService(std::nullopt, this);
+	auto* saves =
+		new SaveListScreen(saveService, sessionService, catalog,
+				   stack_);
+	registerScreen(ScreenId::SaveList, saves);
+	connect(saves, &SaveListScreen::saveLoaded, this,
+		&LobbyWindow::onSaveLoaded);
 
-	connect(createButton, &QPushButton::clicked, this, &LobbyWindow::createGame);
-	connect(joinButton_, &QPushButton::clicked, this, &LobbyWindow::joinSelectedGame);
-	connect(gamesList_, &QListWidget::itemDoubleClicked, this,
-		[this](QListWidgetItem*) { joinSelectedGame(); });
-	connect(gamesList_, &QListWidget::itemSelectionChanged, this, [this]() {
-		joinButton_->setEnabled(gamesList_->currentItem() != nullptr);
-	});
-	connect(nameEdit_, &QLineEdit::returnPressed, this, &LobbyWindow::createGame);
+	character_ = new CharacterScreen(sessionService, catalog, stack_);
+	registerScreen(ScreenId::Character, character_);
+	connect(character_, &CharacterScreen::characterConfirmed, this,
+		&LobbyWindow::onCharacterConfirmed);
+
+	current_ = menu;
+	stack_->setCurrentWidget(menu);
+	menu->onEnter();
+
+	auto* back = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+	connect(back, &QShortcut::activated, this, &LobbyWindow::goBack);
 }
 
-void LobbyWindow::createGame() {
-	session_.partida = nameEdit_->text().trimmed().toStdString();
-	if (session_.partida.empty()) {
+std::optional<core::SessionConfig> LobbyWindow::result() const {
+	return selection_;
+}
+
+void LobbyWindow::registerScreen(ScreenId id, Screen* screen) {
+	screens_[id] = screen;
+	stack_->addWidget(screen);
+	connect(screen, &Screen::requestNavigate, this, &LobbyWindow::navigateTo);
+}
+
+void LobbyWindow::navigateTo(ScreenId id) {
+	auto it = screens_.find(id);
+	if (it == screens_.end() || it->second == current_) {
+		// Destino todavía no implementado: no hay a dónde ir.
 		return;
 	}
 
-	// TODO(protocolo): acá se le pediría al server crear la partida
-	// y validar que el usuario no esté tomado.
-	confirm();
+	current_->onExit();
+	current_ = it->second;
+	stack_->setCurrentWidget(current_);
+	current_->onEnter();
 }
 
-void LobbyWindow::joinSelectedGame() {
-	auto* item = gamesList_->currentItem();
-	if (item == nullptr) {
-		return;
-	}
-	session_.partida = item->text().toStdString();
+void LobbyWindow::goBack() { navigateTo(ScreenId::MainMenu); }
 
-	// TODO(protocolo): acá se valida con el server que la partida
-	// exista y que el usuario no esté tomado.
-	confirm();
-}
-
-void LobbyWindow::confirm() {
-	session_.personaje = skinBox_->currentText().toStdString();
-	confirmed_ = true;
+void LobbyWindow::acceptSelection(core::SessionConfig session) {
+	selection_ = std::move(session);
 	close();
 	QApplication::quit();
 }
 
-void LobbyWindow::cancel() {
-	confirmed_ = false;
-	close();
-	QApplication::quit();
+void LobbyWindow::onWorldChosen(WorldSummary world) {
+	character_->startNewGame(world);
+	navigateTo(ScreenId::Character);
 }
 
-bool LobbyWindow::confirmed() const { return confirmed_; }
+void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
+	acceptSelection(core::SessionConfig{selection.gameName,
+					    selection.characterName});
+}
 
-const core::SessionConfig& LobbyWindow::session() const { return session_; }
+void LobbyWindow::onSaveLoaded(SaveSummary save) {
+	// El jugador local al retomar es el primero de la partida guardada.
+	// TODO con protocolo: confirmar cómo se identifica al jugador que
+	// pide la carga.
+	const std::string character =
+		save.players.empty() ? std::string()
+				     : save.players.front().name;
+	acceptSelection(core::SessionConfig{save.gameName, character});
+}
 
+void LobbyWindow::onJoinAccepted(std::string gameName) {
+	// Solo queda customizar el personaje: la partida y el mundo ya los
+	// definió el anfitrión. El worldId del server no nos alcanza acá.
+	// TODO con protocolo: cómo viaja el personaje del joiner al server.
+	character_->startJoinGame(gameName);
+	navigateTo(ScreenId::Character);
 }

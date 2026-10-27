@@ -1,6 +1,6 @@
 #include "player.h"
 
-Player::Player(uint32_t id, uint16_t x, uint16_t y)
+Player::Player(uint8_t id, uint16_t x, uint16_t y)
     : IEntity(x, y),
       player_id(id),
       facing(Direction::DOWN),
@@ -12,7 +12,7 @@ Player::Player(uint32_t id, uint16_t x, uint16_t y)
         this->backpack.add_item(std::make_unique<Item>(ItemID::WATERING_CAN, false));
         this->backpack.add_item(std::make_unique<Item>(ItemID::SWORD, false));
 }
-uint32_t Player::get_id() const {
+uint8_t Player::get_id() const {
     return this->player_id;
 }
 
@@ -94,4 +94,5 @@ bool Player::is_walkable() const {
 }
 
 void Player::interact(Player& p, ToolType tool, World& w) {
+    // Sin acción directa entre jugadores por ahora
 }

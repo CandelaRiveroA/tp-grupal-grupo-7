@@ -11,13 +11,13 @@
 
 class Player : public IEntity {
 private:
-    uint32_t player_id;
+    uint8_t player_id;
     Direction facing;
     uint8_t selected_slot;
     Inventory backpack;
 
 public:
-    Player(uint32_t id, uint16_t x, uint16_t y);
+    Player(uint8_t id, uint16_t x, uint16_t y);
     ~Player() override = default;
 
     Player(const Player&) = delete;
@@ -27,7 +27,7 @@ public:
 
     // Observadores espaciales y de estado
     // Necesario para el DTO
-    uint32_t get_id() const;
+    uint8_t get_id() const;
     Direction get_facing() const;
     const Inventory& get_inventory() const; 
 

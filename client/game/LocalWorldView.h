@@ -25,8 +25,16 @@ struct ViewInventorySlot {
 	world::ItemKind item;
 };
 
+struct ViewGroundItem {
+	int id;
+	int cellX;
+	int cellY;
+	world::ItemKind item;
+};
+
 struct LocalWorldView {
 	std::vector<ViewEntity> entities;
+	std::vector<ViewGroundItem> groundItems;
 	std::vector<ViewInventorySlot> inventory;
 	world::GridSpan grid{0, 0};
 };

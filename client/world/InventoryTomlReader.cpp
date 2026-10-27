@@ -1,6 +1,7 @@
 #include "world/InventoryTomlReader.h"
 
 #include <array>
+#include <utility>
 #include <vector>
 
 #include "world/ConfigError.h"
@@ -45,10 +46,15 @@ constexpr const char* kItems = "items";
 constexpr const char* kItemSheet = "sheet";
 constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
-constexpr const char* kItemShovel = "shovel";
-constexpr const char* kItemPickaxe = "pickaxe";
-constexpr const char* kItemWateringCan = "watering_can";
-constexpr const char* kItemSword = "sword";
+constexpr const char* kItemDrawn = "drawn";
+
+constexpr std::array<std::pair<const char*, ItemKind>, 5> kItemKinds = {{
+	{"shovel", ItemKind::Shovel},
+	{"pickaxe", ItemKind::Pickaxe},
+	{"watering_can", ItemKind::WateringCan},
+	{"sword", ItemKind::Sword},
+	{"egg", ItemKind::Egg},
+}};
 
 }
 
@@ -133,6 +139,18 @@ void InventoryTomlReader::readItems(world::ItemCatalog& catalog) const {
 			doc_.getIntArray<2>(join(base, kItemAt));
 		visual.col = at[0];
 		visual.row = at[1];
+		// Tamaño EN EL MAPA: opcional (default = celda nativa).
+		const std::string drawnKey = join(base, kItemDrawn);
+		if (doc_.hasKey(drawnKey)) {
+			const std::array<int, 2> drawn =
+				doc_.getIntArray<2>(drawnKey);
+			if (drawn[0] <= 0 || drawn[1] <= 0) {
+				throw ConfigError(Kind::InvalidValue,
+						  drawnKey);
+			}
+			visual.drawnWidth = drawn[0];
+			visual.drawnHeight = drawn[1];
+		}
 		if (visual.cellWidth <= 0 || visual.cellHeight <= 0 ||
 		    visual.col < 0 || visual.row < 0) {
 			throw ConfigError(Kind::InvalidValue, base);
@@ -143,17 +161,10 @@ void InventoryTomlReader::readItems(world::ItemCatalog& catalog) const {
 
 world::ItemKind InventoryTomlReader::itemKindFor(
 	const std::string& name, const std::string& context) const {
-	if (name == kItemShovel) {
-		return world::ItemKind::Shovel;
-	}
-	if (name == kItemPickaxe) {
-		return world::ItemKind::Pickaxe;
-	}
-	if (name == kItemWateringCan) {
-		return world::ItemKind::WateringCan;
-	}
-	if (name == kItemSword) {
-		return world::ItemKind::Sword;
+	for (const auto& [key, kind] : kItemKinds) {
+		if (name == key) {
+			return kind;
+		}
 	}
 	throw ConfigError(Kind::InvalidValue, context);
 }

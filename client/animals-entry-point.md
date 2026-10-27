@@ -19,6 +19,8 @@ pasa al servidor y el cliente no cambia.
   (`client/game/MockAnimalSimulation.{h,cpp}`): lógica pura, sin SDL ni vista.
 - Cada tick el loop llama `GameClient::update(it)` (UNA llamada, al inicio del
   tick) → la simulación avanza → `worldState()` devuelve la vista actualizada.
+- Las gallinas también **ponen huevos**: aparecen como ítems en el suelo
+  (`LocalWorldView.groundItems`) que el render dibuja bajo las criaturas.
 - El render ya dibuja cualquier criatura: la hoja se resuelve por
   `entity.kind` vía el catálogo (`characters.toml`); **agregar una criatura no
   toca el render**.
@@ -77,6 +79,36 @@ Al conectar la red, quien spawnea pasa a ser el servidor y esto se reemplaza.
   vista entre frames. Una id nueva se dibuja plantada en su celda.
 - El sonido del paso (`FootstepCue`) aplica igual que para el jugador: sale
   del mismo cálculo de fase (`isWalking` + cuadros de walk del catálogo).
+
+## Los huevos: postura → suelo (recoger queda para después)
+Las gallinas **ponen huevos**; es la misma lógica de "server falso":
+
+1. **Postura** (`MockAnimalSimulation`): cada animal pone un huevo cada
+   `layPeriod` ticks (al azar en una gama LARGA al spawn, y reasignada tras
+   cada postura: las gallinas no se sincronizan). El huevo queda en la celda
+   **donde el animal está** al ponerlo. Qué ítem pone cada kind es una TABLA
+   (`kLays`: chicken → `ItemKind::Egg`); mañana la vaca entra sumando una
+   fila (leche), sin tocar código. Determinista con la seed (testeable).
+2. **Drenaje** (`takeLaidEggs()`): el mock toma lo puesto en el tick y lo
+   valida con sus reglas de juego silenciosas:
+   - **Tope de ítems en el suelo** (`kMaxGroundItems = 3`): sin recogida, es
+     lo que evita que la vista se llene de huevos. El server real definirá
+     su propio tope/despawn.
+   - **Celda ya ocupada por otro huevo**: la postura se descarta (no hay
+     dos huevos en una celda).
+3. **Vista**: cada ítem del suelo es un `ViewGroundItem` (id estable, celda,
+   `ItemKind`) en `LocalWorldView.groundItems`. **No bloquea a nadie**: el
+   jugador y las gallinas caminan encima.
+4. **Dibujo**: el `Renderer` los dibuja entre los elementos del escenario y
+   las criaturas (quedan DEBAJO de quien pise la celda), centrados en su
+   celda, a tamaño `drawn` del catálogo visual de ítems (`inventory.toml`,
+   `[items.egg]` — misma fuente de datos que los íconos del inventario, ver
+   `world/inventory-format.md` §6).
+
+**Fuera de alcance por ahora:** recoger el huevo y guardarlo en el
+inventario. La vista ya lleva `ItemKind`, así que la recogida futura solo
+agrega la regla del "servidor" (quitar del suelo + sumar slot) — el dibujo
+del ícono ya existe.
 
 ## Integrar la implementación de red
 1. Implementar una clase que herede de `game::GameClient` (`sendCommand` +

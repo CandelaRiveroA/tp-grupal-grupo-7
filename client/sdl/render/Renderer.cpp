@@ -11,9 +11,11 @@
 namespace sdl {
 
 Renderer::Renderer(SdlContext& context,
-		   const world::CharacterCatalog& characters)
+		   const world::CharacterCatalog& characters,
+		   const world::ItemCatalog& itemCatalog)
 	: context_(context)
 	, catalog_(characters)
+	, itemCatalog_(itemCatalog)
 	, sheetCache_(context) {}
 
 void Renderer::render(const world::SceneDescription& scene,
@@ -38,6 +40,9 @@ void Renderer::renderScene(const world::SceneDescription& scene,
 	for (const world::ElementPlacement& element : scene.elements) {
 		drawElement(scene, element);
 	}
+
+	// Orden de dibujo: elementos -> ítems del suelo -> criaturas
+	drawGroundItems(scene, view);
 
 	for (std::size_t i = 0; i < view.entities.size(); ++i) {
 		drawEntity(scene, view.entities[i], motion, actionResolver, i,
@@ -82,6 +87,42 @@ void Renderer::drawEntity(const world::SceneDescription& scene,
 		    SDL2pp::Rect(box.x + offset.x, box.y + offset.y,
 				 box.width, box.height),
 		    flip);
+}
+
+void Renderer::drawGroundItems(const world::SceneDescription& scene,
+			       const game::LocalWorldView& view) {
+	const world::ScenePixelMapper mapper(scene.cellPixelSize);
+	for (const game::ViewGroundItem& item : view.groundItems) {
+		if (!itemCatalog_.has(item.item)) {
+			// Ítem sin visual en el TOML: se ignora, igual
+			// que en el inventario (sin error).
+			continue;
+		}
+		const world::ItemVisual& visual =
+			itemCatalog_.visualFor(item.item);
+
+		SpriteSheet& sheet = sheetCache_.sheet(
+			visual.sheetImage, core::assetPath(visual.sheetImage),
+			visual.cellWidth, visual.cellHeight);
+
+		const world::PixelRect cell = mapper.toPixels(
+			world::GridCell{item.cellX, item.cellY},
+			world::GridSpan{1, 1});
+		// Tamaño en el mapa: `drawn` si el TOML lo declara;
+		// si no, el nativo de la celda de la hoja.
+		const int width = visual.drawnWidth > 0
+				      ? visual.drawnWidth
+				      : visual.cellWidth;
+		const int height = visual.drawnHeight > 0
+				       ? visual.drawnHeight
+				       : visual.cellHeight;
+		// Centrado en su celda: un ítem del suelo no ancla abajo
+		// como una criatura (no "para" en el piso).
+		const int x = cell.x + (cell.width - width) / 2;
+		const int y = cell.y + (cell.height - height) / 2;
+		sheet.draw(visual.col, visual.row,
+			   SDL2pp::Rect(x, y, width, height));
+	}
 }
 
 void Renderer::drawElement(const world::SceneDescription& scene,

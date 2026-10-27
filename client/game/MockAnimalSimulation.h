@@ -6,8 +6,18 @@
 #include "common/common_game_direction.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
+#include "world/ItemCatalog.h"
 
 namespace game {
+
+// Huevo puesto por un animal en un tick: DATOS puros. El que llena la
+// vista (MockGameClient) lo valida y lo guarda como ítem del suelo.
+struct LaidEgg {
+	int animalId;
+	int cellX;
+	int cellY;
+	world::ItemKind item;
+};
 
 // Datos: dirección -> delta en celdas. Usado por el diccionario de
 // movimiento de MockAnimalSimulation (tabla sobre switch, convención §4).
@@ -37,6 +47,12 @@ struct AnimalRecord {
 	int stepIteration;
 	int restTicks;
 	world::MoveCadence cadence;
+	// Datos de postura: pone un huevo cada layPeriod ticks; la
+	// primera postura es nextLayIteration = layPeriod (el mock
+	// spawnea antes del primer update). El servidor real fijaría
+	// estos valores al spawn con la iteración real.
+	int layPeriod;
+	int nextLayIteration;
 };
 
 // MOCK: simulación de movimiento automático (wander) de animales que hoy
@@ -66,10 +82,24 @@ public:
 
 	const std::vector<AnimalRecord>& animals() const;
 
+	// Huevos puestos desde la ÚLTIMA llamada (drena: la segunda
+	// llamada devuelve vacío). Cada uno trae la celda donde el
+	// animal estaba al ponerlo y el ítem que define la tabla de
+	// postura para su kind.
+	std::vector<LaidEgg> takeLaidEggs();
+
 private:
 	DirectionDelta randomDirection();
 
 	int randomRestTicks();
+
+	int randomLayPeriod();
+
+	// Qué ítem pone este kind, o nullptr si no pone nada (tabla
+	// kLays en el .cpp: diccionario, convención §4).
+	const world::ItemKind* laidItem(world::CreatureKind kind) const;
+
+	void tryLay(AnimalRecord& animal, int iteration);
 
 	bool canEnter(int cellX, int cellY, int playerCellX, int playerCellY,
 		      const AnimalRecord& self) const;
@@ -85,6 +115,8 @@ private:
 	int nextId_;
 
 	std::vector<AnimalRecord> animals_;
+
+	std::vector<LaidEgg> laidEggs_;
 };
 
 }

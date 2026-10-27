@@ -24,6 +24,12 @@ constexpr std::array<world::GridCell, 3> kAnimalSpawns = {{
 	{12, 2},
 }};
 
+// Tope de ítems en el suelo: la vista no se llena de huevos (sin
+// recogida no hay forma de que se vayan). Regla silenciosa de juego del
+// "server falso", como el límite de slots del inventario; el server
+// real definirá su propio tope/despawn.
+constexpr int kMaxGroundItems = 3;
+
 }
 
 MockGameClient::MockGameClient(int gridColumns, int gridRows, int startX,
@@ -34,7 +40,8 @@ MockGameClient::MockGameClient(int gridColumns, int gridRows, int startX,
 	, playerCellY_(startY)
 	, playerFacing_(protocol::Direction::Front)
 	, playerMoving_(false)
-	, simulation_(nullptr) {
+	, simulation_(nullptr)
+	, nextGroundItemId_(1) {
 	rebuildInventory();
 	rebuildView();
 }
@@ -50,7 +57,8 @@ MockGameClient::MockGameClient(int gridColumns, int gridRows, int startX,
 	, playerMoving_(false)
 	, simulation_(std::make_unique<MockAnimalSimulation>(gridColumns,
 							 gridRows,
-							 kAnimalSeed)) {
+							 kAnimalSeed))
+	, nextGroundItemId_(1) {
 	spawnAnimals(characters);
 	rebuildInventory();
 	rebuildView();
@@ -76,6 +84,7 @@ void MockGameClient::update(int iteration) {
 		return;
 	}
 	simulation_->update(iteration, playerCellX_, playerCellY_);
+	collectLaidEggs();
 	rebuildView();
 }
 
@@ -96,6 +105,7 @@ void MockGameClient::walkTo(int targetX, int targetY,
 void MockGameClient::rebuildView() {
 	view_.entities.clear();
 	view_.grid = world::GridSpan{gridColumns_, gridRows_};
+	view_.groundItems = groundItems_;
 
 	// El jugador es SIEMPRE la entidad 0 con id estable 0.
 	ViewEntity player;
@@ -125,6 +135,34 @@ void MockGameClient::rebuildView() {
 		entity.action = animal.moving ? world::ActionKind::Walk
 					      : world::ActionKind::Idle;
 		view_.entities.push_back(entity);
+	}
+}
+
+void MockGameClient::collectLaidEggs() {
+	for (LaidEgg& laid : simulation_->takeLaidEggs()) {
+		if (static_cast<int>(groundItems_.size()) >=
+		    kMaxGroundItems) {
+			break;
+		}
+		bool occupied = false;
+		for (const ViewGroundItem& item : groundItems_) {
+			occupied = occupied ||
+				   (item.cellX == laid.cellX &&
+				    item.cellY == laid.cellY);
+		}
+		if (occupied) {
+			// La celda ya tiene un huevo: la postura se
+			// descarta (regla silenciosa, no un error).
+			continue;
+		}
+
+		ViewGroundItem egg;
+		egg.id = nextGroundItemId_;
+		egg.cellX = laid.cellX;
+		egg.cellY = laid.cellY;
+		egg.item = laid.item;
+		groundItems_.push_back(egg);
+		nextGroundItemId_ += 1;
 	}
 }
 

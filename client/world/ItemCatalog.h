@@ -10,6 +10,7 @@ enum class ItemKind {
 	Pickaxe,
 	WateringCan,
 	Sword,
+	Egg,
 };
 
 struct ItemVisual {
@@ -18,6 +19,8 @@ struct ItemVisual {
 	int row = 0;
 	int cellWidth = 0;
 	int cellHeight = 0;
+	int drawnWidth = 0;
+	int drawnHeight = 0;
 };
 
 struct ItemCatalog {

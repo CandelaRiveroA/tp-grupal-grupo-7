@@ -239,6 +239,80 @@ TEST(InventoryConfigLoaderTest, NoItemsSectionLeavesCatalogEmpty) {
 	EXPECT_FALSE(bar.items.has(world::ItemKind::Shovel));
 }
 
+namespace {
+
+const char* const kItemBarToml = R"(
+[sheet]
+image = "x.png"
+cell  = [16, 16]
+[slot]
+cell = [4, 8]
+[bar]
+count = 9
+scale = 4
+gap = 0
+anchor = "bottom_center"
+margin = 16
+)";
+
+}
+
+TEST(InventoryConfigLoaderTest, LoadsEggVisualWithDrawnSize) {
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+drawn = [15, 16]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.items.has(world::ItemKind::Egg));
+
+	const world::ItemVisual& egg =
+		bar.items.visualFor(world::ItemKind::Egg);
+	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
+	EXPECT_EQ(egg.cellWidth, 10);
+	EXPECT_EQ(egg.cellHeight, 11);
+	EXPECT_EQ(egg.col, 0);
+	EXPECT_EQ(egg.row, 0);
+	EXPECT_EQ(egg.drawnWidth, 15);
+	EXPECT_EQ(egg.drawnHeight, 16);
+}
+
+TEST(InventoryConfigLoaderTest, ItemWithoutDrawnDefaultsToNativeSize) {
+	// Sin `drawn`, el tamaño en el mapa es el nativo de la celda de la
+	// hoja (drawnWidth/Height en 0 = "usar cellWidth/Height").
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.items.has(world::ItemKind::Egg));
+	const world::ItemVisual& egg =
+		bar.items.visualFor(world::ItemKind::Egg);
+	EXPECT_EQ(egg.drawnWidth, 0);
+	EXPECT_EQ(egg.drawnHeight, 0);
+}
+
+TEST(InventoryConfigLoaderTest, ZeroDrawnIsInvalidValue) {
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+drawn = [0, 22]
+)";
+	try {
+		loadString(toml);
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(),
+			  world::ConfigErrorKind::InvalidValue);
+	}
+}
+
 TEST(InventoryConfigLoaderTest, UnknownItemIsInvalidValue) {
 	const std::string toml = R"(
 [sheet]
@@ -384,6 +458,14 @@ TEST(InventoryConfigLoaderTest, LoadsRealInventoryFile) {
 	EXPECT_EQ(bar.frame.borderCells, 2);
 	EXPECT_TRUE(bar.slotFrame.enabled);
 	EXPECT_EQ(bar.slotFrame.topLeft.col, 8);
+
+	// El huevo de la gallina está en el catálogo (sprite único 10x11).
+	ASSERT_TRUE(bar.items.has(world::ItemKind::Egg));
+	const world::ItemVisual& egg =
+		bar.items.visualFor(world::ItemKind::Egg);
+	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
+	EXPECT_EQ(egg.drawnWidth, 15);
+	EXPECT_EQ(egg.drawnHeight, 16);
 }
 #endif
 

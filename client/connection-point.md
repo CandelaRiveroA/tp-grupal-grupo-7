@@ -60,10 +60,12 @@ compartido.
 Mientras tanto, el cliente dibuja a partir de una **vista local
 provisional** (`client/game/LocalWorldView.h`), que NO es un contrato de
 red: es solo "lo que el render necesita hoy". Hoy la llena el mock con el
-jugador, los animales de su simulación (ver `animals-entry-point.md`) y el
-tamaño de su mundo (`grid`). Su forma (una lista de entidades con celda +
-dirección + si se mueve, más las dimensiones de la grilla) sirve de
-referencia de qué necesita el cliente para dibujar.
+jugador, los animales de su simulación, los ítems del suelo que esos
+animales sueltan (ej. huevos: ver `animals-entry-point.md`) y el tamaño de
+su mundo (`grid`). Su forma (una lista de entidades con celda + dirección +
+si se mueve, una lista de ítems del suelo con celda + ítem, más las
+dimensiones de la grilla) sirve de referencia de qué necesita el cliente
+para dibujar.
 
 **Las dimensiones del mundo también son estado del servidor.** `LocalWorldView`
 lleva `grid` (`columns`/`rows`); el mock lo completa con el tamaño de su
@@ -82,6 +84,10 @@ sprites ni layout.
   campo: `ViewEntity.id` (`int`, el jugador es `0`, los animales del mock son
   `1..N`) — cuando se defina el estado, la implementación de red llena ese
   campo con el id que mande el servidor.
+- Los **ítems en el suelo** (ej. huevos que ponen los animales): la vista
+  provisional ya los lleva (`groundItems`, cada uno con id estable + celda +
+  `ItemKind`) para que el DTO los incluya; el server también define las
+  reglas de recogida, tope y despawn (hoy el mock topa en 3, silencioso).
 - Si el **inventario** viaja en ese mensaje o por otro.
 - **Frecuencia / formato** (estado completo por tick vs. deltas).
 - **Dimensiones del mundo:** `columns`/`rows` de la grilla lógica, para que

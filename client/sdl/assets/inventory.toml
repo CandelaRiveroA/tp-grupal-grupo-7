@@ -138,3 +138,15 @@ at    = [3, 14]
 sheet = "Players/main/tools/Weapons.png"
 cell  = [16, 16]
 at    = [0, 0]
+
+[items.egg]           # huevo: sprite ÚNICO (Farm/egg.png mide 10x11 px,
+                      # no es una grilla), así que la hoja es una sola
+                      # celda de 10x11 y el ítem es la celda [0, 0].
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+# drawn: tamaño del ítem DIBUJADO EN EL MAPA (ítems en el suelo, ej. el
+# huevo que pone la gallina). El nativo 10x11 es chico para una celda de
+# 32 px y el doble (20x22) quedó grande: punto medio a ~1.5x. El ícono
+# del inventario NO usa este campo (escala al slot como los demás).
+drawn = [15, 16]

@@ -301,4 +301,110 @@ TEST(MockGameClientTest, UpdateWithoutAnimalSimulationIsANoOp) {
 	EXPECT_EQ(view.entities[0].kind, world::CreatureKind::Player);
 }
 
+// --- Huevos: la gallina pone, el ítem aparece en el suelo ---------------
+
+namespace {
+
+// Camina el mundo N ticks acumulando los ítems del suelo visibles en
+// cada frame (el último estado manda).
+std::vector<game::ViewGroundItem> groundItemsAfter(
+	game::MockGameClient& client, int lastIteration) {
+	std::vector<game::ViewGroundItem> last;
+	for (int it = 0; it <= lastIteration; ++it) {
+		client.update(it);
+		last = client.worldState().groundItems;
+	}
+	return last;
+}
+
+}
+
+TEST(MockGameClientTest, ChickenLaysEggsOnTheGround) {
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+
+	// El período de postura es largo (gama en el .cpp de la
+	// simulación) pero acotado: con esta seed la primera postura cae
+	// bien dentro de la caminata.
+	std::vector<game::ViewGroundItem> eggs =
+		groundItemsAfter(client, 3000);
+	ASSERT_FALSE(eggs.empty());
+
+	for (const game::ViewGroundItem& egg : eggs) {
+		EXPECT_EQ(egg.item, world::ItemKind::Egg);
+		EXPECT_GE(egg.cellX, 0);
+		EXPECT_LT(egg.cellX, kRoomColumns);
+		EXPECT_GE(egg.cellY, 0);
+		EXPECT_LT(egg.cellY, kRoomRows);
+		// Nadie pone un huevo en la celda del jugador.
+		EXPECT_FALSE(egg.cellX == kPlayerX && egg.cellY == kPlayerY);
+	}
+}
+
+TEST(MockGameClientTest, GroundEggCountNeverExceedsTheCap) {
+	// Sin recogida, el tope de ítems en el suelo es lo que evita que
+	// la vista se llene de huevos (regla silenciosa del "server
+	// falso", como el límite de slots del inventario).
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+	const std::vector<game::ViewGroundItem> eggs =
+		groundItemsAfter(client, 8000);
+	EXPECT_LE(eggs.size(), 3u);
+}
+
+TEST(MockGameClientTest, GroundItemIdsAreStableBetweenFrames) {
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+	const std::vector<game::ViewGroundItem> eggs =
+		groundItemsAfter(client, 3000);
+	ASSERT_FALSE(eggs.empty());
+
+	std::vector<int> ids;
+	for (const game::ViewGroundItem& egg : eggs) {
+		ids.push_back(egg.id);
+	}
+
+	// 200 ticks más: los ids de antes SIGUEN (los ítems del suelo no
+	// desaparecen) y siguen siendo únicos.
+	const std::vector<game::ViewGroundItem> later =
+		groundItemsAfter(client, 3200);
+	for (const int id : ids) {
+		bool found = false;
+		for (const game::ViewGroundItem& egg : later) {
+			found = found || egg.id == id;
+		}
+		EXPECT_TRUE(found) << "id " << id << " desapareció";
+	}
+	for (std::size_t a = 0; a < later.size(); ++a) {
+		for (std::size_t b = a + 1; b < later.size(); ++b) {
+			EXPECT_NE(later[a].id, later[b].id);
+		}
+	}
+}
+
+TEST(MockGameClientTest, TwoGroundEggsNeverShareACell) {
+	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+				    kPlayerY, worldCatalog());
+	for (int it = 0; it <= 8000; ++it) {
+		client.update(it);
+		const std::vector<game::ViewGroundItem>& eggs =
+			client.worldState().groundItems;
+		for (std::size_t a = 0; a < eggs.size(); ++a) {
+			for (std::size_t b = a + 1; b < eggs.size(); ++b) {
+				EXPECT_FALSE(eggs[a].cellX == eggs[b].cellX &&
+					     eggs[a].cellY == eggs[b].cellY)
+					<< "huevos " << eggs[a].id << " y "
+					<< eggs[b].id << " comparten celda";
+			}
+		}
+	}
+}
+
+TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoGroundItems) {
+	game::MockGameClient client(10, 10, 5, 5);
+	const std::vector<game::ViewGroundItem> eggs =
+		groundItemsAfter(client, 3000);
+	EXPECT_TRUE(eggs.empty());
+}
+
 }

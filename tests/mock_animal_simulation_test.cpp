@@ -2,10 +2,13 @@
 
 #include <cstdlib>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include "game/MockAnimalSimulation.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
+#include "world/ItemCatalog.h"
 
 namespace {
 
@@ -227,6 +230,107 @@ TEST(MockAnimalSimulationTest, FacingIsAlwaysAValidDirection) {
 			facing == protocol::Direction::Right;
 		EXPECT_TRUE(valid);
 	}
+}
+
+// --- Postura de huevos --------------------------------------------------
+
+// Recolecta lo que el animal puso durante una caminata de ticks,
+// drenando la simulación en cada tick.
+std::vector<game::LaidEgg> laysOver(MockAnimalSimulation& simulation,
+				    int lastIteration) {
+	std::vector<game::LaidEgg> lays;
+	for (int it = 0; it <= lastIteration; ++it) {
+		simulation.update(it, 5, 5);
+		for (game::LaidEgg& egg : simulation.takeLaidEggs()) {
+			lays.push_back(std::move(egg));
+		}
+	}
+	return lays;
+}
+
+TEST(MockAnimalSimulationTest, DoesNotLayRightAfterSpawning) {
+	// El período de postura es LARGO (gama en el .cpp de la
+	// simulación): la vista no se llena de huevos. Arrancar la
+	// caminata y drenar no produce posturas inmediatas.
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+	EXPECT_TRUE(laysOver(simulation, 100).empty());
+}
+
+TEST(MockAnimalSimulationTest, LaysAtItsOwnCellWhenItsPeriodEnds) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+
+	std::optional<game::LaidEgg> firstLay;
+	int cellXBefore = 3;
+	int cellYBefore = 3;
+	for (int it = 0; it <= 2000 && !firstLay.has_value(); ++it) {
+		cellXBefore = onlyAnimal(simulation).cellX;
+		cellYBefore = onlyAnimal(simulation).cellY;
+		simulation.update(it, 5, 5);
+		std::vector<game::LaidEgg> lays = simulation.takeLaidEggs();
+		if (!lays.empty()) {
+			firstLay = std::move(lays.front());
+		}
+	}
+	ASSERT_TRUE(firstLay.has_value())
+		<< "con esta seed la gallina debería poner dentro del "
+		   "período escaneado";
+
+	// El huevo queda en la celda DONDE ESTABA la gallina al ponerlo,
+	// es del ítem que la tabla de postura define para el kind, y
+	// referencia a la gallina que lo puso.
+	EXPECT_EQ(firstLay->cellX, cellXBefore);
+	EXPECT_EQ(firstLay->cellY, cellYBefore);
+	EXPECT_EQ(firstLay->item, world::ItemKind::Egg);
+	EXPECT_EQ(firstLay->animalId, onlyAnimal(simulation).id);
+}
+
+TEST(MockAnimalSimulationTest, TakeLaidEggsDrains) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+	EXPECT_FALSE(laysOver(simulation, 2000).empty());
+	// Drenar dos veces: la segunda no repite lo ya entregado.
+	EXPECT_TRUE(simulation.takeLaidEggs().empty());
+}
+
+TEST(MockAnimalSimulationTest, LaysAgainAfterRescheduling) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));
+
+	// La caminata completa produce al menos DOS posturas: tras poner,
+	// el período se reasigna y la gallina vuelve a poner más tarde.
+	std::vector<game::LaidEgg> lays = laysOver(simulation, 4000);
+	EXPECT_GE(lays.size(), 2u);
+}
+
+TEST(MockAnimalSimulationTest, SameSeedProducesTheSameLays) {
+	MockAnimalSimulation first = makeSimulation(kSeed);
+	MockAnimalSimulation second = makeSimulation(kSeed);
+	EXPECT_TRUE(spawnAt(first, world::GridCell{3, 3}));
+	EXPECT_TRUE(spawnAt(second, world::GridCell{3, 3}));
+
+	const std::vector<game::LaidEgg> firstLays =
+		laysOver(first, 2000);
+	const std::vector<game::LaidEgg> secondLays =
+		laysOver(second, 2000);
+	ASSERT_EQ(firstLays.size(), secondLays.size());
+	for (std::size_t i = 0; i < firstLays.size(); ++i) {
+		EXPECT_EQ(firstLays[i].cellX, secondLays[i].cellX);
+		EXPECT_EQ(firstLays[i].cellY, secondLays[i].cellY);
+		EXPECT_EQ(firstLays[i].item, secondLays[i].item);
+	}
+}
+
+TEST(MockAnimalSimulationTest, KindNotInTheLayTableDoesNotLay) {
+	// La postura es una TABLA kind -> ítem: un kind que no está no
+	// pone nada (mañana: la vaca entra sumando una fila).
+	MockAnimalSimulation simulation = makeSimulation();
+	const bool spawned = simulation.spawn(
+		world::CreatureKind::Player, cadence(), world::GridCell{3, 3},
+		5, 5);
+	ASSERT_TRUE(spawned);
+	EXPECT_TRUE(laysOver(simulation, 2000).empty());
 }
 
 }

@@ -40,6 +40,11 @@ private:
 
 	void spawnAnimals(const world::CharacterCatalog& characters);
 
+	// Toma los huevos que la simulación puso en este tick y los pasa
+	// al estado de ítems del suelo (validando reglas del "server
+	// falso": tope y celda ya ocupada por otro huevo).
+	void collectLaidEggs();
+
 	int gridColumns_;
 	int gridRows_;
 
@@ -51,6 +56,12 @@ private:
 	// La simulación de animales es del lado del "server falso": nula en
 	// el mundo de solo jugador. Cada responsabilidad, en su clase.
 	std::unique_ptr<MockAnimalSimulation> simulation_;
+
+	// Ítems del suelo (ej. huevos que ponen los animales): estado del
+	// "server falso", con ids estables propias. Sin simulación queda
+	// vacío.
+	std::vector<ViewGroundItem> groundItems_;
+	int nextGroundItemId_;
 
 	LocalWorldView view_;
 };

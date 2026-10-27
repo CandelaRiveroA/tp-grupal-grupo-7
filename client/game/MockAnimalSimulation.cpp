@@ -3,6 +3,8 @@
 #include <array>
 #include <utility>
 
+#include "world/ItemCatalog.h"
+
 namespace game {
 
 namespace {
@@ -15,6 +17,20 @@ constexpr int kMaxRestTicks = 32;
 
 // Reintento tras destino ocupado: 1 tick (el animal "vuelve a mirar").
 constexpr int kRetryTicks = 1;
+
+// Datos de la POSTURA (ticks del loop): cada animal pone un huevo cada
+// `layPeriod` ticks, con layPeriod al azar en esta gama al spawn (y
+// reasignado tras cada postura). Gama LARGA a propósito: la vista no se
+// llena de huevos. Es dato del bot, no presentación.
+constexpr int kMinLayPeriodTicks = 600;
+constexpr int kMaxLayPeriodTicks = 900;
+
+// Diccionario kind -> ítem que pone (convención §4: tabla sobre switch;
+// otra criatura que ponga algo = sumar una fila, ej. vaca -> leche).
+constexpr std::array<std::pair<world::CreatureKind, world::ItemKind>, 1>
+	kLays = {{
+		{world::CreatureKind::Chicken, world::ItemKind::Egg},
+	}};
 
 // Diccionario dirección -> delta en celdas (convención §4: tabla sobre
 // switch). Front es hacia abajo (coherente con MoveCommand).
@@ -54,6 +70,10 @@ bool MockAnimalSimulation::spawn(world::CreatureKind kind,
 	animal.stepIteration = 0;
 	animal.restTicks = randomRestTicks();
 	animal.cadence = cadence;
+	// Primera postura: layPeriod ticks de simulación después del
+	// spawn (el mock spawnea antes del primer update).
+	animal.layPeriod = randomLayPeriod();
+	animal.nextLayIteration = animal.layPeriod;
 
 	animals_.push_back(animal);
 	nextId_ += 1;
@@ -63,6 +83,8 @@ bool MockAnimalSimulation::spawn(world::CreatureKind kind,
 void MockAnimalSimulation::update(int iteration, int playerCellX,
 			      int playerCellY) {
 	for (AnimalRecord& animal : animals_) {
+		tryLay(animal, iteration);
+
 		const int elapsed = iteration - animal.stepIteration;
 
 		if (animal.activity == AnimalActivity::Stepping) {
@@ -88,6 +110,12 @@ const std::vector<AnimalRecord>& MockAnimalSimulation::animals() const {
 	return animals_;
 }
 
+std::vector<LaidEgg> MockAnimalSimulation::takeLaidEggs() {
+	std::vector<LaidEgg> taken;
+	taken.swap(laidEggs_);
+	return taken;
+}
+
 DirectionDelta MockAnimalSimulation::randomDirection() {
 	std::uniform_int_distribution<int> pick(0, 3);
 	return kDirectionDeltas[static_cast<std::size_t>(pick(random_))];
@@ -96,6 +124,44 @@ DirectionDelta MockAnimalSimulation::randomDirection() {
 int MockAnimalSimulation::randomRestTicks() {
 	std::uniform_int_distribution<int> pick(kMinRestTicks, kMaxRestTicks);
 	return pick(random_);
+}
+
+int MockAnimalSimulation::randomLayPeriod() {
+	std::uniform_int_distribution<int> pick(kMinLayPeriodTicks,
+						kMaxLayPeriodTicks);
+	return pick(random_);
+}
+
+const world::ItemKind* MockAnimalSimulation::laidItem(
+	world::CreatureKind kind) const {
+	for (const auto& [laysKind, item] : kLays) {
+		if (laysKind == kind) {
+			return &item;
+		}
+	}
+	return nullptr;
+}
+
+void MockAnimalSimulation::tryLay(AnimalRecord& animal, int iteration) {
+	const world::ItemKind* item = laidItem(animal.kind);
+	if (item == nullptr || iteration < animal.nextLayIteration) {
+		return;
+	}
+
+	// El huevo queda en la celda donde el animal está AHORA (antes de
+	// moverse este tick): dato que el que llena la vista valida y
+	// guarda.
+	LaidEgg egg;
+	egg.animalId = animal.id;
+	egg.cellX = animal.cellX;
+	egg.cellY = animal.cellY;
+	egg.item = *item;
+	laidEggs_.push_back(egg);
+
+	// El período se reasigna: la próxima postura queda espaciada (y
+	// las gallinas no se sincronizan entre sí).
+	animal.layPeriod = randomLayPeriod();
+	animal.nextLayIteration = iteration + animal.layPeriod;
 }
 
 bool MockAnimalSimulation::canEnter(int cellX, int cellY, int playerCellX,

@@ -109,7 +109,7 @@ int Application::runGameLoop(const SessionConfig& session,
 	(void)session;
 
 	sdl::SdlContext sdlContext(config_);
-	sdl::Renderer renderer(sdlContext, characters);
+	sdl::Renderer renderer(sdlContext, characters, inventory.items);
 	sdl::InventoryHud inventoryHud(sdlContext, inventory);
 	sdl::InputManager input;
 	sdl::AudioPlayer audio;

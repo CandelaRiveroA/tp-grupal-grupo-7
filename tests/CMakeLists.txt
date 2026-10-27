@@ -6,14 +6,22 @@ target_sources(taller_tests
     invite_code_format.cpp
     inventory_test.cpp
     world_test.cpp
+    mineral_test.cpp
+    world_interaction_mineral_test.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/slot.cpp
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/dropped_item.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
+    ../server/domain/minerals/mineral.cpp
+    ../server/domain/minerals/coal_rock.cpp
+    ../server/domain/minerals/lapis_rock.cpp
+    ../server/domain/minerals/silver_rock.cpp
+    ../server/domain/minerals/gold_rock.cpp    
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp

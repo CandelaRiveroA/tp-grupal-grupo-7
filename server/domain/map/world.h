@@ -14,11 +14,11 @@ private:
     uint16_t width;
     uint16_t height;
 
-    std::vector<std::vector<Cell>> grid;
-
+    std::vector<std::vector<Cell>> grid; 
+    //TODO: Persistencia del inventario del jugador.
+    
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
     std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
-
 public:
     World(uint16_t w, uint16_t h);
     ~World() = default;
@@ -37,6 +37,9 @@ public:
     // --- Gestión de Entidades Físicas ---
     void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity);
     void remove_entity_at(uint16_t x, uint16_t y);
+
+    // ---
+    void use_tool(uint8_t player_id);
 };
 
 #endif  // WORLD_H

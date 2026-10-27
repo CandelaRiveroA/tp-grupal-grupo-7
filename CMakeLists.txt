@@ -155,6 +155,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/FootstepCue.cpp
         client/game/MockGameClient.cpp
         client/game/MockAnimalSimulation.cpp
+        client/game/SoundCue.cpp
         client/game/MoveCommand.cpp
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp

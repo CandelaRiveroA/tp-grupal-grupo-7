@@ -16,10 +16,13 @@
 #include "game/LocalWorldView.h"
 #include "game/MockGameClient.h"
 #include "game/MoveCommand.h"
+#include "game/SoundCue.h"
+#include "game/SoundGate.h"
 #include "game/ToolUse.h"
 #include "game/ViewMotion.h"
 #include "game/WalkPacer.h"
 #include "qt/LobbyWindow.h"
+#include "sdl/audio/AudioCatalog.h"
 #include "sdl/audio/AudioPlayer.h"
 #include "sdl/loop/GameLoop.h"
 #include "sdl/input/InputManager.h"
@@ -121,6 +124,8 @@ int Application::runGameLoop(const SessionConfig& session,
 
 	game::FootstepCue footstepCue;
 
+	const game::SoundGate soundGate(scenario.scene().soundCues);
+
 	const world::CreatureData& localCreature =
 		characters.dataFor(world::CreatureKind::Player);
 	game::WalkPacer walkPacer(localCreature.cadence);
@@ -206,6 +211,12 @@ int Application::runGameLoop(const SessionConfig& session,
 				kPlayerIndex, it, player.moving);
 			if (footstepCue.update(walking, walkFrame)) {
 				audio.play(sdl::SoundId::Step);
+			}
+		}
+
+		for (const game::ViewSoundEvent& event : drawing.soundEvents) {
+			if (soundGate.allows(event.cue)) {
+				audio.playCue(event.cue);
 			}
 		}
 

@@ -7,9 +7,9 @@ namespace sdl {
 
 enum class SoundCategory { Sfx, Music };
 
-enum class SoundId { Step, RoosterCrow };
+enum class SoundId { Step, RoosterCrow, ChickenCluck };
 
-inline constexpr int kSoundCount = static_cast<int>(SoundId::RoosterCrow) + 1;
+inline constexpr int kSoundCount = static_cast<int>(SoundId::ChickenCluck) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -19,6 +19,7 @@ struct SoundSpec {
 inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/movement/step.ogg", SoundCategory::Sfx},
 	 {"sfx/farm/rooster.ogg", SoundCategory::Sfx},
+	 {"sfx/farm/chicken_cluck.ogg", SoundCategory::Sfx},
 }};
 
 }

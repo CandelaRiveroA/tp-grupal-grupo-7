@@ -1,5 +1,6 @@
 #include "match.h"
 
+#include <exception>
 #include <memory>
 
 #define kWidth 20
@@ -7,7 +8,8 @@
 #define kSpawnX 0
 #define kSpawnY 0
 
-Match::Match(Queue<MatchEvent>& events): events(events), world(kWidth, kHeight) {}
+Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
+        events(events), output(output), world(kWidth, kHeight) {}
 
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
@@ -40,8 +42,17 @@ void Match::publish(uint8_t player_id) {
 }
 
 void Match::execute() {
-    while (should_keep_running()) {
-        const MatchEvent event = events.pop();
-        std::visit([this](const auto& alternative) { handle(alternative); }, event);
+    try {
+        while (should_keep_running()) {
+            const MatchEvent event = events.pop();
+            std::visit([this](const auto& alternative) { handle(alternative); }, event);
+        }
+    } catch (const ClosedQueue&) {
+        throw;
+    } catch (const std::exception& error) {
+        if (should_keep_running()) {
+            output.printError("Error en la partida: ", error.what());
+        }
+        throw;
     }
 }

@@ -5,21 +5,47 @@
 
 #include <sys/socket.h>
 
-Acceptor::Acceptor(const char* service, Queue<MatchEvent>& events):
-        listening(service), events(events), next_player_id(1) {}
+Acceptor::Acceptor(const char* service, Queue<MatchEvent>& events, ServerOutputMonitor& output):
+        listening(service), events(events), output(output), next_player_id(1) {}
 
-void Acceptor::run() {
-    while (should_keep_running()) {
-        try {
-            Socket peer = listening.accept();
-            handlers.push_back(
-                    std::make_unique<ClientHandler>(std::move(peer), next_player_id, events));
-            ++next_player_id;
-            handlers.back()->start();
-        } catch (const std::exception&) {
-            return;
+void Acceptor::collectFinishedHandlers() {
+    auto it = handlers.begin();
+    while (it != handlers.end()) {
+        if (!(*it)->is_alive()) {
+            (*it)->join();
+            it = handlers.erase(it);
+        } else {
+            ++it;
         }
     }
+}
+
+void Acceptor::clear() {
+    for (auto& handler: handlers) {
+        handler->stop();
+        handler->join();
+    }
+    handlers.clear();
+}
+
+void Acceptor::run() {
+    try {
+        while (should_keep_running()) {
+            collectFinishedHandlers();
+
+            Socket peer = listening.accept();
+            handlers.push_back(std::make_unique<ClientHandler>(std::move(peer), next_player_id,
+                                                               events, output));
+            handlers.back()->start();
+            ++next_player_id;
+        }
+    } catch (const std::exception& error) {
+        if (should_keep_running()) {
+            output.printError("Error aceptando conexion: ", error.what());
+        }
+    }
+
+    clear();
 }
 
 void Acceptor::stop() {
@@ -28,14 +54,5 @@ void Acceptor::stop() {
         listening.shutdown(SHUT_RDWR);
     } catch (const std::exception&) {
         // Si el socket ya estaba cerrado, accept() ya no esta bloqueado.
-    }
-}
-
-void Acceptor::disconnect_clients() {
-    for (auto& handler: handlers) {
-        handler->stop();
-    }
-    for (auto& handler: handlers) {
-        handler->join();
     }
 }

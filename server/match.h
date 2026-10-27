@@ -12,6 +12,7 @@
 #include "common_queue.h"
 #include "common_server_status.h"
 #include "common_worker.h"
+#include "server_output_monitor.h"
 
 struct PlayerMessage {
     uint8_t player_id;
@@ -28,6 +29,7 @@ using MatchEvent = std::variant<PlayerJoined, PlayerMessage>;
 class Match: public Worker {
 private:
     Queue<MatchEvent>& events;
+    ServerOutputMonitor& output;
     World world;
     std::map<uint8_t, std::shared_ptr<Queue<ServerStatus>>> outputs;
 
@@ -37,7 +39,7 @@ private:
     void publish(uint8_t player_id);
 
 public:
-    explicit Match(Queue<MatchEvent>& events);
+    Match(Queue<MatchEvent>& events, ServerOutputMonitor& output);
 
 protected:
     void execute() override;

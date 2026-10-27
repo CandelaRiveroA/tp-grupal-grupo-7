@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-Server::Server(const char* service): match(events), acceptor(service, events) {}
+Server::Server(const char* service): match(events, output), acceptor(service, events, output) {}
 
 void Server::run() {
     match.start();
@@ -18,7 +18,6 @@ void Server::run() {
 
     acceptor.stop();
     acceptor.join();
-    acceptor.disconnect_clients();
 
     events.close();
     match.join();

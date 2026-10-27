@@ -10,22 +10,24 @@
 #include "common_socket.h"
 #include "common_thread.h"
 #include "match.h"
+#include "server_output_monitor.h"
 
 class Acceptor: public Thread {
 private:
     Socket listening;
     Queue<MatchEvent>& events;
+    ServerOutputMonitor& output;
     uint8_t next_player_id;
     std::vector<std::unique_ptr<ClientHandler>> handlers;
 
+    void collectFinishedHandlers();
+    void clear();
+
 public:
-    Acceptor(const char* service, Queue<MatchEvent>& events);
+    Acceptor(const char* service, Queue<MatchEvent>& events, ServerOutputMonitor& output);
 
     void run() override;
     void stop() override;
-
-    // Solo debe llamarse despues de join(): no hay otro hilo tocando handlers.
-    void disconnect_clients();
 };
 
 #endif

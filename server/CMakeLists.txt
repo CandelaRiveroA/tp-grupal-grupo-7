@@ -8,6 +8,7 @@ target_sources(taller_server
     server_sender.cpp
     server_receiver.cpp
     match.cpp
+    server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
     domain/entities/i_entity.cpp
@@ -24,6 +25,7 @@ target_sources(taller_server
     server_sender.h
     server_receiver.h
     match.h
+    server_output_monitor.h
     )
 
 target_include_directories(taller_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

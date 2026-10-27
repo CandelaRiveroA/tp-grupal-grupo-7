@@ -1,5 +1,3 @@
-// TODO: Implementar  disconnect_player para 
-// cuando el Acceptor limpie al ClientHandler.
 #ifndef WORLD_H
 #define WORLD_H
 
@@ -7,7 +5,6 @@
 #include <unordered_map>
 #include <memory>
 #include "cell.h"
-// Asumimos que Player.h está definido y hereda de IEntity, o usamos forward declaration
 #include "../entities/player.h" 
 
 class World {
@@ -29,6 +26,8 @@ public:
     bool can_walk_to(uint16_t x, uint16_t y) const;
 
     // --- Gestión de Jugadores ---
+    // TODO: Implementar  disconnect_player para 
+    // cuando el Acceptor limpie al ClientHandler.
     void add_player(uint32_t player_id, std::unique_ptr<Player> player);
     void move_player(uint32_t player_id, Direction dir);
 

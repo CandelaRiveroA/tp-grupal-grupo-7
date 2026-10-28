@@ -44,6 +44,7 @@ bool isValidKind(world::CreatureKind k) {
 	switch (k) {
 	case world::CreatureKind::Player:
 	case world::CreatureKind::Chicken:
+	case world::CreatureKind::Cow:
 		return true;
 	}
 	return false;

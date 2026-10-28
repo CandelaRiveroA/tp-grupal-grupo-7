@@ -91,6 +91,45 @@ cadence = { step = 8, frame = 8 }
     [characters.chicken.left.walk]
     loops  = true
     frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 world::MoveCadence playerCadence() {

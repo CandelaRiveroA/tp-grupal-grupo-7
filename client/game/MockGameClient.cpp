@@ -39,8 +39,9 @@ struct AnimalBinding {
 	std::span<const world::GridCell> cells;
 };
 
-constexpr std::array<AnimalBinding, 1> kAnimalBindings = {{
+constexpr std::array<AnimalBinding, 2> kAnimalBindings = {{
 	{world::CreatureKind::Chicken, kChickenSpawns},
+	{world::CreatureKind::Cow, kCowSpawns},
 }};
 
 // Tope de ítems en el suelo: la vista no se llena de huevos (sin

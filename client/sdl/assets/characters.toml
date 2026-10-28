@@ -197,3 +197,55 @@ cadence = { step = 32, frame = 8 }
     [characters.chicken.left.walk]
     loops  = true
     frames = [ [ [0, 3] ], [ [1, 3] ], [ [2, 3] ], [ [3, 3] ] ]
+
+# --- Vaca ---------------------------------------------------------------
+# Relevada con taller_tile_inspector sobre Farm/Female_Cow_Brown.png
+# (128x96 px, celdas de 32x32 => 4 columnas x 3 filas: cada sprite es
+# 2x2 celdas de 16, el doble de grande que la gallina). Fila 0:
+# caminata de IZQUIERDA (4 cuadros; la hoja no trae derecha:
+# mirrored=true la voltea). Fila 1: caminata de frente. Fila 2: de
+# espaldas. Sin poses de descanso en la hoja: el idle reusa el primer
+# cuadro del walk de cada dirección (dato, sin código). cadence: walk
+# son 4 cuadros => invariante step == frame * 4 (48 == 12 * 4); paso
+# más pesado que el de la gallina.
+[characters.cow]
+sheet   = "Farm/Female_Cow_Brown.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 48, frame = 12 }
+
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [ [0, 1] ] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]
+
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [ [0, 2] ] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]
+
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]
+
+  [characters.cow.right]
+  mirrored = true
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]

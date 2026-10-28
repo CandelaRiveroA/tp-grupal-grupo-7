@@ -121,6 +121,46 @@ cadence = { step = 8, frame = 8 }
     [characters.chicken.left.walk]
     loops  = true
     frames = [ [[0, 0]] ]
+
+# Vaca mínima: mismo molde que la gallina (el loader exige una tabla
+# por criatura del enum).
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 CharacterCatalog loadPlayer() {
@@ -503,6 +543,52 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 				     ActionKind::UseTool, 0);
 	EXPECT_EQ((*idleFallBack.pose)[0].frame.col, 0);
 	EXPECT_EQ((*idleFallBack.pose)[0].frame.row, 4);
+}
+
+TEST(CharacterCatalogLoaderTest, RealFileLoadsCow) {
+	CharacterCatalogLoader loader;
+	const CharacterCatalog catalog =
+		loader.loadFromFile(TALLER_CHARACTERS_TOML);
+	ASSERT_TRUE(catalog.has(CreatureKind::Cow));
+
+	EXPECT_EQ(catalog.sheetFile(CreatureKind::Cow),
+		  "Farm/Female_Cow_Brown.png");
+	EXPECT_EQ(catalog.sheetCellWidth(CreatureKind::Cow), 32);
+	EXPECT_EQ(catalog.sheetCellHeight(CreatureKind::Cow), 32);
+	EXPECT_EQ(catalog.drawnWidth(CreatureKind::Cow), 64);
+	EXPECT_EQ(catalog.drawnHeight(CreatureKind::Cow), 64);
+
+	const world::CreatureData& data = catalog.dataFor(CreatureKind::Cow);
+	EXPECT_EQ(data.cadence.stepTicks, 48);
+	EXPECT_EQ(data.cadence.frameTicks, 12);
+
+	// Relevada de la hoja (32x32): fila 0 = caminata izquierda
+	// explícita, fila 1 = frente, fila 2 = espaldas; 4 cuadros cada
+	// una. La hoja NO trae derecha: se espeja la izquierda.
+	// Orden del enum (Front, Back, Left, Right).
+	const std::array<int, 4> kWalkRows = {1, 2, 0, 0};
+	const std::array<bool, 4> kMirrored = {false, false, false, true};
+	for (std::size_t d = 0; d < kWalkRows.size(); ++d) {
+		const world::DirectionAppearance& dir =
+			(*data.directions)[d];
+		EXPECT_EQ(dir.mirrored, kMirrored[d]);
+		const auto walk = dir.actions->find(ActionKind::Walk);
+		ASSERT_NE(walk, dir.actions->end());
+		EXPECT_EQ(walk->second.frames.size(), 4u);
+		for (std::size_t f = 0; f < walk->second.frames.size(); ++f) {
+			EXPECT_EQ(walk->second.frames[f][0].frame.col,
+				  static_cast<int>(f));
+			EXPECT_EQ(walk->second.frames[f][0].frame.row,
+				  kWalkRows[d]);
+		}
+		// La hoja no trae poses de descanso: idle = primer cuadro
+		// del walk de la dirección.
+		const auto idle = dir.actions->find(ActionKind::Idle);
+		ASSERT_NE(idle, dir.actions->end());
+		EXPECT_EQ(idle->second.frames.size(), 1u);
+		EXPECT_EQ(idle->second.frames[0][0].frame.col, 0);
+		EXPECT_EQ(idle->second.frames[0][0].frame.row, kWalkRows[d]);
+	}
 }
 #endif
 

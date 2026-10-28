@@ -188,6 +188,44 @@ cadence = { step = 32, frame = 8 }
     [characters.chicken.left.walk]
     loops  = true
     frames = [ [[0, 3]], [[1, 3]], [[2, 3]], [[3, 3]] ]
+
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 32, frame = 32 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 1]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 1]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 1]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 1]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 2]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 2]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 // El spawn de los animales es dato del mock; para que las 3 celdas caigan
@@ -205,19 +243,27 @@ const world::CharacterCatalog& worldCatalog() {
 
 }
 
-TEST(MockGameClientTest, SpawnsAnimalsWhenTheCatalogHasChicken) {
+TEST(MockGameClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
 	const game::LocalWorldView& view = client.worldState();
-	ASSERT_EQ(view.entities.size(), 4u);
+	// 3 gallinas + 3 vacas + jugador, en orden de spawn.
+	ASSERT_EQ(view.entities.size(), 7u);
 
 	// El jugador sigue siendo la entidad 0 con id 0.
 	EXPECT_EQ(view.entities[0].kind, world::CreatureKind::Player);
 	EXPECT_EQ(view.entities[0].id, 0);
 
-	for (std::size_t i = 1; i < view.entities.size(); ++i) {
+	// El orden del estado replica el orden de spawn: gallinas y luego
+	// vacas (el orden de la tabla de bindings del mock).
+	for (std::size_t i = 1; i <= 3; ++i) {
 		EXPECT_EQ(view.entities[i].kind,
 			  world::CreatureKind::Chicken);
+	}
+	for (std::size_t i = 4; i < view.entities.size(); ++i) {
+		EXPECT_EQ(view.entities[i].kind, world::CreatureKind::Cow);
+	}
+	for (std::size_t i = 1; i < view.entities.size(); ++i) {
 		EXPECT_EQ(view.entities[i].id, static_cast<int>(i));
 		EXPECT_FALSE(view.entities[i].cellX == kPlayerX &&
 			     view.entities[i].cellY == kPlayerY);

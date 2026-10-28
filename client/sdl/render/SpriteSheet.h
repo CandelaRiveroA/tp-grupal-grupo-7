@@ -2,6 +2,7 @@
 
 #include <SDL2pp/SDL2pp.hh>
 
+#include <cstdint>
 #include <string>
 
 #include "sdl/context/SdlConstants.h"
@@ -27,6 +28,12 @@ public:
 
 	void draw(int col, int row, const SDL2pp::Rect& dest,
 		  Flip flip = Flip::None);
+
+	// Tiñe la hoja al dibujar (color modulation): cada píxel se multiplica
+	// por (r,g,b). Útil para recolorear sprites claros (ej. dígitos
+	// blancos -> negro con (0,0,0)). clearColorMod() vuelve a (255,255,255).
+	void setColorMod(std::uint8_t r, std::uint8_t g, std::uint8_t b);
+	void clearColorMod();
 
 	void drawBlock(int col, int row, int cols, int rows,
 		       const SDL2pp::Rect& dest, Flip flip = Flip::None,

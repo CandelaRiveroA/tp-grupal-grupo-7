@@ -1,0 +1,48 @@
+# ============================================================
+# Hoja de dígitos (0-9) descrita como DATOS.
+#
+# Se usa para dibujar la CANTIDAD de un contenido del inventario (número
+# arriba-derecha de un slot cuando hay más de 1). Permite componer
+# cualquier número (el límite de la cantidad lo pone el servidor).
+#
+# Lo carga world::DigitConfigLoader hacia un world::DigitCatalog (datos
+# puros, sin SDL); sdl::InventoryHud lo consume. Agregar/cambiar la hoja es
+# editar este archivo; no hace falta recompilar.
+#
+# Cada dígito es una celda [col, row] de la hoja. En digits.png los diez
+# dígitos están en la fila 0, con la columna = valor del dígito.
+# ============================================================
+
+[sheet]
+image = "ui/digits.png"
+cell  = [16, 16]
+
+[digit.0]
+at = [0, 0]
+
+[digit.1]
+at = [1, 0]
+
+[digit.2]
+at = [2, 0]
+
+[digit.3]
+at = [3, 0]
+
+[digit.4]
+at = [4, 0]
+
+[digit.5]
+at = [5, 0]
+
+[digit.6]
+at = [6, 0]
+
+[digit.7]
+at = [7, 0]
+
+[digit.8]
+at = [8, 0]
+
+[digit.9]
+at = [9, 0]

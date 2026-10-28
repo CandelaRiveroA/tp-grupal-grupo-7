@@ -8,12 +8,16 @@
 namespace sdl {
 
 InventoryHud::InventoryHud(SdlContext& context,
-			   const world::InventoryLayout& layout)
+			   const world::InventoryLayout& layout,
+			   const world::DigitCatalog& digits)
 	: context_(context)
 	, layout_(layout)
+	, digits_(digits)
 	, sheet_(context, core::assetPath(layout.sheetImage),
 		 layout.cellWidth, layout.cellHeight)
-	, itemSheets_(context) {}
+	, itemSheets_(context)
+	, digitSheet_(context, core::assetPath(digits.sheetImage),
+		      digits.cellWidth, digits.cellHeight) {}
 
 void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 	auto drawPiece = [&](const world::FrameLayout::Piece& p) {
@@ -70,21 +74,41 @@ void InventoryHud::draw(
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
 		}
-		if (!layout_.items.has(entry.item)) {
+		if (!layout_.content.has(entry.contentId)) {
 			continue;
 		}
 		const world::ItemVisual& visual =
-			layout_.items.visualFor(entry.item);
+			layout_.content.visualFor(entry.contentId);
 		SpriteSheet& itemSheet = itemSheets_.sheet(
 			visual.sheetImage, core::assetPath(visual.sheetImage),
 			visual.cellWidth, visual.cellHeight);
-		const world::PixelBox icon =
-			layout_.iconBox(boxes[static_cast<std::size_t>(
-				entry.slotIndex)]);
+		const world::PixelBox& slotBox =
+			boxes[static_cast<std::size_t>(entry.slotIndex)];
+		const world::PixelBox icon = layout_.iconBox(slotBox);
 		itemSheet.draw(visual.col, visual.row,
 			       SDL2pp::Rect(icon.x, icon.y, icon.width,
 					    icon.height));
+		// Cantidad: solo se dibuja si hay más de 1.
+		if (entry.count > 1) {
+			drawCount(slotBox, entry.count);
+		}
 	}
+}
+
+void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
+	const std::vector<int> digits = world::digitsOf(count);
+	const std::vector<world::PixelBox> boxes =
+		layout_.countBoxes(slot, static_cast<int>(digits.size()));
+	// Los dígitos de la hoja son claros; se tiñen de negro al dibujarlos.
+	digitSheet_.setColorMod(0, 0, 0);
+	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
+		const world::DigitCell& cell = digits_.cellFor(digits[i]);
+		const world::PixelBox& box = boxes[i];
+		digitSheet_.draw(cell.col, cell.row,
+				 SDL2pp::Rect(box.x, box.y, box.width,
+					      box.height));
+	}
+	digitSheet_.clearColorMod();
 }
 
 }

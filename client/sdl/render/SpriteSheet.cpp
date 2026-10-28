@@ -25,6 +25,13 @@ void SpriteSheet::draw(int col, int row, const SDL2pp::Rect& dest,
 	context_.drawTexture(texture_, frameRect(col, row), dest, flip);
 }
 
+void SpriteSheet::setColorMod(std::uint8_t r, std::uint8_t g,
+			      std::uint8_t b) {
+	texture_.SetColorMod(r, g, b);
+}
+
+void SpriteSheet::clearColorMod() { texture_.SetColorMod(255, 255, 255); }
+
 void SpriteSheet::drawBlock(int col, int row, int cols, int rows,
 			    const SDL2pp::Rect& dest, Flip flip,
 			    double fracW, double fracH, double angle,

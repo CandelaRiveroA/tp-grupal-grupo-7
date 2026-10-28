@@ -1,0 +1,73 @@
+# ============================================================
+# Cartel de "mineral obtenido" (toast/banner), descrito como DATOS.
+#
+# Cuando la FUENTE (hoy el mock, mañana el servidor) informa que el jugador
+# obtuvo un mineral (LocalWorldView.obtained), el cliente muestra un cartel
+# a la izquierda de la pantalla con el icono del mineral. Este archivo dice
+# CÓMO se ve; la fuente dice CUÁNDO aparece. El cliente no deduce la
+# obtención del estado visual.
+#
+# Lo carga world::ObtainedBannerConfigLoader hacia un
+# world::ObtainedBannerCatalog (datos puros, sin SDL). La pila/timers viven
+# en game::ObtainedBannerQueue y el dibujo en sdl::ObtainedBannerHud.
+# ============================================================
+
+# --- Layout / comportamiento ---------------------------------------------
+# Tamaño del panel como múltiplo del lado de un bloque del inventario.
+size_factor = 1.0
+# Margen interior (px) entre el borde del panel y el icono del mineral.
+icon_margin = 11
+# Ajuste fino del icono (px): las gemas de ore.png no están centradas en su
+# celda (tienen aire arriba/derecha y se apoyan abajo-izquierda), así que el
+# icono se ve corrido aunque la caja esté centrada. Estos offsets lo
+# compensan. Positivo = derecha / abajo. Afinar a ojo.
+icon_offset_x = -2
+icon_offset_y = 2
+# Ticks que permanece visible cada cartel (~2 s a 60 fps).
+duration_ticks = 120
+# Máximo de carteles apilados a la vez.
+max_visible = 4
+# Separación vertical (px) entre carteles de la pila.
+stack_gap = 6
+
+# --- Marco 9-slice (celdas de MenuTiles.png) ------------------------------
+# Una celda representativa por pieza; se estira al dibujar (mismo criterio
+# que el marco del inventario). Celdas relevadas con el inspector:
+#   esquinas: (0,16) (3,16) (3,19) (0,19)
+#   bordes arriba/abajo: (1,16)/(2,16) y (1,19)/(2,19)
+#   bordes izq/der: (0,17)/(0,18) y (3,17)/(3,18)
+#   relleno: (1,17)(2,17)(1,18)(2,18)
+[frame]
+sheet        = "Players/main/tools/MenuTiles.png"
+cell         = [16, 16]
+top_left     = [0, 16]
+top_right    = [3, 16]
+bottom_left  = [0, 19]
+bottom_right = [3, 19]
+top          = [1, 16]
+bottom       = [1, 19]
+left         = [0, 17]
+right        = [3, 17]
+fill         = [1, 17]
+
+# --- Iconos de minerales (celdas 1x1 de Cavern/ore.png) -------------------
+# Mismo vocabulario que resources.toml (silver/coal/lapis/gold).
+[silver]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+icon  = [6, 1]
+
+[coal]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+icon  = [6, 3]
+
+[lapis]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+icon  = [6, 5]
+
+[gold]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+icon  = [6, 7]

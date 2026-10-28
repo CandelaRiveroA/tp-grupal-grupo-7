@@ -23,6 +23,8 @@ private:
     uint16_t receive_uint16();
     std::string receive_string();
     protocol::ClientMessage receive_move_message();
+    protocol::ClientMessage receive_pick_message();
+    protocol::ClientMessage receive_take_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
 

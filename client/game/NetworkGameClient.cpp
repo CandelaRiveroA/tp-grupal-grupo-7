@@ -58,7 +58,8 @@ const LocalWorldView& NetworkGameClient::worldState() const {
         view_.entities.push_back(ViewEntity{
                 world::CreatureKind::Player, local->second.cellX, local->second.cellY,
                 local->second.facing, local->second.moving,
-                local->second.moving ? world::ActionKind::Walk : world::ActionKind::Idle});
+                local->second.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
+                std::nullopt});
     }
     for (const auto& [id, player]: players_) {
         if (id == localPlayerId_) {
@@ -66,7 +67,8 @@ const LocalWorldView& NetworkGameClient::worldState() const {
         }
         view_.entities.push_back(ViewEntity{
                 world::CreatureKind::Player, player.cellX, player.cellY, player.facing,
-                player.moving, player.moving ? world::ActionKind::Walk : world::ActionKind::Idle});
+                player.moving, player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
+                std::nullopt});
     }
 
     return view_;
@@ -74,10 +76,10 @@ const LocalWorldView& NetworkGameClient::worldState() const {
 
 void NetworkGameClient::rebuildInventory() const {
     view_.inventory.clear();
-    view_.inventory.push_back({0, world::ItemKind::Shovel});
-    view_.inventory.push_back({1, world::ItemKind::Pickaxe});
-    view_.inventory.push_back({2, world::ItemKind::Sword});
-    view_.inventory.push_back({3, world::ItemKind::WateringCan});
+    view_.inventory.push_back({0, "shovel", 1});
+    view_.inventory.push_back({1, "pickaxe", 1});
+    view_.inventory.push_back({2, "sword", 1});
+    view_.inventory.push_back({3, "watering_can", 1});
 }
 
 }  // namespace game

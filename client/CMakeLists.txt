@@ -50,6 +50,7 @@ target_sources(taller_client
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
     sdl/render/InventoryHud.cpp
+    sdl/render/ObtainedBannerHud.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     PUBLIC
@@ -85,6 +86,8 @@ target_sources(taller_client
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
+    game/ResourceAudioCue.h
+    game/ObtainedBannerQueue.h
     game/GameClient.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
@@ -93,10 +96,11 @@ target_sources(taller_client
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
-    game/ToolUse.h
+    game/InventorySelector.h
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
+    world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
     world/CreatureCatalog.h
@@ -107,6 +111,16 @@ target_sources(taller_client
     world/InventoryTomlReader.h
     world/InventoryConfigLoader.h
     world/ItemCatalog.h
+    world/ToolOverlay.h
+    world/ToolOverlayLoader.h
+    world/ToolOverlayTomlReader.h
+    world/ResourceCatalog.h
+    world/ResourceConfigLoader.h
+    world/ResourceTomlReader.h
+    world/ObtainedBannerCatalog.h
+    world/ObtainedBannerConfigLoader.h
+    world/ObtainedBannerTomlReader.h
+    world/ObtainedBannerLayout.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
@@ -124,6 +138,7 @@ target_sources(taller_client
     sdl/render/TileLayout.h
     sdl/render/CharacterSprite.h
     sdl/render/InventoryHud.h
+    sdl/render/ObtainedBannerHud.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioPlayer.h

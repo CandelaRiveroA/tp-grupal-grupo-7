@@ -106,8 +106,7 @@ TEST(FootstepCueTest, OneTriggerPerAssetChangeDuringAWholeStep) {
 	FootstepCue cue;
 	int triggers = 0;
 	for (int it = 0; it < creature.cadence.stepTicks; ++it) {
-		const int walkFrame = world::frameIndexFor(
-			creature, Direction::Front, world::ActionKind::Walk,
+		const int walkFrame = world::AppearanceResolver(creature).frameIndexFor( Direction::Front, world::ActionKind::Walk,
 			it);
 		if (cue.update(true, walkFrame)) {
 			++triggers;

@@ -7,7 +7,11 @@
 
 ProtocolReceiver::ProtocolReceiver(Socket& socket):
         socket(socket),
-        handlers{{protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message}},
+        handlers{
+                {protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message},
+                {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
+                {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
+        },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
                 {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
@@ -57,6 +61,16 @@ Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
 protocol::ClientMessage ProtocolReceiver::receive_move_message() {
     const Direction direction = direction_from_byte(receive_uint8());
     return protocol::MoveMessage{direction};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
+    const Direction direction = direction_from_byte(receive_uint8());
+    return protocol::PickMessage{direction};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_take_message() {
+    const Direction direction = direction_from_byte(receive_uint8());
+    return protocol::TakeMessage{direction};
 }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {

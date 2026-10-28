@@ -40,6 +40,8 @@ public:
 
     // ---
     void use_tool(uint8_t player_id);
+    void set_player_facing(uint8_t player_id, Direction dir);
+    void take_item(uint8_t player_id);
 };
 
 #endif  // WORLD_H

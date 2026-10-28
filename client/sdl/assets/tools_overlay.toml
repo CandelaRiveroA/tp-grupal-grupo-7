@@ -1,0 +1,106 @@
+# ============================================================
+# Overlay visual de herramientas sobre el personaje.
+#
+# Define la APARIENCIA de la herramienta que se dibuja encima del
+# personaje durante la acción UseTool. Cada herramienta tiene una
+# subtabla por dirección con la hoja, tamaño de celda, ticks por
+# cuadro y los frames de la animación. El número de frames y los
+# frame_ticks deben coincidir con los del use_tool del personaje
+# en characters.toml para que la animación quede sincronizada.
+#
+# Lo carga world::ToolOverlayLoader hacia un world::ToolOverlayCatalog
+# (datos puros, sin SDL). El Renderer lo consume: lee entity.activeTool
+# + entity.facing y dibuja el frame correspondiente encima del personaje
+# usando el mismo bodyX/bodyBottom. El servidor decide qué herramienta
+# está activa (entity.activeTool); este archivo decide cómo se ve.
+#
+# Celdas relevadas de Tools.png con la herramienta de inspección.
+# ============================================================
+
+# --- Ajuste vertical por anclaje ---------------------------------------
+# [offset]: píxeles que BAJAN la herramienta según su anclaje, para
+# compensar el espacio transparente de la hoja. Cada anclaje se afina por
+# separado porque el gap es distinto según dónde se apoya el sprite.
+# Claves: top / body / bottom (las mismas del anchor de cada frame).
+# Opcional: un anclaje sin entrada usa 0. Subir el valor baja más.
+[offset]
+top    = 14
+body   = 0
+bottom = 0
+
+# --- Pico (pickaxe) ----------------------------------------------------
+# Cada frame es una tabla uniforme:
+#   anchor: dónde se apoya respecto al cuerpo — "top" (encima de la
+#           cabeza), "body" (bloque del cuerpo) o "bottom" (a los pies).
+#           Opcional, default "top".
+#   layers: lista de capas [col, row, cols, rows]. Vacía ([]) = sin
+#           herramienta en ese cuadro.
+# El número de frames y frame_ticks coinciden con los del use_tool del
+# personaje en characters.toml para que la animación quede sincronizada.
+
+# Dirección back: el pico se ve arriba de la cabeza en el primer cuadro
+# y desaparece el resto (brazos bajando).
+[pickaxe.back]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top", offset_y = -4, layers = [ [3, 5, 1, 2] ] },
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+]
+
+# Dirección front: el pico recorre 3 alturas mientras baja el golpe.
+#   frame 0: arriba de la cabeza (anchor top).
+#   frame 1: "bajando", a nivel del cuerpo/torso (anchor body).
+#   frame 2: "picando", a los pies (anchor bottom).
+#   frames 3-4: sin herramienta.
+[pickaxe.front]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top",    offset_x = -8,  offset_y = 6, layers = [ [0, 5, 1, 2] ] },
+  { anchor = "body",   layers = [ [3, 5, 1, 2] ] },
+  { anchor = "bottom", offset_y = 24, layers = [ [1, 5, 1, 2] ] },
+  { layers = [] },
+  { layers = [] },
+]
+
+# Dirección right: UN solo sprite del pico (derecho) que ROTA siguiendo
+# el brazo a lo largo del golpe. angle = grados en sentido horario.
+#   frame 0: pico levantado hacia atrás/arriba (ángulo negativo).
+#   frame 1: empieza a bajar.
+#   frame 2: a nivel del cuerpo.
+#   frame 3: golpe abajo-adelante (ángulo positivo).
+#   frame 4: sin herramienta.
+# Ajustá angle / offset_x / offset_y mirando cómo sigue el brazo.
+[pickaxe.right]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+# pivot por frame = [x, y] en fracción del sprite (puede exceder 1 para
+# agrandar el radio de giro). Cada frame tiene su propio radio: bajá el
+# segundo número en los frames de abajo si el arco se va muy lejos.
+frames = [
+  { anchor = "top",    angle = -25,  offset_x = -8, offset_y = 8, scale = 0.85, pivot = [0.5, 1.25], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "top",    angle = 20,  offset_x = -2, offset_y = 6, scale = 0.85, pivot = [0.5, 1.15], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   angle = 50, offset_x = 34, offset_y = -8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   angle = 96, offset_x = 40, offset_y = 8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+]
+
+# Dirección left: ESPEJO de right. Mismas celdas y pivotes/offset_y, pero
+# flip = true (espeja el sprite), y angle + offset_x con signo INVERTIDO
+# (el espejo invierte el sentido de giro y el lado hacia donde corre).
+[pickaxe.left]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top",    flip = true, angle = 25,   offset_x = 8,   offset_y = 8, scale = 0.85, pivot = [0.5, 1.25], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "top",    flip = true, angle = -20,  offset_x = 2,   offset_y = 6, scale = 0.85, pivot = [0.5, 1.15], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   flip = true, angle = -50, offset_x = -34, offset_y = -8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   flip = true, angle = -100, offset_x = -34, offset_y = 10, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+]

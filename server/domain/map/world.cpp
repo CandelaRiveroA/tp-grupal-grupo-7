@@ -112,4 +112,16 @@ void World::use_tool(uint8_t player_id) {
         target_cell.entity->interact(p, p.get_equipped_tool(), *this);
     }
 }
+void World::set_player_facing(uint8_t player_id, Direction dir) {
+    this->players.at(player_id)->set_facing(dir);
+}
+
+void World::take_item(uint8_t player_id) {
+    Player& p = *this->players.at(player_id);
+    Cell& own_cell = this->grid[p.get_y()][p.get_x()];
+
+    if (!own_cell.is_empty()) {
+        own_cell.entity->interact(p, ToolType::HAND, *this);
+    }
+}
 void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }

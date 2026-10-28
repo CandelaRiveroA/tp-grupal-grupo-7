@@ -46,6 +46,20 @@ void ProtocolSender::send_message(const protocol::MoveMessage& message) {
     send_uint8(static_cast<uint8_t>(message.direction));
 }
 
+void ProtocolSender::send_message(const protocol::PickMessage& message) {
+    validate_direction(message.direction);
+
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Pick));
+    send_uint8(static_cast<uint8_t>(message.direction));
+}
+
+void ProtocolSender::send_message(const protocol::TakeMessage& message) {
+    validate_direction(message.direction);
+
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Take));
+    send_uint8(static_cast<uint8_t>(message.direction));
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }

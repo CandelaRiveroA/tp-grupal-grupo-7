@@ -22,10 +22,7 @@ private:
 
 	SheetCell readCell(const std::string& key) const;
 
-	void readItems(world::ItemCatalog& catalog) const;
-
-	world::ItemKind itemKindFor(const std::string& name,
-				    const std::string& context) const;
+	void readItems(world::ContentCatalog& catalog) const;
 
 	const tomlcfg::TomlDocument& doc_;
 };

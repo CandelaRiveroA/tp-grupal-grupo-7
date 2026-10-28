@@ -15,9 +15,12 @@ class GameClient;
 
 namespace world {
 class Scenario;
-struct GridSpan;
 class CharacterCatalog;
 struct InventoryLayout;
+struct ToolOverlayCatalog;
+struct ResourceCatalog;
+struct ObtainedBannerCatalog;
+struct DigitCatalog;
 }  // namespace world
 
 namespace core {
@@ -42,7 +45,11 @@ private:
 
     int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
                     game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                    const world::InventoryLayout& inventory);
+                    const world::InventoryLayout& inventory,
+                    const world::ToolOverlayCatalog& toolOverlay,
+                    const world::ResourceCatalog& resources,
+                    const world::ObtainedBannerCatalog& banner,
+                    const world::DigitCatalog& digits);
 
     WindowConfig config_;
     QApplication app_;

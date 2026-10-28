@@ -60,8 +60,17 @@ compartido.
 Mientras tanto, el cliente dibuja a partir de una **vista local
 provisional** (`client/game/LocalWorldView.h`), que NO es un contrato de
 red: es solo "lo que el render necesita hoy". Hoy la llena el mock con el
-jugador. Su forma (una lista de entidades con celda + dirección + si se
-mueve) sirve de referencia de qué necesita el cliente para dibujar.
+jugador y con el tamaño de su mundo (`grid`). Su forma (una lista de
+entidades con celda + dirección + si se mueve, más las dimensiones de la
+grilla) sirve de referencia de qué necesita el cliente para dibujar.
+
+**Las dimensiones del mundo también son estado del servidor.** `LocalWorldView`
+lleva `grid` (`columns`/`rows`); el mock lo completa con el tamaño de su
+mundo simulado y, cuando exista el DTO, la implementación de red lo llenará
+con las dimensiones que mande el servidor. El servidor manda **solo el
+tamaño** y las posiciones en celdas; el cliente **deriva el layout** de la
+sala (piso, paredes) a partir de ese tamaño — el servidor **nunca** manda
+sprites ni layout.
 
 **A acordar con protocolos (cuando se defina el estado):**
 - **Unidades de posición:** el cliente las quiere en **celdas lógicas** (las
@@ -71,6 +80,8 @@ mueve) sirve de referencia de qué necesita el cliente para dibujar.
   **id estable** para seguirlas entre frames.
 - Si el **inventario** viaja en ese mensaje o por otro.
 - **Frecuencia / formato** (estado completo por tick vs. deltas).
+- **Dimensiones del mundo:** `columns`/`rows` de la grilla lógica, para que
+  el cliente derive el layout de la sala.
 
 ---
 
@@ -102,7 +113,9 @@ public:
   `GameClient`; el loop (`runGameLoop`) y el render trabajan contra la
   interfaz `GameClient&`, así que no se tocan.
 - Cuando se acuerde el estado de red (sección 2), el retorno de
-  `worldState()` pasará de `LocalWorldView` a ese contrato compartido.
+  `worldState()` pasará de `LocalWorldView` a ese contrato compartido. Las
+  **dimensiones ya viajan en `LocalWorldView.grid`**: ese es el campo que la
+  implementación de red completará con lo que mande el servidor.
 
 ---
 
@@ -175,7 +188,7 @@ los hace el equipo de red. El cliente solo llama a `worldState()` y
 | Qué | Archivo | Estado |
 |-----|---------|--------|
 | Comando cliente→server | `common/common_command.h` | **acordado**; falta serialización |
-| Estado server→cliente | (a crear en `common/`) | **a definir**: unidades (celdas), entidades, inventario, deltas |
+| Estado server→cliente | (a crear en `common/`) | **a definir**: unidades (celdas), entidades, inventario, deltas, dimensiones (`columns`/`rows`) |
 | Punto de conexión | `client/game/GameClient.h` | listo (enviar/recibir); la implementación de red la hace servidor |
 | Dónde se drena/pushea | `client/sdl/loop/GameLoop.*` + tick en `client/core/Application.cpp` | listo: constant-rate loop, seam marcado (sección 4) |
 

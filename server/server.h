@@ -1,14 +1,20 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "../common/common_protocol.h"
+#include "acceptor.h"
+#include "common_queue.h"
+#include "match.h"
+#include "server_output_monitor.h"
 
 class Server {
 private:
-    Protocol protocol;
+    Queue<MatchEvent> events;
+    ServerOutputMonitor output;
+    Match match;
+    Acceptor acceptor;
 
 public:
-    explicit Server(const char* port);
+    explicit Server(const char* service);
 
     void run();
 };

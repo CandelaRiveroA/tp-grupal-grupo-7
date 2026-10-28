@@ -1,0 +1,7 @@
+/*
+ * Hoja de estilos global del cliente.
+ *
+ * En esta etapa está vacía a propósito: la tanda N1 solo verifica que el
+ * recurso llegue al binario y que Application pueda aplicarlo. Las reglas
+ * reales se agregan en la fase V1, cuando exista el bundle de assets.
+ */

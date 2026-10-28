@@ -1,0 +1,140 @@
+# ============================================================
+# Barra de inventario del jugador, descrita como DATOS.
+#
+# Igual que scenes.toml y characters.toml, este archivo describe la
+# APARIENCIA de la barra de inventario sin que el código la conozca: qué
+# hoja usar, qué celda es el cuadro vacío, cuántos slots hay y dónde se
+# dibuja la barra en pantalla. Agregar o cambiar algo es editar este
+# archivo; no hace falta recompilar el cliente.
+#
+# El enunciado fija el límite del inventario en 9 objetos distintos: por
+# eso la barra tiene 9 slots. Esta primera versión dibuja solo los cuadros
+# VACÍOS (sin ítems adentro todavía).
+#
+# Lo carga world::InventoryConfigLoader hacia un world::InventoryLayout
+# (datos puros, sin SDL), y sdl::InventoryHud lo dibuja. Ver
+# client/world/inventory-format.md para el detalle de cada campo.
+# ============================================================
+
+# --- Hoja de sprites ---------------------------------------------------
+# image: ruta de la hoja (relativa al directorio de assets).
+# cell:  tamaño de celda de ESA hoja [ancho, alto] en píxeles.
+[sheet]
+image = "Players/main/tools/MenuTiles.png"
+cell  = [16, 16]
+
+# --- El cuadro vacío de un slot ----------------------------------------
+# Celda [columna, fila] de la hoja que contiene el marco de un slot vacío.
+# Descubierta con la herramienta de inspección (col 4, fila 8 -> x=64,
+# y=128 en píxeles de la hoja). Todos los slots usan este mismo cuadro.
+[slot]
+cell = [4, 8]
+
+# --- Disposición de la barra -------------------------------------------
+# count:  cantidad de slots (9, el límite del inventario).
+# scale:  escala de dibujo entera (x3 -> cada slot mide 16*3 = 48 px).
+# gap:    separación en píxeles entre slots (0 = pegados).
+# anchor: dónde se ancla la barra en la ventana. "bottom_center" la pone
+#         abajo y centrada horizontalmente.
+# margin: separación en píxeles desde el borde anclado (abajo).
+# ui_scale: factor de tamaño de TODA la barra (cuadros + borde +
+#           solapamiento) como una unidad. 1.0 = tamaño base; 0.8 achica
+#           el conjunto al 80% manteniendo proporciones; >1.0 agranda.
+[bar]
+count    = 9
+scale    = 5
+gap      = 0
+anchor   = "bottom_center"
+margin   = 16
+ui_scale = 0.7
+item_pad = 8
+
+# --- Marco decorado (9-slice) ------------------------------------------
+# Envuelve la fila de slots con el borde de esquinas redondeadas de la
+# hoja. Técnica 9-slice: las 4 esquinas se dibujan SIN deformar (bloque de
+# corner_size × corner_size celdas) y los 4 bordes se REPITEN/estiran para
+# cubrir el largo de cada lado. Bordes lisos (sin el adorno central).
+#
+# border_cells: ESPESOR del marco en celdas de la hoja, igual para esquinas
+#               y bordes (2 -> esquinas recortan 2×2, bordes recortan 2 de
+#               espesor). Que todas las piezas tengan el mismo espesor hace
+#               que el grosor de línea sea parejo en todo el marco.
+# thickness:    grosor del borde en PÍXELES de pantalla, igual para los 4
+#               lados. Cada pieza se dibuja a `thickness` px de grosor.
+#               Independiente de la escala del slot.
+# inset:        px que el marco SOLAPA hacia adentro sobre los slots
+#               (opcional, default 0). Tapa el "aire" interior del sprite
+#               del borde, acercando el marco a los cuadros. Subilo si ves
+#               un hueco entre el borde y los slots.
+# Cada esquina / borde es la celda ORIGEN [columna, fila] en la hoja:
+#   - esquinas: bloque border_cells × border_cells desde su origen
+#   - borde superior/inferior: bloque 1 × border_cells (se estira a lo ancho)
+#   - borde izquierdo/derecho: bloque border_cells × 1 (se estira a lo alto)
+# Celdas deducidas del marco grande de MenuTiles.png (relevado con la
+# herramienta de inspección).
+[frame]
+border_cells = 2
+thickness    = 16
+inset        = 8
+top_left     = [1, 1]
+top_right    = [13, 1]
+bottom_left  = [1, 13]
+bottom_right = [13, 13]
+top          = [3, 1]
+bottom       = [3, 13]
+left         = [1, 3]
+right        = [13, 3]
+
+# --- Borde interno de cada slot (9-slice) ------------------------------
+# Un marco decorativo más chico dibujado DENTRO de cada uno de los 9
+# cuadros (encima del cuadro vacío). Mismo motor 9-slice que [frame] pero
+# aplicado a cada slot. Opcional: sin esta sección los slots no llevan
+# borde interno. Escala con ui_scale igual que todo lo demás.
+#
+# thickness:    grosor del borde interno en px (fino). Escala con ui_scale.
+# border_cells: espesor en celdas de la hoja (1 = cada pieza es 1 celda).
+# Celdas del marco interno de MenuTiles.png (bloque col 8-11, fila 8-11):
+#   esquinas en las 4 puntas, bordes rectos en las celdas intermedias.
+[slot_frame]
+border_cells = 1
+thickness    = 20
+corners_only = false
+top_left     = [8, 8]
+top_right    = [11, 8]
+bottom_left  = [8, 11]
+bottom_right = [11, 11]
+top          = [10, 8]
+bottom       = [10, 11]
+left         = [8, 10]
+right        = [11, 10]
+
+# --- Catálogo visual de ítems ------------------------------------------
+# Mapea cada ítem LÓGICO (lo que el servidor pone en el inventario) a su
+# APARIENCIA: de qué hoja sale y qué celda lo dibuja. El servidor manda
+# "este slot tiene una pala"; el cliente resuelve cómo se ve acá, sin
+# hardcodear. Agregar un ítem = otra subtabla [items.<nombre>].
+#
+# sheet: hoja del ítem (ruta relativa a assets; puede ser distinta de la
+#        hoja del slot/marco).
+# cell:  tamaño de celda de ESA hoja [ancho, alto] en px.
+# at:    celda [columna, fila] del ítem dentro de la hoja.
+# Celdas relevadas de Tools.png con la herramienta de inspección.
+[items.shovel]        # pala
+sheet = "Players/main/tools/Tools.png"
+cell  = [16, 16]
+at    = [5, 2]
+
+[items.pickaxe]       # pico
+sheet = "Players/main/tools/Tools.png"
+cell  = [16, 16]
+at    = [5, 6]
+
+[items.watering_can]  # regadera
+sheet = "Players/main/tools/Tools.png"
+cell  = [16, 16]
+at    = [3, 14]
+
+[items.sword]         # espada (de Weapons.png)
+sheet = "Players/main/tools/Weapons.png"
+cell  = [16, 16]
+at    = [0, 0]

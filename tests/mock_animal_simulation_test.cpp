@@ -34,6 +34,11 @@ bool spawnAt(MockAnimalSimulation& simulation, world::GridCell cell) {
 				5, 5);
 }
 
+bool spawnCowAt(MockAnimalSimulation& simulation, world::GridCell cell) {
+	return simulation.spawn(world::CreatureKind::Cow, cadence(), cell,
+				5, 5);
+}
+
 const AnimalRecord& onlyAnimal(const MockAnimalSimulation& simulation) {
 	return simulation.animals().at(0);
 }
@@ -292,6 +297,35 @@ TEST(MockAnimalSimulationTest, TakeProducedItemsDrains) {
 	EXPECT_FALSE(laysOver(simulation, 2000).empty());
 	// Drenar dos veces: la segunda no repite lo ya entregado.
 	EXPECT_TRUE(simulation.takeProducedItems().empty());
+}
+
+TEST(MockAnimalSimulationTest, CowLaysMilkAtItsOwnCell) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnCowAt(simulation, world::GridCell{3, 3}));
+
+	std::optional<game::ProducedItem> firstLay;
+	int cellXBefore = 3;
+	int cellYBefore = 3;
+	for (int it = 0; it <= 2000 && !firstLay.has_value(); ++it) {
+		cellXBefore = onlyAnimal(simulation).cellX;
+		cellYBefore = onlyAnimal(simulation).cellY;
+		simulation.update(it, 5, 5);
+		std::vector<game::ProducedItem> lays =
+			simulation.takeProducedItems();
+		if (!lays.empty()) {
+			firstLay = std::move(lays.front());
+		}
+	}
+	ASSERT_TRUE(firstLay.has_value())
+		<< "con esta seed la vaca debería producir dentro del "
+		   "período escaneado";
+
+	// La fila de la vaca en la tabla de postura: leche, en la celda
+	// donde la vaca estaba, referenciando a la vaca que la soltó.
+	EXPECT_EQ(firstLay->item, world::ItemKind::Milk);
+	EXPECT_EQ(firstLay->cellX, cellXBefore);
+	EXPECT_EQ(firstLay->cellY, cellYBefore);
+	EXPECT_EQ(firstLay->animalId, onlyAnimal(simulation).id);
 }
 
 TEST(MockAnimalSimulationTest, LaysAgainAfterRescheduling) {

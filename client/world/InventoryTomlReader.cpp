@@ -48,12 +48,13 @@ constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
 constexpr const char* kItemDrawn = "drawn";
 
-constexpr std::array<std::pair<const char*, ItemKind>, 5> kItemKinds = {{
+constexpr std::array<std::pair<const char*, ItemKind>, 6> kItemKinds = {{
 	{"shovel", ItemKind::Shovel},
 	{"pickaxe", ItemKind::Pickaxe},
 	{"watering_can", ItemKind::WateringCan},
 	{"sword", ItemKind::Sword},
 	{"egg", ItemKind::Egg},
+	{"milk", ItemKind::Milk},
 }};
 
 }

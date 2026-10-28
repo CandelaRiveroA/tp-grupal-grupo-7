@@ -11,6 +11,7 @@ enum class ItemKind {
 	WateringCan,
 	Sword,
 	Egg,
+	Milk,
 };
 
 struct ItemVisual {

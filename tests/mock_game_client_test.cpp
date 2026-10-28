@@ -365,49 +365,55 @@ std::vector<game::ViewGroundItem> groundItemsAfter(
 
 }
 
-TEST(MockGameClientTest, ChickenLaysEggsOnTheGround) {
+TEST(MockGameClientTest, ProducingAnimalsDropItemsOnTheGround) {
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
 
 	// El período de postura es largo (gama en el .cpp de la
 	// simulación) pero acotado: con esta seed la primera postura cae
 	// bien dentro de la caminata.
-	std::vector<game::ViewGroundItem> eggs =
+	std::vector<game::ViewGroundItem> drops =
 		groundItemsAfter(client, 3000);
-	ASSERT_FALSE(eggs.empty());
+	ASSERT_FALSE(drops.empty());
 
-	for (const game::ViewGroundItem& egg : eggs) {
-		EXPECT_EQ(egg.item, world::ItemKind::Egg);
-		EXPECT_GE(egg.cellX, 0);
-		EXPECT_LT(egg.cellX, kRoomColumns);
-		EXPECT_GE(egg.cellY, 0);
-		EXPECT_LT(egg.cellY, kRoomRows);
-		// Nadie pone un huevo en la celda del jugador.
-		EXPECT_FALSE(egg.cellX == kPlayerX && egg.cellY == kPlayerY);
+	for (const game::ViewGroundItem& drop : drops) {
+		// El ítem es uno de los que la tabla de postura declara
+		// para algún kind (gallina -> huevo, vaca -> leche).
+		const bool knownDrop =
+			drop.item == world::ItemKind::Egg ||
+			drop.item == world::ItemKind::Milk;
+		EXPECT_TRUE(knownDrop);
+		EXPECT_GE(drop.cellX, 0);
+		EXPECT_LT(drop.cellX, kRoomColumns);
+		EXPECT_GE(drop.cellY, 0);
+		EXPECT_LT(drop.cellY, kRoomRows);
+		// Nadie suelta un ítem en la celda del jugador.
+		EXPECT_FALSE(drop.cellX == kPlayerX &&
+			     drop.cellY == kPlayerY);
 	}
 }
 
-TEST(MockGameClientTest, GroundEggCountNeverExceedsTheCap) {
+TEST(MockGameClientTest, GroundItemCountNeverExceedsTheCap) {
 	// Sin recogida, el tope de ítems en el suelo es lo que evita que
-	// la vista se llene de huevos (regla silenciosa del "server
+	// la vista se llene de ítems (regla silenciosa del "server
 	// falso", como el límite de slots del inventario).
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
-	const std::vector<game::ViewGroundItem> eggs =
+	const std::vector<game::ViewGroundItem> drops =
 		groundItemsAfter(client, 8000);
-	EXPECT_LE(eggs.size(), 3u);
+	EXPECT_LE(drops.size(), 3u);
 }
 
 TEST(MockGameClientTest, GroundItemIdsAreStableBetweenFrames) {
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
-	const std::vector<game::ViewGroundItem> eggs =
+	const std::vector<game::ViewGroundItem> drops =
 		groundItemsAfter(client, 3000);
-	ASSERT_FALSE(eggs.empty());
+	ASSERT_FALSE(drops.empty());
 
 	std::vector<int> ids;
-	for (const game::ViewGroundItem& egg : eggs) {
-		ids.push_back(egg.id);
+	for (const game::ViewGroundItem& drop : drops) {
+		ids.push_back(drop.id);
 	}
 
 	// 200 ticks más: los ids de antes SIGUEN (los ítems del suelo no
@@ -416,8 +422,8 @@ TEST(MockGameClientTest, GroundItemIdsAreStableBetweenFrames) {
 		groundItemsAfter(client, 3200);
 	for (const int id : ids) {
 		bool found = false;
-		for (const game::ViewGroundItem& egg : later) {
-			found = found || egg.id == id;
+		for (const game::ViewGroundItem& drop : later) {
+			found = found || drop.id == id;
 		}
 		EXPECT_TRUE(found) << "id " << id << " desapareció";
 	}
@@ -428,19 +434,19 @@ TEST(MockGameClientTest, GroundItemIdsAreStableBetweenFrames) {
 	}
 }
 
-TEST(MockGameClientTest, TwoGroundEggsNeverShareACell) {
+TEST(MockGameClientTest, GroundItemsNeverShareACell) {
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
 	for (int it = 0; it <= 8000; ++it) {
 		client.update(it);
-		const std::vector<game::ViewGroundItem>& eggs =
+		const std::vector<game::ViewGroundItem>& drops =
 			client.worldState().groundItems;
-		for (std::size_t a = 0; a < eggs.size(); ++a) {
-			for (std::size_t b = a + 1; b < eggs.size(); ++b) {
-				EXPECT_FALSE(eggs[a].cellX == eggs[b].cellX &&
-					     eggs[a].cellY == eggs[b].cellY)
-					<< "huevos " << eggs[a].id << " y "
-					<< eggs[b].id << " comparten celda";
+		for (std::size_t a = 0; a < drops.size(); ++a) {
+			for (std::size_t b = a + 1; b < drops.size(); ++b) {
+				EXPECT_FALSE(drops[a].cellX == drops[b].cellX &&
+					     drops[a].cellY == drops[b].cellY)
+					<< "ítems " << drops[a].id << " y "
+					<< drops[b].id << " comparten celda";
 			}
 		}
 	}
@@ -448,9 +454,9 @@ TEST(MockGameClientTest, TwoGroundEggsNeverShareACell) {
 
 TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoGroundItems) {
 	game::MockGameClient client(10, 10, 5, 5);
-	const std::vector<game::ViewGroundItem> eggs =
+	const std::vector<game::ViewGroundItem> drops =
 		groundItemsAfter(client, 3000);
-	EXPECT_TRUE(eggs.empty());
+	EXPECT_TRUE(drops.empty());
 }
 
 // --- Cacareos: eventos de sonido per-tick en la vista -------------------

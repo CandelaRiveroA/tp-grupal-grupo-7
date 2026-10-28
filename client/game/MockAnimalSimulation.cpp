@@ -39,9 +39,10 @@ constexpr int kMaxSoundPeriodTicks = 2700;
 
 // Diccionario kind -> ítem que pone (convención §4: tabla sobre switch;
 // otra criatura que ponga algo = sumar una fila, ej. vaca -> leche).
-constexpr std::array<std::pair<world::CreatureKind, world::ItemKind>, 1>
+constexpr std::array<std::pair<world::CreatureKind, world::ItemKind>, 2>
 	kLays = {{
 		{world::CreatureKind::Chicken, world::ItemKind::Egg},
+		{world::CreatureKind::Cow, world::ItemKind::Milk},
 	}};
 
 // Diccionario dirección -> delta en celdas (convención §4: tabla sobre

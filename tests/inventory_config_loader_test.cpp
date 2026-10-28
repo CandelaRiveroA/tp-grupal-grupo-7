@@ -466,6 +466,14 @@ TEST(InventoryConfigLoaderTest, LoadsRealInventoryFile) {
 	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
 	EXPECT_EQ(egg.drawnWidth, 15);
 	EXPECT_EQ(egg.drawnHeight, 16);
+
+	// La leche de la vaca está en el catálogo (sprite único 10x12).
+	ASSERT_TRUE(bar.items.has(world::ItemKind::Milk));
+	const world::ItemVisual& milk =
+		bar.items.visualFor(world::ItemKind::Milk);
+	EXPECT_EQ(milk.sheetImage, "Farm/milk.png");
+	EXPECT_EQ(milk.drawnWidth, 15);
+	EXPECT_EQ(milk.drawnHeight, 18);
 }
 #endif
 

@@ -19,9 +19,10 @@ pasa al servidor y el cliente no cambia.
   (`client/game/MockAnimalSimulation.{h,cpp}`): lógica pura, sin SDL ni vista.
 - Cada tick el loop llama `GameClient::update(it)` (UNA llamada, al inicio del
   tick) → la simulación avanza → `worldState()` devuelve la vista actualizada.
-- Las gallinas también **ponen huevos**: aparecen como ítems en el suelo
+- Los animales también **producen**: las gallinas ponen huevos y las vacas
+  dejan leche — aparecen como ítems en el suelo
   (`LocalWorldView.groundItems`) que el render dibuja bajo las criaturas.
-- Y **cacarean**: eventos de sonido per-tick (`LocalWorldView.soundEvents`)
+- Y **suenan**: eventos de sonido per-tick (`LocalWorldView.soundEvents`)
   que la presentación reproduce si la sala renderizada declara el cue.
 - El render ya dibuja cualquier criatura: la hoja se resuelve por
   `entity.kind` vía el catálogo (`characters.toml`); **agregar una criatura no
@@ -68,9 +69,11 @@ Comportamiento (wander):
 - **Determinismo**: el generador es `std::mt19937(seed)`; con la misma seed el
   wander es idéntico (testeable).
 
-Los **datos de spawn** (celdas y seed) hoy viven como tabla `constexpr` en
-`MockGameClient.cpp` (dato del server falso, precedente: `kCreatureBindings`).
-Al conectar la red, quien spawnea pasa a ser el servidor y esto se reemplaza.
+Los **datos de spawn** (una tabla por especie: kind + sus celdas, y la seed)
+hoy viven como tabla `constexpr` en `MockGameClient.cpp` (dato del server
+falso, precedente: `kCreatureBindings`). Sumar una especie = una fila en la
+tabla de spawns + su apariencia en `characters.toml`. Al conectar la red,
+quien spawnea pasa a ser el servidor y esto se reemplaza.
 
 ## Qué ve el cliente — vista y animación
 - Cada animal llega a la vista como `ViewEntity` (`LocalWorldView.h`) con su
@@ -85,50 +88,54 @@ Al conectar la red, quien spawnea pasa a ser el servidor y esto se reemplaza.
 ## Los huevos: postura → suelo (recoger queda para después)
 Las gallinas **ponen huevos**; es la misma lógica de "server falso":
 
-1. **Postura** (`MockAnimalSimulation`): cada animal pone un huevo cada
+1. **Postura** (`MockAnimalSimulation`): cada animal pone su producto cada
    `layPeriod` ticks (al azar en una gama LARGA al spawn, y reasignada tras
-   cada postura: las gallinas no se sincronizan). El huevo queda en la celda
+   cada postura: los animales no se sincronizan). El ítem queda en la celda
    **donde el animal está** al ponerlo. Qué ítem pone cada kind es una TABLA
-   (`kLays`: chicken → `ItemKind::Egg`); mañana la vaca entra sumando una
-   fila (leche), sin tocar código. Determinista con la seed (testeable).
-2. **Drenaje** (`takeLaidEggs()`): el mock toma lo puesto en el tick y lo
-   valida con sus reglas de juego silenciosas:
+   (`kLays`: chicken → `ItemKind::Egg`, cow → `ItemKind::Milk`); sumar otra
+   especie productiva = una fila acá, sin tocar código. Determinista con la
+   seed (testeable).
+2. **Drenaje** (`takeProducedItems()`): el mock toma lo producido en el tick
+   y lo valida con sus reglas de juego silenciosas:
    - **Tope de ítems en el suelo** (`kMaxGroundItems = 3`): sin recogida, es
-     lo que evita que la vista se llene de huevos. El server real definirá
+     lo que evita que la vista se llene de ítems. El server real definirá
      su propio tope/despawn.
-   - **Celda ya ocupada por otro huevo**: la postura se descarta (no hay
-     dos huevos en una celda).
+   - **Celda ya ocupada por otro ítem**: la producción se descarta (no hay
+     dos ítems en una celda).
 3. **Vista**: cada ítem del suelo es un `ViewGroundItem` (id estable, celda,
    `ItemKind`) en `LocalWorldView.groundItems`. **No bloquea a nadie**: el
-   jugador y las gallinas caminan encima.
+   jugador y los animales caminan encima.
 4. **Dibujo**: el `Renderer` los dibuja entre los elementos del escenario y
    las criaturas (quedan DEBAJO de quien pise la celda), centrados en su
    celda, a tamaño `drawn` del catálogo visual de ítems (`inventory.toml`,
-   `[items.egg]` — misma fuente de datos que los íconos del inventario, ver
-   `world/inventory-format.md` §6).
+   `[items.egg]`/`[items.milk]` — misma fuente de datos que los íconos del
+   inventario, ver `world/inventory-format.md` §6).
 
-**Fuera de alcance por ahora:** recoger el huevo y guardarlo en el
+**Fuera de alcance por ahora:** recoger el ítem y guardarlo en el
 inventario. La vista ya lleva `ItemKind`, así que la recogida futura solo
 agrega la regla del "servidor" (quitar del suelo + sumar slot) — el dibujo
 del ícono ya existe.
 
-## Los cacareos: sonido ambiental → evento per-tick
-Las gallinas también **suenan**; mismo modelo que todo lo demás: el
+## Los sonidos: sonido ambiental → evento per-tick
+Los animales también **suenan**; mismo modelo que todo lo demás: el
 "server" decide CUÁNDO, la presentación decide CÓMO suena.
 
-1. **Decisión** (`MockAnimalSimulation`, patrón `tryLay`): cada gallina
-   suelta un cacareo cada `cluckPeriod` ticks, al azar en una gama LARGA
-   (`kMinCluckPeriodTicks`/`kMaxCluckPeriodTicks` = 1200–2700 ticks ≈ 20–45 s
-   a 60 FPS) al spawn, y reasignada tras cada cacareo: las gallinas no se
+1. **Decisión** (`MockAnimalSimulation`, patrón `tryProduce`): cada animal
+   suelta su cue cada `soundPeriod` ticks, al azar en una gama LARGA
+   (`kMinSoundPeriodTicks`/`kMaxSoundPeriodTicks` = 1200–2700 ticks ≈ 20–45 s
+   a 60 FPS) al spawn, y reasignada tras cada emisión: los animales no se
    sincronizan entre sí y la vista no se inunda de sonidos. Qué cue suelta
    cada kind lo decide el **`game::SoundCueCatalog`** (atributo `cues_` de
-   la simulación: `cueOf(kind)` → `CueKind` o nullopt). El chequeo usa un
-   **stream de RNG separado** (`cluckRandom_`, seed derivada): tocar el RNG
-   del wander/postura cambiaría esas secuencias deterministas que los tests
-   pinean.
-2. **Drenaje** (`takeClucks()` → `MockGameClient::update`): cada evento es
-   un `ViewSoundEvent` (cue + `emitterId`, el id estable de la vista) y va
-   a `LocalWorldView.soundEvents`. Son **per-tick**: cada `update()` los
+   la simulación: `cueOf(kind)` → `CueKind` o nullopt; hoy: gallina →
+   cacareo, vaca → muuge). El chequeo usa un **stream de RNG separado**
+   (`soundRandom_`, seed derivada): tocar el RNG del wander/postura
+   cambiaría esas secuencias deterministas que los tests pinean. Los
+   períodos de spawn se dibujan SOLO para los comportamientos que el kind
+   tiene: el spawn de una especie muda no desplaza las secuencias de las
+   demás.
+2. **Drenaje** (`takeSoundEvents()` → `MockGameClient::update`): cada evento
+   es un `ViewSoundEvent` (cue + `emitterId`, el id estable de la vista) y
+   va a `LocalWorldView.soundEvents`. Son **per-tick**: cada `update()` los
    reemplaza (vacío si no hubo), no se acumulan ni son estado.
 3. **Reproducción** (`Application.cpp`, junto al footstep): por cada
    evento del tick, el `game::SoundGate` (puro y testeado) consulta si
@@ -144,7 +151,7 @@ Las gallinas también **suenan**; mismo modelo que todo lo demás: el
    menos). El mensaje "soná X (emisor Y)" llena el mismo `soundEvents` y
    el cliente no cambia.
 
-**Mañana la vaca muuge** = valor en `CueKind` + fila en
+**Sumar un animal sonoro** = valor en `CueKind` + fila en
 `SoundCueCatalog` (nombres y emisores) + fila en `sdl::kSounds` +
 fila en `cueSounds_` de `AudioPlayer` + su sala declarándolo en
 `scenes.toml`. Cero lógica nueva.

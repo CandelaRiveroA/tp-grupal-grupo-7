@@ -89,7 +89,7 @@ sprites ni layout.
   provisional ya los lleva (`groundItems`, cada uno con id estable + celda +
   `ItemKind`) para que el DTO los incluya; el server también define las
   reglas de recogida, tope y despawn (hoy el mock topa en 3, silencioso).
-- Los **eventos de sonido** (cacareos y mañana otros): la vista provisional
+- Los **eventos de sonido** (cacareos, muuges y mañana otros): la vista provisional
   ya los lleva (`soundEvents`, cada uno con cue + id del emisor) y son
   **per-tick** — duran un tick, no se acumulan. Acordar si viajan en el
   mismo mensaje o por otro (son perfectos para deltas/UDP: perder uno no

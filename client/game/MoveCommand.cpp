@@ -41,6 +41,15 @@ protocol::Command MoveCommand::use(const LocalWorldView& state,
 	return command;
 }
 
+protocol::Command MoveCommand::take(const LocalWorldView& state,
+				    protocol::Direction direction) const {
+	// Recoger apunta a la celda PROPIA del jugador (offset 0,0): hay que
+	// estar parado sobre el item. La fuente decide si hay algo ahí.
+	protocol::Command command = walkTo(state, 0, 0, direction);
+	command.move = protocol::Move::Take;
+	return command;
+}
+
 protocol::Command MoveCommand::walkTo(const LocalWorldView& state,
 				      int offsetX, int offsetY,
 				      protocol::Direction direction) const {

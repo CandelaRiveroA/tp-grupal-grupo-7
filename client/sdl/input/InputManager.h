@@ -32,6 +32,10 @@ public:
 
 	bool takeUseTool();
 
+	// Retorna true una sola vez por pulsación de Enter (one-shot): es la
+	// intención de RECOGER un item del piso. Se consume al leer.
+	bool takeCollect();
+
 	// Retorna el índice de slot (0..kInventorySlots-1) si se presionó
 	// una tecla numérica 1-4, o nullopt si no. Se consume al leer (one-shot).
 	std::optional<int> takeSlotSelect();
@@ -45,6 +49,8 @@ public:
 
 	void rebindUseTool(SDL_Keycode newKey);
 
+	void rebindCollect(SDL_Keycode newKey);
+
 private:
 
 	std::unordered_map<SDL_Keycode, Action> defaultBindings() const;
@@ -55,6 +61,8 @@ private:
 
 	SDL_Keycode useToolKey_;
 	bool useToolTriggered_ = false;
+	SDL_Keycode collectKey_;
+	bool collectTriggered_ = false;
 	int slotCount_ = 0;
 	std::optional<int> slotSelected_;  // índice 0..slotCount_-1, one-shot
 };

@@ -5,10 +5,12 @@
 namespace sdl {
 
 InputManager::InputManager()
-	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE), slotCount_(0) {}
+	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE),
+	  collectKey_(SDLK_RETURN), slotCount_(0) {}
 
 InputManager::InputManager(int slotCount)
-	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE), slotCount_(slotCount) {}
+	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE),
+	  collectKey_(SDLK_RETURN), slotCount_(slotCount) {}
 
 bool InputManager::up() const { return flags_[static_cast<std::size_t>(Action::Up)]; }
 
@@ -53,6 +55,11 @@ void InputManager::handleEvent(const SDL_Event& event) {
 		return;
 	}
 
+	if (event.type == SDL_KEYDOWN && event.key.keysym.sym == collectKey_) {
+		collectTriggered_ = true;
+		return;
+	}
+
 	// Teclas 1..slotCount_ seleccionan el slot activo (one-shot).
 	if (event.type == SDL_KEYDOWN && slotCount_ > 0) {
 		const SDL_Keycode sym = event.key.keysym.sym;
@@ -71,6 +78,12 @@ bool InputManager::takeUseTool() {
 	return triggered;
 }
 
+bool InputManager::takeCollect() {
+	const bool triggered = collectTriggered_;
+	collectTriggered_ = false;
+	return triggered;
+}
+
 std::optional<int> InputManager::takeSlotSelect() {
 	const std::optional<int> selected = slotSelected_;
 	slotSelected_ = std::nullopt;
@@ -79,6 +92,10 @@ std::optional<int> InputManager::takeSlotSelect() {
 
 void InputManager::rebindUseTool(SDL_Keycode newKey) {
 	useToolKey_ = newKey;
+}
+
+void InputManager::rebindCollect(SDL_Keycode newKey) {
+	collectKey_ = newKey;
 }
 
 void InputManager::setKey(SDL_Keycode key, bool pressed) {

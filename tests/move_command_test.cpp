@@ -84,4 +84,25 @@ TEST(MoveCommandTest, HoldAtTheBorderStaysAtTheOrigin) {
 	EXPECT_EQ(command.y, 0);
 }
 
+TEST(MoveCommandTest, TakeTargetsTheOwnCell) {
+	const MoveCommand move;
+	const LocalWorldView view = viewAt(3, 4);
+	const protocol::Command command =
+		move.take(view, protocol::Direction::Right);
+	EXPECT_EQ(command.x, 3);
+	EXPECT_EQ(command.y, 4);
+	EXPECT_EQ(command.move, protocol::Move::Take);
+	EXPECT_EQ(command.direction, protocol::Direction::Right);
+}
+
+TEST(MoveCommandTest, TakeOnEmptyViewStartsFromTheOrigin) {
+	const MoveCommand move;
+	const LocalWorldView empty;
+	const protocol::Command command =
+		move.take(empty, protocol::Direction::Front);
+	EXPECT_EQ(command.x, 0);
+	EXPECT_EQ(command.y, 0);
+	EXPECT_EQ(command.move, protocol::Move::Take);
+}
+
 }

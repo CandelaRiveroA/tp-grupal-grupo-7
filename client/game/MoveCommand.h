@@ -16,6 +16,12 @@ public:
 	protocol::Command use(const LocalWorldView& state,
 			      protocol::Direction direction) const;
 
+	// Recoger un item del piso: apunta a la celda PROPIA del jugador
+	// (convención del servidor: hay que pararse sobre el item). La fuente
+	// decide si hay algo para recoger.
+	protocol::Command take(const LocalWorldView& state,
+			       protocol::Direction direction) const;
+
 private:
 	protocol::Command walkTo(const LocalWorldView& state, int offsetX,
 				 int offsetY,

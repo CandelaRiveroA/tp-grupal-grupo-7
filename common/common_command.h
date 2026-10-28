@@ -10,6 +10,7 @@ namespace protocol {
 enum class Move {
 	Walk,
 	Pick,
+	Take,
 };
 
 struct Command {

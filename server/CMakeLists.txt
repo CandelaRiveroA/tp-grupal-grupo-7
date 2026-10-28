@@ -8,6 +8,7 @@ target_sources(taller_server
     server_sender.cpp
     server_receiver.cpp
     match.cpp
+    world_view.cpp
     commands/move_command.cpp
     commands/pick_command.cpp
     commands/take_command.cpp
@@ -16,10 +17,16 @@ target_sources(taller_server
     domain/map/world.cpp
     domain/entities/i_entity.cpp
     domain/entities/player.cpp
+    domain/entities/dropped_item.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp
     domain/inventory/slot.cpp
+    domain/minerals/mineral.cpp
+    domain/minerals/coal_rock.cpp
+    domain/minerals/lapis_rock.cpp
+    domain/minerals/silver_rock.cpp
+    domain/minerals/gold_rock.cpp
     PUBLIC
     # .h files
     server.h
@@ -28,6 +35,7 @@ target_sources(taller_server
     server_sender.h
     server_receiver.h
     match.h
+    world_view.h
     commands/commands.h
     server_output_monitor.h
     )

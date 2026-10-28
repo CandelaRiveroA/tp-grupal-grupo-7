@@ -1,12 +1,23 @@
 #include "dropped_item.h"
-#include "player.h"
+
+#include <utility>
+
 #include "../map/world.h"
 
-DroppedItem::DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y)
-    : IEntity(x, y), payload(std::move(item)) {}
+#include "player.h"
 
-bool DroppedItem::is_walkable() const {
-    return true;
+DroppedItem::DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y):
+        IEntity(x, y), payload(std::move(item)) {}
+
+const Item* DroppedItem::get_payload() const { return this->payload.get(); }
+
+bool DroppedItem::is_walkable() const { return true; }
+
+std::optional<CellSnapshot> DroppedItem::snapshot() const {
+    if (!payload) {
+        return std::nullopt;
+    }
+    return CellSnapshot{CellSnapshot::Kind::Dropped, payload->get_id(), 0, 0};
 }
 
 void DroppedItem::interact(Player& p, ToolType tool, World& w) {

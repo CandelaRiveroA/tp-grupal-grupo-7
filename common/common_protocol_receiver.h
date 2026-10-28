@@ -27,8 +27,17 @@ private:
     protocol::ClientMessage receive_take_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
+    ServerMessage receive_resource_message();
+    ServerMessage receive_resource_removed_message();
+    ServerMessage receive_dropped_message();
+    ServerMessage receive_dropped_removed_message();
+    ServerMessage receive_inventory_slot_message();
+    ServerMessage receive_obtained_message();
+    ServerMessage receive_tool_used_message();
+    ServerMessage receive_resource_hit_message();
 
     static Direction direction_from_byte(uint8_t value);
+    static ResourceDamage damage_from_byte(uint8_t value);
 
 public:
     explicit ProtocolReceiver(Socket& socket);

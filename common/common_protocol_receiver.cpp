@@ -1,6 +1,7 @@
 #include "common_protocol_receiver.h"
 
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <arpa/inet.h>
@@ -15,6 +16,17 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
                 {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
+                {ServerMessageType::Resource, &ProtocolReceiver::receive_resource_message},
+                {ServerMessageType::ResourceRemoved,
+                 &ProtocolReceiver::receive_resource_removed_message},
+                {ServerMessageType::Dropped, &ProtocolReceiver::receive_dropped_message},
+                {ServerMessageType::DroppedRemoved,
+                 &ProtocolReceiver::receive_dropped_removed_message},
+                {ServerMessageType::InventorySlot,
+                 &ProtocolReceiver::receive_inventory_slot_message},
+                {ServerMessageType::Obtained, &ProtocolReceiver::receive_obtained_message},
+                {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
+                {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -58,6 +70,13 @@ Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
     return static_cast<Direction>(value);
 }
 
+ResourceDamage ProtocolReceiver::damage_from_byte(uint8_t value) {
+    if (value > static_cast<uint8_t>(ResourceDamage::Broken)) {
+        throw std::invalid_argument("El estado de daño recibido no es valido.");
+    }
+    return static_cast<ResourceDamage>(value);
+}
+
 protocol::ClientMessage ProtocolReceiver::receive_move_message() {
     const Direction direction = direction_from_byte(receive_uint8());
     return protocol::MoveMessage{direction};
@@ -97,6 +116,58 @@ ServerMessage ProtocolReceiver::receive_status_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
+
+ServerMessage ProtocolReceiver::receive_resource_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string content_id = receive_string();
+    const ResourceDamage damage = damage_from_byte(receive_uint8());
+    return ServerResource{x, y, std::move(content_id), damage};
+}
+
+ServerMessage ProtocolReceiver::receive_resource_removed_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    return ServerResourceRemoved{x, y};
+}
+
+ServerMessage ProtocolReceiver::receive_dropped_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string content_id = receive_string();
+    return ServerDropped{x, y, std::move(content_id)};
+}
+
+ServerMessage ProtocolReceiver::receive_dropped_removed_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    return ServerDroppedRemoved{x, y};
+}
+
+ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
+    const uint8_t slot = receive_uint8();
+    const uint8_t count = receive_uint8();
+    std::string content_id = receive_string();
+    return ServerInventorySlot{slot, count, std::move(content_id)};
+}
+
+ServerMessage ProtocolReceiver::receive_obtained_message() {
+    return ServerObtained{receive_string()};
+}
+
+ServerMessage ProtocolReceiver::receive_resource_hit_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const uint8_t destroyed = receive_uint8();
+    if (destroyed > 1) {
+        throw std::invalid_argument("El indicador de destruccion no es valido.");
+    }
+    return ServerResourceHit{x, y, destroyed == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_tool_used_message() {
+    return ServerToolUsed{receive_uint8()};
+}
 
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());

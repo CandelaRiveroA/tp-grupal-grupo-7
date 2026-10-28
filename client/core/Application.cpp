@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "common/common_command.h"
@@ -56,9 +57,8 @@
 
 namespace core {
 
-Application::Application(int& argc, char** argv)
-    : config_(kWindowWidth, kWindowHeight, kWindowTitle)
-    , app_(argc, argv) {
+Application::Application(int& argc, char** argv):
+        config_(kWindowWidth, kWindowHeight, kWindowTitle), app_(argc, argv) {
     loadStyleSheet();
 }
 
@@ -108,9 +108,9 @@ int Application::runGame(const SessionConfig& session) {
                 world::ObtainedBannerConfigLoader().loadFromFile(
                         core::assetPath(core::kObtainedBannerFile));
         const world::DigitCatalog digits =
-                world::DigitConfigLoader().loadFromFile(
-                        core::assetPath(core::kDigitsFile));
-        std::unique_ptr<game::GameClient> gameClient = createGameClient();
+                world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
+        const int toolUseDuration = toolUseDurationTicks(characters);
+        std::unique_ptr<game::GameClient> gameClient = createGameClient(toolUseDuration);
         return runGameLoop(session, scenario, *gameClient, characters, inventory, toolOverlay,
                            resources, banner, digits);
     } catch (const world::ConfigError& error) {
@@ -122,24 +122,34 @@ int Application::runGame(const SessionConfig& session) {
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient() const {
-    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort);
+std::unique_ptr<game::GameClient> Application::createGameClient(int toolUseDurationTicks) const {
+    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort,
+                                                     toolUseDurationTicks);
 }
 
-int Application::runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
-                             game::GameClient& gameClient,
-                             const world::CharacterCatalog& characters,
-                             const world::InventoryLayout& inventory,
-                             const world::ToolOverlayCatalog& toolOverlay,
-                             const world::ResourceCatalog& resources,
-                             const world::ObtainedBannerCatalog& banner,
-                             const world::DigitCatalog& digits) {
+int Application::toolUseDurationTicks(const world::CharacterCatalog& characters) const {
+    const world::CreatureData& creature = characters.dataFor(world::CreatureKind::Player);
+    for (const world::DirectionAppearance& dir: creature.directions) {
+        const auto it = dir.actions.find(world::ActionKind::UseTool);
+        if (it != dir.actions.end()) {
+            const int frames = static_cast<int>(it->second.frames.size());
+            const int duration = frames * it->second.frameTicks;
+            return duration > 0 ? duration : 1;
+        }
+    }
+    return 1;
+}
+
+int Application::runGameLoop(
+        const SessionConfig& session, const world::Scenario& scenario, game::GameClient& gameClient,
+        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
+        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
+        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits) {
 
     (void)session;
 
     sdl::SdlContext sdlContext(config_);
-    sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources,
-                           inventory.content);
+    sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources, inventory.content);
     sdl::InventoryHud inventoryHud(sdlContext, inventory, digits);
     sdl::ObtainedBannerHud bannerHud(sdlContext, banner, inventory.slotDrawWidth());
     game::ObtainedBannerQueue bannerQueue(banner.durationTicks, banner.maxVisible);
@@ -164,6 +174,7 @@ int Application::runGameLoop(const SessionConfig& session, const world::Scenario
     game::InventorySelector inventorySelector;
 
     sdl::GameLoop loop(input, [&](int it) {
+        gameClient.update();
         const game::LocalWorldView& state = gameClient.worldState();
 
         const GamePhase phase = phaseForIteration(it);
@@ -227,15 +238,16 @@ int Application::runGameLoop(const SessionConfig& session, const world::Scenario
             }
         }
 
-        // Cambio visual del recurso (presentación). Diccionario, no
-        // switch (por contrato).
+        // Un sonido por impacto confirmado, aunque el aspecto no cambie.
         const std::map<game::ResourceAudioEvent, sdl::SoundId> resourceSounds = {
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
         };
-        const auto soundIt = resourceSounds.find(resourceAudioCue.update(drawing.resources));
-        if (soundIt != resourceSounds.end()) {
-            audio.play(soundIt->second);
+        for (const auto event: resourceAudioCue.update(drawing.resourceHits)) {
+            const auto soundIt = resourceSounds.find(event);
+            if (soundIt != resourceSounds.end()) {
+                audio.play(soundIt->second);
+            }
         }
 
         // Obtención: evento que manda la fuente (no se deduce del

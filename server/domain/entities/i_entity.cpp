@@ -1,6 +1,6 @@
 #include "i_entity.h"
 
-IEntity::IEntity(uint16_t x, uint16_t y) : pos_x(x), pos_y(y) {}
+IEntity::IEntity(uint16_t x, uint16_t y): pos_x(x), pos_y(y) {}
 
 uint16_t IEntity::get_x() const { return this->pos_x; }
 
@@ -12,10 +12,12 @@ void IEntity::set_position(uint16_t x, uint16_t y) {
 }
 
 bool IEntity::is_walkable() const {
-    return false; // Por defecto bloquean el paso
+    return false;  // Por defecto bloquean el paso
 }
 
 void IEntity::update() {
     // Por defecto no hace nada (útil para minerales).
     // Los NPC o cultivos lo sobreescribirán.
 }
+
+std::optional<CellSnapshot> IEntity::snapshot() const { return std::nullopt; }

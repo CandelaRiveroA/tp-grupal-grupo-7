@@ -79,6 +79,57 @@ void ProtocolSender::send_message(const ServerLeave& leave) {
     send_uint8(leave.player_id);
 }
 
+void ProtocolSender::send_message(const ServerResource& resource) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Resource));
+    send_uint16(resource.x);
+    send_uint16(resource.y);
+    send_string(resource.content_id);
+    send_uint8(static_cast<uint8_t>(resource.damage));
+}
+
+void ProtocolSender::send_message(const ServerResourceRemoved& removed) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ResourceRemoved));
+    send_uint16(removed.x);
+    send_uint16(removed.y);
+}
+
+void ProtocolSender::send_message(const ServerDropped& dropped) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Dropped));
+    send_uint16(dropped.x);
+    send_uint16(dropped.y);
+    send_string(dropped.content_id);
+}
+
+void ProtocolSender::send_message(const ServerDroppedRemoved& removed) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::DroppedRemoved));
+    send_uint16(removed.x);
+    send_uint16(removed.y);
+}
+
+void ProtocolSender::send_message(const ServerInventorySlot& slot) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::InventorySlot));
+    send_uint8(slot.slot);
+    send_uint8(slot.count);
+    send_string(slot.content_id);
+}
+
+void ProtocolSender::send_message(const ServerObtained& obtained) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Obtained));
+    send_string(obtained.content_id);
+}
+
+void ProtocolSender::send_message(const ServerToolUsed& used) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ToolUsed));
+    send_uint8(used.player_id);
+}
+
+void ProtocolSender::send_message(const ServerResourceHit& hit) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ResourceHit));
+    send_uint16(hit.x);
+    send_uint16(hit.y);
+    send_uint8(hit.destroyed ? 1 : 0);
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }

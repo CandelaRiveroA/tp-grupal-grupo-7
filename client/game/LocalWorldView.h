@@ -4,34 +4,34 @@
 #include <string>
 #include <vector>
 
-#include "world/ViewDirection.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 #include "world/ItemCatalog.h"
 #include "world/ResourceCatalog.h"
+#include "world/ViewDirection.h"
 
 namespace game {
 
 
 struct ViewEntity {
-	world::CreatureKind kind;
-	int cellX;
-	int cellY;
-	world::Direction facing;
-	bool moving;
-	world::ActionKind action = world::ActionKind::Idle;
-	// Herramienta activa durante UseTool (la decide la fuente). nullopt
-	// si no usa herramienta.
-	std::optional<world::ItemKind> activeTool;
+    world::CreatureKind kind;
+    int cellX;
+    int cellY;
+    world::Direction facing;
+    bool moving;
+    world::ActionKind action = world::ActionKind::Idle;
+    // Herramienta activa durante UseTool (la decide la fuente). nullopt
+    // si no usa herramienta.
+    std::optional<world::ItemKind> activeTool;
 };
 
 // Recurso picable. La fuente decide tipo, celda y estado; al agotarse
 // sale del vector resources.
 struct ViewResource {
-	world::ResourceKind kind;
-	int cellX;
-	int cellY;
-	world::ResourceState state;
+    world::ResourceKind kind;
+    int cellX;
+    int cellY;
+    world::ResourceState state;
 };
 
 // Un slot del inventario. El inventario es GENÉRICO: guarda cualquier
@@ -45,15 +45,15 @@ struct ViewResource {
 // count:     cantidad acumulada en el slot. Convención de dibujo: 1 no
 //            muestra número; >1 muestra el número.
 struct ViewInventorySlot {
-	int slotIndex;
-	std::string contentId;
-	int count;
+    int slotIndex;
+    std::string contentId;
+    int count;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un
 // recurso (no lo deduce el cliente). Se limpia cada tick.
 struct ViewResourceObtained {
-	world::ResourceKind kind;
+    world::ResourceKind kind;
 };
 
 // Item caído al piso, recogible por el jugador. GENÉRICO: lo identifica un
@@ -64,18 +64,26 @@ struct ViewResourceObtained {
 // (world::ContentCatalog). Al recogerse (comando Take sobre su celda) sale
 // del vector y se emite obtained.
 struct ViewDroppedItem {
-	std::string contentId;
-	int cellX;
-	int cellY;
+    std::string contentId;
+    int cellX;
+    int cellY;
+};
+
+// Impactos confirmados durante este tick; independientes del aspecto del recurso.
+struct ViewResourceHit {
+    int cellX;
+    int cellY;
+    bool destroyed;
 };
 
 struct LocalWorldView {
-	std::vector<ViewEntity> entities;
-	std::vector<ViewResource> resources;
-	std::vector<ViewResourceObtained> obtained;
-	std::vector<ViewDroppedItem> droppedItems;
-	std::vector<ViewInventorySlot> inventory;
-	world::GridSpan grid{0, 0};
+    std::vector<ViewEntity> entities;
+    std::vector<ViewResource> resources;
+    std::vector<ViewResourceObtained> obtained;
+    std::vector<ViewDroppedItem> droppedItems;
+    std::vector<ViewInventorySlot> inventory;
+    world::GridSpan grid{0, 0};
+    std::vector<ViewResourceHit> resourceHits;
 };
 
-}
+}  // namespace game

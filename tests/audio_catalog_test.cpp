@@ -6,17 +6,24 @@
 
 namespace {
 
+bool isSfx(std::string_view file) {
+	for (const sdl::SoundSpec& spec : sdl::kSounds) {
+		if (std::string_view(spec.file) == file &&
+		    spec.category == sdl::SoundCategory::Sfx) {
+			return true;
+		}
+	}
+	return false;
+}
+
 TEST(AudioCatalogTest, CluckIsRegisteredAsSfx) {
 	// AudioPlayer carga TODAS las filas Sfx al arrancar: sin la
 	// fila, el cacareo nunca suena.
-	bool found = false;
-	for (const sdl::SoundSpec& spec : sdl::kSounds) {
-		found = found ||
-			(std::string_view(spec.file) ==
-			 "sfx/farm/chicken_cluck.ogg" &&
-			 spec.category == sdl::SoundCategory::Sfx);
-	}
-	EXPECT_TRUE(found);
+	EXPECT_TRUE(isSfx("sfx/farm/chicken_cluck.ogg"));
+}
+
+TEST(AudioCatalogTest, CowMooIsRegisteredAsSfx) {
+	EXPECT_TRUE(isSfx("sfx/farm/cow.ogg"));
 }
 
 }

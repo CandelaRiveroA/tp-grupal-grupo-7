@@ -459,13 +459,13 @@ TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoGroundItems) {
 	EXPECT_TRUE(drops.empty());
 }
 
-// --- Cacareos: eventos de sonido per-tick en la vista -------------------
+// --- Sonidos: eventos per-tick en la vista ------------------------------
 
 namespace {
 
-// Camina el mundo hasta ver el primer cacareo en la vista; devuelve el
-// tick en que apareció (o -1 si no apareció).
-int firstCluckTick(game::MockGameClient& client, int limit) {
+// Camina el mundo hasta ver el primer evento de sonido en la vista;
+// devuelve el tick en que apareció (o -1 si no apareció).
+int firstSoundTick(game::MockGameClient& client, int limit) {
 	for (int it = 0; it <= limit; ++it) {
 		client.update(it);
 		if (!client.worldState().soundEvents.empty()) {
@@ -477,45 +477,53 @@ int firstCluckTick(game::MockGameClient& client, int limit) {
 
 }
 
-TEST(MockGameClientTest, ChickenClucksArriveAsSoundEvents) {
+TEST(MockGameClientTest, AnimalSoundsArriveAsSoundEvents) {
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
 
-	// El período del cacareo es largo pero acotado: con esta seed
-	// algún cacareo cae dentro de la ventana.
-	const int cluckTick = firstCluckTick(client, 3000);
-	ASSERT_GE(cluckTick, 0)
-		<< "con esta seed alguna gallina debería cacarear";
+	// El período del sonido es largo pero acotado: con esta seed
+	// algún cue cae dentro de la ventana.
+	const int soundTick = firstSoundTick(client, 3000);
+	ASSERT_GE(soundTick, 0)
+		<< "con esta seed algún animal debería sonar";
 
 	const game::LocalWorldView& view = client.worldState();
-	const game::ViewSoundEvent& cluck = view.soundEvents.front();
-	// El evento referencia a una ENTIDAD visible (id estable).
-	EXPECT_EQ(cluck.cue, game::CueKind::ChickenCluck);
+	const game::ViewSoundEvent& event = view.soundEvents.front();
+	// El evento referencia a una ENTIDAD visible (id estable) y su
+	// cue es el que el catálogo asocia al kind del emisor: gallina
+	// cacarea, vaca muuge.
 	bool emitterVisible = false;
 	for (const game::ViewEntity& entity : view.entities) {
-		emitterVisible = emitterVisible ||
-				 entity.id == cluck.emitterId;
+		if (entity.id != event.emitterId) {
+			continue;
+		}
+		emitterVisible = true;
+		const game::CueKind expected =
+			entity.kind == world::CreatureKind::Chicken
+				? game::CueKind::ChickenCluck
+				: game::CueKind::CowMoo;
+		EXPECT_EQ(event.cue, expected);
 	}
 	EXPECT_TRUE(emitterVisible)
-		<< "el cacareo referencia a una gallina de la vista";
+		<< "el evento referencia a un animal de la vista";
 }
 
 TEST(MockGameClientTest, SoundEventsLastOneTick) {
-	// Los eventos de sonido son PER-TICK: al tick siguiente del
-	// cacareo (sin otro cacareo: los períodos son de ~1200+ ticks)
-	// la vista ya no lleva ninguno.
+	// Los eventos de sonido son PER-TICK: al tick siguiente del cue
+	// (sin otro cue: los períodos son de ~1200+ ticks) la vista ya
+	// no lleva ninguno.
 	game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
 				    kPlayerY, worldCatalog());
-	const int cluckTick = firstCluckTick(client, 3000);
-	ASSERT_GE(cluckTick, 0);
+	const int soundTick = firstSoundTick(client, 3000);
+	ASSERT_GE(soundTick, 0);
 
-	client.update(cluckTick + 1);
+	client.update(soundTick + 1);
 	EXPECT_TRUE(client.worldState().soundEvents.empty());
 }
 
 TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoSoundEvents) {
 	game::MockGameClient client(10, 10, 5, 5);
-	EXPECT_TRUE(firstCluckTick(client, 100) == -1);
+	EXPECT_TRUE(firstSoundTick(client, 100) == -1);
 	EXPECT_TRUE(client.worldState().soundEvents.empty());
 }
 

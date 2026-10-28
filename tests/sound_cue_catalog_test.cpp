@@ -22,6 +22,15 @@ TEST(SoundCueCatalogTest, ChickenEmitsItsCluck) {
 	EXPECT_EQ(*cue, game::CueKind::ChickenCluck);
 }
 
+TEST(SoundCueCatalogTest, CowEmitsItsMoo) {
+	const game::SoundCueCatalog catalog;
+	EXPECT_STREQ(catalog.nameOf(game::CueKind::CowMoo), "cow_moo");
+	const std::optional<game::CueKind> cue =
+		catalog.cueOf(world::CreatureKind::Cow);
+	ASSERT_TRUE(cue.has_value());
+	EXPECT_EQ(*cue, game::CueKind::CowMoo);
+}
+
 TEST(SoundCueCatalogTest, SilentCreatureHasNoCue) {
 	// El jugador no cacarea: sin fila, nullopt (regla silenciosa).
 	const game::SoundCueCatalog catalog;

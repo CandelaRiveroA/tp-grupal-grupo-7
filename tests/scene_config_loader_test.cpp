@@ -137,10 +137,11 @@ TEST(SceneConfigLoaderTest, LoadsRealBedroomFile) {
 	EXPECT_EQ(scene.elements[1].draw.mode,
 		  world::DrawMode::HorizontalStrip);
 	EXPECT_EQ(scene.elements[1].draw.scaleY, 3);
-	// La sala inicial declara sus cues audibles (cacareos: las
-	// gallinas están acá hoy; el granero los declarará mañana).
-	ASSERT_EQ(scene.soundCues.size(), 1u);
+	// La sala inicial declara sus cues audibles (los animales están
+	// acá hoy; el granero declarará los suyos mañana).
+	ASSERT_EQ(scene.soundCues.size(), 2u);
 	EXPECT_EQ(scene.soundCues[0], "chicken_cluck");
+	EXPECT_EQ(scene.soundCues[1], "cow_moo");
 }
 #endif
 

@@ -6,8 +6,10 @@ namespace game {
 
 SoundCueCatalog::SoundCueCatalog() {
 	names_.push_back({CueKind::ChickenCluck, "chicken_cluck"});
+	names_.push_back({CueKind::CowMoo, "cow_moo"});
 	emitters_.push_back({world::CreatureKind::Chicken,
 			     CueKind::ChickenCluck});
+	emitters_.push_back({world::CreatureKind::Cow, CueKind::CowMoo});
 }
 
 const char* SoundCueCatalog::nameOf(CueKind cue) const {

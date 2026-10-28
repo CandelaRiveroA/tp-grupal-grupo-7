@@ -26,9 +26,9 @@ cell  = [16, 16]
 floor_color = [0, 0, 0, 255]
 grid        = [30, 20]
 scale       = 2
-# Cues audibles mientras esta sala se renderiza: las gallinas están
+# Cues audibles mientras esta sala se renderiza: los animales están
 # acá HOY; cuando exista el granero, esta lista pasa a su sala.
-sounds      = ["chicken_cluck"]
+sounds      = ["chicken_cluck", "cow_moo"]
 
   # Piso: bloque lógico de 2x2 celdas desde (col 0, fila 27), repetido en
   # mosaico para cubrir el área bajo la pared. Hereda scale = 2.

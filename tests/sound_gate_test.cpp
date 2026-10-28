@@ -9,6 +9,13 @@ TEST(SoundGateTest, AllowsCueTheRoomDeclares) {
 	EXPECT_TRUE(gate.allows(game::CueKind::ChickenCluck));
 }
 
+TEST(SoundGateTest, AllowsEachCueItsRoomLists) {
+	// La sala declara varios cues: cada uno suena si está en la lista.
+	const game::SoundGate gate({"chicken_cluck", "cow_moo"});
+	EXPECT_TRUE(gate.allows(game::CueKind::ChickenCluck));
+	EXPECT_TRUE(gate.allows(game::CueKind::CowMoo));
+}
+
 TEST(SoundGateTest, BlocksCueTheRoomDoesNotDeclare) {
 	// Una sala que no declara el cue lo silencia: decisión por
 	// datos, no error.

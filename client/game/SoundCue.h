@@ -10,6 +10,7 @@ namespace game {
 
 enum class CueKind {
 	ChickenCluck,
+	CowMoo,
 };
 
 struct ViewSoundEvent {

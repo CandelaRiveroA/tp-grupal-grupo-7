@@ -416,6 +416,27 @@ TEST(MockAnimalSimulationTest, EmitsWhenItsPeriodEnds) {
 	EXPECT_EQ(firstEvent->cue, game::CueKind::ChickenCluck);
 }
 
+TEST(MockAnimalSimulationTest, CowEmitsItsMoo) {
+	MockAnimalSimulation simulation = makeSimulation();
+	EXPECT_TRUE(spawnCowAt(simulation, world::GridCell{3, 3}));
+
+	std::optional<game::ViewSoundEvent> firstEvent;
+	for (int it = 0; it <= 3000 && !firstEvent.has_value(); ++it) {
+		simulation.update(it, 5, 5);
+		std::vector<game::ViewSoundEvent> sounds =
+			simulation.takeSoundEvents();
+		if (!sounds.empty()) {
+			firstEvent = std::move(sounds.front());
+		}
+	}
+	ASSERT_TRUE(firstEvent.has_value())
+		<< "con esta seed la vaca debería mugir dentro de la "
+		   "ventana escaneada";
+
+	EXPECT_EQ(firstEvent->emitterId, onlyAnimal(simulation).id);
+	EXPECT_EQ(firstEvent->cue, game::CueKind::CowMoo);
+}
+
 TEST(MockAnimalSimulationTest, TakeSoundEventsDrains) {
 	MockAnimalSimulation simulation = makeSimulation();
 	EXPECT_TRUE(spawnAt(simulation, world::GridCell{3, 3}));

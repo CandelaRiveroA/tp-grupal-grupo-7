@@ -153,4 +153,33 @@ TEST(LocalWorldViewContract, ViewIsStableUntilNextCommand) {
 	EXPECT_EQ(second.entities[0].facing, facing);
 }
 
+TEST(LocalWorldViewContract, DroppedItemsAreEmptyByDefault) {
+	LocalWorldView view;
+	EXPECT_TRUE(view.droppedItems.empty());
+}
+
+TEST(LocalWorldViewContract, DroppedItemCarriesContentIdAndCell) {
+	LocalWorldView view;
+	view.droppedItems.push_back(
+		game::ViewDroppedItem{"gold", 3, 7});
+	ASSERT_EQ(view.droppedItems.size(), 1u);
+	EXPECT_EQ(view.droppedItems[0].contentId, "gold");
+	EXPECT_EQ(view.droppedItems[0].cellX, 3);
+	EXPECT_EQ(view.droppedItems[0].cellY, 7);
+}
+
+TEST(LocalWorldViewContract, InventoryIsEmptyByDefault) {
+	LocalWorldView view;
+	EXPECT_TRUE(view.inventory.empty());
+}
+
+TEST(LocalWorldViewContract, InventorySlotCarriesContentIdAndCount) {
+	LocalWorldView view;
+	view.inventory.push_back(game::ViewInventorySlot{2, "silver", 21});
+	ASSERT_EQ(view.inventory.size(), 1u);
+	EXPECT_EQ(view.inventory[0].slotIndex, 2);
+	EXPECT_EQ(view.inventory[0].contentId, "silver");
+	EXPECT_EQ(view.inventory[0].count, 21);
+}
+
 }

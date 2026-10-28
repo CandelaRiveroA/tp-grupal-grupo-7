@@ -217,29 +217,39 @@ at    = [5, 6]
 sheet = "Players/main/tools/Tools.png"
 cell  = [16, 16]
 at    = [3, 14]
+[items.silver]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 1]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.items.has(world::ItemKind::Shovel));
-	ASSERT_TRUE(bar.items.has(world::ItemKind::Pickaxe));
-	ASSERT_TRUE(bar.items.has(world::ItemKind::WateringCan));
-	const world::ItemVisual& shovel =
-		bar.items.visualFor(world::ItemKind::Shovel);
+	ASSERT_TRUE(bar.content.has("shovel"));
+	ASSERT_TRUE(bar.content.has("pickaxe"));
+	ASSERT_TRUE(bar.content.has("watering_can"));
+	// El inventario es genérico: también guarda minerales por string.
+	ASSERT_TRUE(bar.content.has("silver"));
+	const world::ItemVisual& shovel = bar.content.visualFor("shovel");
 	EXPECT_EQ(shovel.sheetImage, "Players/main/tools/Tools.png");
 	EXPECT_EQ(shovel.col, 5);
 	EXPECT_EQ(shovel.row, 2);
 	EXPECT_EQ(shovel.cellWidth, 16);
-	const world::ItemVisual& can =
-		bar.items.visualFor(world::ItemKind::WateringCan);
+	const world::ItemVisual& can = bar.content.visualFor("watering_can");
 	EXPECT_EQ(can.col, 3);
 	EXPECT_EQ(can.row, 14);
+	const world::ItemVisual& silver = bar.content.visualFor("silver");
+	EXPECT_EQ(silver.sheetImage, "Cavern/ore.png");
+	EXPECT_EQ(silver.col, 6);
+	EXPECT_EQ(silver.row, 1);
 }
 
 TEST(InventoryConfigLoaderTest, NoItemsSectionLeavesCatalogEmpty) {
 	const world::InventoryLayout bar = loadBar();
-	EXPECT_FALSE(bar.items.has(world::ItemKind::Shovel));
+	EXPECT_FALSE(bar.content.has("shovel"));
 }
 
-TEST(InventoryConfigLoaderTest, UnknownItemIsInvalidValue) {
+TEST(InventoryConfigLoaderTest, ArbitraryContentNameIsValid) {
+	// El inventario es GENÉRICO: cualquier nombre de subtabla es un
+	// contentId válido (ya no se traduce a un enum cerrado de ítems).
 	const std::string toml = R"(
 [sheet]
 image = "x.png"
@@ -257,13 +267,12 @@ sheet = "x.png"
 cell  = [16, 16]
 at    = [0, 0]
 )";
-	try {
-		loadString(toml);
-		FAIL() << "se esperaba ConfigError";
-	} catch (const world::ConfigError& error) {
-		EXPECT_EQ(error.kind(),
-			  world::ConfigErrorKind::InvalidValue);
-	}
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.content.has("catapult"));
+	const world::ItemVisual& v = bar.content.visualFor("catapult");
+	EXPECT_EQ(v.sheetImage, "x.png");
+	EXPECT_EQ(v.col, 0);
+	EXPECT_EQ(v.row, 0);
 }
 
 TEST(InventoryConfigLoaderTest, LoadsFrameCells) {

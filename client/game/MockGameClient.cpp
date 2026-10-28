@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 
 #include "game/MockAnimalSimulation.h"
 #include "world/CreatureCatalog.h"
@@ -18,10 +19,28 @@ namespace {
 constexpr unsigned int kAnimalSeed = 20261027;
 
 // Celdas de spawn en la sala inicial (grilla 30x20, jugador al centro).
-constexpr std::array<world::GridCell, 3> kAnimalSpawns = {{
+constexpr std::array<world::GridCell, 3> kChickenSpawns = {{
 	{3, 3},
 	{26, 4},
 	{12, 2},
+}};
+
+// Una fila por especie de la simulación: kind + sus celdas (adentro de
+// la grilla, adyacentes a las de la gallina). Sumar una especie = una
+// fila acá + la apariencia en characters.toml.
+constexpr std::array<world::GridCell, 3> kCowSpawns = {{
+	{4, 4},
+	{25, 5},
+	{13, 3},
+}};
+
+struct AnimalBinding {
+	world::CreatureKind kind;
+	std::span<const world::GridCell> cells;
+};
+
+constexpr std::array<AnimalBinding, 1> kAnimalBindings = {{
+	{world::CreatureKind::Chicken, kChickenSpawns},
 }};
 
 // Tope de ítems en el suelo: la vista no se llena de huevos (sin
@@ -84,12 +103,12 @@ void MockGameClient::update(int iteration) {
 		return;
 	}
 	simulation_->update(iteration, playerCellX_, playerCellY_);
-	collectLaidEggs();
+	collectProducedItems();
 	rebuildView();
-	// Los cacareos del tick: eventos PER-TICK (drena, no acumula).
+	// Los sonidos del tick: eventos PER-TICK (drena, no acumula).
 	// Quedan en la vista hasta el próximo update: sendCommand no
 	// los borra, así el loop los lee aunque el jugador camine.
-	view_.soundEvents = simulation_->takeClucks();
+	view_.soundEvents = simulation_->takeSoundEvents();
 }
 
 const LocalWorldView& MockGameClient::worldState() const { return view_; }
@@ -142,8 +161,8 @@ void MockGameClient::rebuildView() {
 	}
 }
 
-void MockGameClient::collectLaidEggs() {
-	for (LaidEgg& laid : simulation_->takeLaidEggs()) {
+void MockGameClient::collectProducedItems() {
+	for (ProducedItem& laid : simulation_->takeProducedItems()) {
 		if (static_cast<int>(groundItems_.size()) >=
 		    kMaxGroundItems) {
 			break;
@@ -155,7 +174,7 @@ void MockGameClient::collectLaidEggs() {
 				    item.cellY == laid.cellY);
 		}
 		if (occupied) {
-			// La celda ya tiene un huevo: la postura se
+			// La celda ya tiene un ítem: la producción se
 			// descarta (regla silenciosa, no un error).
 			continue;
 		}
@@ -180,14 +199,18 @@ void MockGameClient::rebuildInventory() {
 
 void MockGameClient::spawnAnimals(
 	const world::CharacterCatalog& characters) {
-	if (!characters.has(world::CreatureKind::Chicken)) {
-		return;
-	}
-	const world::MoveCadence& cadence =
-		characters.dataFor(world::CreatureKind::Chicken).cadence;
-	for (const world::GridCell& cell : kAnimalSpawns) {
-		simulation_->spawn(world::CreatureKind::Chicken, cadence,
-				   cell, playerCellX_, playerCellY_);
+	for (const AnimalBinding& binding : kAnimalBindings) {
+		// Sin apariencia declarada, el kind no entra: si characters
+		// no lo describe, el render no lo sabría dibujar.
+		if (!characters.has(binding.kind)) {
+			continue;
+		}
+		const world::MoveCadence& cadence =
+			characters.dataFor(binding.kind).cadence;
+		for (const world::GridCell& cell : binding.cells) {
+			simulation_->spawn(binding.kind, cadence, cell,
+					   playerCellX_, playerCellY_);
+		}
 	}
 }
 

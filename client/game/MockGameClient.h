@@ -40,10 +40,10 @@ private:
 
 	void spawnAnimals(const world::CharacterCatalog& characters);
 
-	// Toma los huevos que la simulación puso en este tick y los pasa
-	// al estado de ítems del suelo (validando reglas del "server
-	// falso": tope y celda ya ocupada por otro huevo).
-	void collectLaidEggs();
+	// Toma lo que la simulación produjo en este tick y lo pasa al
+	// estado de ítems del suelo (validando reglas del "server
+	// falso": tope y celda ya ocupada por otro ítem).
+	void collectProducedItems();
 
 	int gridColumns_;
 	int gridRows_;

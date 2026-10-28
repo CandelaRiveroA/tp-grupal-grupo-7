@@ -19,9 +19,9 @@ constexpr int kMaxRestTicks = 32;
 // Reintento tras destino ocupado: 1 tick (el animal "vuelve a mirar").
 constexpr int kRetryTicks = 1;
 
-// Seed derivada para el stream de cacareos: decorrela de la secuencia
+// Seed derivada para el stream de sonidos: decorrela de la secuencia
 // base sin perder determinismo.
-constexpr unsigned int kCluckSeedOffset = 0x9E3779B9u;
+constexpr unsigned int kSoundSeedOffset = 0x9E3779B9u;
 
 // Datos de la POSTURA (ticks del loop): cada animal pone un huevo cada
 // `layPeriod` ticks, con layPeriod al azar en esta gama al spawn (y
@@ -30,12 +30,12 @@ constexpr unsigned int kCluckSeedOffset = 0x9E3779B9u;
 constexpr int kMinLayPeriodTicks = 600;
 constexpr int kMaxLayPeriodTicks = 900;
 
-// Datos del CACAREO ambiental (ticks del loop): cada gallina suelta un
-// cacareo cada `cluckPeriod` ticks, al azar en esta gama al spawn (y
-// reasignado tras cada cacareo). A 60 FPS la gama es ~20-45 s: con
-// varias gallinas salen más seguido sin sincronizarse entre sí.
-constexpr int kMinCluckPeriodTicks = 1200;
-constexpr int kMaxCluckPeriodTicks = 2700;
+// Datos del SONIDO ambiental (ticks del loop): cada animal suelta un
+// cue cada `soundPeriod` ticks, al azar en esta gama al spawn (y
+// reasignado tras cada emisión). A 60 FPS la gama es ~20-45 s: con
+// varios animales salen más seguido sin sincronizarse entre sí.
+constexpr int kMinSoundPeriodTicks = 1200;
+constexpr int kMaxSoundPeriodTicks = 2700;
 
 // Diccionario kind -> ítem que pone (convención §4: tabla sobre switch;
 // otra criatura que ponga algo = sumar una fila, ej. vaca -> leche).
@@ -60,7 +60,7 @@ MockAnimalSimulation::MockAnimalSimulation(int gridColumns,
 	: gridColumns_(gridColumns)
 	, gridRows_(gridRows)
 	, random_(seed)
-	, cluckRandom_(seed ^ kCluckSeedOffset)
+	, soundRandom_(seed ^ kSoundSeedOffset)
 	, nextId_(1) {}
 
 bool MockAnimalSimulation::spawn(world::CreatureKind kind,
@@ -83,12 +83,19 @@ bool MockAnimalSimulation::spawn(world::CreatureKind kind,
 	animal.stepIteration = 0;
 	animal.restTicks = randomRestTicks();
 	animal.cadence = cadence;
-	// Primera postura: layPeriod ticks de simulación después del
-	// spawn (el mock spawnea antes del primer update).
-	animal.layPeriod = randomLayPeriod();
-	animal.nextLayIteration = animal.layPeriod;
-	animal.cluckPeriod = randomCluckPeriod();
-	animal.nextCluckIteration = animal.cluckPeriod;
+	// Períodos SOLO de los comportamientos que el kind tiene: dibujar
+	// del RNG un período que el animal nunca usa desplazaría las
+	// secuencias deterministas de los otros (los tests las pinean).
+	if (producedItem(kind) != nullptr) {
+		// Primera postura: layPeriod ticks de simulación después
+		// del spawn (el mock spawnea antes del primer update).
+		animal.layPeriod = randomLayPeriod();
+		animal.nextLayIteration = animal.layPeriod;
+	}
+	if (cues_.cueOf(kind).has_value()) {
+		animal.soundPeriod = randomSoundPeriod();
+		animal.nextSoundIteration = animal.soundPeriod;
+	}
 
 	animals_.push_back(animal);
 	nextId_ += 1;
@@ -98,8 +105,8 @@ bool MockAnimalSimulation::spawn(world::CreatureKind kind,
 void MockAnimalSimulation::update(int iteration, int playerCellX,
 			      int playerCellY) {
 	for (AnimalRecord& animal : animals_) {
-		tryLay(animal, iteration);
-		tryCluck(animal, iteration);
+		tryProduce(animal, iteration);
+		tryEmitSound(animal, iteration);
 
 		const int elapsed = iteration - animal.stepIteration;
 
@@ -126,13 +133,13 @@ const std::vector<AnimalRecord>& MockAnimalSimulation::animals() const {
 	return animals_;
 }
 
-std::vector<LaidEgg> MockAnimalSimulation::takeLaidEggs() {
-	std::vector<LaidEgg> taken;
-	taken.swap(laidEggs_);
+std::vector<ProducedItem> MockAnimalSimulation::takeProducedItems() {
+	std::vector<ProducedItem> taken;
+	taken.swap(producedItems_);
 	return taken;
 }
 
-std::vector<ViewSoundEvent> MockAnimalSimulation::takeClucks() {
+std::vector<ViewSoundEvent> MockAnimalSimulation::takeSoundEvents() {
 	std::vector<ViewSoundEvent> taken;
 	taken.swap(clucks_);
 	return taken;
@@ -154,13 +161,13 @@ int MockAnimalSimulation::randomLayPeriod() {
 	return pick(random_);
 }
 
-int MockAnimalSimulation::randomCluckPeriod() {
-	std::uniform_int_distribution<int> pick(kMinCluckPeriodTicks,
-						kMaxCluckPeriodTicks);
-	return pick(cluckRandom_);
+int MockAnimalSimulation::randomSoundPeriod() {
+	std::uniform_int_distribution<int> pick(kMinSoundPeriodTicks,
+						kMaxSoundPeriodTicks);
+	return pick(soundRandom_);
 }
 
-const world::ItemKind* MockAnimalSimulation::laidItem(
+const world::ItemKind* MockAnimalSimulation::producedItem(
 	world::CreatureKind kind) const {
 	for (const auto& [laysKind, item] : kLays) {
 		if (laysKind == kind) {
@@ -170,8 +177,8 @@ const world::ItemKind* MockAnimalSimulation::laidItem(
 	return nullptr;
 }
 
-void MockAnimalSimulation::tryLay(AnimalRecord& animal, int iteration) {
-	const world::ItemKind* item = laidItem(animal.kind);
+void MockAnimalSimulation::tryProduce(AnimalRecord& animal, int iteration) {
+	const world::ItemKind* item = producedItem(animal.kind);
 	if (item == nullptr || iteration < animal.nextLayIteration) {
 		return;
 	}
@@ -179,12 +186,12 @@ void MockAnimalSimulation::tryLay(AnimalRecord& animal, int iteration) {
 	// El huevo queda en la celda donde el animal está AHORA (antes de
 	// moverse este tick): dato que el que llena la vista valida y
 	// guarda.
-	LaidEgg egg;
+	ProducedItem egg;
 	egg.animalId = animal.id;
 	egg.cellX = animal.cellX;
 	egg.cellY = animal.cellY;
 	egg.item = *item;
-	laidEggs_.push_back(egg);
+	producedItems_.push_back(egg);
 
 	// El período se reasigna: la próxima postura queda espaciada (y
 	// las gallinas no se sincronizan entre sí).
@@ -192,21 +199,21 @@ void MockAnimalSimulation::tryLay(AnimalRecord& animal, int iteration) {
 	animal.nextLayIteration = iteration + animal.layPeriod;
 }
 
-void MockAnimalSimulation::tryCluck(AnimalRecord& animal, int iteration) {
+void MockAnimalSimulation::tryEmitSound(AnimalRecord& animal, int iteration) {
 	const std::optional<CueKind> cue = cues_.cueOf(animal.kind);
-	if (!cue.has_value() || iteration < animal.nextCluckIteration) {
+	if (!cue.has_value() || iteration < animal.nextSoundIteration) {
 		return;
 	}
 
-	// El cacareo es ambiental: la celda no va (el id habilita
+	// El sonido es ambiental: la celda no va (el id habilita
 	// audio posicional mañana).
 	ViewSoundEvent cluck;
 	cluck.emitterId = animal.id;
 	cluck.cue = *cue;
 	clucks_.push_back(cluck);
 
-	animal.cluckPeriod = randomCluckPeriod();
-	animal.nextCluckIteration = iteration + animal.cluckPeriod;
+	animal.soundPeriod = randomSoundPeriod();
+	animal.nextSoundIteration = iteration + animal.soundPeriod;
 }
 
 bool MockAnimalSimulation::canEnter(int cellX, int cellY, int playerCellX,

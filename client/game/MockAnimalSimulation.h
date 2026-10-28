@@ -13,7 +13,7 @@ namespace game {
 
 // Huevo puesto por un animal en un tick: DATOS puros. El que llena la
 // vista (MockGameClient) lo valida y lo guarda como ítem del suelo.
-struct LaidEgg {
+struct ProducedItem {
 	int animalId;
 	int cellX;
 	int cellY;
@@ -54,11 +54,11 @@ struct AnimalRecord {
 	// estos valores al spawn con la iteración real.
 	int layPeriod;
 	int nextLayIteration;
-	// Datos del cacareo: un cue cada cluckPeriod ticks, con gama
-	// LARGA al spawn y reasignada tras cada cacareo (no se
-	// sincronizan entre gallinas).
-	int cluckPeriod;
-	int nextCluckIteration;
+	// Datos del sonido: un cue cada soundPeriod ticks, con gama
+	// LARGA al spawn y reasignada tras cada emisión (los animales
+	// no se sincronizan entre sí).
+	int soundPeriod;
+	int nextSoundIteration;
 };
 
 // MOCK: simulación de movimiento automático (wander) de animales que hoy
@@ -92,10 +92,10 @@ public:
 	// llamada devuelve vacío). Cada uno trae la celda donde el
 	// animal estaba al ponerlo y el ítem que define la tabla de
 	// postura para su kind.
-	std::vector<LaidEgg> takeLaidEggs();
+	std::vector<ProducedItem> takeProducedItems();
 
-	// Cacareos desde la ÚLTIMA llamada (drena igual que los huevos).
-	std::vector<ViewSoundEvent> takeClucks();
+	// Sonidos desde la ÚLTIMA llamada (drena igual que los huevos).
+	std::vector<ViewSoundEvent> takeSoundEvents();
 
 private:
 	DirectionDelta randomDirection();
@@ -104,15 +104,15 @@ private:
 
 	int randomLayPeriod();
 
-	int randomCluckPeriod();
+	int randomSoundPeriod();
 
 	// Qué ítem pone este kind, o nullptr si no pone nada (tabla
 	// kLays en el .cpp: diccionario, convención §4).
-	const world::ItemKind* laidItem(world::CreatureKind kind) const;
+	const world::ItemKind* producedItem(world::CreatureKind kind) const;
 
-	void tryLay(AnimalRecord& animal, int iteration);
+	void tryProduce(AnimalRecord& animal, int iteration);
 
-	void tryCluck(AnimalRecord& animal, int iteration);
+	void tryEmitSound(AnimalRecord& animal, int iteration);
 
 	bool canEnter(int cellX, int cellY, int playerCellX, int playerCellY,
 		      const AnimalRecord& self) const;
@@ -125,10 +125,10 @@ private:
 
 	std::mt19937 random_;
 
-	// Stream de RNG SEPARADO para los cacareos: no consume el
+	// Stream de RNG SEPARADO para los sonidos: no consume el
 	// random_ del wander/postura, cuyas secuencias deterministas
 	// pinean los tests.
-	std::mt19937 cluckRandom_;
+	std::mt19937 soundRandom_;
 
 	SoundCueCatalog cues_;
 
@@ -136,7 +136,7 @@ private:
 
 	std::vector<AnimalRecord> animals_;
 
-	std::vector<LaidEgg> laidEggs_;
+	std::vector<ProducedItem> producedItems_;
 
 	std::vector<ViewSoundEvent> clucks_;
 };

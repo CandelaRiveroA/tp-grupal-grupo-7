@@ -42,6 +42,8 @@ inline constexpr const char* kResourcesFile = "resources.toml";
 
 inline constexpr const char* kObtainedBannerFile = "obtained_banner.toml";
 
+inline constexpr const char* kDigitsFile = "ui/digits.toml";
+
 // Cantidad de slots del inventario ocupados por el mock (pico, pala,
 // regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.
 inline constexpr int kInventorySlots = 4;

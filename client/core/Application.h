@@ -23,6 +23,7 @@ struct InventoryLayout;
 struct ToolOverlayCatalog;
 struct ResourceCatalog;
 struct ObtainedBannerCatalog;
+struct DigitCatalog;
 }  // namespace world
 
 namespace core {
@@ -51,7 +52,8 @@ private:
                     const world::InventoryLayout& inventory,
                     const world::ToolOverlayCatalog& toolOverlay,
                     const world::ResourceCatalog& resources,
-                    const world::ObtainedBannerCatalog& banner);
+                    const world::ObtainedBannerCatalog& banner,
+                    const world::DigitCatalog& digits);
 
     WindowConfig config_;
     QApplication app_;

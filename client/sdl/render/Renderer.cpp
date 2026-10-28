@@ -16,11 +16,13 @@ namespace sdl {
 Renderer::Renderer(SdlContext& context,
 		   const world::CharacterCatalog& characters,
 		   const world::ToolOverlayCatalog& toolOverlay,
-		   const world::ResourceCatalog& resources)
+		   const world::ResourceCatalog& resources,
+		   const world::ContentCatalog& content)
 	: context_(context)
 	, catalog_(characters)
 	, toolOverlay_(toolOverlay)
 	, resources_(resources)
+	, content_(content)
 	, characterSheet_(context,
 			  core::assetPath(characters.sheetFile(
 				  world::CreatureKind::Player)),
@@ -57,6 +59,12 @@ void Renderer::renderScene(const world::SceneDescription& scene,
 	// Recursos antes que las entidades: el personaje se dibuja encima.
 	for (const game::ViewResource& resource : view.resources) {
 		drawResource(scene, resource);
+	}
+
+	// Minerales caídos al piso: también debajo de las entidades, para que
+	// el personaje pase por encima al pararse sobre ellos.
+	for (const game::ViewDroppedItem& item : view.droppedItems) {
+		drawDroppedItem(scene, item);
 	}
 
 	for (std::size_t i = 0; i < view.entities.size(); ++i) {
@@ -218,6 +226,36 @@ void Renderer::drawResource(const world::SceneDescription& scene,
 
 	sheet.drawBlock(visual.col, visual.row, visual.cols, visual.rows,
 			SDL2pp::Rect(x, y, w, h));
+}
+
+void Renderer::drawDroppedItem(const world::SceneDescription& scene,
+			       const game::ViewDroppedItem& item) {
+	// El item en el piso se dibuja con el MISMO asset que en el slot del
+	// inventario (ContentCatalog, por contentId). Así un mineral, un
+	// huevo o cualquier recolectable futuro usan su celda sin casos
+	// especiales. Más chico que la celda y centrado, para que se lea
+	// como un item apoyado en el suelo.
+	if (!content_.has(item.contentId)) {
+		return;
+	}
+	const world::ItemVisual& visual = content_.visualFor(item.contentId);
+
+	SpriteSheet& sheet = sheetCache_.sheet(
+		visual.sheetImage, core::assetPath(visual.sheetImage),
+		visual.cellWidth, visual.cellHeight);
+
+	const world::ScenePixelMapper mapper(scene.cellPixelSize);
+	const world::PixelRect cell = mapper.toPixels(
+		world::GridCell{item.cellX, item.cellY},
+		world::GridSpan{1, 1});
+
+	// Mitad del tamaño de la celda: queda como un item chico en el piso.
+	const int baseW = cell.width / 2;
+	const int baseH = cell.height / 2;
+	const int x = cell.x + (cell.width - baseW) / 2;
+	const int y = cell.y + cell.height - baseH + resources_.offsetY;
+
+	sheet.draw(visual.col, visual.row, SDL2pp::Rect(x, y, baseW, baseH));
 }
 
 }

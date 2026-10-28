@@ -151,6 +151,10 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
         client/world/ItemCatalog.cpp
+        client/world/ContentCatalog.cpp
+        client/world/DigitCatalog.cpp
+        client/world/DigitConfigLoader.cpp
+        client/world/DigitTomlReader.cpp
         client/world/ToolOverlay.cpp
         client/world/ToolOverlayLoader.cpp
         client/world/ToolOverlayTomlReader.cpp

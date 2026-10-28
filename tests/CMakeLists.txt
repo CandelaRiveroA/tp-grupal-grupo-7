@@ -24,6 +24,7 @@ target_sources(taller_tests
     action_resolver_test.cpp
     tool_overlay_loader_test.cpp
     resource_config_loader_test.cpp
+    digit_config_loader_test.cpp
     tile_layout_test.cpp
     entity_appearance_test.cpp
     startup_sequence_test.cpp

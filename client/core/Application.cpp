@@ -36,6 +36,8 @@
 #include "world/CharacterCatalogLoader.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
+#include "world/DigitCatalog.h"
+#include "world/DigitConfigLoader.h"
 #include "world/EntityAppearance.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
@@ -93,11 +95,14 @@ int Application::runGame(const SessionConfig& session) {
         const world::ObtainedBannerCatalog banner =
                 world::ObtainedBannerConfigLoader().loadFromFile(
                         core::assetPath(core::kObtainedBannerFile));
+        const world::DigitCatalog digits =
+                world::DigitConfigLoader().loadFromFile(
+                        core::assetPath(core::kDigitsFile));
         const world::GridSpan& grid = scenario.scene().grid;
         const int toolUseDuration = toolUseDurationTicks(characters);
         std::unique_ptr<game::GameClient> gameClient = createGameClient(grid, toolUseDuration);
         return runGameLoop(session, scenario, *gameClient, characters, inventory, toolOverlay,
-                           resources, banner);
+                           resources, banner, digits);
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
         return EXIT_FAILURE;
@@ -132,13 +137,15 @@ int Application::runGameLoop(const SessionConfig& session, const world::Scenario
                              const world::InventoryLayout& inventory,
                              const world::ToolOverlayCatalog& toolOverlay,
                              const world::ResourceCatalog& resources,
-                             const world::ObtainedBannerCatalog& banner) {
+                             const world::ObtainedBannerCatalog& banner,
+                             const world::DigitCatalog& digits) {
 
     (void)session;
 
     sdl::SdlContext sdlContext(config_);
-    sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources);
-    sdl::InventoryHud inventoryHud(sdlContext, inventory);
+    sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources,
+                           inventory.content);
+    sdl::InventoryHud inventoryHud(sdlContext, inventory, digits);
     sdl::ObtainedBannerHud bannerHud(sdlContext, banner, inventory.slotDrawWidth());
     game::ObtainedBannerQueue bannerQueue(banner.durationTicks, banner.maxVisible);
     sdl::InputManager input(core::kInventorySlots);
@@ -194,6 +201,13 @@ int Application::runGameLoop(const SessionConfig& session, const world::Scenario
 
         if (input.takeUseTool() && !pressed.has_value()) {
             gameClient.sendCommand(moveCommand.use(state, walkPacer.lastDirection()));
+        }
+
+        // Enter: recoger el mineral del piso en la celda actual. Es una
+        // INTENCIÓN (cliente dummy): la fuente decide si hay algo y, si lo
+        // hay, emite el evento obtained que dispara el panel + sonido.
+        if (input.takeCollect() && !pressed.has_value()) {
+            gameClient.sendCommand(moveCommand.take(state, walkPacer.lastDirection()));
         }
 
         if (const std::optional<int> slot = input.takeSlotSelect()) {

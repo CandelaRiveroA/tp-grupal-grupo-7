@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "common/common_command.h"
@@ -99,13 +100,14 @@ TEST(MockGameClientTest, ProvidesInitialInventoryTools) {
 		client.worldState().inventory;
 	ASSERT_EQ(inv.size(), 4u);
 	EXPECT_EQ(inv[0].slotIndex, 0);
-	EXPECT_EQ(inv[0].item, world::ItemKind::Pickaxe);
+	EXPECT_EQ(inv[0].contentId, "pickaxe");
+	EXPECT_EQ(inv[0].count, 1);
 	EXPECT_EQ(inv[1].slotIndex, 1);
-	EXPECT_EQ(inv[1].item, world::ItemKind::Shovel);
+	EXPECT_EQ(inv[1].contentId, "shovel");
 	EXPECT_EQ(inv[2].slotIndex, 2);
-	EXPECT_EQ(inv[2].item, world::ItemKind::WateringCan);
+	EXPECT_EQ(inv[2].contentId, "watering_can");
 	EXPECT_EQ(inv[3].slotIndex, 3);
-	EXPECT_EQ(inv[3].item, world::ItemKind::Sword);
+	EXPECT_EQ(inv[3].contentId, "sword");
 }
 
 TEST(MockGameClientTest, InventoryStaysWhenPlayerMoves) {
@@ -248,40 +250,139 @@ void exhaustMineral(game::MockGameClient& client) {
 	}
 }
 
-TEST(MockGameClientTest, ObtainedEventIsNotEmittedImmediately) {
-	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
-	exhaustMineral(client);
-	// Justo tras agotar, el evento de obtención todavía NO salió
-	// (se emite con retardo, después del crack).
-	EXPECT_TRUE(client.worldState().obtained.empty());
-}
-
-TEST(MockGameClientTest, ObtainedEventFiresAfterDelay) {
-	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
-	exhaustMineral(client);
-	// Avanzar ticks hasta que el evento de obtención se emita.
-	bool fired = false;
-	world::ResourceKind kind{};
-	for (int i = 0; i < 60; ++i) {
-		const game::LocalWorldView& view = client.worldState();
-		if (!view.obtained.empty()) {
-			fired = true;
-			kind = view.obtained.front().kind;
-			break;
+// Busca un dropped item por celda; devuelve su contentId o nullopt.
+std::optional<std::string> droppedAt(const game::MockGameClient& client,
+				     int cellX, int cellY) {
+	for (const game::ViewDroppedItem& d :
+	     client.worldState().droppedItems) {
+		if (d.cellX == cellX && d.cellY == cellY) {
+			return d.contentId;
 		}
 	}
-	ASSERT_TRUE(fired);
-	EXPECT_EQ(kind, world::ResourceKind::Silver);
+	return std::nullopt;
 }
 
-TEST(MockGameClientTest, ObtainedEventLastsOnlyOneTick) {
+protocol::Command take(int x, int y, protocol::Direction direction) {
+	protocol::Command cmd;
+	cmd.move = protocol::Move::Take;
+	cmd.x = static_cast<std::uint8_t>(x);
+	cmd.y = static_cast<std::uint8_t>(y);
+	cmd.direction = direction;
+	return cmd;
+}
+
+TEST(MockGameClientTest, ExhaustingMineralDropsItemOnTheFloor) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	// Antes de agotar no hay nada en el piso.
+	EXPECT_FALSE(droppedAt(client, 6, 5).has_value());
+	exhaustMineral(client);
+	// Al agotarse, el item cae en su celda con su contentId genérico.
+	EXPECT_EQ(droppedAt(client, 6, 5), "silver");
+}
+
+TEST(MockGameClientTest, ExhaustingMineralDoesNotEmitObtainedAutomatically) {
 	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
 	exhaustMineral(client);
-	// Llegar al tick donde se emite.
-	while (client.worldState().obtained.empty()) {
+	// Ya no hay obtención automática: hay que recoger con Take.
+	for (int i = 0; i < 60; ++i) {
+		EXPECT_TRUE(client.worldState().obtained.empty());
 	}
+}
+
+TEST(MockGameClientTest, TakeOnDroppedCellEmitsObtained) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	exhaustMineral(client);
+	// El jugador se para sobre la celda del item y lo recoge.
+	client.sendCommand(take(6, 5, protocol::Direction::Right));
+	const game::LocalWorldView& view = client.worldState();
+	ASSERT_EQ(view.obtained.size(), 1u);
+	EXPECT_EQ(view.obtained.front().kind, world::ResourceKind::Silver);
+	// El item desaparece del piso al recogerse.
+	EXPECT_FALSE(droppedAt(client, 6, 5).has_value());
+}
+
+TEST(MockGameClientTest, TakeOnEmptyCellEmitsNothing) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	// No hay item dropeado todavía: recoger no emite nada.
+	client.sendCommand(take(5, 5, protocol::Direction::Front));
+	EXPECT_TRUE(client.worldState().obtained.empty());
+}
+
+TEST(MockGameClientTest, ObtainedFromTakeLastsOnlyOneTick) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	exhaustMineral(client);
+	client.sendCommand(take(6, 5, protocol::Direction::Right));
+	// Primer estado: trae el evento.
+	ASSERT_FALSE(client.worldState().obtained.empty());
 	// El tick siguiente ya no lo tiene (es puntual, no persistente).
 	EXPECT_TRUE(client.worldState().obtained.empty());
+}
+
+// Busca un slot del inventario por contentId; devuelve su count o nullopt.
+std::optional<int> inventoryCount(const game::MockGameClient& client,
+				  const std::string& contentId) {
+	for (const game::ViewInventorySlot& s :
+	     client.worldState().inventory) {
+		if (s.contentId == contentId) {
+			return s.count;
+		}
+	}
+	return std::nullopt;
+}
+
+// Agota la piedra en (cx,cy) con 3 golpes completos (apuntando a esa celda).
+void exhaustMineralAt(game::MockGameClient& client, int cx, int cy) {
+	for (int hit = 0; hit < 3; ++hit) {
+		client.sendCommand(pickAt(cx, cy, protocol::Direction::Right));
+		completeHit(client);
+	}
+}
+
+TEST(MockGameClientTest, TakingMineralAddsItToInventoryWithCountOne) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	EXPECT_FALSE(inventoryCount(client, "silver").has_value());
+	exhaustMineral(client);  // silver en (6,5)
+	client.sendCommand(take(6, 5, protocol::Direction::Right));
+	EXPECT_EQ(inventoryCount(client, "silver"), 1);
+	// Las herramientas siguen presentes.
+	EXPECT_EQ(inventoryCount(client, "pickaxe"), 1);
+	EXPECT_EQ(inventoryCount(client, "shovel"), 1);
+}
+
+TEST(MockGameClientTest, TakingSameMineralTwiceAccumulatesCount) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	// Dos piedras de plata: (6,5) y (startX, startY+2) = (5,7).
+	exhaustMineral(client);  // silver (6,5)
+	client.sendCommand(take(6, 5, protocol::Direction::Right));
+	EXPECT_EQ(inventoryCount(client, "silver"), 1);
+	exhaustMineralAt(client, 5, 7);  // silver (5,7)
+	client.sendCommand(take(5, 7, protocol::Direction::Right));
+	EXPECT_EQ(inventoryCount(client, "silver"), 2);
+}
+
+TEST(MockGameClientTest, TakingDifferentMineralsUsesDifferentSlots) {
+	game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+	exhaustMineral(client);  // silver (6,5)
+	client.sendCommand(take(6, 5, protocol::Direction::Right));
+	exhaustMineralAt(client, 7, 5);  // coal (7,5)
+	client.sendCommand(take(7, 5, protocol::Direction::Right));
+	EXPECT_EQ(inventoryCount(client, "silver"), 1);
+	EXPECT_EQ(inventoryCount(client, "coal"), 1);
+	// Slots distintos (índices libres tras las 4 herramientas).
+	std::optional<int> silverSlot;
+	std::optional<int> coalSlot;
+	for (const game::ViewInventorySlot& s :
+	     client.worldState().inventory) {
+		if (s.contentId == "silver") {
+			silverSlot = s.slotIndex;
+		}
+		if (s.contentId == "coal") {
+			coalSlot = s.slotIndex;
+		}
+	}
+	ASSERT_TRUE(silverSlot.has_value());
+	ASSERT_TRUE(coalSlot.has_value());
+	EXPECT_NE(*silverSlot, *coalSlot);
 }
 
 }

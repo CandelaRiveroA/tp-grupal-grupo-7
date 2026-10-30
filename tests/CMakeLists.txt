@@ -8,6 +8,8 @@ target_sources(taller_tests
     world_test.cpp
     mineral_test.cpp
     world_interaction_mineral_test.cpp
+    world_view_test.cpp
+    ../server/world_view.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/slot.cpp
@@ -37,8 +39,15 @@ target_sources(taller_tests
     walk_pacer_test.cpp
     view_motion_test.cpp
     footstep_cue_test.cpp
-    tool_use_test.cpp
+    resource_audio_cue_test.cpp
+    resource_hit_smoke.cpp
+    obtained_banner_config_loader_test.cpp
+    obtained_banner_queue_test.cpp
+    obtained_banner_layout_test.cpp
     action_resolver_test.cpp
+    tool_overlay_loader_test.cpp
+    resource_config_loader_test.cpp
+    digit_config_loader_test.cpp
     tile_layout_test.cpp
     entity_appearance_test.cpp
     startup_sequence_test.cpp
@@ -50,3 +59,6 @@ target_sources(taller_tests
     PUBLIC
     # .h files
     )
+
+# world_view.h incluye el dominio del servidor con rutas relativas a server/.
+target_include_directories(taller_tests PRIVATE ${PROJECT_SOURCE_DIR}/server)

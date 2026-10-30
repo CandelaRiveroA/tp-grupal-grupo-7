@@ -217,29 +217,39 @@ at    = [5, 6]
 sheet = "Players/main/tools/Tools.png"
 cell  = [16, 16]
 at    = [3, 14]
+[items.silver]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 1]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.items.has(world::ItemKind::Shovel));
-	ASSERT_TRUE(bar.items.has(world::ItemKind::Pickaxe));
-	ASSERT_TRUE(bar.items.has(world::ItemKind::WateringCan));
-	const world::ItemVisual& shovel =
-		bar.items.visualFor(world::ItemKind::Shovel);
+	ASSERT_TRUE(bar.content.has("shovel"));
+	ASSERT_TRUE(bar.content.has("pickaxe"));
+	ASSERT_TRUE(bar.content.has("watering_can"));
+	// El inventario es genérico: también guarda minerales por string.
+	ASSERT_TRUE(bar.content.has("silver"));
+	const world::ItemVisual& shovel = bar.content.visualFor("shovel");
 	EXPECT_EQ(shovel.sheetImage, "Players/main/tools/Tools.png");
 	EXPECT_EQ(shovel.col, 5);
 	EXPECT_EQ(shovel.row, 2);
 	EXPECT_EQ(shovel.cellWidth, 16);
-	const world::ItemVisual& can =
-		bar.items.visualFor(world::ItemKind::WateringCan);
+	const world::ItemVisual& can = bar.content.visualFor("watering_can");
 	EXPECT_EQ(can.col, 3);
 	EXPECT_EQ(can.row, 14);
+	const world::ItemVisual& silver = bar.content.visualFor("silver");
+	EXPECT_EQ(silver.sheetImage, "Cavern/ore.png");
+	EXPECT_EQ(silver.col, 6);
+	EXPECT_EQ(silver.row, 1);
 }
 
 TEST(InventoryConfigLoaderTest, NoItemsSectionLeavesCatalogEmpty) {
 	const world::InventoryLayout bar = loadBar();
-	EXPECT_FALSE(bar.items.has(world::ItemKind::Shovel));
+	EXPECT_FALSE(bar.content.has("shovel"));
 }
 
-TEST(InventoryConfigLoaderTest, UnknownItemIsInvalidValue) {
+TEST(InventoryConfigLoaderTest, ArbitraryContentNameIsValid) {
+	// El inventario es GENÉRICO: cualquier nombre de subtabla es un
+	// contentId válido (ya no se traduce a un enum cerrado de ítems).
 	const std::string toml = R"(
 [sheet]
 image = "x.png"
@@ -257,13 +267,12 @@ sheet = "x.png"
 cell  = [16, 16]
 at    = [0, 0]
 )";
-	try {
-		loadString(toml);
-		FAIL() << "se esperaba ConfigError";
-	} catch (const world::ConfigError& error) {
-		EXPECT_EQ(error.kind(),
-			  world::ConfigErrorKind::InvalidValue);
-	}
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.content.has("catapult"));
+	const world::ItemVisual& v = bar.content.visualFor("catapult");
+	EXPECT_EQ(v.sheetImage, "x.png");
+	EXPECT_EQ(v.col, 0);
+	EXPECT_EQ(v.row, 0);
 }
 
 TEST(InventoryConfigLoaderTest, LoadsFrameCells) {
@@ -301,6 +310,49 @@ TEST(InventoryConfigLoaderTest, LoadsSlotFrame) {
 TEST(InventoryConfigLoaderTest, NoSlotFrameLeavesItDisabled) {
 	const world::InventoryLayout bar = loadBar();
 	EXPECT_FALSE(bar.slotFrame.enabled);
+}
+
+TEST(InventoryConfigLoaderTest, LoadsActiveSlotFrame) {
+	const std::string toml = kBarToml + R"(
+[active_slot_frame]
+border_cells = 1
+thickness    = 20
+corners_only = false
+top_left     = [0, 56]
+top_right    = [3, 56]
+bottom_left  = [0, 59]
+bottom_right = [3, 59]
+top          = [2, 56]
+bottom       = [2, 59]
+left         = [0, 58]
+right        = [3, 58]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	ASSERT_TRUE(bar.activeSlotFrame.enabled);
+	EXPECT_EQ(bar.activeSlotFrame.borderCells, 1);
+	EXPECT_EQ(bar.activeSlotFrame.thickness, 20);
+	EXPECT_FALSE(bar.activeSlotFrame.cornersOnly);
+	EXPECT_EQ(bar.activeSlotFrame.topLeft.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.topLeft.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.topRight.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.topRight.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.bottomLeft.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.bottomLeft.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.bottomRight.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.bottomRight.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.top.col, 2);
+	EXPECT_EQ(bar.activeSlotFrame.top.row, 56);
+	EXPECT_EQ(bar.activeSlotFrame.bottom.col, 2);
+	EXPECT_EQ(bar.activeSlotFrame.bottom.row, 59);
+	EXPECT_EQ(bar.activeSlotFrame.left.col, 0);
+	EXPECT_EQ(bar.activeSlotFrame.left.row, 58);
+	EXPECT_EQ(bar.activeSlotFrame.right.col, 3);
+	EXPECT_EQ(bar.activeSlotFrame.right.row, 58);
+}
+
+TEST(InventoryConfigLoaderTest, NoActiveSlotFrameLeavesItDisabled) {
+	const world::InventoryLayout bar = loadBar();
+	EXPECT_FALSE(bar.activeSlotFrame.enabled);
 }
 
 TEST(InventoryConfigLoaderTest, ZeroBorderCellsIsInvalidValue) {

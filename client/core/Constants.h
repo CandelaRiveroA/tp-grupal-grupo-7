@@ -36,6 +36,18 @@ inline constexpr const char* kCharactersFile = "characters.toml";
 
 inline constexpr const char* kInventoryFile = "inventory.toml";
 
+inline constexpr const char* kToolsOverlayFile = "tools_overlay.toml";
+
+inline constexpr const char* kResourcesFile = "resources.toml";
+
+inline constexpr const char* kObtainedBannerFile = "obtained_banner.toml";
+
+inline constexpr const char* kDigitsFile = "ui/digits.toml";
+
+// Cantidad de slots del inventario ocupados por el mock (pico, pala,
+// regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.
+inline constexpr int kInventorySlots = 4;
+
 inline constexpr const char* kServerHost = "127.0.0.1";
 inline constexpr const char* kServerPort = "8080";
 

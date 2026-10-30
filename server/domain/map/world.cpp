@@ -47,7 +47,7 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // ---------------------------------------------------------
 void World::move_player(uint8_t player_id, Direction dir) {
     Player& p = *this->players.at(player_id);
-    
+
     p.set_facing(dir);
 
     // Calculamos qué coordenada tiene enfrente ahora mismo
@@ -58,7 +58,7 @@ void World::move_player(uint8_t player_id, Direction dir) {
         // Finalmente, movemos fsicamente al jugador
         p.set_position(next_x, next_y);
         Cell& current_cell = this->grid[next_y][next_x];
-        
+
         if (!current_cell.is_empty()) {
             current_cell.entity->interact(p, ToolType::HAND, *this);
         }
@@ -66,6 +66,26 @@ void World::move_player(uint8_t player_id, Direction dir) {
 }
 
 const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }
+
+std::vector<uint8_t> World::get_player_ids() const {
+    std::vector<uint8_t> ids;
+    ids.reserve(this->players.size());
+    for (const auto& [id, player]: this->players) {
+        ids.push_back(id);
+    }
+    return ids;
+}
+
+uint16_t World::get_width() const { return this->width; }
+
+uint16_t World::get_height() const { return this->height; }
+
+const IEntity* World::get_entity_at(uint16_t x, uint16_t y) const {
+    if (x >= this->width || y >= this->height) {
+        return nullptr;
+    }
+    return this->grid[y][x].entity.get();
+}
 
 // ---------------------------------------------------------
 // GESTIÓN DE ENTIDADES en O(1)
@@ -102,14 +122,47 @@ void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
 
 void World::use_tool(uint8_t player_id) {
     Player& p = *this->players.at(player_id);
-    auto [tx, ty] = p.get_target_tile(); 
+    auto [tx, ty] = p.get_target_tile();
 
-    if (tx >= this->width || ty >= this->height) return;
+    if (tx >= this->width || ty >= this->height)
+        return;
 
     Cell& target_cell = this->grid[ty][tx];
-    
+
     if (!target_cell.is_empty()) {
         target_cell.entity->interact(p, p.get_equipped_tool(), *this);
+    }
+}
+void World::record_resource_hit(uint16_t x, uint16_t y, bool destroyed) {
+    resource_hits.push_back(ResourceHit{x, y, destroyed});
+}
+
+std::vector<ResourceHit> World::take_resource_hits() {
+    std::vector<ResourceHit> hits;
+    hits.swap(resource_hits);
+    return hits;
+}
+
+void World::record_pickup(uint8_t player_id, ItemID item) {
+    pickups.push_back(PlayerPickup{player_id, item});
+}
+
+std::vector<PlayerPickup> World::take_pickups() {
+    std::vector<PlayerPickup> taken;
+    taken.swap(pickups);
+    return taken;
+}
+
+void World::set_player_facing(uint8_t player_id, Direction dir) {
+    this->players.at(player_id)->set_facing(dir);
+}
+
+void World::take_item(uint8_t player_id) {
+    Player& p = *this->players.at(player_id);
+    Cell& own_cell = this->grid[p.get_y()][p.get_x()];
+
+    if (!own_cell.is_empty()) {
+        own_cell.entity->interact(p, ToolType::HAND, *this);
     }
 }
 void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }

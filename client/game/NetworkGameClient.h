@@ -2,6 +2,9 @@
 
 #include <cstdint>
 #include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "common/common_command.h"
 #include "common/common_protocol_receiver.h"
@@ -19,10 +22,13 @@ namespace game {
 
 class NetworkGameClient: public GameClient {
 public:
-    NetworkGameClient(const char* host, const char* port);
+    // toolUseDurationTicks: cuánto dura la animación de golpe en el cliente.
+    // Es presentación: el servidor avisa cuándo se usó la herramienta.
+    NetworkGameClient(const char* host, const char* port, int toolUseDurationTicks);
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
+    void update() override;
     const LocalWorldView& worldState() const override;
 
 private:
@@ -31,21 +37,29 @@ private:
         int cellY = 0;
         world::Direction facing = world::Direction::Front;
         bool moving = false;
+        int toolUseRemaining = 0;
     };
 
-    void rebuildInventory() const;
+    void apply(const ServerMessage& message);
 
     Socket socket_;
     ProtocolSender sender_;
     ProtocolReceiver receiver_;
     Queue<protocol::ClientMessage> commands_;
-    mutable Queue<ServerMessage> messages_;
+    Queue<ServerMessage> messages_;
     ClientSender clientSender_;
     ClientReceiver clientReceiver_;
 
     uint8_t localPlayerId_;
-    mutable std::map<uint8_t, RemotePlayer> players_;
-    mutable LocalWorldView view_;
+    int toolUseDurationTicks_;
+
+    std::map<uint8_t, RemotePlayer> players_;
+    std::map<std::pair<int, int>, ViewResource> resources_;
+    std::map<std::pair<int, int>, ViewDroppedItem> dropped_;
+    std::map<int, ViewInventorySlot> inventory_;
+    // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
+    std::vector<ViewResourceObtained> obtained_;
+    LocalWorldView view_;
 };
 
 }  // namespace game

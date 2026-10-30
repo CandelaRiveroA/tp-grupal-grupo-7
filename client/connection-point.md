@@ -1,76 +1,73 @@
 # Punto de conexión cliente ↔ servidor
 
 Documento para coordinar con quien hace **protocolos**. Resume qué manda el
-cliente, qué necesita recibir, y **dónde exactamente** se conecta la red.
+cliente, qué recibe, y **dónde exactamente** se conecta la red.
 
 El cliente es **dummy** (ver `Semana 2.md`): no decide la lógica de juego.
-Manda *intenciones* y dibuja el *estado* que el servidor devuelve. Del lado
-del cliente **solo hacemos SDL**: la implementación de red de `GameClient`
-la hace el equipo de red/servidor; nosotros dejamos el punto de conexión y
-el contrato listos.
+Manda *intenciones* y dibuja el *estado* que el servidor devuelve. El cliente
+SDL se conecta al servidor real con `game::NetworkGameClient`; `MockGameClient`
+queda solo para tests y desarrollo sin servidor.
 
 ```
-InputManager ──► Command ──► GameClient (interfaz = punto de conexión)
-                              │  sendCommand(cmd)   [cliente → servidor: ENVIAR]
-                              │  worldState()       [servidor → cliente: RECIBIR]
-                              ▼
-     MockGameClient  (lo que corre HOY: simula al server, sin red)
-     (mañana: una implementación de red de GameClient, que hace el
-      equipo de servidor; el cliente SDL no cambia)
+InputManager ──► MoveCommand ──► GameClient (interfaz = punto de conexión)
+                                  │  sendCommand(ClientMessage)   [cliente → servidor]
+                                  │  worldState()                  [servidor → cliente]
+                                  ▼
+      NetworkGameClient  (lo que corre en la app: socket + protocolo)
+      MockGameClient     (solo tests / desarrollo sin servidor)
 ```
 
 ---
 
-## 1. Qué MANDA el cliente — `protocol::Command`  (ACORDADO)
+## 1. Qué MANDA el cliente — `protocol::ClientMessage`
 
-Archivo: `common/common_command.h`. El cliente arma un `Command` con la
-acción del jugador y lo envía; el servidor valida y responde.
+Archivo: `common/common_command.h`. El cliente envía **intenciones** por
+dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 
 ```cpp
-enum class Move { Walk, Pick };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3 };
 
-struct Command {
-    Move         move;       // Walk = caminar, Pick = picar/interactuar
-    std::uint8_t x;          // CELDA DESTINO (absoluta) que PROPONE el cliente
-    std::uint8_t y;
-    Direction    direction;  // hacia dónde mira/va
-};
+struct MoveMessage { Direction direction; };  // caminar; fija el facing
+struct PickMessage { Direction direction; };  // picar la celda enfrentada
+struct TakeMessage { Direction direction; };  // recoger en la celda propia
+
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage>;
 ```
 
-- Para el **personaje**, el cliente **propone la celda destino** `(x, y)`;
-  el servidor decide si es válida (pared, colisión) y responde con el
-  estado resultante.
-- `x/y` son celdas **absolutas** de la grilla lógica (0..255 por eje).
-- `Direction` (`common/common_game_direction.h`): `Front, Back, Left,
-  Right` (`Front` = hacia abajo).
-
-**A acordar con protocolos:** formato de serialización de `Command` (orden
-de campos, endianness). El transporte ya existe: `common/Protocol` (bloques
-con prefijo de tamaño).
+- `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
+- Quedarse parado **no envía nada**.
+- Serialización: `type (u8) | direction (u8)`.
 
 ---
 
-## 2. Qué NECESITA RECIBIR el cliente — estado del mundo  (A DEFINIR)
+## 2. Qué RECIBE el cliente — estado y eventos
 
-Todavía **no está acordado** el mensaje de estado que el servidor manda al
-cliente (posiciones de entidades, inventario, etc.). **Falta definirlo con
-protocolos** y, cuando se defina, vivirá en `common/` como contrato
-compartido.
+Archivo: `common/common_server_status.h`. El servidor manda el **estado
+completo** en cada lote: empieza con `Reset` (10) y después describe a todos
+los jugadores, minerales, drops y slots ocupados. El cliente borra el mapa y el
+inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe.
 
-Mientras tanto, el cliente dibuja a partir de una **vista local
-provisional** (`client/game/LocalWorldView.h`), que NO es un contrato de
-red: es solo "lo que el render necesita hoy". Hoy la llena el mock con el
-jugador. Su forma (una lista de entidades con celda + dirección + si se
-mueve) sirve de referencia de qué necesita el cliente para dibujar.
+| Tipo | Mensaje | Payload | Significado |
+|------|---------|---------|-------------|
+| 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8` | Pose de un jugador |
+| 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
+| 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
+| 5 | `Dropped` | `x u16, y u16, content_id str` | Item caído en el piso |
+| 6 | `InventorySlot` | `slot u8, count u8, content_id str` | Slot ocupado del inventario propio |
+| 7 | `Obtained` | `content_id str` | Evento puntual: el jugador obtuvo un contenido |
+| 8 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |
+| 9 | `ResourceHit` | `x u16, y u16, destroyed u8` | Evento puntual: un golpe a un mineral |
+| 10 | `Reset` | (sin payload) | Primer mensaje de cada lote de estado: borra mapa e inventario del cliente |
 
-**A acordar con protocolos (cuando se defina el estado):**
-- **Unidades de posición:** el cliente las quiere en **celdas lógicas** (las
-  traduce a píxeles con `ScenePixelMapper`), para desacoplar al servidor de
-  la resolución.
-- Qué entidades incluye (jugador, otros jugadores, gallinas, vacas) e
-  **id estable** para seguirlas entre frames.
-- Si el **inventario** viaja en ese mensaje o por otro.
-- **Frecuencia / formato** (estado completo por tick vs. deltas).
+- `str` = `u16` de longitud + bytes.
+- Enteros en big-endian (`htons`/`ntohs`).
+- `content_id` es el vocabulario compartido de `inventory.toml` y
+  `resources.toml`: `pickaxe, shovel, watering_can, sword, silver, coal, lapis, gold`.
+- `Obtained` solo se manda al jugador que obtuvo el contenido, y no en el
+  inventario inicial.
+- Las dimensiones del mundo **no viajan por la red**: el servidor usa el mismo
+  tamaño que la escena del cliente (`bedroom`, 30x20).
 
 ---
 
@@ -84,25 +81,20 @@ esta interfaz.
 ```cpp
 class GameClient {
 public:
-    virtual void sendCommand(const protocol::Command&) = 0;  // ENVIAR
-    virtual const LocalWorldView& worldState() const = 0;    // RECIBIR
+    virtual void sendCommand(const protocol::ClientMessage&) = 0;  // ENVIAR
+    virtual const LocalWorldView& worldState() const = 0;          // RECIBIR
 };
 ```
 
-- Hoy corre **`MockGameClient`** (`client/game/MockGameClient.*`): simula al
-  servidor sin red (lleva al jugador a la celda propuesta con clamp a la
-  grilla, arma la vista). Es lo que permite avanzar el cliente sin servidor.
-- **La implementación de red** la hace el equipo de servidor: otra clase que
-  implemente `GameClient`, serializando el `Command` al enviar y
-  deserializando el estado al recibir (sobre `common/Protocol`). **No está
-  esbozada acá a propósito** (es trabajo fuera de SDL).
-- **Integrar = cambiar una línea** en `Application::createGameClient`
-  (devolver esa implementación en vez del mock). `createGameClient` es el
-  ÚNICO lugar del cliente SDL que nombra una implementación concreta de
-  `GameClient`; el loop (`runGameLoop`) y el render trabajan contra la
-  interfaz `GameClient&`, así que no se tocan.
-- Cuando se acuerde el estado de red (sección 2), el retorno de
-  `worldState()` pasará de `LocalWorldView` a ese contrato compartido.
+- `NetworkGameClient` (`client/game/NetworkGameClient.*`) es la implementación
+  que usa la app. Mantiene las colas del `ClientSender`/`ClientReceiver` y
+  traduce cada `ServerMessage` al `LocalWorldView` (jugadores, minerales,
+  items caídos, inventario, eventos `obtained`).
+- `Application::createGameClient` es el ÚNICO lugar del cliente SDL que nombra
+  una implementación concreta de `GameClient`. El loop y el render trabajan
+  contra `GameClient&`.
+- `MockGameClient` simula el servidor sin red. Se usa en los tests de la vista.
+- `LocalWorldView` es la vista que dibuja el render: no es un contrato de red.
 
 ---
 
@@ -170,14 +162,14 @@ los hace el equipo de red. El cliente solo llama a `worldState()` y
 
 ---
 
-## Resumen para la reunión
+## Resumen
 
 | Qué | Archivo | Estado |
 |-----|---------|--------|
-| Comando cliente→server | `common/common_command.h` | **acordado**; falta serialización |
-| Estado server→cliente | (a crear en `common/`) | **a definir**: unidades (celdas), entidades, inventario, deltas |
-| Punto de conexión | `client/game/GameClient.h` | listo (enviar/recibir); la implementación de red la hace servidor |
-| Dónde se drena/pushea | `client/sdl/loop/GameLoop.*` + tick en `client/core/Application.cpp` | listo: constant-rate loop, seam marcado (sección 4) |
+| Comando cliente→server | `common/common_command.h` | **implementado** (Move, Pick, Take) |
+| Estado y eventos server→cliente | `common/common_server_status.h` | **implementado** (10 tipos, sync por diferencias) |
+| Servidor autoritativo | `server/world_view.*`, `server/match.*` | **implementado** |
+| Punto de conexión | `client/game/GameClient.h`, `NetworkGameClient` | **implementado**, usado por la app |
+| Dónde se drena/pushea | `client/sdl/loop/GameLoop.*` + tick en `client/core/Application.cpp` | listo: constant-rate loop (sección 4) |
 
-El `Command` ya está en `common/`, así que **ambos lados lo compilan y usan
-la misma definición**.
+Ambos lados compilan la **misma** definición de `common/`.

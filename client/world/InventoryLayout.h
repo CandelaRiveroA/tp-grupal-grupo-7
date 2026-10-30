@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "world/ItemCatalog.h"
+#include "world/ContentCatalog.h"
 
 namespace world {
 
@@ -70,11 +70,20 @@ struct InventoryLayout {
 
 	int itemPad = -1;
 
+	// Número de cantidad dibujado arriba-derecha del slot (count>1).
+	// digitScale: lado de cada dígito como fracción del lado del slot.
+	// digitMargin: margen interior (px, a uiScale) desde el borde del
+	//              slot hasta el número. Defaults si no están en el TOML.
+	double digitScale = 0.22;
+	int digitMargin = 3;
+
 	FrameCells frame;
 
 	FrameCells slotFrame;
 
-	ItemCatalog items;
+	FrameCells activeSlotFrame;
+
+	ContentCatalog content;
 
 
 	int scaled(int basePx) const;
@@ -109,7 +118,16 @@ struct InventoryLayout {
 
 	FrameLayout slotFrameLayout(const PixelBox& slot) const;
 
+	FrameLayout activeSlotFrameLayout(const PixelBox& slot) const;
+
 	PixelBox iconBox(const PixelBox& slot) const;
+
+	// Rects de cada dígito del número de cantidad, alineados ARRIBA y a
+	// la DERECHA dentro del slot, en orden izquierda->derecha. Los
+	// dígitos van pegados; el ancho total se limita al slot para que un
+	// número de 2+ dígitos no desborde. digitCount<=0 devuelve vacío.
+	std::vector<PixelBox> countBoxes(const PixelBox& slot,
+					 int digitCount) const;
 
 private:
 	FrameLayout nineSliceInside(const PixelBox& box, int t, int cells,

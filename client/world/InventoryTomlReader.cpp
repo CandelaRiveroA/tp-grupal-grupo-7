@@ -25,6 +25,7 @@ constexpr const char* kBarItemPad = "bar.item_pad";
 
 constexpr const char* kFrame = "frame";
 constexpr const char* kSlotFrame = "slot_frame";
+constexpr const char* kActiveSlotFrame = "active_slot_frame";
 
 constexpr const char* kBorderCells = "border_cells";
 constexpr const char* kThickness = "thickness";
@@ -45,10 +46,9 @@ constexpr const char* kItems = "items";
 constexpr const char* kItemSheet = "sheet";
 constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
-constexpr const char* kItemShovel = "shovel";
-constexpr const char* kItemPickaxe = "pickaxe";
-constexpr const char* kItemWateringCan = "watering_can";
-constexpr const char* kItemSword = "sword";
+
+constexpr const char* kBarDigitScale = "bar.digit_scale";
+constexpr const char* kBarDigitMargin = "bar.digit_margin";
 
 }
 
@@ -104,6 +104,20 @@ InventoryLayout InventoryTomlReader::read() const {
 	layout.itemPad =
 		doc_.hasKey(kBarItemPad) ? doc_.getInt(kBarItemPad) : -1;
 
+	if (doc_.hasKey(kBarDigitScale)) {
+		layout.digitScale = doc_.getDouble(kBarDigitScale);
+		if (layout.digitScale <= 0.0) {
+			throw ConfigError(Kind::InvalidValue, kBarDigitScale);
+		}
+	}
+
+	if (doc_.hasKey(kBarDigitMargin)) {
+		layout.digitMargin = doc_.getInt(kBarDigitMargin);
+		if (layout.digitMargin < 0) {
+			throw ConfigError(Kind::InvalidValue, kBarDigitMargin);
+		}
+	}
+
 	if (doc_.hasKey(kFrame)) {
 		readFrame(kFrame, layout.frame);
 	}
@@ -112,14 +126,18 @@ InventoryLayout InventoryTomlReader::read() const {
 		readFrame(kSlotFrame, layout.slotFrame);
 	}
 
+	if (doc_.hasKey(kActiveSlotFrame)) {
+		readFrame(kActiveSlotFrame, layout.activeSlotFrame);
+	}
+
 	if (doc_.hasKey(kItems)) {
-		readItems(layout.items);
+		readItems(layout.content);
 	}
 
 	return layout;
 }
 
-void InventoryTomlReader::readItems(world::ItemCatalog& catalog) const {
+void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
 	const std::vector<std::string> names = doc_.subtableKeys(kItems);
 	for (const std::string& name : names) {
 		const std::string base = join(kItems, name);
@@ -137,25 +155,10 @@ void InventoryTomlReader::readItems(world::ItemCatalog& catalog) const {
 		    visual.col < 0 || visual.row < 0) {
 			throw ConfigError(Kind::InvalidValue, base);
 		}
-		catalog.visuals.emplace(itemKindFor(name, base), visual);
+		// contentId = nombre de la subtabla. No se traduce a ningún
+		// enum: el inventario es genérico.
+		catalog.visuals.emplace(name, visual);
 	}
-}
-
-world::ItemKind InventoryTomlReader::itemKindFor(
-	const std::string& name, const std::string& context) const {
-	if (name == kItemShovel) {
-		return world::ItemKind::Shovel;
-	}
-	if (name == kItemPickaxe) {
-		return world::ItemKind::Pickaxe;
-	}
-	if (name == kItemWateringCan) {
-		return world::ItemKind::WateringCan;
-	}
-	if (name == kItemSword) {
-		return world::ItemKind::Sword;
-	}
-	throw ConfigError(Kind::InvalidValue, context);
 }
 
 void InventoryTomlReader::readFrame(const std::string& section,
@@ -188,10 +191,13 @@ void InventoryTomlReader::readFrame(const std::string& section,
 	frame.topRight = readCell(join(section, kTopRight));
 	frame.bottomLeft = readCell(join(section, kBottomLeft));
 	frame.bottomRight = readCell(join(section, kBottomRight));
-	frame.top = readCell(join(section, kTop));
-	frame.bottom = readCell(join(section, kBottom));
-	frame.left = readCell(join(section, kLeft));
-	frame.right = readCell(join(section, kRight));
+
+	if (!frame.cornersOnly) {
+		frame.top = readCell(join(section, kTop));
+		frame.bottom = readCell(join(section, kBottom));
+		frame.left = readCell(join(section, kLeft));
+		frame.right = readCell(join(section, kRight));
+	}
 }
 
 std::string InventoryTomlReader::join(const std::string& section,

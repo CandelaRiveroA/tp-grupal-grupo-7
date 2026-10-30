@@ -75,58 +75,49 @@ const world::CreatureData& player() {
 }
 
 const world::DirectionAppearance& dir(Direction facing) {
-	return (*player().directions)[static_cast<int>(facing)];
+	return player().directions[static_cast<int>(facing)];
 }
 
 const world::Pose* idlePoseOf(Direction facing) {
-	return &dir(facing).actions->at(ActionKind::Idle).frames[0];
+	return &dir(facing).actions.at(ActionKind::Idle).frames[0];
 }
 const world::Pose* walkPoseOf(Direction facing, std::size_t frame) {
-	return &dir(facing).actions->at(ActionKind::Walk).frames[frame];
+	return &dir(facing).actions.at(ActionKind::Walk).frames[frame];
 }
 
 int ticks(int n) { return n * player().cadence.frameTicks; }
 
 TEST(EntityAppearanceTest, IdleIgnoresTheAnimationTick) {
-	const EntityAppearance start = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Idle, 0);
-	const EntityAppearance later = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Idle, 999);
+	const EntityAppearance start = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Idle, 0);
+	const EntityAppearance later = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Idle, 999);
 	EXPECT_EQ(start.pose, idlePoseOf(Direction::Front));
 	EXPECT_EQ(later.pose, idlePoseOf(Direction::Front));
 	EXPECT_FALSE(start.mirrored);
 }
 
 TEST(EntityAppearanceTest, WalkStartsOnTheFirstFrameOfTheSequence) {
-	const EntityAppearance appearance = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Walk, 0);
+	const EntityAppearance appearance = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, 0);
 	EXPECT_EQ(appearance.pose, walkPoseOf(Direction::Front, 0));
 }
 
 TEST(EntityAppearanceTest, WalkAdvancesOneFrameEveryWalkFrameTicks) {
-	const EntityAppearance second = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Walk, ticks(1));
+	const EntityAppearance second = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, ticks(1));
 	EXPECT_EQ(second.pose, walkPoseOf(Direction::Front, 1));
 
-	const EntityAppearance cycled = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Walk, ticks(2));
+	const EntityAppearance cycled = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, ticks(2));
 	EXPECT_EQ(cycled.pose, walkPoseOf(Direction::Front, 0));
 }
 
 TEST(EntityAppearanceTest, FrameIsDecidedByTheIterationNotByRenderCalls) {
-	const EntityAppearance dropped = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Walk, ticks(3));
-	const EntityAppearance again = world::appearanceFor(
-		player(), Direction::Front, ActionKind::Walk, ticks(3));
+	const EntityAppearance dropped = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, ticks(3));
+	const EntityAppearance again = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, ticks(3));
 	EXPECT_EQ(dropped.pose, again.pose);
 	EXPECT_EQ(dropped.pose, walkPoseOf(Direction::Front, 1));
 }
 
 TEST(EntityAppearanceTest, MirroredDirectionReusesTheSameFrames) {
-	const EntityAppearance left = world::appearanceFor(
-		player(), Direction::Left, ActionKind::Walk, ticks(1));
-	const EntityAppearance right = world::appearanceFor(
-		player(), Direction::Right, ActionKind::Walk, ticks(1));
+	const EntityAppearance left = world::AppearanceResolver(player()).appearanceFor( Direction::Left, ActionKind::Walk, ticks(1));
+	const EntityAppearance right = world::AppearanceResolver(player()).appearanceFor( Direction::Right, ActionKind::Walk, ticks(1));
 	ASSERT_EQ(left.pose->size(), right.pose->size());
 	for (std::size_t i = 0; i < left.pose->size(); ++i) {
 		EXPECT_EQ((*left.pose)[i].frame.col,
@@ -140,16 +131,16 @@ TEST(EntityAppearanceTest, MirroredDirectionReusesTheSameFrames) {
 
 
 TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, 0),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, ticks(1)),
 		  1);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, ticks(2)),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, ticks(3)),
 		  1);
 }
@@ -157,10 +148,8 @@ TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
 TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
 	const int stepTicks = player().cadence.stepTicks;
 	for (int tick = 0; tick < 4 * stepTicks; tick += 7) {
-		const int frame = world::frameIndexFor(
-			player(), Direction::Front, ActionKind::Walk, tick);
-		const EntityAppearance appearance = world::appearanceFor(
-			player(), Direction::Front, ActionKind::Walk, tick);
+		const int frame = world::AppearanceResolver(player()).frameIndexFor( Direction::Front, ActionKind::Walk, tick);
+		const EntityAppearance appearance = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::Walk, tick);
 		EXPECT_EQ(appearance.pose,
 			  walkPoseOf(Direction::Front,
 				     static_cast<std::size_t>(frame)))
@@ -170,66 +159,64 @@ TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
 
 
 TEST(EntityAppearanceTest, IdleFrameIndexIsAlwaysZero) {
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Idle, 0),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Idle, 999),
 		  0);
 }
 
 
 TEST(EntityAppearanceTest, OneShotAdvancesWithItsOwnFrameTicks) {
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 0),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 7),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 8),
 		  1);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 16),
 		  2);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 32),
 		  4);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 80),
 		  4);
 }
 
 TEST(EntityAppearanceTest, WalkKeepsTheCadenceFrameRateAlongsideAFastAction) {
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 8),
 		  1);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::Walk, 8),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::Walk, 24),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Right,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Right,
 				       ActionKind::UseTool, 24),
 		  3);
 }
 
 TEST(EntityAppearanceTest, UncachedUseToolFallsBackToIdle) {
-	const EntityAppearance front = world::appearanceFor(
-		player(), Direction::Front, ActionKind::UseTool, 0);
-	const EntityAppearance back = world::appearanceFor(
-		player(), Direction::Back, ActionKind::UseTool, 0);
+	const EntityAppearance front = world::AppearanceResolver(player()).appearanceFor( Direction::Front, ActionKind::UseTool, 0);
+	const EntityAppearance back = world::AppearanceResolver(player()).appearanceFor( Direction::Back, ActionKind::UseTool, 0);
 	EXPECT_EQ(front.pose, idlePoseOf(Direction::Front));
 	EXPECT_EQ(back.pose, idlePoseOf(Direction::Back));
 	EXPECT_FALSE(front.mirrored);
 }
 
 TEST(EntityAppearanceTest, UncachedActionFrameIndexIsTheIdleFrame) {
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::UseTool, 0),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::UseTool, 999),
 		  0);
 }
@@ -237,9 +224,9 @@ TEST(EntityAppearanceTest, UncachedActionFrameIndexIsTheIdleFrame) {
 
 TEST(EntityAppearanceTest, WalkCycleFitsExactlyOneStep) {
 	EXPECT_GT(player().cadence.frameTicks, 0);
-	for (const world::DirectionAppearance& direction : *player().directions) {
+	for (const world::DirectionAppearance& direction : player().directions) {
 		const world::ActionData& walk =
-			direction.actions->at(ActionKind::Walk);
+			direction.actions.at(ActionKind::Walk);
 		EXPECT_EQ(player().cadence.stepTicks,
 			  player().cadence.frameTicks *
 				  static_cast<int>(walk.frames.size()));
@@ -257,13 +244,13 @@ TEST(EntityAppearanceTest, AnotherCadenceChangesTheFrameRate) {
 	const world::CreatureData& slow =
 		slowCatalog.dataFor(world::CreatureKind::Player);
 
-	EXPECT_EQ(world::frameIndexFor(player(), Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, 12),
 		  1);
-	EXPECT_EQ(world::frameIndexFor(slow, Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(slow).frameIndexFor(Direction::Front,
 				       ActionKind::Walk, 12),
 		  0);
-	EXPECT_EQ(world::frameIndexFor(slow, Direction::Front,
+	EXPECT_EQ(world::AppearanceResolver(slow).frameIndexFor(Direction::Front,
 				       ActionKind::Walk, 20),
 		  1);
 }

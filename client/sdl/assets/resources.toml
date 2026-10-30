@@ -1,0 +1,55 @@
+# ============================================================
+# Recursos picables del mundo (minerales), descritos como DATOS.
+#
+# Mapea cada recurso LÓGICO (lo que el servidor pone en el mundo) y su
+# ESTADO de daño a la APARIENCIA: de qué hoja sale y qué bloque lo dibuja.
+# El servidor manda "mineral X en celda (c,r) en estado Y"; el cliente
+# resuelve cómo se ve acá, sin hardcodear. Agregar un recurso o estado es
+# editar este archivo; no hace falta recompilar.
+#
+# Cada estado es un bloque [col, row, cols, rows]: celda origen (esquina
+# superior-izquierda) + tamaño en celdas. Los minerales son 2x2.
+#
+# Lo carga world::ResourceConfigLoader hacia un world::ResourceCatalog
+# (datos puros, sin SDL), y el sdl::Renderer lo consume. El servidor
+# decide qué/dónde/estado; este archivo decide cómo se ve.
+#
+# Celdas relevadas de Cavern/ore.png con la herramienta de inspección.
+# ============================================================
+
+# Ajuste vertical global (px): BAJA todos los minerales para apoyarlos al
+# piso, compensando el espacio transparente de la hoja. Subir = más abajo.
+offset_y = 8
+
+# Escala global del sprite: agranda el dibujo para que el contenido visible
+# llene la celda y tape el aire transparente de arriba (así el recurso queda
+# a la altura del golpe). Crece hacia arriba, apoyado abajo. 1.0 = base.
+scale = 1.3
+
+[silver]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 0, 2, 2]
+cracked = [2, 0, 2, 2]
+broken  = [4, 0, 2, 2]
+
+[coal]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 2, 2, 2]
+cracked = [2, 2, 2, 2]
+broken  = [4, 2, 2, 2]
+
+[lapis]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 4, 2, 2]
+cracked = [2, 4, 2, 2]
+broken  = [4, 4, 2, 2]
+
+[gold]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 6, 2, 2]
+cracked = [2, 6, 2, 2]
+broken  = [4, 6, 2, 2]

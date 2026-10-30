@@ -66,6 +66,15 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    if (std::holds_alternative<ServerReset>(message)) {
+        // Cada lote describe el estado completo: lo que no vuelve ya no existe.
+        // players_ no se borra porque ServerStatus reescribe todas las
+        // posiciones y ServerLeave ya borra a quien se fue.
+        resources_.clear();
+        dropped_.clear();
+        inventory_.clear();
+        return;
+    }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
         return;
@@ -90,17 +99,9 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         }
         return;
     }
-    if (const auto* removed = std::get_if<ServerResourceRemoved>(&message)) {
-        resources_.erase({removed->x, removed->y});
-        return;
-    }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
         dropped_[{dropped->x, dropped->y}] =
                 ViewDroppedItem{dropped->content_id, dropped->x, dropped->y};
-        return;
-    }
-    if (const auto* removed = std::get_if<ServerDroppedRemoved>(&message)) {
-        dropped_.erase({removed->x, removed->y});
         return;
     }
     if (const auto* slot = std::get_if<ServerInventorySlot>(&message)) {

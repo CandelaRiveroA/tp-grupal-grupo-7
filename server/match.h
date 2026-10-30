@@ -45,6 +45,7 @@ private:
     void sync_all();
     void place_minerals();
     void broadcast(const ServerMessage& message);
+    void send_to(uint8_t player_id, const ServerMessage& message);
     void closeOutputs();
 
 public:

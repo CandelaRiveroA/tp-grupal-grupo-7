@@ -17,16 +17,13 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
                 {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
                 {ServerMessageType::Resource, &ProtocolReceiver::receive_resource_message},
-                {ServerMessageType::ResourceRemoved,
-                 &ProtocolReceiver::receive_resource_removed_message},
                 {ServerMessageType::Dropped, &ProtocolReceiver::receive_dropped_message},
-                {ServerMessageType::DroppedRemoved,
-                 &ProtocolReceiver::receive_dropped_removed_message},
                 {ServerMessageType::InventorySlot,
                  &ProtocolReceiver::receive_inventory_slot_message},
                 {ServerMessageType::Obtained, &ProtocolReceiver::receive_obtained_message},
                 {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
                 {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
+                {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -125,23 +122,11 @@ ServerMessage ProtocolReceiver::receive_resource_message() {
     return ServerResource{x, y, std::move(content_id), damage};
 }
 
-ServerMessage ProtocolReceiver::receive_resource_removed_message() {
-    const uint16_t x = receive_uint16();
-    const uint16_t y = receive_uint16();
-    return ServerResourceRemoved{x, y};
-}
-
 ServerMessage ProtocolReceiver::receive_dropped_message() {
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     std::string content_id = receive_string();
     return ServerDropped{x, y, std::move(content_id)};
-}
-
-ServerMessage ProtocolReceiver::receive_dropped_removed_message() {
-    const uint16_t x = receive_uint16();
-    const uint16_t y = receive_uint16();
-    return ServerDroppedRemoved{x, y};
 }
 
 ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
@@ -168,6 +153,8 @@ ServerMessage ProtocolReceiver::receive_resource_hit_message() {
 ServerMessage ProtocolReceiver::receive_tool_used_message() {
     return ServerToolUsed{receive_uint8()};
 }
+
+ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
 
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());

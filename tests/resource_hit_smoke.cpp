@@ -51,14 +51,11 @@ TEST(ResourceHitSmoke, PipelineCompletoDelGolpeLocal) {
                 cue.update({{hits[0].x, hits[0].y, hits[0].destroyed}});
         ASSERT_EQ(audio.size(), 1u);
         EXPECT_EQ(audio[0],
-                  (n == 4 ? game::ResourceAudioEvent::Broke
-                          : game::ResourceAudioEvent::Hit));
+                  (n == 4 ? game::ResourceAudioEvent::Broke : game::ResourceAudioEvent::Hit));
 
-        const std::vector<ServerMessage> changes = view.sync(world, 1);
-        if (n == 2) {
-            // Cracked -> Cracked: impacto sonoro sin cambio visual.
-            EXPECT_TRUE(changes.empty());
-        }
+        // Estado completo: el lote describe la celda con el daño actual,
+        // aunque el impacto no haya cambiado nada visible.
+        EXPECT_FALSE(view.sync(world, 1).empty());
     }
 
     // Roca agotada: ni golpes pedidos de mas ni sobre celda vacia.
@@ -68,8 +65,7 @@ TEST(ResourceHitSmoke, PipelineCompletoDelGolpeLocal) {
     world.use_tool(1);
     EXPECT_TRUE(world.take_resource_hits().empty());
     EXPECT_TRUE(cue.update({}).empty());
-    EXPECT_EQ(cue.update({{1, 1, false}, {1, 1, false}, {2, 2, true}}).size(),
-              3u);
+    EXPECT_EQ(cue.update({{1, 1, false}, {1, 1, false}, {2, 2, true}}).size(), 3u);
 
     // El mock reproduce lo mismo de su lado: golpe confirmado al terminar
     // la ventana, y resourceHits dura un tick en la vista.

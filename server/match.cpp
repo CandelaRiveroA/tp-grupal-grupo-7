@@ -52,6 +52,11 @@ void Match::handle(const PlayerMessage& event) {
     if (std::holds_alternative<protocol::PickMessage>(event.message)) {
         broadcast(ServerToolUsed{event.player_id});
     }
+    // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
+    // inventarios: solo se traduce a mensaje acá.
+    for (const PlayerPickup& pickup: world.take_pickups()) {
+        send_to(pickup.player_id, ServerObtained{content_id_for(pickup.item)});
+    }
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
@@ -66,7 +71,6 @@ void Match::handle(const PlayerLeft& left) {
     const std::shared_ptr<Queue<ServerMessage>> leaving = it->second;
     outputs.erase(it);
     world.remove_player(left.player_id);
-    views.forget(left.player_id);
     broadcast(ServerLeave{left.player_id});
     leaving->close();
 }
@@ -99,6 +103,18 @@ void Match::broadcast(const ServerMessage& message) {
         } catch (const ClosedQueue&) {
             // Un cliente desconectado no debe detener la partida para los demas.
         }
+    }
+}
+
+void Match::send_to(uint8_t player_id, const ServerMessage& message) {
+    const auto it = outputs.find(player_id);
+    if (it == outputs.end()) {
+        return;
+    }
+    try {
+        it->second->push(message);
+    } catch (const ClosedQueue&) {
+        // Un cliente desconectado no debe detener la partida para los demas.
     }
 }
 

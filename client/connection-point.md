@@ -42,9 +42,10 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage>;
 
 ## 2. Qué RECIBE el cliente — estado y eventos
 
-Archivo: `common/common_server_status.h`. El servidor manda **diferencias**:
-cada cliente recibe solo lo que cambió desde su último sync. El primer sync
-después del `Welcome` es el mundo completo.
+Archivo: `common/common_server_status.h`. El servidor manda el **estado
+completo** en cada lote: empieza con `Reset` (10) y después describe a todos
+los jugadores, minerales, drops y slots ocupados. El cliente borra el mapa y el
+inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe.
 
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
@@ -52,12 +53,12 @@ después del `Welcome` es el mundo completo.
 | 1 | `Status` | `player_id u8, x u16, y u16, direction u8` | Pose de un jugador |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
-| 5 | `ResourceRemoved` | `x u16, y u16` | El mineral se agotó |
-| 6 | `Dropped` | `x u16, y u16, content_id str` | Item caído en el piso |
-| 7 | `DroppedRemoved` | `x u16, y u16` | El item ya no está en el piso |
-| 8 | `InventorySlot` | `slot u8, count u8, content_id str` | Slot del inventario propio (`count 0` = vacío) |
-| 9 | `Obtained` | `content_id str` | Evento puntual: el jugador obtuvo un contenido |
-| 10 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |
+| 5 | `Dropped` | `x u16, y u16, content_id str` | Item caído en el piso |
+| 6 | `InventorySlot` | `slot u8, count u8, content_id str` | Slot ocupado del inventario propio |
+| 7 | `Obtained` | `content_id str` | Evento puntual: el jugador obtuvo un contenido |
+| 8 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |
+| 9 | `ResourceHit` | `x u16, y u16, destroyed u8` | Evento puntual: un golpe a un mineral |
+| 10 | `Reset` | (sin payload) | Primer mensaje de cada lote de estado: borra mapa e inventario del cliente |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

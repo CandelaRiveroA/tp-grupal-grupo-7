@@ -15,8 +15,6 @@ public:
     DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y);
     ~DroppedItem() override = default;
 
-    const Item* get_payload() const;
-
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     std::optional<CellSnapshot> snapshot() const override;

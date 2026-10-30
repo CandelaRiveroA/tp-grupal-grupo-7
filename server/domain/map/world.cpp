@@ -143,6 +143,16 @@ std::vector<ResourceHit> World::take_resource_hits() {
     return hits;
 }
 
+void World::record_pickup(uint8_t player_id, ItemID item) {
+    pickups.push_back(PlayerPickup{player_id, item});
+}
+
+std::vector<PlayerPickup> World::take_pickups() {
+    std::vector<PlayerPickup> taken;
+    taken.swap(pickups);
+    return taken;
+}
+
 void World::set_player_facing(uint8_t player_id, Direction dir) {
     this->players.at(player_id)->set_facing(dir);
 }

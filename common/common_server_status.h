@@ -12,17 +12,15 @@ enum class ServerMessageType : uint8_t {
     Welcome = 2,
     Leave = 3,
     Resource = 4,
-    ResourceRemoved = 5,
-    Dropped = 6,
-    DroppedRemoved = 7,
-    InventorySlot = 8,
-    Obtained = 9,
-    ToolUsed = 10,
-    ResourceHit = 11,
+    Dropped = 5,
+    InventorySlot = 6,
+    Obtained = 7,
+    ToolUsed = 8,
+    ResourceHit = 9,
+    Reset = 10,
 };
 
-// Estado de daño visible de un recurso picable. Al agotarse el recurso
-// se envía ServerResourceRemoved, no un estado nuevo.
+// Estado de daño visible de un recurso picable.
 enum class ResourceDamage : uint8_t { Intact = 0, Cracked = 1, Broken = 2 };
 
 struct ServerStatus {
@@ -50,20 +48,10 @@ struct ServerResource {
     ResourceDamage damage;
 };
 
-struct ServerResourceRemoved {
-    uint16_t x;
-    uint16_t y;
-};
-
 struct ServerDropped {
     uint16_t x;
     uint16_t y;
     std::string content_id;
-};
-
-struct ServerDroppedRemoved {
-    uint16_t x;
-    uint16_t y;
 };
 
 // count 0 = slot vacío (content_id vacío).
@@ -90,8 +78,12 @@ struct ServerResourceHit {
     bool destroyed;
 };
 
-using ServerMessage = std::variant<ServerStatus, ServerLeave, ServerResource, ServerResourceRemoved,
-                                   ServerDropped, ServerDroppedRemoved, ServerInventorySlot,
-                                   ServerObtained, ServerToolUsed, ServerResourceHit>;
+// Borra el estado ya aplicado (mapa, inventario). El lote que sigue es
+// siempre el estado completo, así que lo que no vuelva ya no existe.
+struct ServerReset {};
+
+using ServerMessage =
+        std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
+                     ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset>;
 
 #endif

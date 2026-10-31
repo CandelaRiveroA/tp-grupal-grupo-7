@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <deque>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -38,15 +39,10 @@ public:
 	bool left() const;
 	bool right() const;
 
-	bool takeUseTool();
-
-	// Retorna true una sola vez por pulsación de Enter (one-shot): es la
-	// intención de RECOGER un item del piso. Se consume al leer.
-	bool takeCollect();
-
-	// Retorna el índice de slot (0..kInventorySlots-1) si se presionó
-	// una tecla numérica 1-4, o nullopt si no. Se consume al leer (one-shot).
-	std::optional<int> takeSlotSelect();
+	// Saca la próxima intención one-shot (una por pulsación). Si se
+	// pulsaron varias teclas en el mismo frame quedan varias pendientes y
+	// salen en orden de pulsación. Se consume al leer.
+	std::optional<Command> takeCommand();
 
 	const std::unordered_map<SDL_Keycode, Action>& bindings() const;
 	bool isBound(SDL_Keycode key) const;
@@ -77,11 +73,9 @@ private:
 	std::array<bool, static_cast<std::size_t>(Action::Count)> flags_{};
 
 	SDL_Keycode useToolKey_;
-	bool useToolTriggered_ = false;
 	SDL_Keycode collectKey_;
-	bool collectTriggered_ = false;
 	int slotCount_ = 0;
-	std::optional<int> slotSelected_;  // índice 0..slotCount_-1, one-shot
+	std::deque<Command> pending_;  // cola de one-shot: varios por frame
 };
 
 }

@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -224,24 +225,40 @@ int Application::runGameLoop(
             }
             case game::WalkIntent::Stop:
                 break;
+            default:
+                throw std::logic_error("walk: intención desconocida");
         }
 
-        if (input.takeUseTool() && !pressed.has_value()) {
-            gameClient.sendCommand(moveCommand.use(walkPacer.lastDirection()));
-        }
-
-        // Enter: recoger el mineral del piso en la celda actual. Es una
-        // INTENCIÓN (cliente dummy): la fuente decide si hay algo y, si lo
-        // hay, emite el evento obtained que dispara el panel + sonido.
-        if (input.takeCollect() && !pressed.has_value()) {
-            gameClient.sendCommand(moveCommand.take(walkPacer.lastDirection()));
-        }
-
-        if (const std::optional<int> slot = input.takeSlotSelect()) {
-            const int previous = inventorySelector.active();
-            inventorySelector.select(*slot, core::kInventorySlots);
-            if (inventorySelector.active() != previous) {
-                audio.play(sdl::SoundId::ToolSwitch);
+        // Intenciones one-shot del usuario (una por pulsación). Usar la
+        // herramienta y recoger del piso son INTENCIONES (cliente dummy):
+        // la fuente decide si hay algo y, si lo hay, emite el evento
+        // obtained que dispara el panel + sonido.
+        using CommandKind = sdl::InputManager::CommandKind;
+        while (const auto command = input.takeCommand()) {
+            switch (command->kind) {
+                case CommandKind::UseTool:
+                    if (!pressed.has_value()) {
+                        gameClient.sendCommand(
+                                moveCommand.use(walkPacer.lastDirection()));
+                    }
+                    break;
+                case CommandKind::Collect:
+                    if (!pressed.has_value()) {
+                        gameClient.sendCommand(
+                                moveCommand.take(walkPacer.lastDirection()));
+                    }
+                    break;
+                case CommandKind::SelectSlot: {
+                    const int previous = inventorySelector.active();
+                    inventorySelector.select(command->slot,
+                                             core::kInventorySlots);
+                    if (inventorySelector.active() != previous) {
+                        audio.play(sdl::SoundId::ToolSwitch);
+                    }
+                    break;
+                }
+                default:
+                    throw std::logic_error("input: comando desconocido");
             }
         }
 

@@ -1,7 +1,5 @@
 #include "InputManager.h"
 
-#include <stdexcept>
-
 #include <SDL2/SDL_keycode.h>
 
 namespace sdl {
@@ -91,37 +89,16 @@ auto InputManager::commandFor(SDL_Keycode key) const -> const Command* {
 }
 
 void InputManager::fire(const Command& command) {
-	switch (command.kind) {
-		case CommandKind::UseTool:
-			useToolTriggered_ = true;
-			break;
-		case CommandKind::Collect:
-			collectTriggered_ = true;
-			break;
-		case CommandKind::SelectSlot:
-			slotSelected_ = command.slot;
-			break;
-		default:
-			throw std::logic_error("input: comando desconocido");
+	pending_.push_back(command);
+}
+
+auto InputManager::takeCommand() -> std::optional<Command> {
+	if (pending_.empty()) {
+		return std::nullopt;
 	}
-}
-
-bool InputManager::takeUseTool() {
-	const bool triggered = useToolTriggered_;
-	useToolTriggered_ = false;
-	return triggered;
-}
-
-bool InputManager::takeCollect() {
-	const bool triggered = collectTriggered_;
-	collectTriggered_ = false;
-	return triggered;
-}
-
-std::optional<int> InputManager::takeSlotSelect() {
-	const std::optional<int> selected = slotSelected_;
-	slotSelected_ = std::nullopt;
-	return selected;
+	const Command command = pending_.front();
+	pending_.pop_front();
+	return command;
 }
 
 void InputManager::rebindUseTool(SDL_Keycode newKey) {

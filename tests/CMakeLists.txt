@@ -70,3 +70,19 @@ target_sources(taller_tests
 
 # world_view.h incluye el dominio del servidor con rutas relativas a server/.
 target_include_directories(taller_tests PRIVATE ${PROJECT_SOURCE_DIR}/server)
+
+# InputManager consume SDL_Event/SDL_Keycode (headers de SDL2). SDL2 se
+# fetchea solo si hay client/editor/tile-inspector (raíz del CMakeLists),
+# así que los tests de input se agregan únicamente en esa configuración;
+# en la config "solo tests" (make run-tests) no se compilan.
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+    target_sources(taller_tests
+        PRIVATE
+        input_manager_test.cpp
+        # El target de tests lo compila directo (igual que CharacterLayers).
+        ${PROJECT_SOURCE_DIR}/client/sdl/input/InputManager.cpp
+    )
+    # Linkear SDL2pp::SDL2pp propaga los includes de SDL2 (no se llaman
+    # funciones SDL: solo se construyen eventos sintéticos).
+    target_link_libraries(taller_tests SDL2pp::SDL2pp)
+endif()

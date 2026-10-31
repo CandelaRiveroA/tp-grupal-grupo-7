@@ -506,11 +506,11 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 	const std::array<int, 4> kWalkRows = {0, 2, 3, 1};
 	for (std::size_t d = 0; d < kWalkRows.size(); ++d) {
 		const world::DirectionAppearance& dir =
-			(*data.directions)[d];
+			data.directions[d];
 		EXPECT_FALSE(dir.mirrored)
 			<< "la hoja trae las cuatro direcciones explícitas";
-		const auto walk = dir.actions->find(ActionKind::Walk);
-		ASSERT_NE(walk, dir.actions->end());
+		const auto walk = dir.actions.find(ActionKind::Walk);
+		ASSERT_NE(walk, dir.actions.end());
 		EXPECT_EQ(walk->second.frames.size(), 4u);
 		for (std::size_t f = 0; f < walk->second.frames.size(); ++f) {
 			EXPECT_EQ(walk->second.frames[f][0].frame.col,
@@ -527,9 +527,9 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 	const std::array<int, 4> kIdleCols = {0, 0, 2, 2};
 	for (std::size_t d = 0; d < kIdleCols.size(); ++d) {
 		const world::DirectionAppearance& dir =
-			(*data.directions)[d];
-		const auto idle = dir.actions->find(ActionKind::Idle);
-		ASSERT_NE(idle, dir.actions->end());
+			data.directions[d];
+		const auto idle = dir.actions.find(ActionKind::Idle);
+		ASSERT_NE(idle, dir.actions.end());
 		EXPECT_EQ(idle->second.frames.size(), 1u);
 		EXPECT_EQ(idle->second.frames[0][0].frame.col, kIdleCols[d]);
 		EXPECT_EQ(idle->second.frames[0][0].frame.row, kIdleRows[d]);
@@ -537,8 +537,8 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 
 	// La gallina no declara use_tool: pedirlo cae a idle (sin romper).
 	const world::EntityAppearance idleFallBack =
-		world::appearanceFor(data, Direction::Front,
-				     ActionKind::UseTool, 0);
+		world::AppearanceResolver(data).appearanceFor(
+			Direction::Front, ActionKind::UseTool, 0);
 	EXPECT_EQ((*idleFallBack.pose)[0].frame.col, 0);
 	EXPECT_EQ((*idleFallBack.pose)[0].frame.row, 4);
 }
@@ -568,10 +568,10 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsCow) {
 	const std::array<bool, 4> kMirrored = {false, false, false, true};
 	for (std::size_t d = 0; d < kWalkRows.size(); ++d) {
 		const world::DirectionAppearance& dir =
-			(*data.directions)[d];
+			data.directions[d];
 		EXPECT_EQ(dir.mirrored, kMirrored[d]);
-		const auto walk = dir.actions->find(ActionKind::Walk);
-		ASSERT_NE(walk, dir.actions->end());
+		const auto walk = dir.actions.find(ActionKind::Walk);
+		ASSERT_NE(walk, dir.actions.end());
 		EXPECT_EQ(walk->second.frames.size(), 4u);
 		for (std::size_t f = 0; f < walk->second.frames.size(); ++f) {
 			EXPECT_EQ(walk->second.frames[f][0].frame.col,
@@ -581,8 +581,8 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsCow) {
 		}
 		// La hoja no trae poses de descanso: idle = primer cuadro
 		// del walk de la dirección.
-		const auto idle = dir.actions->find(ActionKind::Idle);
-		ASSERT_NE(idle, dir.actions->end());
+		const auto idle = dir.actions.find(ActionKind::Idle);
+		ASSERT_NE(idle, dir.actions.end());
 		EXPECT_EQ(idle->second.frames.size(), 1u);
 		EXPECT_EQ(idle->second.frames[0][0].frame.col, 0);
 		EXPECT_EQ(idle->second.frames[0][0].frame.row, kWalkRows[d]);

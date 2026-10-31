@@ -77,7 +77,7 @@ void InventoryHud::draw(
 		if (!layout_.content.has(entry.contentId)) {
 			continue;
 		}
-		const world::ItemVisual& visual =
+		const world::SpriteVisual& visual =
 			layout_.content.visualFor(entry.contentId);
 		SpriteSheet& itemSheet = itemSheets_.sheet(
 			visual.sheetImage, core::assetPath(visual.sheetImage),

@@ -130,10 +130,12 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	}
 
 	SpriteSheet& sheet = sheetCache_.sheet(
-		visual.sheetImage, core::assetPath(visual.sheetImage),
-		visual.cellWidth, visual.cellHeight);
+		visual.sprite.sheetImage,
+		core::assetPath(visual.sprite.sheetImage),
+		visual.sprite.cellWidth, visual.sprite.cellHeight);
 
-	sheet.drawBlock(visual.col, visual.row, visual.cols, visual.rows,
+	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
+			visual.rows,
 			SDL2pp::Rect(x, y, w, h));
 }
 
@@ -148,7 +150,7 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 	if (!content_.has(item.contentId)) {
 		return;
 	}
-	const world::ItemVisual& visual = content_.visualFor(item.contentId);
+	const world::SpriteVisual& visual = content_.visualFor(item.contentId);
 
 	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
 		world::GridCell{item.cellX, item.cellY},

@@ -4,7 +4,7 @@
 #include <optional>
 #include <utility>
 
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 
 namespace game {
 

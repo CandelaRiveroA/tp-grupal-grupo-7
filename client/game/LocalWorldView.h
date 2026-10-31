@@ -7,7 +7,7 @@
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 

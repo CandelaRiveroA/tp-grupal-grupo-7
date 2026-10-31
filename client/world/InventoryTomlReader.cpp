@@ -143,7 +143,7 @@ void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
 	const std::vector<std::string> names = doc_.subtableKeys(kItems);
 	for (const std::string& name : names) {
 		const std::string base = join(kItems, name);
-		world::ItemVisual visual;
+		world::SpriteVisual visual;
 		visual.sheetImage = doc_.getString(join(base, kItemSheet));
 		const std::array<int, 2> cell =
 			doc_.getIntArray<2>(join(base, kItemCell));

@@ -6,7 +6,7 @@
 
 #include "world/ViewDirection.h"
 #include "world/CharacterAppearance.h"
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 
 namespace world {
 

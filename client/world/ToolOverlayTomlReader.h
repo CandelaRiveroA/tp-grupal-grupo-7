@@ -6,7 +6,7 @@
 
 #include "toml/TomlDocument.h"
 #include "world/CharacterAppearance.h"
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 #include "world/ToolOverlay.h"
 
 namespace world {

@@ -96,8 +96,8 @@ BannerFrame ObtainedBannerTomlReader::readFrame() const {
     return frame;
 }
 
-BannerIcon ObtainedBannerTomlReader::readIcon(const std::string& base) const {
-    BannerIcon icon;
+SpriteVisual ObtainedBannerTomlReader::readIcon(const std::string& base) const {
+    SpriteVisual icon;
 
     const std::string sheetPath = join(base, kSheet);
     icon.sheetImage = doc_.getString(sheetPath);

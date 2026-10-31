@@ -25,7 +25,7 @@ private:
 
     BannerFrame readFrame() const;
 
-    BannerIcon readIcon(const std::string& base) const;
+    SpriteVisual readIcon(const std::string& base) const;
 
     const tomlcfg::TomlDocument& doc_;
 };

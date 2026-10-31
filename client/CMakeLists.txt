@@ -120,7 +120,8 @@ target_sources(taller_client
     world/InventoryLayout.h
     world/InventoryTomlReader.h
     world/InventoryConfigLoader.h
-    world/ItemCatalog.h
+    world/ItemKind.h
+    world/SpriteVisual.h
     world/ToolOverlay.h
     world/ToolOverlayLayout.h
     world/ToolOverlayLoader.h

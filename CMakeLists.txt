@@ -163,7 +163,6 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
-        client/world/ItemCatalog.cpp
         client/world/ContentCatalog.cpp
         client/world/DigitCatalog.cpp
         client/world/DigitConfigLoader.cpp

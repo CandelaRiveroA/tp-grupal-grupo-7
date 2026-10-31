@@ -79,7 +79,7 @@ void ObtainedBannerHud::draw(const std::vector<game::ActiveBanner>& banners) {
         drawPanel(panel.x, panel.y, panel.width);
 
         const world::BannerBox icon = layout.iconBox(panel);
-        const world::BannerIcon& iconVisual = catalog_.iconFor(banner.kind);
+        const world::SpriteVisual& iconVisual = catalog_.iconFor(banner.kind);
         SpriteSheet& iconSheet =
                 iconSheets_.sheet(iconVisual.sheetImage, core::assetPath(iconVisual.sheetImage),
                                   iconVisual.cellWidth, iconVisual.cellHeight);

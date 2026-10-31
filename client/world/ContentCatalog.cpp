@@ -6,7 +6,7 @@ bool ContentCatalog::has(const std::string& contentId) const {
 	return visuals.find(contentId) != visuals.end();
 }
 
-const ItemVisual& ContentCatalog::visualFor(
+const SpriteVisual& ContentCatalog::visualFor(
 	const std::string& contentId) const {
 	return visuals.at(contentId);
 }

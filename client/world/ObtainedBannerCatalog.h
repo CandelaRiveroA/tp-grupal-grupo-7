@@ -4,6 +4,7 @@
 #include <string>
 
 #include "world/ResourceCatalog.h"
+#include "world/SpriteVisual.h"
 
 namespace world {
 
@@ -31,14 +32,8 @@ struct BannerFrame {
     BannerCell fill;
 };
 
-// Icono del mineral obtenido: bloque 1x1 de su hoja (ore.png).
-struct BannerIcon {
-    std::string sheetImage;
-    int cellWidth = 0;
-    int cellHeight = 0;
-    int col = 0;
-    int row = 0;
-};
+// El icono del mineral obtenido usa el sprite común (SpriteVisual):
+// bloque 1x1 de su hoja (ore.png).
 
 // Descripción completa del cartel de "mineral obtenido", como DATOS. La
 // fuente (mock o servidor) decide CUÁNDO aparece; este catálogo, CÓMO se
@@ -46,7 +41,7 @@ struct BannerIcon {
 struct ObtainedBannerCatalog {
     BannerFrame frame;
 
-    std::map<ResourceKind, BannerIcon> icons;
+    std::map<ResourceKind, SpriteVisual> icons;
 
     // Lado del panel como múltiplo del bloque de inventario.
     double sizeFactor = 2.0;
@@ -61,7 +56,7 @@ struct ObtainedBannerCatalog {
 
     bool hasIcon(ResourceKind kind) const;
 
-    const BannerIcon& iconFor(ResourceKind kind) const;
+    const SpriteVisual& iconFor(ResourceKind kind) const;
 };
 
 }  // namespace world

@@ -6,6 +6,6 @@ bool ObtainedBannerCatalog::hasIcon(ResourceKind kind) const {
     return icons.find(kind) != icons.end();
 }
 
-const BannerIcon& ObtainedBannerCatalog::iconFor(ResourceKind kind) const { return icons.at(kind); }
+const SpriteVisual& ObtainedBannerCatalog::iconFor(ResourceKind kind) const { return icons.at(kind); }
 
 }  // namespace world

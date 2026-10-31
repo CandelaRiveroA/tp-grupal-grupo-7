@@ -143,8 +143,9 @@ endif()
 # Librería del cliente SIN dependencia de SDL: datos puros de la escena,
 # el loader de TOML, el logger de la sección SDL (que solo escribe a
 # stderr, no usa SDL), el FrameClock del game loop (cálculo puro de
-# std::chrono, sin SDL ni sleeps) y la geometría de TileLayout (solo
-# aritmética, el blit vive en ElementPainter). Al no depender de SDL, los tests la
+# std::chrono, sin SDL ni sleeps), la geometría de TileLayout/ElementLayout,
+# el Viewport y los índices espaciales (solo aritmética; el blit vive en
+# ElementPainter). Al no depender de SDL, los tests la
 # pueden linkear y probar esta lógica sin levantar una ventana. El
 # cliente también la linkea. Se crea acá (raíz) porque la necesitan
 # client y tests.
@@ -156,22 +157,49 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/SceneTomlReader.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
+        client/world/CreatureCatalog.cpp
+        client/world/CharacterTomlReader.cpp
+        client/world/CharacterLayout.cpp
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
         client/world/ItemCatalog.cpp
+        client/world/ContentCatalog.cpp
+        client/world/DigitCatalog.cpp
+        client/world/DigitConfigLoader.cpp
+        client/world/DigitTomlReader.cpp
+        client/world/ToolOverlay.cpp
+        client/world/ToolOverlayLayout.cpp
+        client/world/ToolOverlayLoader.cpp
+        client/world/ToolOverlayTomlReader.cpp
+        client/world/ResourceCatalog.cpp
+        client/world/ResourceConfigLoader.cpp
+        client/world/ResourceTomlReader.cpp
+        client/world/ObtainedBannerCatalog.cpp
+        client/world/ObtainedBannerConfigLoader.cpp
+        client/world/ObtainedBannerTomlReader.cpp
+        client/world/ObtainedBannerLayout.cpp
         client/world/ScenePixelMapper.cpp
+        client/world/ElementLayout.cpp
+        client/world/ChunkGrid.cpp
+        client/world/SceneElementIndex.cpp
         client/world/EntityAppearance.cpp
+        client/game/ViewSpatialIndex.cpp
         client/game/FootstepCue.cpp
+        client/game/ResourceAudioCue.cpp
+        client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
         client/game/MoveCommand.cpp
+        client/game/PlayerController.cpp
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
-        client/game/ToolUse.cpp
+        client/game/InventorySelector.cpp
         client/core/StartupSequence.cpp
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp
+        client/sdl/render/Camera.cpp
+        client/sdl/render/Viewport.cpp
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
     target_link_libraries(taller_client_world PUBLIC tomlplusplus::tomlplusplus

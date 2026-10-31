@@ -149,6 +149,12 @@ FrameLayout InventoryLayout::slotFrameLayout(const PixelBox& slot) const {
 			       true);
 }
 
+FrameLayout InventoryLayout::activeSlotFrameLayout(const PixelBox& slot) const {
+	const int t = scaled(activeSlotFrame.thickness);
+	return nineSliceInside(slot, t, activeSlotFrame.borderCells,
+			       activeSlotFrame, false);
+}
+
 PixelBox InventoryLayout::iconBox(const PixelBox& slot) const {
 	int pad;
 	if (itemPad >= 0) {
@@ -170,6 +176,48 @@ PixelBox InventoryLayout::iconBox(const PixelBox& slot) const {
 		box.height = 0;
 	}
 	return box;
+}
+
+std::vector<PixelBox> InventoryLayout::countBoxes(const PixelBox& slot,
+						  int digitCount) const {
+	std::vector<PixelBox> boxes;
+	if (digitCount <= 0) {
+		return boxes;
+	}
+
+	const int margin = scaled(digitMargin);
+
+	// Lado nominal de un dígito como fracción del lado del slot.
+	int digit = static_cast<int>(slot.width * digitScale + 0.5);
+	if (digit < 1) {
+		digit = 1;
+	}
+
+	// El número se apoya arriba-derecha. Si N dígitos pegados no entran
+	// en el ancho disponible (slot menos márgenes), se achican en
+	// conjunto para que quepan sin desbordar.
+	const int available = slot.width - 2 * margin;
+	if (available > 0 && digit * digitCount > available) {
+		digit = available / digitCount;
+		if (digit < 1) {
+			digit = 1;
+		}
+	}
+
+	const int totalWidthPx = digit * digitCount;
+	const int startX = slot.x + slot.width - margin - totalWidthPx;
+	const int y = slot.y + margin;
+
+	boxes.reserve(static_cast<std::size_t>(digitCount));
+	for (int i = 0; i < digitCount; ++i) {
+		PixelBox box;
+		box.x = startX + i * digit;
+		box.y = y;
+		box.width = digit;
+		box.height = digit;
+		boxes.push_back(box);
+	}
+	return boxes;
 }
 
 }

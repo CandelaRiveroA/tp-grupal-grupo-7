@@ -13,13 +13,6 @@ namespace game {
 class GameClient;
 }
 
-namespace world {
-class Scenario;
-struct GridSpan;
-class CharacterCatalog;
-struct InventoryLayout;
-}  // namespace world
-
 namespace core {
 
 class Application {
@@ -36,13 +29,11 @@ private:
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();
 
-    int runGame(const SessionConfig& session);
+    // Carga los datos de la partida y corre la sesión de juego. Validar
+    // que el lobby haya dado una sesión le corresponde a run().
+    int runGame();
 
-    std::unique_ptr<game::GameClient> createGameClient() const;
-
-    int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
-                    game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                    const world::InventoryLayout& inventory);
+    std::unique_ptr<game::GameClient> createGameClient(int toolUseDurationTicks) const;
 
     WindowConfig config_;
     QApplication app_;

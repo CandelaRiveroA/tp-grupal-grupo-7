@@ -20,8 +20,17 @@ private:
     static void validate_direction(Direction direction);
 
     void send_message(const protocol::MoveMessage& message);
+    void send_message(const protocol::PickMessage& message);
+    void send_message(const protocol::TakeMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
+    void send_message(const ServerResource& resource);
+    void send_message(const ServerDropped& dropped);
+    void send_message(const ServerInventorySlot& slot);
+    void send_message(const ServerObtained& obtained);
+    void send_message(const ServerToolUsed& used);
+    void send_message(const ServerResourceHit& hit);
+    void send_message(const ServerReset& reset);
 
 public:
     explicit ProtocolSender(Socket& socket);

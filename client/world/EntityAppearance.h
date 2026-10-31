@@ -10,11 +10,25 @@ struct EntityAppearance {
 	bool mirrored;
 };
 
-int frameIndexFor(const CreatureData& creature, Direction facing,
-		  ActionKind action, int animationTick);
+// Resuelve la apariencia de una criatura a partir de sus datos: dado el
+// facing, la acción y el tick de animación, decide qué cuadro y qué pose
+// corresponden. Dueño del concepto "cómo se ve esta criatura ahora".
+// Separa la lógica de animación de CreatureData (datos puros).
+class AppearanceResolver {
+public:
+	explicit AppearanceResolver(const CreatureData& creature);
 
-EntityAppearance appearanceFor(const CreatureData& creature,
-			       Direction facing, ActionKind action,
-			       int animationTick);
+	int frameIndexFor(Direction facing, ActionKind action,
+			  int animationTick) const;
+
+	EntityAppearance appearanceFor(Direction facing, ActionKind action,
+				       int animationTick) const;
+
+private:
+	const ActionData& actionData(Direction facing,
+				     ActionKind action) const;
+
+	const CreatureData& creature_;
+};
 
 }

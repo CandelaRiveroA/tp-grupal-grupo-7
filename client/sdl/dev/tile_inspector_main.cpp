@@ -14,7 +14,7 @@
 
 namespace {
 
-constexpr const char* kSheetRelPath = "Players/main/Character_Base.png";
+constexpr const char* kSheetRelPath = "Cavern/ore.png";
 constexpr int kCellSize = 16;
 
 const SDL2pp::Color kBackground(30, 30, 40, 255);
@@ -124,8 +124,11 @@ int main() {
 	SDL2pp::Texture probe = context.createTexture(sheetPath);
 	const int sheetW = probe.GetWidth();
 	const int sheetH = probe.GetHeight();
-	const int cols = sheetW / kCellSize;
-	const int rows = sheetH / kCellSize;
+	// Redondeo hacia arriba: si la hoja no es múltiplo exacto de la celda,
+	// la última columna/fila parcial igual se cubre con grilla (si no, los
+	// sprites del borde quedan fuera y no se pueden seleccionar).
+	const int cols = (sheetW + kCellSize - 1) / kCellSize;
+	const int rows = (sheetH + kCellSize - 1) / kCellSize;
 
 	std::printf(
 		"[tile_inspector] hoja: %s  (%dx%d px) -> %d columnas x %d "

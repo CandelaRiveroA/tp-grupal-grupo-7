@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include "world/WorldConstants.h"
+
 namespace game {
 
 ViewMotion::ViewMotion(const world::CharacterCatalog& catalog)
@@ -18,6 +20,15 @@ void ViewMotion::observe(const LocalWorldView& view, int iteration) {
 		Track& track = tracks_[i];
 
 		track.cadence = catalog_.dataFor(entity.kind).cadence;
+
+		// Flanco de entrada a UseTool: la fuente acaba de reportar el
+		// golpe. Guarda el tick de inicio para el reloj de animación.
+		const bool usingToolNow =
+			(entity.action == world::ActionKind::UseTool);
+		if (usingToolNow && !track.usingTool) {
+			track.toolStartIteration = iteration;
+		}
+		track.usingTool = usingToolNow;
 
 		if (!track.known) {
 			track.known = true;
@@ -65,12 +76,34 @@ PixelOffset ViewMotion::offsetFor(const std::size_t index,
 			   deltaY * remaining / track.cadence.stepTicks};
 }
 
+world::PixelRect ViewMotion::drawBoxFor(const ViewEntity& entity,
+					const std::size_t index,
+					const int iteration,
+					const int cellPixelSize) const {
+	const world::ScenePixelMapper mapper(cellPixelSize);
+	const world::PixelRect cell = mapper.toPixels(
+		world::GridCell{entity.cellX, entity.cellY},
+		world::kUnitCellSpan);
+	const PixelOffset offset = offsetFor(index, iteration, cellPixelSize);
+	return world::PixelRect{cell.x + offset.x, cell.y + offset.y,
+				cell.width, cell.height};
+}
+
 int ViewMotion::animationTickFor(const std::size_t index,
 				 const int iteration) const {
 	if (index >= tracks_.size()) {
 		return iteration;
 	}
 	return iteration - tracks_[index].stepIteration;
+}
+
+int ViewMotion::toolTickFor(const std::size_t index,
+			    const int iteration) const {
+	if (index >= tracks_.size()) {
+		return 0;
+	}
+	const int elapsed = iteration - tracks_[index].toolStartIteration;
+	return elapsed > 0 ? elapsed : 0;
 }
 
 bool ViewMotion::isWalking(const std::size_t index, const int iteration,

@@ -133,6 +133,21 @@
   `nineSliceInside`; el error de config es uno solo para los 3 loaders).
   - Matiz: generalizar cuando el patrón YA se repite o es inminente, no
     especular con abstracciones sobre casos que todavía no existen.
+- **Geometría separada del pintado.** El cálculo de dónde cae cada sprite
+  vive en clases puras de `world/` (`ElementLayout`, `CharacterLayout`,
+  `ToolOverlayLayout`, ...). La capa `sdl/` solo pinta (`ElementPainter`,
+  `ToolOverlayPainter`, `EntityRenderer`). Así la geometría se testea sin SDL
+  y el render no reimplementa aritmética.
+- **Opciones de dibujo por tabla/mapa miembro, no por switch.** Cuando un
+  enum decide cómo se dibuja (`DrawMode`, `FrameAnchor`, ...), la clase dueña
+  del concepto lleva un mapa/tabla inicializado en su constructor y lo
+  consulta por `.at(...)`. Nada de `switch` ni cadenas largas de `if` para
+  opciones.
+- **Constantes por tema, sin `static` ni `inline`.** Las constantes
+  inmutables de una capa viven en archivos `*Constants.h` por dominio
+  (`RenderConstants.h`, `WorldConstants.h`, `GameConstants.h`, ...) como
+  `constexpr` de namespace. No usar `static` ni `inline` para constantes
+  propias. Los datos grandes, como catálogos o arrays, se definen en `.cpp`.
 - **Respetar los principios:**
   - **POLA** (menor asombro): la interfaz hace lo que su nombre sugiere;
     nada de efectos ocultos ni sorpresas.
@@ -174,3 +189,54 @@
   caminata es cambiar un dato. La duración de la ventana del golpe
   (`game/ToolUse`) se construye desde los MISMOS datos (`ActionData`) que usa
   el avance de cuadros, así ventana y animación no pueden desfasarse.
+
+## 11. Cámara del mundo
+
+- La cámara es **presentación**, no estado de juego. Vive en
+  `sdl::Camera` (`client/sdl/render/Camera.h`) y no conoce entidades,
+  animaciones, red ni SDL: solo recibe rectángulos en píxeles de mundo y los
+  traduce a píxeles de pantalla.
+- Sigue el **rectángulo dibujado del jugador local**, no su celda lógica. El
+  rectángulo sale de `ViewMotion::drawBoxFor(...)` (celda actual + offset de
+  interpolación), así la cámara también queda centrada durante el paso.
+- Se **clava en los bordes del mundo**: el offset se limita al rango
+  `[origen, origen + tamañoMundo - tamañoViewport]`. Si el mundo es más chico
+  que la ventana en un eje, ese eje queda fijo en el origen.
+- El tamaño del mundo se obtiene con
+  `ScenePixelMapper::worldBounds(scene.grid)`. El mapper sigue siendo el
+  único dueño de la conversión grilla → píxeles.
+- `Camera` no se pasa al renderer: produce un `sdl::Viewport`
+  (`client/sdl/render/Viewport.h`) con offset, tamaño de pantalla,
+  `toScreen(...)` y `intersects(...)`. El `Renderer` consume **solo** el
+  `Viewport`, así se puede reemplazar la cámara sin acoplar el dibujo.
+- El `Viewport` se aplica **solo a la capa de mundo** (elementos, recursos,
+  items caídos y entidades). HUD, inventario, banners e intro/fade no se
+  desplazan.
+- Todo dibujo nuevo del mundo debe pasar por
+  `viewport.toScreen(...)` antes de llegar a SDL. No se duplica la fórmula de
+  cámara en el renderer.
+- **Culling por contrato:** si el rectángulo final de pantalla no intersecta
+  el viewport, ese draw no se emite. El culling no puede cambiar el resultado
+  visual; por eso los elementos usan sus bounds reales (`ElementLayout`) y
+  las entidades/resources/items tienen margen para overhangs de sprite.
+- `TileLayout` ya no devuelve `std::vector` por frame: expone
+  `visibleTiled(...)` / `visibleStrip(...)` como rangos de índices y
+  `tiledAt(...)` / `stripAt(...)` para consultar cada pieza.
+- `world::ChunkGrid` es el índice espacial común. Su tamaño de chunk se toma
+  de la celda lógica (`ScenePixelMapper::cellPixelSize`), sus claves se
+  empaquetan en un `std::uint32_t` y guarda índices `std::uint32_t`.
+  `SceneElementIndex` indexa los elementos estáticos (se reconstruye con
+  `Renderer::prepareScene`) y `game::ViewSpatialIndex` indexa el snapshot
+  dinámico una vez por frame. Ninguno de los dos conoce assets ni SDL.
+- La fórmula (centro, clamp y traslación) y sus constantes viven en
+  `Camera.cpp`, centralizadas en un único cálculo de eje reutilizado para X e
+  Y. Si en el futuro se agrega zoom, deadzone o márgenes, esa lógica se separa
+  a un archivo propio sin tocar el renderer.
+- `sdl::EntityRenderer` es el único que sabe dibujar una `game::ViewEntity`.
+  Resuelve la apariencia por `kind` con `CharacterCatalog`, dibuja el cuerpo
+  con `CharacterSprite` y delega la herramienta en `sdl::ToolOverlayPainter`.
+  `Renderer` solo lo invoca; no conoce `Pose`, `ActionKind` ni overlays.
+- **Fuera de alcance de esta rama:** assets, `AssetStore`, `SpriteSheet`,
+  `SheetCache`, precarga, atlas/batching, animales, ids, protocolo, sesiones y
+  concurrencia. El próximo refactor de assets debe entrar sin cambiar cámara,
+  viewport, culling ni índices.

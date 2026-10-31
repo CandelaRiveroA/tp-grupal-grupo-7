@@ -13,6 +13,7 @@
 #include "common_server_status.h"
 #include "common_worker.h"
 #include "server_output_monitor.h"
+#include "world_view.h"
 
 struct PlayerMessage {
     uint8_t player_id;
@@ -36,12 +37,15 @@ private:
     ServerOutputMonitor& output;
     World world;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
+    WorldView views;
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
-    void publish(uint8_t player_id);
+    void sync_all();
+    void place_minerals();
     void broadcast(const ServerMessage& message);
+    void send_to(uint8_t player_id, const ServerMessage& message);
     void closeOutputs();
 
 public:

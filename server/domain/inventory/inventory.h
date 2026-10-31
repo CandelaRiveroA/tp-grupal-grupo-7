@@ -1,11 +1,12 @@
 #ifndef INVENTORY_H
 #define INVENTORY_H
 
-#include <vector>
-#include <memory>
 #include <cstdint>
-#include "slot.h"
+#include <memory>
+#include <vector>
+
 #include "item.h"
+#include "slot.h"
 
 class Inventory {
 private:
@@ -25,7 +26,7 @@ public:
     bool is_slot_empty(uint8_t index) const;
     const Item* peek_item(uint8_t index) const;
     uint8_t get_amount(uint8_t index) const;
-    
+    uint8_t get_max_slots() const;
 };
 
-#endif // INVENTORY_H
+#endif  // INVENTORY_H

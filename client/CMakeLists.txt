@@ -18,6 +18,7 @@ target_sources(taller_client
     client_receiver.cpp
     game/NetworkGameClient.cpp
     core/Application.cpp
+    core/PlaySession.cpp
     core/Constants.cpp
     core/StartupScreens.cpp
     core/WindowConfig.cpp
@@ -50,10 +51,13 @@ target_sources(taller_client
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/ToolOverlayPainter.cpp
     sdl/render/InventoryHud.cpp
+    sdl/render/ObtainedBannerHud.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     sdl/audio/MusicPlayer.cpp
@@ -64,6 +68,7 @@ target_sources(taller_client
     core/MusicControl.h
     core/MusicTrack.h
     core/SessionConfig.h
+    core/PlaySession.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -99,18 +104,26 @@ target_sources(taller_client
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
+    game/ResourceAudioCue.h
+    game/ObtainedBannerQueue.h
     game/GameClient.h
+    game/GameConstants.h
+    game/InputCommand.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
+    game/PlayerController.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
-    game/ToolUse.h
+    game/InventorySelector.h
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
+    world/CharacterLayout.h
+    world/WorldConstants.h
+    world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
     world/CreatureCatalog.h
@@ -121,11 +134,26 @@ target_sources(taller_client
     world/InventoryTomlReader.h
     world/InventoryConfigLoader.h
     world/ItemCatalog.h
+    world/ToolOverlay.h
+    world/ToolOverlayLayout.h
+    world/ToolOverlayLoader.h
+    world/ToolOverlayTomlReader.h
+    world/ResourceCatalog.h
+    world/ResourceConfigLoader.h
+    world/ResourceTomlReader.h
+    world/ObtainedBannerCatalog.h
+    world/ObtainedBannerConfigLoader.h
+    world/ObtainedBannerTomlReader.h
+    world/ObtainedBannerLayout.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
     world/ScenePixelMapper.h
     world/SceneTomlReader.h
+    world/ElementLayout.h
+    world/ChunkGrid.h
+    world/SceneElementIndex.h
+    game/ViewSpatialIndex.h
     toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
@@ -133,11 +161,17 @@ target_sources(taller_client
     sdl/loop/GameLoop.h
     sdl/render/Renderer.h
     sdl/render/ElementPainter.h
+    sdl/render/EntityRenderer.h
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/Viewport.h
+    sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/RenderConstants.h
+    sdl/render/ToolOverlayPainter.h
     sdl/render/InventoryHud.h
+    sdl/render/ObtainedBannerHud.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h

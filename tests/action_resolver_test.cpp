@@ -1,8 +1,8 @@
+#include "gtest/gtest.h"
+
 #include "game/ActionResolver.h"
 #include "game/LocalWorldView.h"
-#include "game/ToolUse.h"
 #include "game/ViewMotion.h"
-#include "gtest/gtest.h"
 #include "world/CharacterCatalog.h"
 #include "world/CharacterCatalogLoader.h"
 #include "world/CreatureCatalog.h"
@@ -12,7 +12,6 @@ namespace {
 
 using game::ActionResolver;
 using game::LocalWorldView;
-using game::ToolUse;
 using game::ViewEntity;
 using game::ViewMotion;
 using world::ActionKind;
@@ -67,158 +66,126 @@ cadence = { step = 24, frame = 12 }
 )";
 
 const world::CharacterCatalog& catalog() {
-    static const world::CharacterCatalog instance =
-            world::CharacterCatalogLoader().loadFromString(kPlayerToml);
-    return instance;
+	static const world::CharacterCatalog instance =
+		world::CharacterCatalogLoader().loadFromString(kPlayerToml);
+	return instance;
 }
 
-const int kStepTicks = catalog().dataFor(world::CreatureKind::Player).cadence.stepTicks;
-constexpr int kGolpeTicks = 60;
+const int kStepTicks =
+	catalog().dataFor(world::CreatureKind::Player).cadence.stepTicks;
 constexpr int kPlayerIndex = 0;
-constexpr int kOtherIndex = 1;
 
 ViewEntity entity(ActionKind action = ActionKind::Idle) {
-    ViewEntity entity{world::CreatureKind::Player, 5, 5, world::Direction::Front, false};
-    entity.action = action;
-    return entity;
+	ViewEntity e{world::CreatureKind::Player, 5, 5,
+		     world::Direction::Front, false,
+		     ActionKind::Idle, std::nullopt};
+	e.action = action;
+	return e;
 }
 
 LocalWorldView viewWith(const ViewEntity& first) {
-    LocalWorldView view;
-    view.entities.push_back(first);
-    return view;
+	LocalWorldView view;
+	view.entities.push_back(first);
+	return view;
 }
 
-ViewMotion motionStanding() {
-    ViewMotion motion(catalog());
-    motion.observe(viewWith(entity()), 0);
-    return motion;
-}
 
+// La fuente (mock/servidor) decide la acción. El ActionResolver la sigue:
+// Walk si la presentación detecta caminata, si no la acción de la vista.
 
 TEST(ActionResolverTest, QuietEntityDrawsTheViewAction) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100), ActionKind::Idle);
-    EXPECT_EQ(resolver.actionFor(entity(ActionKind::Walk), kPlayerIndex, 100), ActionKind::Walk);
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity()), 0);
+	const ActionResolver resolver(motion);
+
+	EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100),
+		  ActionKind::Idle);
+	EXPECT_EQ(resolver.actionFor(entity(ActionKind::Walk), kPlayerIndex,
+				     100),
+		  ActionKind::Walk);
 }
 
-TEST(ActionResolverTest, ToolWindowDrawsUseTool) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100), ActionKind::Idle);
-    toolUse.trigger(100);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100), ActionKind::UseTool);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100 + 30), ActionKind::UseTool);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100 + 60 - 1), ActionKind::UseTool);
+TEST(ActionResolverTest, FollowsUseToolFromTheSource) {
+	ViewMotion motion(catalog());
+	// La fuente reporta UseTool: el resolver lo sigue.
+	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
+	const ActionResolver resolver(motion);
+	EXPECT_EQ(resolver.actionFor(entity(ActionKind::UseTool), kPlayerIndex,
+				     100),
+		  ActionKind::UseTool);
 }
 
-TEST(ActionResolverTest, AfterTheToolWindowItGoesBackToTheViewAction) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100 + 60), ActionKind::Idle);
+TEST(ActionResolverTest, BackToIdleWhenTheSourceStopsUseTool) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
+	// La fuente vuelve a Idle: el resolver deja de mostrar UseTool.
+	motion.observe(viewWith(entity(ActionKind::Idle)), 130);
+	const ActionResolver resolver(motion);
+	EXPECT_EQ(resolver.actionFor(entity(ActionKind::Idle), kPlayerIndex,
+				     130),
+		  ActionKind::Idle);
 }
 
-TEST(ActionResolverTest, WalkingBeatsTheToolHit) {
-    const ViewMotion motion = motionStanding();
-    ViewEntity moving = entity();
-    moving.moving = true;
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100);
+TEST(ActionResolverTest, WalkingBeatsUseTool) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity()), 0);
+	const ActionResolver resolver(motion);
 
-    EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100), ActionKind::Walk);
+	ViewEntity moving = entity(ActionKind::UseTool);
+	moving.moving = true;
+	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
+		  ActionKind::Walk);
 }
 
-TEST(ActionResolverTest, ClosingTheStepBeatsTheToolHit) {
-    ViewMotion motion(catalog());
-    motion.observe(viewWith(entity()), 0);
-    const ViewEntity standing = entity();
-    motion.observe(
-            viewWith(ViewEntity{world::CreatureKind::Player, 6, 5, world::Direction::Front, true}),
-            kStepTicks);
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(kStepTicks);
-
-    EXPECT_EQ(resolver.actionFor(standing, kPlayerIndex, kStepTicks + 1), ActionKind::Walk);
-    EXPECT_EQ(resolver.actionFor(standing, kPlayerIndex, kStepTicks + kStepTicks),
-              ActionKind::UseTool);
-    EXPECT_EQ(resolver.actionFor(standing, kPlayerIndex, kStepTicks + kStepTicks + kGolpeTicks),
-              ActionKind::Idle);
-}
-
-TEST(ActionResolverTest, TheToolHitBelongsToTheLocalPlayerOnly) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100);
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100), ActionKind::UseTool);
-    EXPECT_EQ(resolver.actionFor(entity(), kOtherIndex, 100), ActionKind::Idle);
-}
-
-
-TEST(ActionResolverTest, ToolPhaseStartsAtZeroOnTheTrigger) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100);
-    EXPECT_EQ(resolver.phaseFor(entity(), kPlayerIndex, 100), 0);
-    EXPECT_EQ(resolver.phaseFor(entity(), kPlayerIndex, 100 + 12), 12);
-    EXPECT_EQ(resolver.phaseFor(entity(), kPlayerIndex, 100 + 59), 59);
-}
-
-TEST(ActionResolverTest, ToolPhaseIgnoresHowLongThePlayerStoodStill) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100000);
-
-    EXPECT_EQ(resolver.phaseFor(entity(), kPlayerIndex, 100000), 0);
-    EXPECT_EQ(resolver.phaseFor(entity(), kPlayerIndex, 100024), 24);
-    EXPECT_EQ(motion.animationTickFor(kPlayerIndex, 100000), 100000);
+TEST(ActionResolverTest, ToolPhaseStartsAtZeroWhenTheSourceBeginsUseTool) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
+	const ActionResolver resolver(motion);
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::UseTool), kPlayerIndex,
+				    100),
+		  0);
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::UseTool), kPlayerIndex,
+				    112),
+		  12);
 }
 
 TEST(ActionResolverTest, WalkKeepsTheStepAnchoredPhase) {
-    ViewMotion motion(catalog());
-    motion.observe(viewWith(entity()), 0);
-    motion.observe(
-            viewWith(ViewEntity{world::CreatureKind::Player, 6, 5, world::Direction::Front, true}),
-            100);
-    ViewEntity moving = entity();
-    moving.moving = true;
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity()), 0);
+	motion.observe(viewWith(ViewEntity{world::CreatureKind::Player, 6, 5,
+					   world::Direction::Front, true,
+					   ActionKind::Idle, std::nullopt}),
+		       100);
+	ViewEntity moving = entity();
+	moving.moving = true;
+	const ActionResolver resolver(motion);
 
-    EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 105), ActionKind::Walk);
-    EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 105), 5);
+	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 105),
+		  ActionKind::Walk);
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 105), 5);
 }
 
 TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
-    const ViewMotion motion = motionStanding();
-    ToolUse toolUse(kGolpeTicks);
-    const ActionResolver resolver(motion, toolUse, kPlayerIndex);
-    toolUse.trigger(100);
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
+	const ActionResolver resolver(motion);
 
-    const world::CreatureData& creature = catalog().dataFor(world::CreatureKind::Player);
-    const int frameTicks = creature.cadence.frameTicks;
-    constexpr int kFrames = 5;
-    for (int frame = 0; frame < kFrames; ++frame) {
-        const int it = 100 + frame * frameTicks;
-        ASSERT_EQ(resolver.actionFor(entity(), kPlayerIndex, it), ActionKind::UseTool)
-                << "en el cuadro " << frame;
-        const int phase = resolver.phaseFor(entity(), kPlayerIndex, it);
-        EXPECT_EQ(
-                world::frameIndexFor(creature, world::Direction::Right, ActionKind::UseTool, phase),
-                frame)
-                << "en el cuadro " << frame;
-    }
-    EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100 + kGolpeTicks), ActionKind::Idle);
+	const world::CreatureData& creature =
+		catalog().dataFor(world::CreatureKind::Player);
+	const int frameTicks = creature.cadence.frameTicks;
+	constexpr int kFrames = 5;
+	for (int frame = 0; frame < kFrames; ++frame) {
+		const int it = 100 + frame * frameTicks;
+		const ViewEntity e = entity(ActionKind::UseTool);
+		ASSERT_EQ(resolver.actionFor(e, kPlayerIndex, it),
+			  ActionKind::UseTool)
+			<< "en el cuadro " << frame;
+		const int phase = resolver.phaseFor(e, kPlayerIndex, it);
+		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(world::Direction::Right,
+						ActionKind::UseTool, phase),
+			  frame)
+			<< "en el cuadro " << frame;
+	}
 }
 
-}  // namespace
+}

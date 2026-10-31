@@ -13,6 +13,7 @@ namespace sdl {
 class AudioPlayer;
 class Renderer;
 class SdlContext;
+class Viewport;
 }
 namespace world {
 class Scenario;
@@ -24,7 +25,8 @@ class StartupScreens {
 public:
 	StartupScreens(sdl::SdlContext& context, sdl::Renderer& renderer,
 		       sdl::AudioPlayer& audio,
-		       const world::Scenario& scenario);
+		       const world::Scenario& scenario,
+		       const sdl::Viewport& viewport);
 
 	bool draw(GamePhase phase, int it,
 		  const game::LocalWorldView& state,
@@ -41,6 +43,7 @@ private:
 	sdl::Renderer& renderer_;
 	sdl::AudioPlayer& audio_;
 	const world::Scenario& scenario_;
+	const sdl::Viewport& viewport_;
 
 	const SDL2pp::Color introBackground_;
 };

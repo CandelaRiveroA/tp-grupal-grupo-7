@@ -1,28 +1,29 @@
 #include "inventory.h"
-#include <utility>
-#include <stdexcept>
 
-Inventory::Inventory(uint8_t max) : max_slots(max) {
-    this->slots.resize(this->max_slots);
-}
+#include <stdexcept>
+#include <utility>
+
+Inventory::Inventory(uint8_t max): max_slots(max) { this->slots.resize(this->max_slots); }
 
 bool Inventory::add_item(std::unique_ptr<Item> new_item) {
-    if (!new_item) return false;
+    if (!new_item)
+        return false;
 
     // 1. Intentar APILAR
-    for (auto& slot : this->slots) {
+    for (auto& slot: this->slots) {
         if (!slot.is_empty()) {
             if (slot.item->is_stackable_with(*new_item)) {
                 if (!slot.is_full()) {
                     slot.amount++;
-                    return true; 
+                    return true;
                 }
             }
         }
     }
 
     // 2. Buscar slot VACÍO
-    for (auto& slot : this->slots) {
+    for (auto& slot: this->slots) {
+        // cppcheck-suppress useStlAlgorithm
         if (slot.is_empty()) {
             slot.item = std::move(new_item);
             slot.amount = 1;
@@ -36,17 +37,22 @@ bool Inventory::add_item(std::unique_ptr<Item> new_item) {
 }
 
 bool Inventory::is_slot_empty(uint8_t index) const {
-    if (index >= max_slots) throw std::out_of_range("Indice de slot invalido");
+    if (index >= max_slots)
+        throw std::out_of_range("Indice de slot invalido");
     return slots[index].is_empty();
 }
 
 const Item* Inventory::peek_item(uint8_t index) const {
-    if (index >= max_slots || slots[index].is_empty()) return nullptr;
+    if (index >= max_slots || slots[index].is_empty())
+        return nullptr;
     // .get() devuelve el puntero crudo del unique_ptr
-    return slots[index].item.get(); 
+    return slots[index].item.get();
 }
 
+uint8_t Inventory::get_max_slots() const { return this->max_slots; }
+
 uint8_t Inventory::get_amount(uint8_t index) const {
-        if (index >= max_slots || slots[index].is_empty()) return 0;
-        return slots[index].amount;
+    if (index >= max_slots || slots[index].is_empty())
+        return 0;
+    return slots[index].amount;
 }

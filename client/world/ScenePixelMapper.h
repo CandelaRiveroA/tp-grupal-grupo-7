@@ -19,6 +19,8 @@ public:
 
 	PixelRect toPixels(const GridCell& at, const GridSpan& span) const;
 
+	PixelRect worldBounds(const GridSpan& grid) const;
+
 private:
 	int cellPixelSize_;
 };

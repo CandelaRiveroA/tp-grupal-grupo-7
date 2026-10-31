@@ -3,29 +3,64 @@
 #include <exception>
 #include <memory>
 #include <stdexcept>
+#include <variant>
 
 #include "commands/commands.h"
+#include "domain/minerals/coal_rock.h"
+#include "domain/minerals/gold_rock.h"
+#include "domain/minerals/lapis_rock.h"
+#include "domain/minerals/silver_rock.h"
 
-#define kWidth 20
-#define kHeight 15
-#define kSpawnX 0
-#define kSpawnY 0
+// Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
+#define kWidth 30
+#define kHeight 20
+#define kSpawnX 15
+#define kSpawnY 10
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
-        events(events), output(output), world(kWidth, kHeight) {}
+        events(events), output(output), world(kWidth, kHeight) {
+    place_minerals();
+}
+
+void Match::place_minerals() {
+    // Piedras de prueba alrededor del punto de aparición. Hasta que haya
+    // generación de mundo, el servidor fija estas.
+    world.set_entity_at(kSpawnX + 1, kSpawnY, std::make_unique<SilverRock>(kSpawnX + 1, kSpawnY));
+    world.set_entity_at(kSpawnX + 2, kSpawnY, std::make_unique<CoalRock>(kSpawnX + 2, kSpawnY));
+    world.set_entity_at(kSpawnX + 1, kSpawnY + 1,
+                        std::make_unique<LapisRock>(kSpawnX + 1, kSpawnY + 1));
+    world.set_entity_at(kSpawnX + 2, kSpawnY + 1,
+                        std::make_unique<GoldRock>(kSpawnX + 2, kSpawnY + 1));
+    world.set_entity_at(kSpawnX - 1, kSpawnY, std::make_unique<CoalRock>(kSpawnX - 1, kSpawnY));
+    world.set_entity_at(kSpawnX, kSpawnY + 2, std::make_unique<SilverRock>(kSpawnX, kSpawnY + 2));
+    world.set_entity_at(kSpawnX - 1, kSpawnY + 2,
+                        std::make_unique<GoldRock>(kSpawnX - 1, kSpawnY + 2));
+    world.set_entity_at(kSpawnX + 3, kSpawnY, std::make_unique<LapisRock>(kSpawnX + 3, kSpawnY));
+}
 
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
-    publish(joined.player_id);
+    sync_all();
 }
 
 void Match::handle(const PlayerMessage& event) {
     std::visit([this,
                 &event](const auto& message) { commands::apply(world, event.player_id, message); },
                event.message);
-    publish(event.player_id);
+    if (std::holds_alternative<protocol::PickMessage>(event.message)) {
+        broadcast(ServerToolUsed{event.player_id});
+    }
+    // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
+    // inventarios: solo se traduce a mensaje acá.
+    for (const PlayerPickup& pickup: world.take_pickups()) {
+        send_to(pickup.player_id, ServerObtained{content_id_for(pickup.item)});
+    }
+    for (const ResourceHit& hit: world.take_resource_hits()) {
+        broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
+    }
+    sync_all();
 }
 
 void Match::handle(const PlayerLeft& left) {
@@ -49,9 +84,16 @@ void Match::closeOutputs() {
     outputs.clear();
 }
 
-void Match::publish(uint8_t player_id) {
-    const Player& player = world.get_player(player_id);
-    broadcast(ServerStatus(player_id, player.get_x(), player.get_y(), player.get_facing()));
+void Match::sync_all() {
+    for (const auto& [id, statuses]: outputs) {
+        for (const ServerMessage& message: views.sync(world, id)) {
+            try {
+                statuses->push(message);
+            } catch (const ClosedQueue&) {
+                // Un cliente desconectado no debe detener la partida para los demas.
+            }
+        }
+    }
 }
 
 void Match::broadcast(const ServerMessage& message) {
@@ -61,6 +103,18 @@ void Match::broadcast(const ServerMessage& message) {
         } catch (const ClosedQueue&) {
             // Un cliente desconectado no debe detener la partida para los demas.
         }
+    }
+}
+
+void Match::send_to(uint8_t player_id, const ServerMessage& message) {
+    const auto it = outputs.find(player_id);
+    if (it == outputs.end()) {
+        return;
+    }
+    try {
+        it->second->push(message);
+    } catch (const ClosedQueue&) {
+        // Un cliente desconectado no debe detener la partida para los demas.
     }
 }
 

@@ -18,6 +18,7 @@ target_sources(taller_client
     client_receiver.cpp
     game/NetworkGameClient.cpp
     core/Application.cpp
+    core/PlaySession.cpp
     core/Constants.cpp
     core/StartupScreens.cpp
     core/WindowConfig.cpp
@@ -60,6 +61,7 @@ target_sources(taller_client
     core/Application.h
     core/Constants.h
     core/SessionConfig.h
+    core/PlaySession.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -97,6 +99,7 @@ target_sources(taller_client
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
+    game/PlayerController.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h

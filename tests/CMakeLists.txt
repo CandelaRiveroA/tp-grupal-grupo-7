@@ -28,6 +28,7 @@ target_sources(taller_tests
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     character_catalog_loader_test.cpp
+    creature_data_test.cpp
     inventory_config_loader_test.cpp
     inventory_slots_test.cpp
     scene_pixel_mapper_test.cpp
@@ -43,6 +44,7 @@ target_sources(taller_tests
     local_world_view_test.cpp
     frame_clock_test.cpp
     move_command_test.cpp
+    player_controller_test.cpp
     walk_pacer_test.cpp
     view_motion_test.cpp
     footstep_cue_test.cpp

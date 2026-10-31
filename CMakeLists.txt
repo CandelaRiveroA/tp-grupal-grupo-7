@@ -157,6 +157,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/SceneTomlReader.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
+        client/world/CreatureCatalog.cpp
         client/world/CharacterTomlReader.cpp
         client/world/CharacterLayout.cpp
         client/world/InventoryTomlReader.cpp
@@ -189,6 +190,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
         client/game/MoveCommand.cpp
+        client/game/PlayerController.cpp
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp

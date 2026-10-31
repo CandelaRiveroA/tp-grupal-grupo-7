@@ -5,51 +5,52 @@
 namespace core {
 
 
-inline constexpr int kWindowWidth = 960;
-inline constexpr int kWindowHeight = 640;
-inline constexpr const char* kWindowTitle = "TP Final — Grupo 7";
+constexpr int kWindowWidth = 960;
+constexpr int kWindowHeight = 640;
+constexpr const char* kWindowTitle = "TP Final — Grupo 7";
 
-inline constexpr int kTargetFps = 60;
+constexpr int kTargetFps = 60;
 
-inline constexpr int kIntroDurationMs = 2500;
-inline constexpr int kIntroTicks = kIntroDurationMs * kTargetFps / 1000;
+constexpr int kIntroDurationMs = 2500;
+constexpr int kIntroTicks = kIntroDurationMs * kTargetFps / 1000;
+constexpr int kFirstIteration = 0;
 
-inline constexpr int kFadeDurationMs = 1000;
-inline constexpr int kFadeTicks = kFadeDurationMs * kTargetFps / 1000;
+constexpr int kFadeDurationMs = 1000;
+constexpr int kFadeTicks = kFadeDurationMs * kTargetFps / 1000;
 
-inline constexpr int kFadeOpaqueAlpha = 255;
+constexpr int kFadeOpaqueAlpha = 255;
 
 #ifndef TALLER_ASSET_DIR
 #define TALLER_ASSET_DIR "assets"
 #endif
-inline const std::string kAssetsDir = TALLER_ASSET_DIR;
+constexpr const char* kAssetsDir = TALLER_ASSET_DIR;
 
 #ifndef TALLER_SOUNDS_DIR
 #define TALLER_SOUNDS_DIR "sounds"
 #endif
-inline const std::string kSoundsDir = TALLER_SOUNDS_DIR;
+constexpr const char* kSoundsDir = TALLER_SOUNDS_DIR;
 
-inline constexpr const char* kScenesFile = "scenes.toml";
-inline constexpr const char* kInitialRoom = "bedroom";
+constexpr const char* kScenesFile = "scenes.toml";
+constexpr const char* kInitialRoom = "bedroom";
 
-inline constexpr const char* kCharactersFile = "characters.toml";
+constexpr const char* kCharactersFile = "characters.toml";
 
-inline constexpr const char* kInventoryFile = "inventory.toml";
+constexpr const char* kInventoryFile = "inventory.toml";
 
-inline constexpr const char* kToolsOverlayFile = "tools_overlay.toml";
+constexpr const char* kToolsOverlayFile = "tools_overlay.toml";
 
-inline constexpr const char* kResourcesFile = "resources.toml";
+constexpr const char* kResourcesFile = "resources.toml";
 
-inline constexpr const char* kObtainedBannerFile = "obtained_banner.toml";
+constexpr const char* kObtainedBannerFile = "obtained_banner.toml";
 
-inline constexpr const char* kDigitsFile = "ui/digits.toml";
+constexpr const char* kDigitsFile = "ui/digits.toml";
 
 // Cantidad de slots del inventario ocupados por el mock (pico, pala,
 // regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.
-inline constexpr int kInventorySlots = 4;
+constexpr int kInventorySlots = 4;
 
-inline constexpr const char* kServerHost = "127.0.0.1";
-inline constexpr const char* kServerPort = "8080";
+constexpr const char* kServerHost = "127.0.0.1";
+constexpr const char* kServerPort = "8080";
 
 std::string assetPath(const std::string& file);
 

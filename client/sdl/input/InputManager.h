@@ -9,6 +9,7 @@
 #include <SDL2/SDL_events.h>
 
 #include "game/InputCommand.h"
+#include "game/PointerClick.h"
 #include "world/ViewDirection.h"
 
 namespace sdl {
@@ -38,6 +39,11 @@ public:
 	// de la tabla de prioridad que esté pulsada, o vacío si no hay
 	// movimiento.
 	std::optional<world::Direction> pressedDirection() const;
+
+	// Saca los clicks del puntero pendientes (uno por pulsación de
+	// botón), en orden, y vacía la cola. Varios clicks pueden salir
+	// juntos si hubo varios en el mismo frame.
+	std::vector<game::PointerClick> takeClicks();
 
 private:
 
@@ -69,6 +75,7 @@ private:
 
 	int slotCount_ = 0;
 	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame
+	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
 };
 
 }

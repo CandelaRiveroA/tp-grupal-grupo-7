@@ -100,6 +100,7 @@ target_sources(taller_client
     game/MockGameClient.h
     game/MoveCommand.h
     game/PlayerController.h
+    game/PointerClick.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h

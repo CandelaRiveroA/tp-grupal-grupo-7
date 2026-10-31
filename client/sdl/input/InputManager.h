@@ -4,10 +4,12 @@
 #include <deque>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 #include <SDL2/SDL_events.h>
 
 #include "game/InputCommand.h"
+#include "world/ViewDirection.h"
 
 namespace sdl {
 
@@ -27,10 +29,15 @@ public:
 	bool left() const;
 	bool right() const;
 
-	// Saca la próxima intención one-shot (una por pulsación). Si se
-	// pulsaron varias teclas en el mismo frame quedan varias pendientes y
-	// salen en orden de pulsación. Se consume al leer.
-	std::optional<game::InputCommand> takeCommand();
+	// Saca las intenciones one-shot pendientes (una por pulsación), en
+	// orden de pulsación, y vacía la cola. Pueden salir varias juntas si
+	// se pulsaron varias teclas en el mismo frame.
+	std::vector<game::InputCommand> takeCommands();
+
+	// Movimiento sostenido como dirección del juego: la primera dirección
+	// de la tabla de prioridad que esté pulsada, o vacío si no hay
+	// movimiento.
+	std::optional<world::Direction> pressedDirection() const;
 
 private:
 
@@ -45,11 +52,20 @@ private:
 
 	void setKey(SDL_Keycode key, bool pressed);
 
+	// Tabla de prioridad para leer el movimiento como dirección del juego.
+	struct DirectionBinding {
+		Action action;
+		world::Direction direction;
+	};
+
 	std::unordered_map<SDL_Keycode, Action> keymap_;
 
 	std::unordered_map<SDL_Keycode, game::InputCommand> commandBindings_;
 
 	std::array<bool, static_cast<std::size_t>(Action::Count)> flags_{};
+
+	std::array<DirectionBinding, static_cast<std::size_t>(Action::Count)>
+		directionBindings_;
 
 	int slotCount_ = 0;
 	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame

@@ -7,6 +7,14 @@ namespace sdl {
 InputManager::InputManager(int slotCount)
 	: keymap_(defaultBindings()), slotCount_(slotCount) {
 	commandBindings_ = defaultCommandBindings();
+	// Prioridad al leer varias teclas a la vez: left, right, up, down
+	// (el mismo orden que usaba la lectura original del input).
+	directionBindings_ = {{
+		{Action::Left, world::Direction::Left},
+		{Action::Right, world::Direction::Right},
+		{Action::Up, world::Direction::Back},
+		{Action::Down, world::Direction::Front},
+	}};
 }
 
 bool InputManager::up() const { return flags_[static_cast<std::size_t>(Action::Up)]; }
@@ -83,13 +91,19 @@ void InputManager::fire(const game::InputCommand& command) {
 	pending_.push_back(command);
 }
 
-auto InputManager::takeCommand() -> std::optional<game::InputCommand> {
-	if (pending_.empty()) {
-		return std::nullopt;
+std::vector<game::InputCommand> InputManager::takeCommands() {
+	std::vector<game::InputCommand> commands(pending_.begin(), pending_.end());
+	pending_.clear();
+	return commands;
+}
+
+std::optional<world::Direction> InputManager::pressedDirection() const {
+	for (const DirectionBinding& binding : directionBindings_) {
+		if (flags_[static_cast<std::size_t>(binding.action)]) {
+			return binding.direction;
+		}
 	}
-	const game::InputCommand command = pending_.front();
-	pending_.pop_front();
-	return command;
+	return std::nullopt;
 }
 
 void InputManager::setKey(SDL_Keycode key, bool pressed) {

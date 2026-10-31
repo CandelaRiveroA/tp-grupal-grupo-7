@@ -206,16 +206,7 @@ int Application::runGameLoop(
             return;
         }
 
-        std::optional<world::Direction> pressed;
-        if (input.left()) {
-            pressed = world::Direction::Left;
-        } else if (input.right()) {
-            pressed = world::Direction::Right;
-        } else if (input.up()) {
-            pressed = world::Direction::Back;
-        } else if (input.down()) {
-            pressed = world::Direction::Front;
-        }
+        const std::optional<world::Direction> pressed = input.pressedDirection();
 
         switch (walkPacer.intentFor(it, pressed)) {
             case game::WalkIntent::None:
@@ -235,8 +226,8 @@ int Application::runGameLoop(
         // la fuente decide si hay algo y, si lo hay, emite el evento
         // obtained que dispara el panel + sonido.
         using CommandKind = game::InputCommand::Kind;
-        while (const auto command = input.takeCommand()) {
-            switch (command->kind) {
+        for (const game::InputCommand& command : input.takeCommands()) {
+            switch (command.kind) {
                 case CommandKind::UseTool:
                     if (!pressed.has_value()) {
                         gameClient.sendCommand(
@@ -251,7 +242,7 @@ int Application::runGameLoop(
                     break;
                 case CommandKind::SelectSlot: {
                     const int previous = inventorySelector.active();
-                    inventorySelector.select(command->slot,
+                    inventorySelector.select(command.slot,
                                              core::kInventorySlots);
                     if (inventorySelector.active() != previous) {
                         audio.play(sdl::SoundId::ToolSwitch);

@@ -1,16 +1,19 @@
 #include "InputManager.h"
 
+#include <stdexcept>
+
 #include <SDL2/SDL_keycode.h>
 
 namespace sdl {
 
 InputManager::InputManager()
-	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE),
-	  collectKey_(SDLK_RETURN), slotCount_(0) {}
+	: InputManager(0) {}
 
 InputManager::InputManager(int slotCount)
 	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE),
-	  collectKey_(SDLK_RETURN), slotCount_(slotCount) {}
+	  collectKey_(SDLK_RETURN), slotCount_(slotCount) {
+	commandBindings_ = defaultCommandBindings();
+}
 
 bool InputManager::up() const { return flags_[static_cast<std::size_t>(Action::Up)]; }
 
@@ -50,26 +53,57 @@ void InputManager::handleEvent(const SDL_Event& event) {
 		return;
 	}
 
-	if (event.type == SDL_KEYDOWN && event.key.keysym.sym == useToolKey_) {
-		useToolTriggered_ = true;
-		return;
-	}
+	const SDL_Keycode sym = event.key.keysym.sym;
 
-	if (event.type == SDL_KEYDOWN && event.key.keysym.sym == collectKey_) {
-		collectTriggered_ = true;
-		return;
-	}
-
-	// Teclas 1..slotCount_ seleccionan el slot activo (one-shot).
-	if (event.type == SDL_KEYDOWN && slotCount_ > 0) {
-		const SDL_Keycode sym = event.key.keysym.sym;
-		if (sym >= SDLK_1 && sym < SDLK_1 + slotCount_) {
-			slotSelected_ = static_cast<int>(sym - SDLK_1);
+	// Los comandos one-shot se disparan solo con la pulsación (keydown);
+	// la suelta no dispara nada (cae al mapeo de movimiento, que la ignora
+	// si la tecla no está bound).
+	if (event.type == SDL_KEYDOWN) {
+		if (const Command* command = commandFor(sym)) {
+			fire(*command);
 			return;
 		}
 	}
 
-	setKey(event.key.keysym.sym, event.type == SDL_KEYDOWN);
+	setKey(sym, event.type == SDL_KEYDOWN);
+}
+
+auto InputManager::defaultCommandBindings() const
+	-> std::unordered_map<SDL_Keycode, Command> {
+
+	std::unordered_map<SDL_Keycode, Command> bindings;
+	// Orden = prioridad: ante colisiones de tecla, gana el primer comando.
+	bindings.insert({useToolKey_, Command{CommandKind::UseTool, 0}});
+	bindings.insert({collectKey_, Command{CommandKind::Collect, 0}});
+	for (int i = 0; i < slotCount_; ++i) {
+		bindings.insert({static_cast<SDL_Keycode>(SDLK_1 + i),
+				 Command{CommandKind::SelectSlot, i}});
+	}
+	return bindings;
+}
+
+auto InputManager::commandFor(SDL_Keycode key) const -> const Command* {
+	if (const auto it = commandBindings_.find(key);
+	    it != commandBindings_.end()) {
+		return &it->second;
+	}
+	return nullptr;
+}
+
+void InputManager::fire(const Command& command) {
+	switch (command.kind) {
+		case CommandKind::UseTool:
+			useToolTriggered_ = true;
+			break;
+		case CommandKind::Collect:
+			collectTriggered_ = true;
+			break;
+		case CommandKind::SelectSlot:
+			slotSelected_ = command.slot;
+			break;
+		default:
+			throw std::logic_error("input: comando desconocido");
+	}
 }
 
 bool InputManager::takeUseTool() {
@@ -91,11 +125,17 @@ std::optional<int> InputManager::takeSlotSelect() {
 }
 
 void InputManager::rebindUseTool(SDL_Keycode newKey) {
+	commandBindings_.erase(useToolKey_);
 	useToolKey_ = newKey;
+	commandBindings_.insert_or_assign(newKey,
+					  Command{CommandKind::UseTool, 0});
 }
 
 void InputManager::rebindCollect(SDL_Keycode newKey) {
+	commandBindings_.erase(collectKey_);
 	collectKey_ = newKey;
+	commandBindings_.insert_or_assign(newKey,
+					  Command{CommandKind::Collect, 0});
 }
 
 void InputManager::setKey(SDL_Keycode key, bool pressed) {

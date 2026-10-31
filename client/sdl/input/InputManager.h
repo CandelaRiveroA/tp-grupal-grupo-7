@@ -14,6 +14,14 @@ public:
 
 	enum class Action { Up, Down, Left, Right, Count };
 
+	enum class CommandKind { UseTool, Collect, SelectSlot };
+
+	// DTO plano: la intención one-shot que dispara una tecla.
+	struct Command {
+		CommandKind kind;
+		int slot = 0;
+	};
+
 	InputManager();
 
 	// slotCount: cuántas teclas numéricas (1..slotCount) seleccionan slots.
@@ -55,7 +63,16 @@ private:
 
 	std::unordered_map<SDL_Keycode, Action> defaultBindings() const;
 
+	// Despacho de comandos por diccionario: tecla -> comando one-shot.
+	std::unordered_map<SDL_Keycode, Command> defaultCommandBindings() const;
+
+	const Command* commandFor(SDL_Keycode key) const;
+
+	void fire(const Command& command);
+
 	std::unordered_map<SDL_Keycode, Action> keymap_;
+
+	std::unordered_map<SDL_Keycode, Command> commandBindings_;
 
 	std::array<bool, static_cast<std::size_t>(Action::Count)> flags_{};
 

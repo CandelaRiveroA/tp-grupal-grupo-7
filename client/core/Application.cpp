@@ -21,6 +21,7 @@
 #include "game/FootstepCue.h"
 #include "game/GameClient.h"
 #include "game/InventorySelector.h"
+#include "game/InputCommand.h"
 #include "game/LocalWorldView.h"
 #include "game/MoveCommand.h"
 #include "game/NetworkGameClient.h"
@@ -233,7 +234,7 @@ int Application::runGameLoop(
         // herramienta y recoger del piso son INTENCIONES (cliente dummy):
         // la fuente decide si hay algo y, si lo hay, emite el evento
         // obtained que dispara el panel + sonido.
-        using CommandKind = sdl::InputManager::CommandKind;
+        using CommandKind = game::InputCommand::Kind;
         while (const auto command = input.takeCommand()) {
             switch (command->kind) {
                 case CommandKind::UseTool:

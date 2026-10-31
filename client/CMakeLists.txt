@@ -92,6 +92,7 @@ target_sources(taller_client
     game/ObtainedBannerQueue.h
     game/GameClient.h
     game/GameConstants.h
+    game/InputCommand.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h

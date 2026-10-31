@@ -47,7 +47,7 @@ void InputManager::handleEvent(const SDL_Event& event) {
 	// la suelta no dispara nada (cae al mapeo de movimiento, que la ignora
 	// si la tecla no está bound).
 	if (event.type == SDL_KEYDOWN) {
-		if (const Command* command = commandFor(sym)) {
+		if (const game::InputCommand* command = commandFor(sym)) {
 			fire(*command);
 			return;
 		}
@@ -57,20 +57,21 @@ void InputManager::handleEvent(const SDL_Event& event) {
 }
 
 auto InputManager::defaultCommandBindings() const
-	-> std::unordered_map<SDL_Keycode, Command> {
+	-> std::unordered_map<SDL_Keycode, game::InputCommand> {
 
-	std::unordered_map<SDL_Keycode, Command> bindings;
+	using Kind = game::InputCommand::Kind;
+	std::unordered_map<SDL_Keycode, game::InputCommand> bindings;
 	// Orden = prioridad: ante colisiones de tecla, gana el primer comando.
-	bindings.insert({SDLK_SPACE, Command{CommandKind::UseTool, 0}});
-	bindings.insert({SDLK_RETURN, Command{CommandKind::Collect, 0}});
+	bindings.insert({SDLK_SPACE, game::InputCommand{Kind::UseTool, 0}});
+	bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
 	for (int i = 0; i < slotCount_; ++i) {
 		bindings.insert({static_cast<SDL_Keycode>(SDLK_1 + i),
-				 Command{CommandKind::SelectSlot, i}});
+				 game::InputCommand{Kind::SelectSlot, i}});
 	}
 	return bindings;
 }
 
-auto InputManager::commandFor(SDL_Keycode key) const -> const Command* {
+auto InputManager::commandFor(SDL_Keycode key) const -> const game::InputCommand* {
 	if (const auto it = commandBindings_.find(key);
 	    it != commandBindings_.end()) {
 		return &it->second;
@@ -78,15 +79,15 @@ auto InputManager::commandFor(SDL_Keycode key) const -> const Command* {
 	return nullptr;
 }
 
-void InputManager::fire(const Command& command) {
+void InputManager::fire(const game::InputCommand& command) {
 	pending_.push_back(command);
 }
 
-auto InputManager::takeCommand() -> std::optional<Command> {
+auto InputManager::takeCommand() -> std::optional<game::InputCommand> {
 	if (pending_.empty()) {
 		return std::nullopt;
 	}
-	const Command command = pending_.front();
+	const game::InputCommand command = pending_.front();
 	pending_.pop_front();
 	return command;
 }

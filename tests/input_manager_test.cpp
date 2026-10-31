@@ -5,12 +5,13 @@
 
 #include "gtest/gtest.h"
 
+#include "game/InputCommand.h"
 #include "sdl/input/InputManager.h"
 
 namespace {
 
-using Command = sdl::InputManager::Command;
-using CommandKind = sdl::InputManager::CommandKind;
+using Command = game::InputCommand;
+using CommandKind = game::InputCommand::Kind;
 using sdl::InputManager;
 
 SDL_Event keyEvent(Uint32 type, SDL_Keycode sym, Uint8 repeat = 0) {

@@ -30,7 +30,7 @@ TEST(CharacterLayoutTest, BodyTopAndBottomUseDrawnHeight) {
 TEST(CharacterLayoutTest, TwoRowLayerAnchorsItsBottomAtBodyBottom) {
 	const CharacterLayout layout(PixelRect{0, 0, 128, 128}, 64, 64);
 
-	const PixelRect rect = layout.layerRect(makeLayer(1, 2));
+	const PixelRect rect = layout.layerRect(makeLayer(1, 2), makeLayer(1, 2));
 	EXPECT_EQ(rect.x, layout.bodyX());
 	EXPECT_EQ(rect.height, 64);
 	EXPECT_EQ(rect.y + rect.height, layout.bodyBottom());
@@ -39,20 +39,21 @@ TEST(CharacterLayoutTest, TwoRowLayerAnchorsItsBottomAtBodyBottom) {
 TEST(CharacterLayoutTest, OneByOneLayerSitsOnBodyBottom) {
 	const CharacterLayout layout(PixelRect{0, 0, 128, 128}, 64, 64);
 
-	const PixelRect rect = layout.layerRect(makeLayer(1, 1));
+	const PixelRect rect = layout.layerRect(makeLayer(1, 1), makeLayer(1, 2));
 	EXPECT_EQ(rect.x, layout.bodyX());
-	EXPECT_EQ(rect.y, layout.bodyBottom() - 64);
+	EXPECT_EQ(rect.height, 32);
+	EXPECT_EQ(rect.y, layout.bodyBottom() - 32);
 	EXPECT_EQ(rect.y + rect.height, layout.bodyBottom());
 }
 
 TEST(CharacterLayoutTest, InvalidLayerDoesNotDivideByZero) {
 	const CharacterLayout layout(PixelRect{0, 0, 128, 128}, 64, 64);
 
-	const PixelRect noCols = layout.layerRect(makeLayer(0, 1));
+	const PixelRect noCols = layout.layerRect(makeLayer(0, 1), makeLayer(1, 2));
 	EXPECT_LE(noCols.width, 0);
 	EXPECT_LE(noCols.height, 0);
 
-	const PixelRect noRows = layout.layerRect(makeLayer(1, -1));
+	const PixelRect noRows = layout.layerRect(makeLayer(1, -1), makeLayer(1, 2));
 	EXPECT_LE(noRows.width, 0);
 	EXPECT_LE(noRows.height, 0);
 }

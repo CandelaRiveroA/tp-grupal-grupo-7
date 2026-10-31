@@ -22,8 +22,9 @@ void CharacterSprite::draw(const world::Pose& pose,
 				 logicalBox.h},
 		drawnWidth_, drawnHeight_);
 
+	const world::LayerFrame& baseLayer = pose.front();
 	for (const world::LayerFrame& layer : pose) {
-		const world::PixelRect& rect = layout.layerRect(layer);
+		const world::PixelRect rect = layout.layerRect(layer, baseLayer);
 		sheet_.drawBlock(layer.frame.col, layer.frame.row, layer.cols,
 				 layer.rows,
 				 SDL2pp::Rect(rect.x, rect.y, rect.width,

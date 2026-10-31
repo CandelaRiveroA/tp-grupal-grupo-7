@@ -18,11 +18,16 @@ public:
 	int bodyX() const;
 	int bodyTop() const;
 	int bodyBottom() const;
+	int drawnWidth() const;
+	int drawnHeight() const;
 
-	// Rectángulo de una capa dentro del box. Si la capa es inválida
-	// (cols <= 0 o rows <= 0) devuelve un rect vacío, sin dividir por
-	// cero: el loader ya valida, esto solo evita romperse.
-	PixelRect layerRect(const LayerFrame& layer) const;
+	// Rectángulo de una capa dentro del box. El factor de píxeles por
+	// celda sale de la capa base del pose —el cuerpo—, no de la capa que
+	// se está dibujando. Así una capa 1x1 mide lo que corresponde aunque
+	// el cuerpo sea 1x2. Si una capa es inválida devuelve un rect vacío,
+	// sin dividir por cero: el loader ya valida, esto solo evita romperse.
+	PixelRect layerRect(const LayerFrame& layer,
+			    const LayerFrame& baseLayer) const;
 
 private:
 	PixelRect bodyBox_;

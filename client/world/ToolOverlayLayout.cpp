@@ -45,13 +45,16 @@ const ToolOverlayFrame* ToolOverlayLayout::frameAt(
 
 PixelRect ToolOverlayLayout::layerRect(const ToolOverlayFrame& frame,
 				       const LayerFrame& layer) const {
-	const PixelRect base = body_.layerRect(layer);
-	if (base.width <= 0 || base.height <= 0) {
+	if (layer.cols <= 0 || layer.rows <= 0) {
 		return PixelRect{body_.bodyX(), body_.bodyBottom(), 0, 0};
 	}
 
-	const int width = static_cast<int>(base.width * frame.scale);
-	const int height = static_cast<int>(base.height * frame.scale);
+	const int pxPerCellX = body_.drawnWidth() / layer.cols;
+	const int pxPerCellY = body_.drawnHeight() / layer.rows;
+	const int width =
+		static_cast<int>(layer.cols * pxPerCellX * frame.scale);
+	const int height =
+		static_cast<int>(layer.rows * pxPerCellY * frame.scale);
 	const int x = body_.bodyX() + frame.offsetX;
 	const int y = anchorBaseY(frame.anchor, height) +
 		      catalog_.offsetFor(frame.anchor) + frame.offsetY;

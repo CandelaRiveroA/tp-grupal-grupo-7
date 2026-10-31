@@ -31,6 +31,13 @@ target_sources(taller_tests
     inventory_config_loader_test.cpp
     inventory_slots_test.cpp
     scene_pixel_mapper_test.cpp
+    camera_test.cpp
+    viewport_test.cpp
+    element_layout_test.cpp
+    character_layout_test.cpp
+    chunk_grid_test.cpp
+    scene_element_index_test.cpp
+    view_spatial_index_test.cpp
     world_contract_test.cpp
     mock_game_client_test.cpp
     local_world_view_test.cpp
@@ -46,6 +53,7 @@ target_sources(taller_tests
     obtained_banner_layout_test.cpp
     action_resolver_test.cpp
     tool_overlay_loader_test.cpp
+    tool_overlay_layout_test.cpp
     resource_config_loader_test.cpp
     digit_config_loader_test.cpp
     tile_layout_test.cpp

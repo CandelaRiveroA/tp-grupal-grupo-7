@@ -25,6 +25,7 @@
 #include "game/NetworkGameClient.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/ResourceAudioCue.h"
+#include "game/GameConstants.h"
 #include "game/ViewMotion.h"
 #include "game/WalkPacer.h"
 #include "qt/LobbyWindow.h"
@@ -33,6 +34,7 @@
 #include "sdl/input/InputManager.h"
 #include "sdl/log/Logger.h"
 #include "sdl/loop/GameLoop.h"
+#include "sdl/render/Camera.h"
 #include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/Renderer.h"
@@ -52,6 +54,7 @@
 #include "world/Scenario.h"
 #include "world/SceneConfigLoader.h"
 #include "world/SceneDescription.h"
+#include "world/ScenePixelMapper.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
 
@@ -140,6 +143,19 @@ int Application::toolUseDurationTicks(const world::CharacterCatalog& characters)
     return 1;
 }
 
+void Application::updateCamera(sdl::Camera& camera,
+                               const world::SceneDescription& scene,
+                               const game::LocalWorldView& view,
+                               const game::ViewMotion& motion,
+                               int iteration) const {
+    if (view.entities.empty()) {
+        return;
+    }
+    camera.follow(motion.drawBoxFor(view.entities[game::kLocalPlayerIndex],
+                                    game::kLocalPlayerIndex, iteration,
+                                    scene.cellPixelSize));
+}
+
 int Application::runGameLoop(
         const SessionConfig& session, const world::Scenario& scenario, game::GameClient& gameClient,
         const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
@@ -149,14 +165,19 @@ int Application::runGameLoop(
     (void)session;
 
     sdl::SdlContext sdlContext(config_);
+    const world::ScenePixelMapper mapper(scenario.scene().cellPixelSize);
+    sdl::Camera camera(mapper.worldBounds(scenario.scene().grid),
+                       sdlContext.width(), sdlContext.height());
     sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources, inventory.content);
+    renderer.prepareScene(scenario.scene());
     sdl::InventoryHud inventoryHud(sdlContext, inventory, digits);
     sdl::ObtainedBannerHud bannerHud(sdlContext, banner, inventory.slotDrawWidth());
     game::ObtainedBannerQueue bannerQueue(banner.durationTicks, banner.maxVisible);
     sdl::InputManager input(core::kInventorySlots);
     sdl::AudioPlayer audio;
 
-    const StartupScreens screens(sdlContext, renderer, audio, scenario);
+    const StartupScreens screens(sdlContext, renderer, audio, scenario,
+                                 camera.viewport());
     const game::MoveCommand moveCommand;
 
     game::ViewMotion motion(characters);
@@ -168,7 +189,6 @@ int Application::runGameLoop(
     const world::CreatureData& localCreature = characters.dataFor(world::CreatureKind::Player);
     game::WalkPacer walkPacer(localCreature.cadence);
 
-    constexpr std::size_t kPlayerIndex = 0;
     const game::ActionResolver actionResolver(motion);
 
     game::InventorySelector inventorySelector;
@@ -176,6 +196,8 @@ int Application::runGameLoop(
     sdl::GameLoop loop(input, [&](int it) {
         gameClient.update();
         const game::LocalWorldView& state = gameClient.worldState();
+        motion.observe(state, it);
+        updateCamera(camera, scenario.scene(), state, motion, it);
 
         const GamePhase phase = phaseForIteration(it);
         if (screens.draw(phase, it, state, motion, actionResolver)) {
@@ -224,15 +246,16 @@ int Application::runGameLoop(
         }
 
         const game::LocalWorldView& drawing = state;
-        motion.observe(drawing, it);
 
         if (!drawing.entities.empty()) {
-            const game::ViewEntity& player = drawing.entities[kPlayerIndex];
+            const game::ViewEntity& player = drawing.entities[game::kLocalPlayerIndex];
             const world::CreatureData& creature = characters.dataFor(player.kind);
             const world::AppearanceResolver resolver(creature);
-            const int walkFrame = resolver.frameIndexFor(player.facing, world::ActionKind::Walk,
-                                                         motion.animationTickFor(kPlayerIndex, it));
-            const bool walking = motion.isWalking(kPlayerIndex, it, player.moving);
+            const int walkFrame = resolver.frameIndexFor(
+                    player.facing, world::ActionKind::Walk,
+                    motion.animationTickFor(game::kLocalPlayerIndex, it));
+            const bool walking =
+                    motion.isWalking(game::kLocalPlayerIndex, it, player.moving);
             if (footstepCue.update(walking, walkFrame)) {
                 audio.play(sdl::SoundId::Step);
             }
@@ -258,7 +281,8 @@ int Application::runGameLoop(
         }
         bannerQueue.tick();
 
-        renderer.renderScene(scenario.scene(), drawing, motion, actionResolver, it);
+        renderer.drawWorld(scenario.scene(), drawing, motion, actionResolver, it,
+                           camera.viewport());
         inventoryHud.draw(drawing.inventory, inventorySelector.active());
         bannerHud.draw(bannerQueue.active());
         sdlContext.present();

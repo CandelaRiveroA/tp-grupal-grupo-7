@@ -240,4 +240,70 @@ TEST(ViewMotionTest, WithoutHistoryItDrawsInItsCell) {
 	EXPECT_EQ(motion.animationTickFor(0, 50), 50);
 }
 
+TEST(ViewMotionTest, DrawBoxUsesTheCellWhenThereIsNoHistory) {
+	ViewMotion motion = makeMotion();
+	const world::PixelRect box =
+		motion.drawBoxFor(entityAt(5, 5), 0, 50, kCellPixels);
+
+	EXPECT_EQ(box.x, 5 * kCellPixels);
+	EXPECT_EQ(box.y, 5 * kCellPixels);
+	EXPECT_EQ(box.width, kCellPixels);
+	EXPECT_EQ(box.height, kCellPixels);
+}
+
+TEST(ViewMotionTest, DrawBoxStartsAtThePreviousCell) {
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(6, 5), 100);
+
+	const world::PixelRect box =
+		motion.drawBoxFor(entityAt(6, 5), 0, 100, kCellPixels);
+	EXPECT_EQ(box.x, 5 * kCellPixels);
+	EXPECT_EQ(box.y, 5 * kCellPixels);
+}
+
+TEST(ViewMotionTest, DrawBoxInterpolatesTheStep) {
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(6, 5), 100);
+
+	const world::PixelRect box = motion.drawBoxFor(
+		entityAt(6, 5), 0, 100 + kStepTicks / 2, kCellPixels);
+	EXPECT_EQ(box.x, 5 * kCellPixels + kCellPixels / 2);
+	EXPECT_EQ(box.y, 5 * kCellPixels);
+}
+
+TEST(ViewMotionTest, DrawBoxEndsAtTheCurrentCell) {
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(6, 5), 100);
+
+	const world::PixelRect box =
+		motion.drawBoxFor(entityAt(6, 5), 0, 100 + kStepTicks, kCellPixels);
+	EXPECT_EQ(box.x, 6 * kCellPixels);
+	EXPECT_EQ(box.y, 5 * kCellPixels);
+}
+
+TEST(ViewMotionTest, DrawBoxInterpolatesVerticalSteps) {
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(5, 4), 100);
+
+	const world::PixelRect box =
+		motion.drawBoxFor(entityAt(5, 4), 0, 100, kCellPixels);
+	EXPECT_EQ(box.x, 5 * kCellPixels);
+	EXPECT_EQ(box.y, 5 * kCellPixels);
+}
+
+TEST(ViewMotionTest, DrawBoxSnapsAfterATeleport) {
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(9, 9), 100);
+
+	const world::PixelRect box =
+		motion.drawBoxFor(entityAt(9, 9), 0, 100, kCellPixels);
+	EXPECT_EQ(box.x, 9 * kCellPixels);
+	EXPECT_EQ(box.y, 9 * kCellPixels);
+}
+
 }

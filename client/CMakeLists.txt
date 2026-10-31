@@ -46,9 +46,11 @@ target_sources(taller_client
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/ToolOverlayPainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
     sdl/input/InputManager.cpp
@@ -89,6 +91,7 @@ target_sources(taller_client
     game/ResourceAudioCue.h
     game/ObtainedBannerQueue.h
     game/GameClient.h
+    game/GameConstants.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
@@ -100,6 +103,8 @@ target_sources(taller_client
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
+    world/CharacterLayout.h
+    world/WorldConstants.h
     world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
@@ -112,6 +117,7 @@ target_sources(taller_client
     world/InventoryConfigLoader.h
     world/ItemCatalog.h
     world/ToolOverlay.h
+    world/ToolOverlayLayout.h
     world/ToolOverlayLoader.h
     world/ToolOverlayTomlReader.h
     world/ResourceCatalog.h
@@ -126,6 +132,10 @@ target_sources(taller_client
     world/SceneKeys.h
     world/ScenePixelMapper.h
     world/SceneTomlReader.h
+    world/ElementLayout.h
+    world/ChunkGrid.h
+    world/SceneElementIndex.h
+    game/ViewSpatialIndex.h
     toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
@@ -133,10 +143,15 @@ target_sources(taller_client
     sdl/loop/GameLoop.h
     sdl/render/Renderer.h
     sdl/render/ElementPainter.h
+    sdl/render/EntityRenderer.h
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/Viewport.h
+    sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/RenderConstants.h
+    sdl/render/ToolOverlayPainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
     sdl/input/InputManager.h

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include "world/WorldConstants.h"
+
 namespace game {
 
 ViewMotion::ViewMotion(const world::CharacterCatalog& catalog)
@@ -72,6 +74,19 @@ PixelOffset ViewMotion::offsetFor(const std::size_t index,
 	const int deltaY = (track.previousCellY - track.cellY) * cellPixelSize;
 	return PixelOffset{deltaX * remaining / track.cadence.stepTicks,
 			   deltaY * remaining / track.cadence.stepTicks};
+}
+
+world::PixelRect ViewMotion::drawBoxFor(const ViewEntity& entity,
+					const std::size_t index,
+					const int iteration,
+					const int cellPixelSize) const {
+	const world::ScenePixelMapper mapper(cellPixelSize);
+	const world::PixelRect cell = mapper.toPixels(
+		world::GridCell{entity.cellX, entity.cellY},
+		world::kUnitCellSpan);
+	const PixelOffset offset = offsetFor(index, iteration, cellPixelSize);
+	return world::PixelRect{cell.x + offset.x, cell.y + offset.y,
+				cell.width, cell.height};
 }
 
 int ViewMotion::animationTickFor(const std::size_t index,

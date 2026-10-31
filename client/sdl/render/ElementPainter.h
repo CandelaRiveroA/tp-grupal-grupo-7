@@ -1,6 +1,8 @@
 #pragma once
 
-#include "sdl/render/TileLayout.h"
+#include <map>
+
+#include "world/ElementLayout.h"
 #include "world/SceneDescription.h"
 #include "world/ScenePixelMapper.h"
 
@@ -14,21 +16,27 @@ public:
 		       const world::ElementPlacement& element,
 		       const world::PixelRect& area);
 
-	void paint(SpriteSheet& sheet) const;
+	world::PixelRect bounds() const;
+
+	void paint(SpriteSheet& sheet, const world::PixelRect& clip) const;
 
 private:
-	void paintSingle(SpriteSheet& sheet) const;
-	void paintTiled(SpriteSheet& sheet) const;
-	void paintStrip(SpriteSheet& sheet) const;
+	using PaintMethod =
+		void (ElementPainter::*)(SpriteSheet&,
+					 const world::PixelRect&) const;
 
-	void blit(SpriteSheet& sheet, const TileLayout::Placement& piece) const;
+	void paintSingle(SpriteSheet& sheet,
+			 const world::PixelRect& clip) const;
+	void paintTiled(SpriteSheet& sheet,
+			const world::PixelRect& clip) const;
+	void paintStrip(SpriteSheet& sheet,
+			const world::PixelRect& clip) const;
 
-	int pieceWidth() const;
-	int pieceHeight() const;
+	void blit(SpriteSheet& sheet, int offsetX, int offsetY, int width,
+		  int height) const;
 
-	const world::TileSetDef& tileset_;
-	const world::ElementPlacement& element_;
-	const world::PixelRect area_;
+	const world::ElementLayout layout_;
+	std::map<world::DrawMode, PaintMethod> paintMethods_;
 };
 
-}
+}  // namespace sdl

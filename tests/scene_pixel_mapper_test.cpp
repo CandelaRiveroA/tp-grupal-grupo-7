@@ -32,4 +32,13 @@ TEST(ScenePixelMapperTest, SpanScalesWidthAndHeight) {
 	EXPECT_EQ(rect.height, 576);
 }
 
+TEST(ScenePixelMapperTest, WorldBoundsStartAtOrigin) {
+	const world::ScenePixelMapper mapper(32);
+	const world::PixelRect rect = mapper.worldBounds(world::GridSpan{30, 20});
+	EXPECT_EQ(rect.x, 0);
+	EXPECT_EQ(rect.y, 0);
+	EXPECT_EQ(rect.width, 960);
+	EXPECT_EQ(rect.height, 640);
+}
+
 }

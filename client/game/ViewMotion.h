@@ -6,6 +6,7 @@
 #include "game/LocalWorldView.h"
 #include "world/CharacterCatalog.h"
 #include "world/CreatureCatalog.h"
+#include "world/ScenePixelMapper.h"
 
 namespace game {
 
@@ -22,6 +23,9 @@ public:
 
 	PixelOffset offsetFor(std::size_t index, int iteration,
 			      int cellPixelSize) const;
+
+	world::PixelRect drawBoxFor(const ViewEntity& entity, std::size_t index,
+				    int iteration, int cellPixelSize) const;
 
 	int animationTickFor(std::size_t index, int iteration) const;
 

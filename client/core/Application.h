@@ -11,6 +11,12 @@ class LobbyWindow;
 
 namespace game {
 class GameClient;
+class LocalWorldView;
+class ViewMotion;
+}
+
+namespace sdl {
+class Camera;
 }
 
 namespace world {
@@ -21,6 +27,7 @@ struct ToolOverlayCatalog;
 struct ResourceCatalog;
 struct ObtainedBannerCatalog;
 struct DigitCatalog;
+struct SceneDescription;
 }  // namespace world
 
 namespace core {
@@ -47,6 +54,12 @@ private:
     // datos del personaje (frames x ticks por cuadro). Es lo que el cliente
     // usa para mostrar la animación de golpe al recibir ToolUsed.
     int toolUseDurationTicks(const world::CharacterCatalog& characters) const;
+
+    // La cámara sigue el rectángulo dibujado del jugador local, no su
+    // celda lógica: así también se centra durante la interpolación del paso.
+    void updateCamera(sdl::Camera& camera, const world::SceneDescription& scene,
+                      const game::LocalWorldView& view,
+                      const game::ViewMotion& motion, int iteration) const;
 
     int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
                     game::GameClient& gameClient, const world::CharacterCatalog& characters,

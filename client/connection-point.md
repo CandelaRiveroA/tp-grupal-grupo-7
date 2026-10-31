@@ -119,9 +119,10 @@ cada iteración (número `it`):
   (1) ACÁ SE DRENA EL RECEIVER  → worldState() actualiza el estado
   (2) ACÁ SE MANDA AL SENDER    → sendCommand() pushea el comando
   (3) ACÁ SE PRESENTA           → motion.observe(vista, it)
+                                  → cámara sigue el rect del jugador local
                                   → isWalking(): ¿se ve caminando?
                                   → ¿suena el paso? (FootstepCue)
-                                  → renderer.render(..., motion, it)
+                                  → renderer.drawWorld(..., motion, it, camera.viewport())
 ```
 
 El paso (3) es presentación entera: **el sonido del paso vive ahí, no en

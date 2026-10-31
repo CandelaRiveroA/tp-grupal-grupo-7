@@ -3,20 +3,13 @@
 #include <SDL2pp/SDL2pp.hh>
 
 #include "core/Constants.h"
+#include "sdl/audio/AudioConfig.h"
 
 namespace sdl {
 
-namespace {
-
-constexpr int kFrequency = 44100;
-constexpr int kChannels = 2;
-constexpr int kChunkSize = 2048;
-
-}
-
 AudioPlayer::AudioPlayer() : chunks_{} {
-	if (Mix_OpenAudio(kFrequency, MIX_DEFAULT_FORMAT, kChannels,
-			  kChunkSize) < 0) {
+	if (Mix_OpenAudio(AUDIO_FREQUENCY, MIX_DEFAULT_FORMAT, AUDIO_CHANNELS,
+			  AUDIO_CHUNK_SIZE) < 0) {
 		throw SDL2pp::Exception("Mix_OpenAudio");
 	}
 

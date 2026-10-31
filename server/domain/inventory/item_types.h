@@ -14,6 +14,8 @@ enum class ItemID : uint16_t {
     ONION,
     POTATO,
     PUMPKIN,
+    MILK,
+    EGG,
     COAL_ORB,
     LAPIS_ORB,
     SILVER_ORB,

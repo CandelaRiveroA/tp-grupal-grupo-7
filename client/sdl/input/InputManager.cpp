@@ -4,12 +4,8 @@
 
 namespace sdl {
 
-InputManager::InputManager()
-	: InputManager(0) {}
-
 InputManager::InputManager(int slotCount)
-	: keymap_(defaultBindings()), useToolKey_(SDLK_SPACE),
-	  collectKey_(SDLK_RETURN), slotCount_(slotCount) {
+	: keymap_(defaultBindings()), slotCount_(slotCount) {
 	commandBindings_ = defaultCommandBindings();
 }
 
@@ -20,12 +16,6 @@ bool InputManager::down() const { return flags_[static_cast<std::size_t>(Action:
 bool InputManager::left() const { return flags_[static_cast<std::size_t>(Action::Left)]; }
 
 bool InputManager::right() const { return flags_[static_cast<std::size_t>(Action::Right)]; }
-
-auto InputManager::bindings() const -> const std::unordered_map<SDL_Keycode, Action>& {
-	return keymap_;
-}
-
-bool InputManager::isBound(SDL_Keycode key) const { return keymap_.count(key) > 0; }
 
 auto InputManager::defaultBindings() const -> std::unordered_map<SDL_Keycode, Action> {
 
@@ -71,8 +61,8 @@ auto InputManager::defaultCommandBindings() const
 
 	std::unordered_map<SDL_Keycode, Command> bindings;
 	// Orden = prioridad: ante colisiones de tecla, gana el primer comando.
-	bindings.insert({useToolKey_, Command{CommandKind::UseTool, 0}});
-	bindings.insert({collectKey_, Command{CommandKind::Collect, 0}});
+	bindings.insert({SDLK_SPACE, Command{CommandKind::UseTool, 0}});
+	bindings.insert({SDLK_RETURN, Command{CommandKind::Collect, 0}});
 	for (int i = 0; i < slotCount_; ++i) {
 		bindings.insert({static_cast<SDL_Keycode>(SDLK_1 + i),
 				 Command{CommandKind::SelectSlot, i}});
@@ -101,55 +91,10 @@ auto InputManager::takeCommand() -> std::optional<Command> {
 	return command;
 }
 
-void InputManager::rebindUseTool(SDL_Keycode newKey) {
-	commandBindings_.erase(useToolKey_);
-	useToolKey_ = newKey;
-	commandBindings_.insert_or_assign(newKey,
-					  Command{CommandKind::UseTool, 0});
-}
-
-void InputManager::rebindCollect(SDL_Keycode newKey) {
-	commandBindings_.erase(collectKey_);
-	collectKey_ = newKey;
-	commandBindings_.insert_or_assign(newKey,
-					  Command{CommandKind::Collect, 0});
-}
-
 void InputManager::setKey(SDL_Keycode key, bool pressed) {
 
 	if (auto it = keymap_.find(key); it != keymap_.end()) {
 		flags_[static_cast<std::size_t>(it->second)] = pressed;
-	}
-}
-
-void InputManager::clearAll() {
-	flags_.fill(false);
-}
-
-auto InputManager::actionFor(SDL_Keycode key) const -> std::optional<Action> {
-	if (auto it = keymap_.find(key); it != keymap_.end()) {
-		return it->second;
-	}
-	return std::nullopt;
-}
-
-auto InputManager::keysFor(Action action) const -> std::vector<SDL_Keycode> {
-	std::vector<SDL_Keycode> keys;
-	for (const auto& [key, act] : keymap_) {
-		if (act == action) {
-			keys.push_back(key);
-		}
-	}
-	return keys;
-}
-
-void InputManager::rebind(SDL_Keycode oldKey, SDL_Keycode newKey) {
-	if (oldKey == newKey) {
-		return;
-	}
-	if (auto it = keymap_.find(oldKey); it != keymap_.end()) {
-		keymap_[newKey] = it->second;
-		keymap_.erase(it);
 	}
 }
 

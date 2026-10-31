@@ -11,24 +11,7 @@ class LobbyWindow;
 
 namespace game {
 class GameClient;
-class LocalWorldView;
-class ViewMotion;
 }
-
-namespace sdl {
-class Camera;
-}
-
-namespace world {
-class Scenario;
-class CharacterCatalog;
-struct InventoryLayout;
-struct ToolOverlayCatalog;
-struct ResourceCatalog;
-struct ObtainedBannerCatalog;
-struct DigitCatalog;
-struct SceneDescription;
-}  // namespace world
 
 namespace core {
 
@@ -46,27 +29,11 @@ private:
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();
 
-    int runGame(const SessionConfig& session);
+    // Carga los datos de la partida y corre la sesión de juego. Validar
+    // que el lobby haya dado una sesión le corresponde a run().
+    int runGame();
 
     std::unique_ptr<game::GameClient> createGameClient(int toolUseDurationTicks) const;
-
-    // Duración en ticks del golpe (UseTool) del jugador, derivada de los
-    // datos del personaje (frames x ticks por cuadro). Es lo que el cliente
-    // usa para mostrar la animación de golpe al recibir ToolUsed.
-    int toolUseDurationTicks(const world::CharacterCatalog& characters) const;
-
-    // La cámara sigue el rectángulo dibujado del jugador local, no su
-    // celda lógica: así también se centra durante la interpolación del paso.
-    void updateCamera(sdl::Camera& camera, const world::SceneDescription& scene,
-                      const game::LocalWorldView& view,
-                      const game::ViewMotion& motion, int iteration) const;
-
-    int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
-                    game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                    const world::InventoryLayout& inventory,
-                    const world::ToolOverlayCatalog& toolOverlay,
-                    const world::ResourceCatalog& resources,
-                    const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits);
 
     WindowConfig config_;
     QApplication app_;

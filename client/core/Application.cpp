@@ -24,6 +24,7 @@
 #include "game/WalkPacer.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/audio/AudioPlayer.h"
+#include "sdl/audio/MusicPlayer.h"
 #include "sdl/context/SdlContext.h"
 #include "sdl/input/InputManager.h"
 #include "sdl/log/Logger.h"
@@ -70,7 +71,8 @@ int Application::run() {
 
 std::optional<SessionConfig> Application::runLobby() {
 
-    LobbyWindow lobby(config_);
+    sdl::MusicPlayer music;
+    LobbyWindow lobby(config_, &music);
     lobby.show();
     app_.exec();
 

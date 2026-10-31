@@ -11,6 +11,7 @@
 #include "qt/screens/Screen.h"
 
 namespace core {
+class MusicControl;
 class WindowConfig;
 }
 
@@ -26,6 +27,7 @@ class LobbyWindow : public QWidget {
 
 public:
 	explicit LobbyWindow(const core::WindowConfig& config,
+			     core::MusicControl* music = nullptr,
 			     QWidget* parent = nullptr);
 
 	// Resultado del lobby. Vacío si el usuario cerró sin confirmar.

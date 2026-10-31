@@ -57,7 +57,7 @@ void PlaySession::run() {
 }
 
 void PlaySession::tick(int iteration) {
-    gameClient_.update();
+    gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
     motion_.observe(state, iteration);
     updateCamera(state, motion_, iteration);

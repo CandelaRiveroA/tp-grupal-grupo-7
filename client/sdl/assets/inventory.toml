@@ -186,3 +186,25 @@ at    = [6, 5]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 at    = [6, 7]
+
+[items.egg]           # huevo: sprite ÚNICO (Farm/egg.png mide 10x11 px,
+                      # no es una grilla), así que la hoja es una sola
+                      # celda de 10x11 y el ítem es la celda [0, 0].
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+# drawn: tamaño del ítem DIBUJADO EN EL MAPA (ítems en el suelo, ej. el
+# huevo que pone la gallina). El nativo 10x11 es chico para una celda de
+# 32 px y el doble (20x22) quedó grande: punto medio a ~1.5x. El ícono
+# del inventario NO usa este campo (escala al slot como los demás).
+drawn = [15, 16]
+
+[items.milk]          # leche: sprite ÚNICO (Farm/milk.png mide 10x12 px,
+                      # igual patrón que el huevo: hoja de una sola
+                      # celda de 10x12 y el ítem es la celda [0, 0]).
+sheet = "Farm/milk.png"
+cell  = [10, 12]
+at    = [0, 0]
+# drawn: mismo criterio que el huevo (nativo chico para la celda de
+# 32 px, doble grande): ~1.5x.
+drawn = [15, 18]

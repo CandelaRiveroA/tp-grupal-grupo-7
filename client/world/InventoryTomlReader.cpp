@@ -1,6 +1,7 @@
 #include "world/InventoryTomlReader.h"
 
 #include <array>
+#include <utility>
 #include <vector>
 
 #include "world/ConfigError.h"
@@ -46,6 +47,7 @@ constexpr const char* kItems = "items";
 constexpr const char* kItemSheet = "sheet";
 constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
+constexpr const char* kItemDrawn = "drawn";
 
 constexpr const char* kBarDigitScale = "bar.digit_scale";
 constexpr const char* kBarDigitMargin = "bar.digit_margin";
@@ -151,6 +153,18 @@ void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
 			doc_.getIntArray<2>(join(base, kItemAt));
 		visual.col = at[0];
 		visual.row = at[1];
+		// Tamaño EN EL MAPA: opcional (default = celda nativa).
+		const std::string drawnKey = join(base, kItemDrawn);
+		if (doc_.hasKey(drawnKey)) {
+			const std::array<int, 2> drawn =
+				doc_.getIntArray<2>(drawnKey);
+			if (drawn[0] <= 0 || drawn[1] <= 0) {
+				throw ConfigError(Kind::InvalidValue,
+						  drawnKey);
+			}
+			visual.drawnWidth = drawn[0];
+			visual.drawnHeight = drawn[1];
+		}
 		if (visual.cellWidth <= 0 || visual.cellHeight <= 0 ||
 		    visual.col < 0 || visual.row < 0) {
 			throw ConfigError(Kind::InvalidValue, base);

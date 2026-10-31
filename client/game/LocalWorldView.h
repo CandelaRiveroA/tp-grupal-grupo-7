@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 #include "world/ItemCatalog.h"
@@ -23,6 +24,10 @@ struct ViewEntity {
     // Herramienta activa durante UseTool (la decide la fuente). nullopt
     // si no usa herramienta.
     std::optional<world::ItemKind> activeTool;
+    // Identificador estable de la entidad entre frames (lo asigna la
+    // fuente). Permite seguirla aunque se mueva y referenciarla desde
+    // eventos (p. ej. los cues de sonido).
+    int id = 0;
 };
 
 // Recurso picable. La fuente decide tipo, celda y estado; al agotarse
@@ -58,11 +63,11 @@ struct ViewResourceObtained {
 
 // Item caído al piso, recogible por el jugador. GENÉRICO: lo identifica un
 // contentId (string, mismo vocabulario que el inventario y el servidor), no
-// un tipo concreto. Hoy caen minerales; mañana huevos u otros, sin cambiar
-// esta estructura. La fuente decide contentId y celda (no se deduce); el
-// cliente lo dibuja en el piso resolviendo contentId -> asset
-// (world::ContentCatalog). Al recogerse (comando Take sobre su celda) sale
-// del vector y se emite obtained.
+// un tipo concreto. Hoy caen minerales y productos de granja (huevos,
+// leche), sin cambiar esta estructura. La fuente decide contentId y celda
+// (no se deduce); el cliente lo dibuja en el piso resolviendo contentId ->
+// asset (world::ContentCatalog). Al recogerse (comando Take sobre su celda)
+// sale del vector y se emite obtained.
 struct ViewDroppedItem {
     std::string contentId;
     int cellX;
@@ -84,6 +89,9 @@ struct LocalWorldView {
     std::vector<ViewInventorySlot> inventory;
     world::GridSpan grid{0, 0};
     std::vector<ViewResourceHit> resourceHits;
+    // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
+    // Se limpian cada tick; la presentación los reproduce y los apaga.
+    std::vector<ViewSoundEvent> soundEvents;
 };
 
 }  // namespace game

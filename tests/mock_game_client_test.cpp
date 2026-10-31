@@ -5,6 +5,7 @@
 #include "common/common_command.h"
 #include "game/MockGameClient.h"
 #include "gtest/gtest.h"
+#include "world/CharacterCatalogLoader.h"
 #include "world/CreatureCatalog.h"
 #include "world/ViewDirection.h"
 
@@ -12,7 +13,7 @@ namespace {
 
 // Un tick del cliente: avanza el estado y devuelve la vista.
 const game::LocalWorldView& tick(game::GameClient& client) {
-    client.update();
+    client.update(0);
     return client.worldState();
 }
 
@@ -372,7 +373,7 @@ TEST(MockGameClientTest, WorldStateDoesNotAdvanceUntilUpdate) {
     }
     EXPECT_EQ(client.worldState().entities[0].action, world::ActionKind::UseTool);
     for (int i = 0; i < kToolTicks; ++i) {
-        client.update();
+        client.update(0);
     }
     EXPECT_EQ(client.worldState().entities[0].action, world::ActionKind::Idle);
 }
@@ -382,12 +383,347 @@ TEST(MockGameClientTest, ObtainedIsEmittedOncePerUpdate) {
     exhaustFacingMineral(client, world::Direction::Right);
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
-    client.update();
+    client.update(0);
     EXPECT_EQ(client.worldState().obtained.size(), 1u);
     // Consultar varias veces sin update() no lo duplica ni lo borra.
     EXPECT_EQ(client.worldState().obtained.size(), 1u);
-    client.update();
+    client.update(0);
     EXPECT_TRUE(client.worldState().obtained.empty());
+}
+
+// --- Animales: la simulación del "server falso" --------------------------
+
+namespace {
+
+// Catálogo mínimo (jugador + gallina + vaca) para probar el mundo con
+// animales.
+const char* const kWorldToml = R"(
+[characters.player]
+sheet   = "walking.png"
+grid    = [16, 32]
+drawn   = [24, 48]
+cadence = { step = 24, frame = 12 }
+  [characters.player.front]
+  mirrored = false
+    [characters.player.front.idle]
+    loops  = false
+    frames = [ [[0, 0], [6, 0]] ]
+    [characters.player.front.walk]
+    loops  = true
+    frames = [ [[1, 0], [7, 0]], [[2, 0], [8, 0]] ]
+  [characters.player.back]
+  mirrored = false
+    [characters.player.back.idle]
+    loops  = false
+    frames = [ [[0, 2], [6, 2]] ]
+    [characters.player.back.walk]
+    loops  = true
+    frames = [ [[1, 2], [7, 2]], [[2, 2], [8, 2]] ]
+  [characters.player.left]
+  mirrored = true
+    [characters.player.left.idle]
+    loops  = false
+    frames = [ [[0, 1], [6, 1]] ]
+    [characters.player.left.walk]
+    loops  = true
+    frames = [ [[1, 1], [7, 1]], [[2, 1], [8, 1]] ]
+  [characters.player.right]
+  mirrored = false
+    [characters.player.right.idle]
+    loops  = false
+    frames = [ [[0, 1], [6, 1]] ]
+    [characters.player.right.walk]
+    loops  = true
+    frames = [ [[1, 1], [7, 1]], [[2, 1], [8, 1]] ]
+
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 32, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 4]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]], [[1, 0]], [[2, 0]], [[3, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[2, 4]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 1]], [[1, 1]], [[2, 1]], [[3, 1]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 5]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 2]], [[1, 2]], [[2, 2]], [[3, 2]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[2, 5]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 3]], [[1, 3]], [[2, 3]], [[3, 3]] ]
+
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 32, frame = 32 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 1]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 1]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 1]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 1]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 2]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 2]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+)";
+
+// El spawn de los animales es dato del mock; para que las 3 celdas caigan
+// dentro, el mundo de prueba usa la grilla de la sala real (30x20).
+constexpr int kRoomColumns = 30;
+constexpr int kRoomRows = 20;
+constexpr int kPlayerX = 15;
+constexpr int kPlayerY = 10;
+
+const world::CharacterCatalog& worldCatalog() {
+    static const world::CharacterCatalog instance =
+            world::CharacterCatalogLoader().loadFromString(kWorldToml);
+    return instance;
+}
+
+// Camina el mundo N ticks acumulando los ítems del suelo visibles en
+// cada frame (el último estado manda).
+std::vector<game::ViewDroppedItem> groundItemsAfter(
+        game::MockGameClient& client, int lastIteration) {
+    std::vector<game::ViewDroppedItem> last;
+    for (int it = 0; it <= lastIteration; ++it) {
+        client.update(it);
+        last = client.worldState().droppedItems;
+    }
+    return last;
+}
+
+}
+
+TEST(MockGameClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    const game::LocalWorldView& view = client.worldState();
+    // 3 gallinas + 3 vacas + jugador, en orden de spawn.
+    ASSERT_EQ(view.entities.size(), 7u);
+
+    // El jugador sigue siendo la entidad 0 con id 0.
+    EXPECT_EQ(view.entities[0].kind, world::CreatureKind::Player);
+    EXPECT_EQ(view.entities[0].id, 0);
+
+    // El orden del estado replica el orden de spawn: gallinas y luego
+    // vacas (el orden de la tabla de bindings del mock).
+    for (std::size_t i = 1; i <= 3; ++i) {
+        EXPECT_EQ(view.entities[i].kind, world::CreatureKind::Chicken);
+    }
+    for (std::size_t i = 4; i < view.entities.size(); ++i) {
+        EXPECT_EQ(view.entities[i].kind, world::CreatureKind::Cow);
+    }
+    for (std::size_t i = 1; i < view.entities.size(); ++i) {
+        EXPECT_EQ(view.entities[i].id, static_cast<int>(i));
+        EXPECT_FALSE(view.entities[i].cellX == kPlayerX &&
+                     view.entities[i].cellY == kPlayerY);
+    }
+}
+
+TEST(MockGameClientTest, AnimalIdsAreUnique) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    const game::LocalWorldView& view = client.worldState();
+    for (std::size_t a = 0; a < view.entities.size(); ++a) {
+        for (std::size_t b = a + 1; b < view.entities.size(); ++b) {
+            EXPECT_NE(view.entities[a].id, view.entities[b].id);
+        }
+    }
+}
+
+TEST(MockGameClientTest, AnimalsMoveOverUpdateTicks) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+
+    int movedCells = 0;
+    for (int it = 0; it <= 200; ++it) {
+        const game::LocalWorldView& before = client.worldState();
+        std::vector<int> xBefore;
+        std::vector<int> yBefore;
+        for (const game::ViewEntity& entity : before.entities) {
+            xBefore.push_back(entity.cellX);
+            yBefore.push_back(entity.cellY);
+        }
+
+        client.update(it);
+
+        const game::LocalWorldView& after = client.worldState();
+        ASSERT_EQ(after.entities.size(), before.entities.size());
+        for (std::size_t i = 0; i < after.entities.size(); ++i) {
+            if (after.entities[i].cellX != xBefore[i] ||
+                after.entities[i].cellY != yBefore[i]) {
+                movedCells += 1;
+            }
+            if (after.entities[i].kind == world::CreatureKind::Player) {
+                continue;
+            }
+            // Nadie pisa al jugador, nadie sale de la grilla.
+            EXPECT_FALSE(after.entities[i].cellX == kPlayerX &&
+                         after.entities[i].cellY == kPlayerY);
+            EXPECT_GE(after.entities[i].cellX, 0);
+            EXPECT_LT(after.entities[i].cellX, kRoomColumns);
+            EXPECT_GE(after.entities[i].cellY, 0);
+            EXPECT_LT(after.entities[i].cellY, kRoomRows);
+        }
+    }
+    EXPECT_GT(movedCells, 0);
+}
+
+TEST(MockGameClientTest, AnimalActionMatchesItsMovement) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    for (int it = 0; it <= 200; ++it) {
+        client.update(it);
+        for (const game::ViewEntity& entity : client.worldState().entities) {
+            if (entity.kind == world::CreatureKind::Player) {
+                continue;
+            }
+            const world::ActionKind expected =
+                    entity.moving ? world::ActionKind::Walk
+                                  : world::ActionKind::Idle;
+            EXPECT_EQ(entity.action, expected);
+        }
+    }
+}
+
+TEST(MockGameClientTest, UpdateWithoutAnimalSimulationIsANoOp) {
+    game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    client.update(0);
+    client.update(50);
+    const game::LocalWorldView& view = client.worldState();
+    ASSERT_EQ(view.entities.size(), 1u);
+    EXPECT_EQ(view.entities[0].kind, world::CreatureKind::Player);
+}
+
+// --- Huevos: la gallina pone, el ítem aparece en el suelo ---------------
+
+TEST(MockGameClientTest, ProducingAnimalsDropItemsOnTheGround) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+
+    // El período de postura es largo (gama en el .cpp de la
+    // simulación) pero acotado: con esta seed la primera postura cae
+    // bien dentro de la caminata.
+    const std::vector<game::ViewDroppedItem> drops =
+            groundItemsAfter(client, 3000);
+    ASSERT_FALSE(drops.empty());
+
+    for (const game::ViewDroppedItem& drop : drops) {
+        // El ítem es uno de los que la tabla de postura declara para
+        // algún kind (gallina -> huevo, vaca -> leche).
+        const bool knownDrop = drop.contentId == "egg" || drop.contentId == "milk";
+        EXPECT_TRUE(knownDrop);
+        EXPECT_GE(drop.cellX, 0);
+        EXPECT_LT(drop.cellX, kRoomColumns);
+        EXPECT_GE(drop.cellY, 0);
+        EXPECT_LT(drop.cellY, kRoomRows);
+        // Nadie suelta un ítem en la celda del jugador.
+        EXPECT_FALSE(drop.cellX == kPlayerX && drop.cellY == kPlayerY);
+    }
+}
+
+TEST(MockGameClientTest, GroundItemCountNeverExceedsTheCap) {
+    // Sin recogida, el tope de ítems en el suelo es lo que evita que
+    // la vista se llene de ítems (regla silenciosa del "server
+    // falso", como el límite de slots del inventario).
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    const std::vector<game::ViewDroppedItem> drops =
+            groundItemsAfter(client, 8000);
+    EXPECT_LE(drops.size(), 3u);
+}
+
+TEST(MockGameClientTest, GroundItemsAreStableBetweenFrames) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    const std::vector<game::ViewDroppedItem> drops =
+            groundItemsAfter(client, 3000);
+    ASSERT_FALSE(drops.empty());
+
+    // 200 ticks más: los ítems de antes SIGUEN (los del suelo no
+    // desaparecen), identificados por contentId + celda.
+    const std::vector<game::ViewDroppedItem> later =
+            groundItemsAfter(client, 3200);
+    for (const game::ViewDroppedItem& drop : drops) {
+        bool found = false;
+        for (const game::ViewDroppedItem& candidate : later) {
+            found = found || (candidate.contentId == drop.contentId &&
+                              candidate.cellX == drop.cellX &&
+                              candidate.cellY == drop.cellY);
+        }
+        EXPECT_TRUE(found) << drop.contentId << " desapareció";
+    }
+}
+
+TEST(MockGameClientTest, GroundItemsNeverShareACell) {
+    game::MockGameClient client(kRoomColumns, kRoomRows, kPlayerX,
+                                kPlayerY, kToolTicks, worldCatalog());
+    for (int it = 0; it <= 8000; ++it) {
+        client.update(it);
+        const std::vector<game::ViewDroppedItem>& drops =
+                client.worldState().droppedItems;
+        for (std::size_t a = 0; a < drops.size(); ++a) {
+            for (std::size_t b = a + 1; b < drops.size(); ++b) {
+                EXPECT_FALSE(drops[a].cellX == drops[b].cellX &&
+                             drops[a].cellY == drops[b].cellY)
+                        << "ítems " << drops[a].contentId << " y "
+                        << drops[b].contentId << " comparten celda";
+            }
+        }
+    }
+}
+
+TEST(MockGameClientTest, WorldWithoutAnimalSimulationHasNoGroundItems) {
+    game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    const std::vector<game::ViewDroppedItem> drops =
+            groundItemsAfter(client, 3000);
+    EXPECT_TRUE(drops.empty());
 }
 
 }  // namespace

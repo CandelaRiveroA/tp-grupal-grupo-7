@@ -189,6 +189,9 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/ResourceAudioCue.cpp
         client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
+        client/game/MockAnimalSimulation.cpp
+        client/game/SoundCue.cpp
+        client/game/SoundGate.cpp
         client/game/MoveCommand.cpp
         client/game/PlayerController.cpp
         client/game/ViewMotion.cpp
@@ -231,24 +234,24 @@ if(TALLER_CLIENT)
     target_link_libraries(taller_client PRIVATE taller_common SDL2pp::SDL2pp
                           SDL2_mixer::SDL2_mixer taller_client_world)
 
-    # Assets: se copian junto al binario al terminar el build (el cliente
-    # los busca por TALLER_ASSET_DIR, definido en client/CMakeLists.txt),
-    # así corre sin importar desde qué directorio se ejecute.
-    add_custom_command(TARGET taller_client POST_BUILD
+    add_custom_target(client_assets ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/sdl/assets
                 ${CMAKE_BINARY_DIR}/assets
         COMMENT "Copiando assets del cliente al directorio del build")
 
-    # Sonidos: mismo criterio que los assets, pero en su propio árbol
-    # (el cliente los busca por TALLER_SOUNDS_DIR). Van aparte porque son
-    # muchos y pesados; mantenerlos separados de las imágenes deja claro
-    # qué es cada cosa y no mezcla los dos orígenes.
-    add_custom_command(TARGET taller_client POST_BUILD
+    add_custom_target(client_sounds ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/sdl/sounds
                 ${CMAKE_BINARY_DIR}/sounds
         COMMENT "Copiando sonidos del cliente al directorio del build")
+
+    # Target de copia, no POST_BUILD: el POST_BUILD anterior solo corría
+    # si el binario relinkeaba, y editar un TOML o sumar un .ogg dejaba
+    # la copia stale. Un target ALL corre en TODA build, cambie el
+    # código o no. (El cliente busca por TALLER_ASSET_DIR /
+    # TALLER_SOUNDS_DIR, definidos en client/CMakeLists.txt.)
+    add_dependencies(taller_client client_assets client_sounds)
 endif()
 
 # ------------------------------------------------------------
@@ -284,11 +287,15 @@ if(TALLER_TILE_INSPECTOR)
     target_compile_definitions(taller_tile_inspector PRIVATE
         TALLER_ASSET_DIR=\"${CMAKE_BINARY_DIR}/assets\")
 
-    add_custom_command(TARGET taller_tile_inspector POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_SOURCE_DIR}/client/sdl/assets
-                ${CMAKE_BINARY_DIR}/assets
-        COMMENT "Copiando assets para el tile inspector")
+    if(TARGET client_assets)
+        add_dependencies(taller_tile_inspector client_assets)
+    else()
+        add_custom_command(TARGET taller_tile_inspector POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${CMAKE_SOURCE_DIR}/client/sdl/assets
+                    ${CMAKE_BINARY_DIR}/assets
+            COMMENT "Copiando assets para el tile inspector")
+    endif()
 endif()
 
 if(TALLER_SERVER)

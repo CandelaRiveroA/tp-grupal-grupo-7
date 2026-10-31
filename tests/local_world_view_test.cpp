@@ -12,7 +12,7 @@ namespace {
 
 // Un tick del cliente: avanza el estado y devuelve la vista.
 const game::LocalWorldView& tick(game::GameClient& client) {
-    client.update();
+    client.update(0);
     return client.worldState();
 }
 
@@ -43,6 +43,8 @@ bool isValidDirection(world::Direction d) {
 bool isValidKind(world::CreatureKind k) {
     switch (k) {
         case world::CreatureKind::Player:
+        case world::CreatureKind::Chicken:
+        case world::CreatureKind::Cow:
             return true;
     }
     return false;
@@ -156,6 +158,15 @@ TEST(LocalWorldViewContract, ViewIsStableUntilNextCommand) {
 TEST(LocalWorldViewContract, DroppedItemsAreEmptyByDefault) {
     LocalWorldView view;
     EXPECT_TRUE(view.droppedItems.empty());
+}
+
+TEST(LocalWorldViewContract, LocalPlayerCarriesStableIdZero) {
+    game::MockGameClient concrete = buildClient(10, 10, 5, 5);
+    GameClient& client = concrete;
+
+    EXPECT_EQ(client.worldState().entities[0].id, 0);
+    client.sendCommand(walk(world::Direction::Right));
+    EXPECT_EQ(client.worldState().entities[0].id, 0);
 }
 
 TEST(LocalWorldViewContract, DroppedItemCarriesContentIdAndCell) {

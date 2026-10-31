@@ -50,6 +50,85 @@ cadence = { step = 24, frame = 12 }
     [characters.player.right.walk]
     loops  = true
     frames = [ [[1, 1], [7, 1]], [[2, 1], [8, 1]] ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -65,15 +144,15 @@ constexpr int kCellPixels = 32;
 const int kStepTicks =
 	catalog().dataFor(world::CreatureKind::Player).cadence.stepTicks;
 
-ViewEntity entityAt(int cellX, int cellY) {
+ViewEntity entityAt(int cellX, int cellY, int id = 0) {
 	return ViewEntity{world::CreatureKind::Player, cellX, cellY,
 			  world::Direction::Front, false,
-			  world::ActionKind::Idle, std::nullopt};
+			  world::ActionKind::Idle, std::nullopt, id};
 }
 
-LocalWorldView viewAt(int cellX, int cellY) {
+LocalWorldView viewAt(int cellX, int cellY, int id = 0) {
 	LocalWorldView view;
-	view.entities.push_back(entityAt(cellX, cellY));
+	view.entities.push_back(entityAt(cellX, cellY, id));
 	return view;
 }
 
@@ -159,14 +238,14 @@ TEST(ViewMotionTest, AnimationPhaseRestartsAtEveryObservedStep) {
 
 TEST(ViewMotionTest, EachEntityKeepsItsOwnStep) {
 	LocalWorldView view;
-	view.entities.push_back(entityAt(5, 5));
-	view.entities.push_back(entityAt(2, 2));
+	view.entities.push_back(entityAt(5, 5, 0));
+	view.entities.push_back(entityAt(2, 2, 1));
 	ViewMotion motion = makeMotion();
 	motion.observe(view, 0);
 
 	LocalWorldView next;
-	next.entities.push_back(entityAt(6, 5));
-	next.entities.push_back(entityAt(2, 2));
+	next.entities.push_back(entityAt(6, 5, 0));
+	next.entities.push_back(entityAt(2, 2, 1));
 	motion.observe(next, 100);
 
 	const PixelOffset moving = motion.offsetFor(0, 100, kCellPixels);
@@ -179,20 +258,53 @@ TEST(ViewMotionTest, EachEntityKeepsItsOwnStep) {
 	EXPECT_EQ(motion.animationTickFor(1, 110), 110);
 }
 
+TEST(ViewMotionTest, ReorderedEntitiesKeepTheirOwnTrack) {
+	// La lista de entidades puede cambiar de orden entre frames (el
+	// servidor es libre de mandarla como quiera): el seguimiento es por
+	// ID estable, no por posición, así que la interpolación de cada uno
+	// sobrevive al reordenamiento.
+	LocalWorldView view;
+	view.entities.push_back(entityAt(5, 5, 0));
+	view.entities.push_back(entityAt(2, 2, 1));
+	ViewMotion motion = makeMotion();
+	motion.observe(view, 0);
+
+	LocalWorldView reordered;
+	reordered.entities.push_back(entityAt(2, 2, 1));
+	reordered.entities.push_back(entityAt(6, 5, 0));
+	motion.observe(reordered, 100);
+
+	// El de id 0 sigue cerrando su paso (5,5) -> (6,5), aunque ahora
+	// sea el índice 1 de la lista.
+	const PixelOffset player = motion.offsetFor(1, 100, kCellPixels);
+	EXPECT_EQ(player.x, -kCellPixels);
+	EXPECT_EQ(motion.animationTickFor(1, 110), 10);
+
+	// El de id 1 nunca se movió: sigue plantado, aunque sea el índice 0.
+	const PixelOffset still = motion.offsetFor(0, 100, kCellPixels);
+	EXPECT_EQ(still.x, 0);
+	EXPECT_EQ(still.y, 0);
+}
+
 TEST(ViewMotionTest, NewEntitiesDoNotInheritAnOldStep) {
 	ViewMotion motion = makeMotion();
-	motion.observe(viewAt(5, 5), 0);
-	motion.observe(viewAt(6, 5), 100);
+	motion.observe(viewAt(5, 5, 0), 0);
+	motion.observe(viewAt(6, 5, 0), 100);
 
 	LocalWorldView both;
-	both.entities.push_back(entityAt(6, 5));
-	both.entities.push_back(entityAt(1, 1));
+	both.entities.push_back(entityAt(6, 5, 0));
+	both.entities.push_back(entityAt(1, 1, 1));
 	motion.observe(both, 110);
 
-	const PixelOffset first = motion.offsetFor(0, 110, kCellPixels);
-	const PixelOffset second = motion.offsetFor(1, 110, kCellPixels);
-	EXPECT_EQ(first.x, 0);
-	EXPECT_EQ(second.x, 0);
+	// La entidad NUEVA (id 1) arranca sin historial: se dibuja en su
+	// celda, con fase de animación propia desde esta iteración.
+	const PixelOffset newcomer = motion.offsetFor(1, 110, kCellPixels);
+	EXPECT_EQ(newcomer.x, 0);
+	EXPECT_EQ(motion.animationTickFor(1, 110), 0);
+
+	// La entidad conocida (id 0) NO pierde su paso por el cambio de
+	// tamaño de la lista: sigue cerrando el paso aceptado.
+	EXPECT_NE(motion.offsetFor(0, 110, kCellPixels).x, 0);
 }
 
 

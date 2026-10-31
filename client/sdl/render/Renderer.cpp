@@ -154,11 +154,15 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 		world::GridCell{item.cellX, item.cellY},
 		world::kUnitCellSpan));
 
-	// Mitad del tamaño de la celda: queda como un item chico en el piso.
-	const int baseW =
-		static_cast<int>(cell.width * render::kFloorItemScale);
-	const int baseH =
-		static_cast<int>(cell.height * render::kFloorItemScale);
+	// Tamaño en el mapa: `drawn` si el TOML lo declara (sprites
+	// únicos como el huevo o la leche), si no una fracción de la celda
+	// para que quede como un item apoyado en el piso.
+	const int baseW = (visual.drawnWidth > 0)
+		? visual.drawnWidth
+		: static_cast<int>(cell.width * render::kFloorItemScale);
+	const int baseH = (visual.drawnHeight > 0)
+		? visual.drawnHeight
+		: static_cast<int>(cell.height * render::kFloorItemScale);
 	const int x = cell.x + (cell.width - baseW) / 2;
 	const int y = cell.y + cell.height - baseH + resources_.offsetY;
 

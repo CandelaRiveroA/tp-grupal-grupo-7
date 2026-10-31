@@ -29,7 +29,7 @@ public:
         sent.push_back(message);
     }
 
-    void update() override {}
+    void update(int) override {}
 
     const LocalWorldView& worldState() const override { return view; }
 

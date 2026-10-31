@@ -28,7 +28,7 @@ public:
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
-    void update() override;
+    void update(int iteration) override;
     const LocalWorldView& worldState() const override;
 
 private:

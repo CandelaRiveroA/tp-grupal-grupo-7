@@ -127,7 +127,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
     }
 }
 
-void NetworkGameClient::update() {
+void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
     for (auto& entry: players_) {
         entry.second.moving = false;

@@ -12,7 +12,7 @@
 #include "core/Constants.h"
 #include "core/PlaySession.h"
 #include "game/GameClient.h"
-#include "game/NetworkGameClient.h"
+#include "game/MockGameClient.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/log/Logger.h"
 #include "world/CharacterCatalog.h"
@@ -21,6 +21,7 @@
 #include "world/CreatureCatalog.h"
 #include "world/DigitCatalog.h"
 #include "world/DigitConfigLoader.h"
+#include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
 #include "world/ObtainedBannerCatalog.h"
@@ -89,7 +90,9 @@ int Application::runGame() {
                 world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
-        std::unique_ptr<game::GameClient> gameClient = createGameClient(toolUseDuration);
+        const world::GridSpan& grid = scenario.scene().grid;
+        std::unique_ptr<game::GameClient> gameClient =
+                createGameClient(grid, characters, toolUseDuration);
         PlaySession session(config_, scenario, *gameClient, characters, inventory,
                             toolOverlay, resources, banner, digits);
         session.run();
@@ -103,9 +106,16 @@ int Application::runGame() {
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient(int toolUseDurationTicks) const {
-    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort,
-                                                     toolUseDurationTicks);
+std::unique_ptr<game::GameClient> Application::createGameClient(
+        const world::GridSpan& grid,
+        const world::CharacterCatalog& characters,
+        int toolUseDurationTicks) const {
+    // Fuente de estado: hoy el mock (con la simulación de animales).
+    // El seam para la red está acá: cambiar esta construcción por
+    // NetworkGameClient (ver connection-point.md) y nada más se toca.
+    return std::make_unique<game::MockGameClient>(
+            grid.columns, grid.rows, grid.columns / 2, grid.rows / 2,
+            toolUseDurationTicks, characters);
 }
 
 }  // namespace core

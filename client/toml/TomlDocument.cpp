@@ -132,6 +132,28 @@ std::string TomlDocument::getString(const std::string& path) const {
 	return *value;
 }
 
+std::vector<std::string> TomlDocument::getStringArray(
+	const std::string& path) const {
+	const toml::node* node = find(impl_->table, path);
+	if (node == nullptr) {
+		throw TomlError(TomlErrorKind::MissingKey, path);
+	}
+	const toml::array* array = node->as_array();
+	if (array == nullptr) {
+		throw TomlError(TomlErrorKind::WrongType, path);
+	}
+	std::vector<std::string> values;
+	for (const toml::node& element : *array) {
+		const std::optional<std::string> value =
+			element.value<std::string>();
+		if (!value.has_value()) {
+			throw TomlError(TomlErrorKind::WrongType, path);
+		}
+		values.push_back(std::move(*value));
+	}
+	return values;
+}
+
 bool TomlDocument::getBool(const std::string& path) const {
 	const toml::node* node = find(impl_->table, path);
 	if (node == nullptr) {

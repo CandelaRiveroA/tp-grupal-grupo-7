@@ -47,6 +47,7 @@ struct SceneDescription {
 	int cellPixelSize;
 	std::unordered_map<std::string, TileSetDef> tilesets;
 	std::vector<ElementPlacement> elements;
+	std::vector<std::string> soundCues;
 };
 
 }

@@ -13,9 +13,10 @@ namespace sdl {
 
 class SheetCache;
 
-// Dibuja el overlay de la herramienta activa sobre el cuerpo de una entidad.
-// No decide qué herramienta ni qué frame: esos datos vienen del estado y de
-// world::ToolOverlayLayout.
+// Dibuja el overlay de lo que la entidad lleva en las manos (herramienta
+// en use_tool, el huevo al recoger, ...) sobre su cuerpo. No decide qué
+// dibujar ni en qué frame: esos datos vienen del estado (activeTool +
+// acción) y de world::ToolOverlayLayout.
 class ToolOverlayPainter {
 public:
 	ToolOverlayPainter(SheetCache& sheets,
@@ -23,7 +24,8 @@ public:
 			   const world::CharacterCatalog& characters);
 
 	void draw(const game::ViewEntity& entity, const SDL2pp::Rect& drawBox,
-		  int phase, world::ActionKind action) const;
+		  int phase, world::ActionKind action,
+		  const world::Pose& pose) const;
 
 private:
 	SheetCache& sheets_;

@@ -29,45 +29,53 @@ world::ResourceCatalog loadString(const std::string& toml) {
 
 TEST(ResourceConfigLoaderTest, LoadsDeclaredResources) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
-	EXPECT_TRUE(catalog.has(world::ResourceKind::Silver,
-				world::ResourceState::Intact));
-	EXPECT_TRUE(catalog.has(world::ResourceKind::Gold,
-				world::ResourceState::Broken));
+	EXPECT_NE(catalog.find(world::ResourceKind::Silver,
+			       world::ResourceState::Intact),
+		  nullptr);
+	EXPECT_NE(catalog.find(world::ResourceKind::Gold,
+			       world::ResourceState::Broken),
+		  nullptr);
 }
 
 TEST(ResourceConfigLoaderTest, UndeclaredResourceIsNotInCatalog) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
-	EXPECT_FALSE(catalog.has(world::ResourceKind::Coal,
-				 world::ResourceState::Intact));
+	EXPECT_EQ(catalog.find(world::ResourceKind::Coal,
+			       world::ResourceState::Intact),
+		  nullptr);
 }
 
 TEST(ResourceConfigLoaderTest, LoadsAllThreeStates) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
-	EXPECT_TRUE(catalog.has(world::ResourceKind::Silver,
-				world::ResourceState::Intact));
-	EXPECT_TRUE(catalog.has(world::ResourceKind::Silver,
-				world::ResourceState::Cracked));
-	EXPECT_TRUE(catalog.has(world::ResourceKind::Silver,
-				world::ResourceState::Broken));
+	EXPECT_NE(catalog.find(world::ResourceKind::Silver,
+			       world::ResourceState::Intact),
+		  nullptr);
+	EXPECT_NE(catalog.find(world::ResourceKind::Silver,
+			       world::ResourceState::Cracked),
+		  nullptr);
+	EXPECT_NE(catalog.find(world::ResourceKind::Silver,
+			       world::ResourceState::Broken),
+		  nullptr);
 }
 
 TEST(ResourceConfigLoaderTest, LoadsVisualBlock) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
-	const world::ResourceVisual& cracked = catalog.visualFor(
+	const world::ResourceVisual* cracked = catalog.find(
 		world::ResourceKind::Silver, world::ResourceState::Cracked);
-	EXPECT_EQ(cracked.sheetImage, "Cavern/ore.png");
-	EXPECT_EQ(cracked.cellWidth, 16);
-	EXPECT_EQ(cracked.cellHeight, 16);
-	EXPECT_EQ(cracked.col, 2);
-	EXPECT_EQ(cracked.row, 0);
-	EXPECT_EQ(cracked.cols, 2);
-	EXPECT_EQ(cracked.rows, 2);
+	ASSERT_NE(cracked, nullptr);
+	EXPECT_EQ(cracked->sprite.sheetImage, "Cavern/ore.png");
+	EXPECT_EQ(cracked->sprite.cellWidth, 16);
+	EXPECT_EQ(cracked->sprite.cellHeight, 16);
+	EXPECT_EQ(cracked->sprite.col, 2);
+	EXPECT_EQ(cracked->sprite.row, 0);
+	EXPECT_EQ(cracked->cols, 2);
+	EXPECT_EQ(cracked->rows, 2);
 }
 
 TEST(ResourceConfigLoaderTest, EmptyTomlGivesEmptyCatalog) {
 	const world::ResourceCatalog catalog = loadString("");
-	EXPECT_FALSE(catalog.has(world::ResourceKind::Silver,
-				 world::ResourceState::Intact));
+	EXPECT_EQ(catalog.find(world::ResourceKind::Silver,
+			       world::ResourceState::Intact),
+		  nullptr);
 }
 
 TEST(ResourceConfigLoaderTest, NegativeCellIsInvalidValue) {

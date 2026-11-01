@@ -5,8 +5,10 @@
 #include <string>
 
 #include "toml/TomlDocument.h"
+#include "world/ActionNames.h"
 #include "world/CharacterAppearance.h"
-#include "world/ItemCatalog.h"
+#include "world/ContentIds.h"
+#include "world/ItemKind.h"
 #include "world/ToolOverlay.h"
 
 namespace world {
@@ -43,6 +45,10 @@ private:
 	ToolOverlayAppearance readAppearance(const std::string& itemKey) const;
 
 	const tomlcfg::TomlDocument& doc_;
+	// Vocabulario compartido de nombres de acción (ver ActionNames).
+	ActionNames actionNames_;
+	// Vocabulario contentId: los nombres de tabla del TOML (ContentIds).
+	ContentIds contentIds_;
 };
 
 }

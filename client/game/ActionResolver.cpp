@@ -2,7 +2,15 @@
 
 namespace game {
 
-ActionResolver::ActionResolver(const ViewMotion& motion) : motion_(motion) {}
+ActionResolver::ActionResolver(const ViewMotion& motion)
+	: motion_(motion)
+	, phaseClocks_{
+		  {world::ActionKind::Idle, PhaseClock::Action},
+		  {world::ActionKind::Walk, PhaseClock::Step},
+		  {world::ActionKind::UseTool, PhaseClock::Action},
+		  {world::ActionKind::Milk, PhaseClock::Action},
+		  {world::ActionKind::Pickup, PhaseClock::Action},
+	  } {}
 
 world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 					    std::size_t index, int it) const {
@@ -17,10 +25,11 @@ world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 
 int ActionResolver::phaseFor(const ViewEntity& entity, std::size_t index,
 			     int it) const {
-	if (actionFor(entity, index, it) == world::ActionKind::UseTool) {
-		return motion_.toolTickFor(index, it);
+	const world::ActionKind action = actionFor(entity, index, it);
+	if (phaseClocks_.at(action) == PhaseClock::Step) {
+		return motion_.animationTickFor(index, it);
 	}
-	return motion_.animationTickFor(index, it);
+	return motion_.actionTickFor(index, it);
 }
 
 }

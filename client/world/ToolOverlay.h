@@ -6,7 +6,7 @@
 
 #include "world/ViewDirection.h"
 #include "world/CharacterAppearance.h"
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 
 namespace world {
 
@@ -39,6 +39,12 @@ struct ToolOverlayAction {
 	int cellWidth = 0;
 	int cellHeight = 0;
 	int frameTicks = 0;
+	// Acción con la que se sincroniza este overlay (dato): el mismo
+	// mecanismo dibuja la herramienta en use_tool y lo que se lleva en
+	// las manos en otras acciones (el huevo al recoger). El número de
+	// frames y los frame_ticks deben coincidir con los de ESA acción en
+	// characters.toml.
+	ActionKind action = ActionKind::UseTool;
 	std::vector<ToolOverlayFrame> frames;
 };
 
@@ -51,9 +57,8 @@ struct ToolOverlayCatalog {
 
 	std::map<ItemKind, ToolOverlayAppearance> tools;
 
-	bool has(ItemKind kind, Direction dir) const;
-
-	const ToolOverlayAction& actionFor(ItemKind kind, Direction dir) const;
+	// Una sola búsqueda: nullptr si (kind, dir) no tiene overlay.
+	const ToolOverlayAction* find(ItemKind kind, Direction dir) const;
 
 	int offsetFor(FrameAnchor anchor) const;
 };

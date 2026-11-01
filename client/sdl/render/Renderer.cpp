@@ -6,6 +6,7 @@
 #include "sdl/render/ElementPainter.h"
 #include "sdl/render/RenderConstants.h"
 #include "sdl/render/Viewport.h"
+#include "world/DroppedItemLayout.h"
 #include "world/ScenePixelMapper.h"
 #include "world/WorldConstants.h"
 
@@ -103,11 +104,12 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 void Renderer::drawResource(const game::ViewResource& resource,
 			    const world::ScenePixelMapper& mapper,
 			    const Viewport& viewport) {
-	if (!resources_.has(resource.kind, resource.state)) {
+	const world::ResourceVisual* found =
+		resources_.find(resource.kind, resource.state);
+	if (found == nullptr) {
 		return;
 	}
-	const world::ResourceVisual& visual =
-		resources_.visualFor(resource.kind, resource.state);
+	const world::ResourceVisual& visual = *found;
 
 	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
 		world::GridCell{resource.cellX, resource.cellY},
@@ -130,10 +132,12 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	}
 
 	SpriteSheet& sheet = sheetCache_.sheet(
-		visual.sheetImage, core::assetPath(visual.sheetImage),
-		visual.cellWidth, visual.cellHeight);
+		visual.sprite.sheetImage,
+		core::assetPath(visual.sprite.sheetImage),
+		visual.sprite.cellWidth, visual.sprite.cellHeight);
 
-	sheet.drawBlock(visual.col, visual.row, visual.cols, visual.rows,
+	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
+			visual.rows,
 			SDL2pp::Rect(x, y, w, h));
 }
 
@@ -145,24 +149,20 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 	// huevo o cualquier recolectable futuro usan su celda sin casos
 	// especiales. Más chico que la celda y centrado, para que se lea
 	// como un item apoyado en el suelo.
-	if (!content_.has(item.contentId)) {
+	const world::SpriteVisual* found = content_.find(item.contentId);
+	if (found == nullptr) {
 		return;
 	}
-	const world::ItemVisual& visual = content_.visualFor(item.contentId);
+	const world::SpriteVisual& visual = *found;
 
-	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
-		world::GridCell{item.cellX, item.cellY},
-		world::kUnitCellSpan));
-
-	// Mitad del tamaño de la celda: queda como un item chico en el piso.
-	const int baseW =
-		static_cast<int>(cell.width * render::kFloorItemScale);
-	const int baseH =
-		static_cast<int>(cell.height * render::kFloorItemScale);
-	const int x = cell.x + (cell.width - baseW) / 2;
-	const int y = cell.y + cell.height - baseH + resources_.offsetY;
-
-	const world::PixelRect drawRect{x, y, baseW, baseH};
+	// La geometría del ítem la calcula DroppedItemLayout: la misma que
+	// usa el pick, así lo que se toca coincide siempre con lo que se ve.
+	// El ajuste vertical para el piso lo lleva el sprite (offset_y).
+	const world::DroppedItemLayout layout;
+	const world::PixelRect drawRect = viewport.toScreen(layout.rectFor(
+		mapper.toPixels(world::GridCell{item.cellX, item.cellY},
+				world::kUnitCellSpan),
+		visual));
 	if (!viewport.intersects(drawRect)) {
 		return;
 	}
@@ -172,7 +172,8 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 		visual.cellWidth, visual.cellHeight);
 
 	sheet.draw(visual.col, visual.row,
-		   SDL2pp::Rect(x, y, baseW, baseH));
+		   SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
+				drawRect.height));
 }
 
 }  // namespace sdl

@@ -113,10 +113,9 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         return;
     }
     if (const auto* obtained = std::get_if<ServerObtained>(&message)) {
-        const std::optional<world::ResourceKind> kind = resourceKindFor(obtained->content_id);
-        if (kind.has_value()) {
-            obtained_.push_back(ViewResourceObtained{kind.value()});
-        }
+        // El evento de obtención viaja por content_id (vocabulario
+        // genérico): el view lo refleja tal cual.
+        obtained_.push_back(ViewObtained{obtained->content_id});
         return;
     }
     if (const auto* used = std::get_if<ServerToolUsed>(&message)) {
@@ -127,7 +126,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
     }
 }
 
-void NetworkGameClient::update() {
+void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
     for (auto& entry: players_) {
         entry.second.moving = false;

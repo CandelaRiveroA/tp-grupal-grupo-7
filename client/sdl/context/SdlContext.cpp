@@ -17,6 +17,10 @@ SdlContext::SdlContext(const core::WindowConfig& config)
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, kNearestScaleQuality);
 
+	// El puntero se dibuja con el asset del juego (CursorPainter): el
+	// del sistema se oculta para no tener dos cursores.
+	SDL_ShowCursor(SDL_DISABLE);
+
 	renderer_.SetDrawBlendMode(SDL_BLENDMODE_BLEND);
 }
 

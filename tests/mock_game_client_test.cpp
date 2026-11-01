@@ -12,7 +12,7 @@ namespace {
 
 // Un tick del cliente: avanza el estado y devuelve la vista.
 const game::LocalWorldView& tick(game::GameClient& client) {
-    client.update();
+    client.update(0);
     return client.worldState();
 }
 
@@ -273,7 +273,7 @@ TEST(MockGameClientTest, TakeOnDroppedCellEmitsObtained) {
     client.sendCommand(take(world::Direction::Right));
     const game::LocalWorldView& view = tick(client);
     ASSERT_EQ(view.obtained.size(), 1u);
-    EXPECT_EQ(view.obtained.front().kind, world::ResourceKind::Silver);
+    EXPECT_EQ(view.obtained.front().contentId, "silver");
     // El item desaparece del piso al recogerse.
     EXPECT_FALSE(droppedAt(client, 6, 5).has_value());
 }
@@ -372,7 +372,7 @@ TEST(MockGameClientTest, WorldStateDoesNotAdvanceUntilUpdate) {
     }
     EXPECT_EQ(client.worldState().entities[0].action, world::ActionKind::UseTool);
     for (int i = 0; i < kToolTicks; ++i) {
-        client.update();
+        client.update(0);
     }
     EXPECT_EQ(client.worldState().entities[0].action, world::ActionKind::Idle);
 }
@@ -382,11 +382,11 @@ TEST(MockGameClientTest, ObtainedIsEmittedOncePerUpdate) {
     exhaustFacingMineral(client, world::Direction::Right);
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
-    client.update();
+    client.update(0);
     EXPECT_EQ(client.worldState().obtained.size(), 1u);
     // Consultar varias veces sin update() no lo duplica ni lo borra.
     EXPECT_EQ(client.worldState().obtained.size(), 1u);
-    client.update();
+    client.update(0);
     EXPECT_TRUE(client.worldState().obtained.empty());
 }
 

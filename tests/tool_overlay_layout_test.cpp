@@ -7,7 +7,7 @@ namespace {
 
 using world::CharacterLayout;
 using world::FrameAnchor;
-using world::FrameIndex;
+using world::SheetCell;
 using world::Layer;
 using world::LayerFrame;
 using world::PixelRect;
@@ -17,7 +17,7 @@ using world::ToolOverlayFrame;
 using world::ToolOverlayLayout;
 
 LayerFrame makeLayer(int cols, int rows) {
-	return LayerFrame{Layer::Body, FrameIndex{0, 0}, cols, rows};
+	return LayerFrame{Layer::Body, SheetCell{0, 0}, cols, rows};
 }
 
 ToolOverlayFrame makeFrame(FrameAnchor anchor) {
@@ -40,7 +40,7 @@ ToolOverlayCatalog makeCatalog() {
 TEST(ToolOverlayLayoutTest, EmptyActionHasNoFrame) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayAction action;
 	EXPECT_EQ(layout.frameAt(action, 0), nullptr);
@@ -49,7 +49,7 @@ TEST(ToolOverlayLayoutTest, EmptyActionHasNoFrame) {
 TEST(ToolOverlayLayoutTest, FrameAdvancesWithPhaseAndClampsToLast) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayAction action;
 	action.frameTicks = 10;
@@ -66,7 +66,7 @@ TEST(ToolOverlayLayoutTest, FrameAdvancesWithPhaseAndClampsToLast) {
 TEST(ToolOverlayLayoutTest, NonPositiveFrameTicksUsesFirstFrame) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayAction action;
 	action.frameTicks = 0;
@@ -79,7 +79,7 @@ TEST(ToolOverlayLayoutTest, NonPositiveFrameTicksUsesFirstFrame) {
 TEST(ToolOverlayLayoutTest, AnchorSelectsTheBaseOfTheLayer) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	const ToolOverlayFrame top = makeFrame(FrameAnchor::Top);
 	const ToolOverlayFrame middle = makeFrame(FrameAnchor::Body);
@@ -96,7 +96,7 @@ TEST(ToolOverlayLayoutTest, AnchorSelectsTheBaseOfTheLayer) {
 TEST(ToolOverlayLayoutTest, OffsetsAndScaleAreApplied) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayFrame frame = makeFrame(FrameAnchor::Body);
 	frame.layers = {makeLayer(1, 1)};
@@ -107,14 +107,16 @@ TEST(ToolOverlayLayoutTest, OffsetsAndScaleAreApplied) {
 	const PixelRect rect = layout.layerRect(frame, frame.layers[0]);
 	EXPECT_EQ(rect.x, body.bodyX() + 3);
 	EXPECT_EQ(rect.y, body.bodyTop() + 14 + 5);
+	// El tamaño por celda sale de la capa base (1x2): una capa 1x1
+	// mide UNA celda (64x32 acá) y la escala la achica proporcional.
 	EXPECT_EQ(rect.width, 32);
-	EXPECT_EQ(rect.height, 32);
+	EXPECT_EQ(rect.height, 16);
 }
 
 TEST(ToolOverlayLayoutTest, InvalidLayerDoesNotDivideByZero) {
 	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
 	const ToolOverlayCatalog catalog = makeCatalog();
-	const ToolOverlayLayout layout(body, catalog);
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayFrame frame = makeFrame(FrameAnchor::Top);
 	frame.layers = {makeLayer(0, 1)};
@@ -122,6 +124,27 @@ TEST(ToolOverlayLayoutTest, InvalidLayerDoesNotDivideByZero) {
 	const PixelRect rect = layout.layerRect(frame, frame.layers[0]);
 	EXPECT_LE(rect.width, 0);
 	EXPECT_LE(rect.height, 0);
+}
+
+TEST(ToolOverlayLayoutTest, OneByOneLayerMeasuresOneBodyCell) {
+	// El factor de píxeles por celda sale de la capa base (el cuerpo
+	// 1x2), igual que CharacterLayout: una capa 1x1 (el huevo en las
+	// manos) mide UNA celda del cuerpo, no el bloque entero.
+	const CharacterLayout body(PixelRect{0, 0, 32, 64}, 32, 64);
+	const ToolOverlayCatalog catalog = makeCatalog();
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
+
+	const ToolOverlayFrame frame = makeFrame(FrameAnchor::Body);
+	const PixelRect rect = layout.layerRect(frame, makeLayer(1, 1));
+	EXPECT_EQ(rect.width, 32);
+	EXPECT_EQ(rect.height, 32);
+
+	// Con escala se achica proporcional (el huevo va a media celda).
+	ToolOverlayFrame scaled = makeFrame(FrameAnchor::Body);
+	scaled.scale = 0.5;
+	const PixelRect small = layout.layerRect(scaled, makeLayer(1, 1));
+	EXPECT_EQ(small.width, 16);
+	EXPECT_EQ(small.height, 16);
 }
 
 }  // namespace

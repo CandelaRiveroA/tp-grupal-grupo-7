@@ -25,12 +25,12 @@ left         = [0, 17]
 right        = [3, 17]
 fill         = [1, 17]
 
-[silver]
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 1]
 
-[gold]
+[icons.gold]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 7]
@@ -60,7 +60,7 @@ TEST(ObtainedBannerConfigLoaderTest, LoadsIconOffsets) {
     const std::string toml = R"(
 icon_offset_x = 2
 icon_offset_y = -3
-[silver]
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 1]
@@ -85,9 +85,9 @@ TEST(ObtainedBannerConfigLoaderTest, LoadsFrameCells) {
 
 TEST(ObtainedBannerConfigLoaderTest, LoadsDeclaredIcons) {
     const world::ObtainedBannerCatalog catalog = loadString(kBannerToml);
-    ASSERT_TRUE(catalog.hasIcon(world::ResourceKind::Silver));
-    ASSERT_TRUE(catalog.hasIcon(world::ResourceKind::Gold));
-    const world::BannerIcon& gold = catalog.iconFor(world::ResourceKind::Gold);
+    ASSERT_NE(catalog.find("silver"), nullptr);
+    ASSERT_NE(catalog.find("gold"), nullptr);
+    const world::SpriteVisual& gold = *catalog.find("gold");
     EXPECT_EQ(gold.sheetImage, "Cavern/ore.png");
     EXPECT_EQ(gold.cellWidth, 16);
     EXPECT_EQ(gold.cellHeight, 16);
@@ -97,13 +97,13 @@ TEST(ObtainedBannerConfigLoaderTest, LoadsDeclaredIcons) {
 
 TEST(ObtainedBannerConfigLoaderTest, UndeclaredIconIsNotInCatalog) {
     const world::ObtainedBannerCatalog catalog = loadString(kBannerToml);
-    EXPECT_FALSE(catalog.hasIcon(world::ResourceKind::Coal));
-    EXPECT_FALSE(catalog.hasIcon(world::ResourceKind::Lapis));
+    EXPECT_EQ(catalog.find("coal"), nullptr);
+    EXPECT_EQ(catalog.find("lapis"), nullptr);
 }
 
 TEST(ObtainedBannerConfigLoaderTest, DefaultsWhenLayoutOmitted) {
     const std::string toml = R"(
-[silver]
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 1]
@@ -118,13 +118,13 @@ icon  = [6, 1]
 
 TEST(ObtainedBannerConfigLoaderTest, EmptyTomlGivesEmptyIcons) {
     const world::ObtainedBannerCatalog catalog = loadString("");
-    EXPECT_FALSE(catalog.hasIcon(world::ResourceKind::Silver));
-    EXPECT_FALSE(catalog.hasIcon(world::ResourceKind::Gold));
+    EXPECT_EQ(catalog.find("silver"), nullptr);
+    EXPECT_EQ(catalog.find("gold"), nullptr);
 }
 
 TEST(ObtainedBannerConfigLoaderTest, NegativeIconCellIsInvalidValue) {
     const std::string toml = R"(
-[silver]
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [-1, 1]
@@ -140,7 +140,7 @@ icon  = [-1, 1]
 TEST(ObtainedBannerConfigLoaderTest, NonPositiveMaxVisibleIsInvalidValue) {
     const std::string toml = R"(
 max_visible = 0
-[silver]
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 1]

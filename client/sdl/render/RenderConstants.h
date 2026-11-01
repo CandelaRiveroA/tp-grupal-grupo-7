@@ -9,7 +9,6 @@ constexpr int kAxisCenterDivisor = 2;
 constexpr int kMinCameraOffset = 0;
 constexpr int kScreenOrigin = 0;
 constexpr double kFullSourceFraction = 1.0;
-constexpr double kFloorItemScale = 0.5;
 
 }
 }

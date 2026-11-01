@@ -72,10 +72,10 @@ TEST(ResourceHitSmoke, PipelineCompletoDelGolpeLocal) {
     game::MockGameClient mock(30, 20, 15, 10, 1);
     for (int n = 1; n <= 3; ++n) {
         mock.sendCommand(protocol::PickMessage{Direction::RIGHT});
-        mock.update();
+        mock.update(0);
         ASSERT_EQ(mock.worldState().resourceHits.size(), 1u);
         EXPECT_EQ(mock.worldState().resourceHits[0].destroyed, n == 3);
-        mock.update();
+        mock.update(0);
         EXPECT_TRUE(mock.worldState().resourceHits.empty());
     }
 }

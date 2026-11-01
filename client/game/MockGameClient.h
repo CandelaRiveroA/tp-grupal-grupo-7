@@ -7,17 +7,22 @@
 #include "common/common_command.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
+#include "world/ContentIds.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 
 namespace game {
 
+// "Server falso": simula el mundo del lado del servidor (jugador,
+// minerales, inventario) sin red. Los animales NO viven acá: los
+// superpone game::MockWorldClient sobre cualquier GameClient.
 class MockGameClient: public GameClient {
 public:
-    MockGameClient(int gridColumns, int gridRows, int startX, int startY, int toolUseDurationTicks);
+    MockGameClient(int gridColumns, int gridRows, int startX, int startY,
+                   int toolUseDurationTicks);
 
     void sendCommand(const protocol::ClientMessage& message) override;
-    void update() override;
+    void update(int iteration) override;
     const LocalWorldView& worldState() const override;
 
 private:
@@ -58,7 +63,10 @@ private:
 
     // contentId estable de un recurso (mismo vocabulario que el servidor
     // y que inventory.toml / resources.toml).
-    static std::string contentIdFor(world::ResourceKind kind);
+    std::string contentIdFor(world::ResourceKind kind) const;
+
+    // Vocabulario contentId compartido (ver world::ContentIds).
+    world::ContentIds contentIds_;
 
     // update() avanza la simulación un tick; worldState() solo consulta la vista.
     void advanceToolUse();
@@ -94,7 +102,7 @@ private:
     // Evento de obtención encolado por un Take exitoso: se emite en el
     // próximo update() y dura un solo tick.
     bool obtainedPending_ = false;
-    world::ResourceKind obtainedKind_{};
+    std::string obtainedContentId_;
 
     LocalWorldView view_;
 };

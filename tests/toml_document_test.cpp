@@ -45,6 +45,30 @@ TEST(TomlDocumentTest, GetIntArrayFixedLength) {
 	EXPECT_EQ(size[1], 32);
 }
 
+TEST(TomlDocumentTest, GetStringArray) {
+	const tomlcfg::TomlDocument doc =
+		parse("sounds = [\"chicken_cluck\", \"rooster\"]");
+	const std::vector<std::string> sounds = doc.getStringArray("sounds");
+	ASSERT_EQ(sounds.size(), 2u);
+	EXPECT_EQ(sounds[0], "chicken_cluck");
+	EXPECT_EQ(sounds[1], "rooster");
+}
+
+TEST(TomlDocumentTest, StringArrayMissingKeyThrows) {
+	const tomlcfg::TomlDocument doc = parse(kSampleToml);
+	EXPECT_THROW(doc.getStringArray("nope"), tomlcfg::TomlError);
+}
+
+TEST(TomlDocumentTest, StringArrayWrongTypeThrows) {
+	const tomlcfg::TomlDocument doc = parse("count = 7");
+	EXPECT_THROW(doc.getStringArray("count"), tomlcfg::TomlError);
+}
+
+TEST(TomlDocumentTest, StringArrayWithNonStringElementThrows) {
+	const tomlcfg::TomlDocument doc = parse("mixed = [\"a\", 3]");
+	EXPECT_THROW(doc.getStringArray("mixed"), tomlcfg::TomlError);
+}
+
 TEST(TomlDocumentTest, HasKey) {
 	const tomlcfg::TomlDocument doc = parse(kSampleToml);
 	EXPECT_TRUE(doc.hasKey("owner.name"));

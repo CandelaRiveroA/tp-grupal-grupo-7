@@ -45,4 +45,14 @@ TEST(CreatureDataTest, MissingUseToolFallsBackToOne) {
     EXPECT_EQ(creature.toolUseDurationTicks(), 1);
 }
 
+TEST(CreatureDataTest, ActionCycleTicksUsesFramesTimesFrameTicks) {
+    CreatureData creature{};
+    creature.directions[0].actions[ActionKind::Milk] = actionWithFrames(2, 6);
+    // Un ciclo de la animación (2 poses x 6 ticks): la ventana del
+    // ordeñe se mide con esta misma cuenta.
+    EXPECT_EQ(creature.actionCycleTicks(ActionKind::Milk), 12);
+    // La acción no existe: 0 (sin ventana).
+    EXPECT_EQ(creature.actionCycleTicks(ActionKind::Walk), 0);
+}
+
 }  // namespace

@@ -40,6 +40,13 @@ SceneDescription SceneTomlReader::readRoom(
 				  join(roomBase, kKeyScale));
 	}
 
+	// Cues de sonido de la sala (OPCIONAL, sin la key la sala es
+	// muda)
+	if (doc_.hasKey(join(roomBase, kKeySounds))) {
+		scene.soundCues =
+			doc_.getStringArray(join(roomBase, kKeySounds));
+	}
+
 	readElements(roomBase, defaultScale, scene);
 
 	const TileSetDef& referenceTileset =

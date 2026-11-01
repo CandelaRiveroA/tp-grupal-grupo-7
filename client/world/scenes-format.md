@@ -48,6 +48,7 @@ lista de elementos.
 floor_color = [0, 0, 0, 255]   # RGBA del fondo (lo que no cubre un tile)
 grid        = [30, 20]         # tamaño de la habitación en celdas lógicas
 scale       = 2                # escala de dibujo por defecto (entera)
+sounds      = ["chicken_cluck"] # cues audibles mientras se renderiza (opcional)
 ```
 
 | Campo         | Tipo            | Obligatorio | Descripción                              |
@@ -55,6 +56,16 @@ scale       = 2                # escala de dibujo por defecto (entera)
 | `floor_color` | `[int,int,int,int]` | sí      | Color de fondo RGBA (0..255 por canal)   |
 | `grid`        | `[int, int]`    | sí          | Celdas lógicas `[columnas, filas]`       |
 | `scale`       | int             | sí          | Escala por defecto de los elementos      |
+| `sounds`      | `[string, ...]` | no          | Cues de sonido audibles en la sala       |
+
+**`sounds` (opcional; sin la key la sala es muda):** lista de cues de
+sonido que la presentación reproduce MIENTRAS esta sala se renderiza.
+Quien llena la vista (el mock hoy, el server mañana) emite eventos
+per-tick (`LocalWorldView.soundEvents`, cada uno con cue + id del
+emisor); un evento solo suena si la sala actual declara su cue — ej.
+las gallinas cacarean solo donde están. Cuando el granero sea una sala
+propia, su lista declarará los sonidos de animales y la de este cuarto
+dejará de hacerlo: **cambio de TOML, cero código**.
 
 Una **celda lógica** mide, en píxeles, `cell_del_tileset × scale`. Con
 `cell = [16,16]` y `scale = 2`, cada celda lógica es de 32×32 px; una
@@ -128,6 +139,7 @@ cell  = [16, 16]
 floor_color = [0, 0, 0, 255]
 grid        = [30, 20]
 scale       = 2
+sounds      = ["chicken_cluck"]
 
   # Piso: bloque lógico de 2x2 celdas desde (col 0, fila 27), en mosaico.
   [[rooms.bedroom.elements]]

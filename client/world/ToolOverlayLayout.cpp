@@ -5,8 +5,10 @@
 namespace world {
 
 ToolOverlayLayout::ToolOverlayLayout(const CharacterLayout& body,
-				     const ToolOverlayCatalog& catalog)
+				     const ToolOverlayCatalog& catalog,
+				     const LayerFrame& baseLayer)
 	: body_(body)
+	, base_(baseLayer)
 	, catalog_(catalog)
 	, anchorBases_{
 		  {FrameAnchor::Top, &ToolOverlayLayout::topBase},
@@ -45,16 +47,14 @@ const ToolOverlayFrame* ToolOverlayLayout::frameAt(
 
 PixelRect ToolOverlayLayout::layerRect(const ToolOverlayFrame& frame,
 				       const LayerFrame& layer) const {
-	if (layer.cols <= 0 || layer.rows <= 0) {
-		return PixelRect{body_.bodyX(), body_.bodyBottom(), 0, 0};
-	}
-
-	const int pxPerCellX = body_.drawnWidth() / layer.cols;
-	const int pxPerCellY = body_.drawnHeight() / layer.rows;
-	const int width =
-		static_cast<int>(layer.cols * pxPerCellX * frame.scale);
-	const int height =
-		static_cast<int>(layer.rows * pxPerCellY * frame.scale);
+	// El factor de píxeles por celda lo pone CharacterLayout desde la
+	// capa base del pose (el cuerpo): una capa 1x1 mide una celda
+	// aunque el cuerpo sea 1x2. Sobre ese tamaño se aplican la escala
+	// y el anclaje del frame. Una capa inválida devuelve el rect
+	// vacío de CharacterLayout, sin dividir por cero.
+	const PixelRect cell = body_.layerRect(layer, base_);
+	const int width = static_cast<int>(cell.width * frame.scale);
+	const int height = static_cast<int>(cell.height * frame.scale);
 	const int x = body_.bodyX() + frame.offsetX;
 	const int y = anchorBaseY(frame.anchor, height) +
 		      catalog_.offsetFor(frame.anchor) + frame.offsetY;

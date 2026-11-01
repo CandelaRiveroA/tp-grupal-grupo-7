@@ -7,7 +7,10 @@
 
 namespace sdl {
 
-AudioPlayer::AudioPlayer() : chunks_{} {
+AudioPlayer::AudioPlayer()
+	: chunks_{},
+	  cueSounds_{{ {game::CueKind::ChickenCluck, SoundId::ChickenCluck},
+		       {game::CueKind::CowMoo, SoundId::CowMoo} }} {
 	if (Mix_OpenAudio(AUDIO_FREQUENCY, MIX_DEFAULT_FORMAT, AUDIO_CHANNELS,
 			  AUDIO_CHUNK_SIZE) < 0) {
 		throw SDL2pp::Exception("Mix_OpenAudio");
@@ -41,6 +44,16 @@ void AudioPlayer::play(SoundId id) {
 		return;
 	}
 	Mix_PlayChannel(-1, chunk, 0);
+}
+
+void AudioPlayer::playCue(game::CueKind cue) {
+	for (const auto& [mapsCue, sound] : cueSounds_) {
+		if (mapsCue == cue) {
+			play(sound);
+			return;
+		}
+	}
+	// Cue sin mapeo: se ignora.
 }
 
 }

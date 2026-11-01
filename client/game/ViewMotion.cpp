@@ -35,14 +35,13 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 		track.id = entity.id;
 		track.cadence = catalog_.dataFor(entity.kind).cadence;
 
-		// Flanco de entrada a UseTool: la fuente acaba de reportar el
-		// golpe. Guarda el tick de inicio para el reloj de animación.
-		const bool usingToolNow =
-			(entity.action == world::ActionKind::UseTool);
-		if (usingToolNow && !track.usingTool) {
-			track.toolStartIteration = iteration;
+		// Flanco de acción: la fuente acaba de encender una acción
+		// (golpe, ordeñe, recogida...). Guarda el tick de inicio
+		// para el reloj de animación de esa acción.
+		if (entity.action != track.lastAction) {
+			track.actionStartIteration = iteration;
+			track.lastAction = entity.action;
 		}
-		track.usingTool = usingToolNow;
 
 		if (!track.known) {
 			// Primera vista de esta id: nace plantado en su
@@ -149,12 +148,12 @@ int ViewMotion::animationTickFor(const std::size_t index,
 	return iteration - track.stepIteration;
 }
 
-int ViewMotion::toolTickFor(const std::size_t index,
-			    const int iteration) const {
+int ViewMotion::actionTickFor(const std::size_t index,
+			      const int iteration) const {
 	if (index >= tracks_.size()) {
 		return 0;
 	}
-	const int elapsed = iteration - tracks_[index].toolStartIteration;
+	const int elapsed = iteration - tracks_[index].actionStartIteration;
 	return elapsed > 0 ? elapsed : 0;
 }
 

@@ -29,10 +29,11 @@ public:
 
 	int animationTickFor(std::size_t index, int iteration) const;
 
-	// Ticks transcurridos desde que la entidad entró en UseTool, según
-	// lo observado de la fuente de estado. Reloj de la animación del
-	// golpe: arranca cuando la fuente dice UseTool, no por input local.
-	int toolTickFor(std::size_t index, int iteration) const;
+	// Ticks transcurridos desde que la entidad cambió de ACCIÓN, según
+	// lo observado de la fuente de estado. Reloj de la animación de la
+	// acción: arranca cuando la fuente la enciende (UseTool, Milk,
+	// Pickup, ...), no por input local.
+	int actionTickFor(std::size_t index, int iteration) const;
 
 	bool isWalking(std::size_t index, int iteration,
 		       bool serverMoving) const;
@@ -58,9 +59,10 @@ private:
 
 		world::MoveCadence cadence{0, 0};
 
-		// Trackeo del golpe (UseTool) observado de la fuente.
-		bool usingTool = false;
-		int toolStartIteration = 0;
+		// Trackeo de la acción observada de la fuente: el reloj se
+		// reinicia en cada flanco (cada arranque de acción).
+		world::ActionKind lastAction = world::ActionKind::Idle;
+		int actionStartIteration = 0;
 	};
 
 	std::vector<Track> relinkTracks(const LocalWorldView& view,

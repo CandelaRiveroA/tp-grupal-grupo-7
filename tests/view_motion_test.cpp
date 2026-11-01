@@ -236,6 +236,26 @@ TEST(ViewMotionTest, AnimationPhaseRestartsAtEveryObservedStep) {
 	EXPECT_EQ(motion.animationTickFor(0, 160), 10);
 }
 
+TEST(ViewMotionTest, ActionPhaseRestartsAtEveryActionEdge) {
+	LocalWorldView view;
+	view.entities.push_back(entityAt(5, 5, 0));
+	ViewMotion motion = makeMotion();
+	motion.observe(view, 0);
+
+	// La fuente enciende una acción: el reloj corre desde su flanco,
+	// aunque la entidad no camine (sin pasos que lo reinicien).
+	view.entities[0].action = world::ActionKind::Pickup;
+	motion.observe(view, 100);
+	EXPECT_EQ(motion.actionTickFor(0, 100), 0);
+	EXPECT_EQ(motion.actionTickFor(0, 124), 24);
+
+	// Otra acción reinicia el reloj.
+	view.entities[0].action = world::ActionKind::Milk;
+	motion.observe(view, 200);
+	EXPECT_EQ(motion.actionTickFor(0, 200), 0);
+	EXPECT_EQ(motion.actionTickFor(0, 206), 6);
+}
+
 TEST(ViewMotionTest, EachEntityKeepsItsOwnStep) {
 	LocalWorldView view;
 	view.entities.push_back(entityAt(5, 5, 0));

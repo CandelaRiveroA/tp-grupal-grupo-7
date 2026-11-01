@@ -63,6 +63,14 @@ cadence = { step = 24, frame = 12 }
       [[3, 16, 1, 2], [9, 16, 1, 2]],
       [[4, 16, 1, 2], [10, 16, 1, 2]],
     ]
+    [characters.player.right.pickup]
+    loops  = false
+    frames = [
+      [[4, 60], [10, 61]],
+      [[5, 60], [11, 61]],
+      [[0, 62], [6, 62]],
+      [[1, 62], [7, 62]],
+    ]
 
 # Gallina mínima: el loader exige una tabla por criatura del enum.
 # Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
@@ -262,6 +270,42 @@ TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
 		const int phase = resolver.phaseFor(e, kPlayerIndex, it);
 		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(world::Direction::Right,
 						ActionKind::UseTool, phase),
+			  frame)
+			<< "en el cuadro " << frame;
+	}
+}
+
+TEST(ActionResolverTest, PickupAnimatesOnTheActionClock) {
+	ViewMotion motion(catalog());
+	// El jugador dejó de caminar hace rato (el reloj del paso quedó
+	// viejo) y la fuente enciende Pickup: la fase corre desde el
+	// arranque de la acción, así los cuadros salen 1-2-3-4.
+	motion.observe(viewWith(entity()), 0);
+	motion.observe(viewWith(entity(ActionKind::Pickup)), 100);
+	const ActionResolver resolver(motion);
+
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    100),
+		  0);
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    124),
+		  24);
+
+	const world::CreatureData& creature =
+		catalog().dataFor(world::CreatureKind::Player);
+	const int frameTicks = creature.cadence.frameTicks;
+	constexpr int kFrames = 4;
+	for (int frame = 0; frame < kFrames; ++frame) {
+		const int it = 100 + frame * frameTicks;
+		const int phase = resolver.phaseFor(entity(ActionKind::Pickup),
+						    kPlayerIndex, it);
+		ASSERT_EQ(resolver.actionFor(entity(ActionKind::Pickup),
+					     kPlayerIndex, it),
+			  ActionKind::Pickup)
+			<< "en el cuadro " << frame;
+		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(
+				  world::Direction::Right, ActionKind::Pickup,
+				  phase),
 			  frame)
 			<< "en el cuadro " << frame;
 	}

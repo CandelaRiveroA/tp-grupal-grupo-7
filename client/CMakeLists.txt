@@ -54,6 +54,8 @@ target_sources(taller_client
     sdl/render/ToolOverlayPainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
+    sdl/render/CursorPainter.cpp
+    sdl/render/DialogPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     PUBLIC
@@ -99,13 +101,20 @@ target_sources(taller_client
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
-    game/AnimalOverlayClient.h
+    game/Interactor.h
+    game/FloorItems.h
+    game/InteractionSession.h
+    game/AnimalSystem.h
+    game/MockWorldClient.h
+    game/DialogAnimator.h
     game/PlayerController.h
     game/PointerClick.h
+    game/ObjectPicker.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
     game/InventorySelector.h
+    world/ActionNames.h
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
@@ -114,6 +123,7 @@ target_sources(taller_client
     world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
+    world/ContentIds.h
     world/CreatureCatalog.h
     world/EntityAppearance.h
     world/Grid.h
@@ -123,6 +133,15 @@ target_sources(taller_client
     world/InventoryConfigLoader.h
     world/ItemKind.h
     world/SpriteVisual.h
+    world/CursorCatalog.h
+    world/CursorConfigLoader.h
+    world/CursorTomlReader.h
+    world/Indication.h
+    world/DialogCatalog.h
+    world/DialogConfigLoader.h
+    world/DialogTomlReader.h
+    world/DialogLayout.h
+    world/DroppedItemLayout.h
     world/ToolOverlay.h
     world/ToolOverlayLayout.h
     world/ToolOverlayLoader.h
@@ -161,6 +180,8 @@ target_sources(taller_client
     sdl/render/ToolOverlayPainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
+    sdl/render/CursorPainter.h
+    sdl/render/DialogPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioPlayer.h

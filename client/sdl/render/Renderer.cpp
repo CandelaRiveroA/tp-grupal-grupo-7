@@ -6,6 +6,7 @@
 #include "sdl/render/ElementPainter.h"
 #include "sdl/render/RenderConstants.h"
 #include "sdl/render/Viewport.h"
+#include "world/DroppedItemLayout.h"
 #include "world/ScenePixelMapper.h"
 #include "world/WorldConstants.h"
 
@@ -154,23 +155,14 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 	}
 	const world::SpriteVisual& visual = *found;
 
-	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
-		world::GridCell{item.cellX, item.cellY},
-		world::kUnitCellSpan));
-
-	// Tamaño en el mapa: `drawn` si el TOML lo declara (sprites
-	// únicos como el huevo o la leche), si no una fracción de la celda
-	// para que quede como un item apoyado en el piso.
-	const int baseW = (visual.drawnWidth > 0)
-		? visual.drawnWidth
-		: static_cast<int>(cell.width * render::kFloorItemScale);
-	const int baseH = (visual.drawnHeight > 0)
-		? visual.drawnHeight
-		: static_cast<int>(cell.height * render::kFloorItemScale);
-	const int x = cell.x + (cell.width - baseW) / 2;
-	const int y = cell.y + cell.height - baseH + resources_.offsetY;
-
-	const world::PixelRect drawRect{x, y, baseW, baseH};
+	// La geometría del ítem la calcula DroppedItemLayout: la misma que
+	// usa el pick, así lo que se toca coincide siempre con lo que se ve.
+	// El ajuste vertical para el piso lo lleva el sprite (offset_y).
+	const world::DroppedItemLayout layout;
+	const world::PixelRect drawRect = viewport.toScreen(layout.rectFor(
+		mapper.toPixels(world::GridCell{item.cellX, item.cellY},
+				world::kUnitCellSpan),
+		visual));
 	if (!viewport.intersects(drawRect)) {
 		return;
 	}
@@ -180,7 +172,8 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 		visual.cellWidth, visual.cellHeight);
 
 	sheet.draw(visual.col, visual.row,
-		   SDL2pp::Rect(x, y, baseW, baseH));
+		   SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
+				drawRect.height));
 }
 
 }  // namespace sdl

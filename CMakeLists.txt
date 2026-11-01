@@ -159,11 +159,21 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/CharacterCatalogLoader.cpp
         client/world/CreatureCatalog.cpp
         client/world/CharacterTomlReader.cpp
+        client/world/ActionNames.cpp
+        client/world/ContentIds.cpp
         client/world/CharacterLayout.cpp
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
         client/world/ContentCatalog.cpp
+        client/world/CursorCatalog.cpp
+        client/world/CursorConfigLoader.cpp
+        client/world/CursorTomlReader.cpp
+        client/world/DialogCatalog.cpp
+        client/world/DialogConfigLoader.cpp
+        client/world/DialogTomlReader.cpp
+        client/world/DialogLayout.cpp
+        client/world/DroppedItemLayout.cpp
         client/world/SpriteVisual.cpp
         client/world/DigitCatalog.cpp
         client/world/DigitConfigLoader.cpp
@@ -189,7 +199,13 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/ResourceAudioCue.cpp
         client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
-        client/game/AnimalOverlayClient.cpp
+        client/game/LocalWorldView.cpp
+        client/game/FloorItems.cpp
+        client/game/InteractionSession.cpp
+        client/game/AnimalSystem.cpp
+        client/game/MockWorldClient.cpp
+        client/game/ObjectPicker.cpp
+        client/game/DialogAnimator.cpp
         client/game/MockAnimalSimulation.cpp
         client/game/SoundCue.cpp
         client/game/SoundGate.cpp

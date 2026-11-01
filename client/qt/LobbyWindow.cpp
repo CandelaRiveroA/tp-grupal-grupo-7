@@ -49,7 +49,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	auto* sessionService = new FakeSessionService(std::nullopt, this);
 	auto* catalog = new FakeAssetCatalog(this);
 
-	auto* joins = new JoinCodeScreen(sessionService, stack_);
+	auto* joins = new JoinCodeScreen(sessionService, stack_, music);
 	registerScreen(ScreenId::JoinCode, joins);
 	connect(joins, &JoinCodeScreen::joinAccepted, this,
 		&LobbyWindow::onJoinAccepted);

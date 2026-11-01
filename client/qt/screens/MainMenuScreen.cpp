@@ -85,9 +85,6 @@ void MainMenuScreen::onExit() {
     if (cloudTimer_.isActive()) {
         cloudTimer_.stop();
     }
-    if (music_ != nullptr) {
-        music_->stop();
-    }
 }
 
 bool MainMenuScreen::isAnimating() const { return cloudTimer_.isActive(); }

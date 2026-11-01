@@ -38,10 +38,14 @@ target_sources(taller_client
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/theme/GameCursor.cpp
+    qt/theme/TitleBackdrop.cpp
+    qt/theme/TitleSprites.cpp
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
     qt/widgets/CharacterPreview.cpp
+    qt/widgets/TitleButton.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
     sdl/loop/GameLoop.cpp
@@ -58,10 +62,13 @@ target_sources(taller_client
     sdl/render/DialogPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
+    sdl/audio/MusicPlayer.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
     core/Constants.h
+    core/MusicControl.h
+    core/MusicTrack.h
     core/SessionConfig.h
     core/PlaySession.h
     core/StartupSequence.h
@@ -84,11 +91,18 @@ target_sources(taller_client
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/theme/CloudRects.h
+    qt/theme/CursorRects.h
+    qt/theme/GameCursor.h
+    qt/theme/TitleBackdrop.h
+    qt/theme/TitleSpriteRects.h
+    qt/theme/TitleSprites.h
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/TitleButton.h
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
@@ -184,7 +198,9 @@ target_sources(taller_client
     sdl/render/DialogPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
+    sdl/audio/AudioConfig.h
     sdl/audio/AudioPlayer.h
+    sdl/audio/MusicPlayer.h
     sdl/log/Logger.h
     )
 

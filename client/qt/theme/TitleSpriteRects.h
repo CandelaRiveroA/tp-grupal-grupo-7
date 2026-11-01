@@ -1,0 +1,26 @@
+#pragma once
+
+// Coordenadas de recorte del atlas TitleButtons.es-ES..png (400x655).
+
+// Cartel "STARDEW VALLEY": franja superior completa del atlas.
+#define ATLAS_LOGO_X 0
+#define ATLAS_LOGO_Y 0
+#define ATLAS_LOGO_W 400
+#define ATLAS_LOGO_H 186
+
+// Fila de botones: normal y hover, de izquierda a derecha
+#define ATLAS_BUTTON_W 74
+#define ATLAS_BUTTON_H 58
+#define ATLAS_BUTTON_NORMAL_Y 186
+#define ATLAS_BUTTON_HOVER_Y 244
+#define ATLAS_BUTTON_COUNT 4
+
+// Tamano fijo de la ventana del lobby
+#define TITLE_SCREEN_W 1280
+#define TITLE_SCREEN_H 720
+
+// Geometria de la pantalla de inicio
+#define TITLE_LOGO_TOP_Y 70                // margen superior del cartel
+#define TITLE_BUTTON_ROW_GAP 148           // hueco cartel -> fila de botones
+#define TITLE_BUTTON_ROW_BOTTOM_MARGIN 14  // margen inferior de la fila
+#define TITLE_BUTTON_SPACING 16            // hueco entre botones vecinos

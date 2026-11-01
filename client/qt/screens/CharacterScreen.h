@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QBasicTimer>
 #include <QString>
 
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include "common/model/draft/WorldSummary.h"
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
+#include "qt/theme/TitleBackdrop.h"
 #include "qt/util/CharacterLayer.h"
 #include "qt/util/CharacterLayers.h"
 
@@ -19,8 +21,11 @@ class CharacterPreview;
 class QFrame;
 class QLabel;
 class QLineEdit;
+class QPaintEvent;
 class QPushButton;
 class QSlider;
+class QTimerEvent;
+class TitleButton;
 class QWidget;
 class SessionService;
 
@@ -48,6 +53,7 @@ public:
 	void startJoinGame(const std::string& gameName);
 
 	void onEnter() override;
+	void onExit() override;
 
 signals:
 	void characterConfirmed(CharacterSelection selection);
@@ -63,7 +69,7 @@ private:
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
 	QPushButton* create_;
-	QPushButton* backButton_;
+	TitleButton* backButton_;
 	QLabel* status_;
 	std::map<CharacterLayer, QLabel*> values_;
 	std::map<CharacterLayer, QSlider*> sliders_;
@@ -80,7 +86,8 @@ private:
 	// Un createGame en vuelo: bloquea reenvío y respuestas ajenas.
 	bool submitting_ = false;
 
-	static constexpr int kWindowMaxWidth = 960;
+	TitleBackdrop backdrop_;
+	QBasicTimer cloudTimer_;
 
 	void buildMessages();
 	void buildUi();
@@ -99,4 +106,7 @@ private:
 	void showState(ScreenState state, const QString& message);
 	bool canSubmit() const;
 	QString messageFor(ServiceError error) const;
+
+	void paintEvent(QPaintEvent* event) override;
+	void timerEvent(QTimerEvent* event) override;
 };

@@ -91,6 +91,7 @@ target_sources(taller_client
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/theme/CharacterRects.h
     qt/theme/CloudRects.h
     qt/theme/JoinCodeRects.h
     qt/theme/JoinCodeSprites.h

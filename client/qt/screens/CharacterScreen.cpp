@@ -4,17 +4,22 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSlider>
+#include <QTimerEvent>
 #include <QVBoxLayout>
 #include <QWidget>
 
 #include "common/model/draft/GameSelection.h"
 #include "qt/services/AssetCatalog.h"
 #include "qt/services/SessionService.h"
+#include "qt/theme/CharacterRects.h"
+#include "qt/theme/TitleSprites.h"
 #include "qt/util/IndexCycle.h"
 #include "qt/widgets/CharacterPreview.h"
+#include "qt/widgets/TitleButton.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,
 				 const AssetCatalog* catalog, QWidget* parent)
@@ -57,7 +62,35 @@ void CharacterScreen::startJoinGame(const std::string& gameName) {
 	resetDraft();
 }
 
-void CharacterScreen::onEnter() { characterName_->setFocus(); }
+void CharacterScreen::onEnter() {
+	characterName_->setFocus();
+	if (!cloudTimer_.isActive()) {
+		cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
+	}
+}
+
+void CharacterScreen::onExit() {
+	if (cloudTimer_.isActive()) {
+		cloudTimer_.stop();
+	}
+	submitting_ = false;
+}
+
+void CharacterScreen::paintEvent(QPaintEvent* event) {
+	QPainter painter(this);
+	backdrop_.paint(painter);
+	QWidget::paintEvent(event);
+}
+
+void CharacterScreen::timerEvent(QTimerEvent* event) {
+	if (event->timerId() == cloudTimer_.timerId()) {
+		backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
+		update();
+		return;
+	}
+	QWidget::timerEvent(event);
+}
+
 
 void CharacterScreen::buildMessages() {
 	errorMessages_[ServiceError::GameNameTaken] =
@@ -70,13 +103,13 @@ void CharacterScreen::buildUi() {
 	setObjectName("character");
 
 	auto* root = new QVBoxLayout(this);
-	root->setContentsMargins(48, 24, 48, 24);
+	root->setContentsMargins(48, 24, 28, 12);
 	root->setSpacing(8);
 
 	// Ventana con toda la configuración, centrada sobre la pantalla.
 	content_ = new QFrame(this);
 	content_->setObjectName("characterWindow");
-	content_->setMaximumWidth(kWindowMaxWidth);
+	content_->setMaximumWidth(CHAR_WINDOW_MAX_W);
 	auto* window = new QVBoxLayout(content_);
 	window->setContentsMargins(24, 24, 24, 24);
 	window->setSpacing(16);
@@ -110,9 +143,13 @@ void CharacterScreen::buildUi() {
 	root->addWidget(status_);
 
 	auto* buttons = new QHBoxLayout();
-	backButton_ = new QPushButton("Volver", this);
+	
+	TitleSprites sprites;
+	backButton_ = new TitleButton(sprites.backButton(),
+				      sprites.backButtonHover(), "Volver", this);
 	backButton_->setObjectName("backButton");
-	connect(backButton_, &QPushButton::clicked, this, [this]() {
+	backButton_->setText("Volver");
+	connect(backButton_, &QAbstractButton::clicked, this, [this]() {
 		emit requestNavigate(mode_ == Mode::JoinGame
 					      ? ScreenId::JoinCode
 					      : ScreenId::WorldSelect);

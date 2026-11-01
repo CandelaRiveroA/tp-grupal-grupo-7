@@ -45,6 +45,10 @@ public:
 	// juntos si hubo varios en el mismo frame.
 	std::vector<game::PointerClick> takeClicks();
 
+	// Posición actual del puntero (px de pantalla), actualizada por el
+	// movimiento del mouse.
+	const game::PointerPosition& mousePosition() const;
+
 private:
 
 	std::unordered_map<SDL_Keycode, Action> defaultBindings() const;
@@ -76,6 +80,7 @@ private:
 	int slotCount_ = 0;
 	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame
 	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
+	game::PointerPosition pointerPosition_{};
 };
 
 }

@@ -19,6 +19,11 @@ public:
 	world::PixelRect visibleWorldRect() const;
 	world::PixelRect toScreen(const world::PixelRect& worldRect) const;
 
+	// Inversa de toScreen para puntos: px de pantalla -> px de mundo.
+	// La única dueña de esta traducción (POLK); el cursor y el pick la
+	// usan para saber qué hay bajo el puntero.
+	world::PixelPoint toWorld(const world::PixelPoint& screenPoint) const;
+
 	bool intersects(const world::PixelRect& screenRect) const;
 
 private:

@@ -181,6 +181,27 @@ TEST(InputManagerTest, PressedDirectionFollowsMovementKeys) {
     EXPECT_EQ(input.pressedDirection(), Direction::Back);
 }
 
+TEST(InputManagerTest, MouseMotionTracksPointerPosition) {
+    InputManager input(4);
+
+    // Sin movimiento, el puntero arranca en el origen.
+    EXPECT_EQ(input.mousePosition().x, 0);
+    EXPECT_EQ(input.mousePosition().y, 0);
+
+    SDL_Event motion{};
+    motion.type = SDL_MOUSEMOTION;
+    motion.motion.x = 320;
+    motion.motion.y = 240;
+    input.handleEvent(motion);
+    EXPECT_EQ(input.mousePosition().x, 320);
+    EXPECT_EQ(input.mousePosition().y, 240);
+
+    // El teclado no mueve el puntero.
+    input.handleEvent(keyDown(SDLK_UP));
+    EXPECT_EQ(input.mousePosition().x, 320);
+    EXPECT_EQ(input.mousePosition().y, 240);
+}
+
 TEST(InputManagerTest, MouseClickCarriesPosition) {
     InputManager input(4);
 

@@ -36,6 +36,12 @@ world::PixelRect Viewport::toScreen(const world::PixelRect& worldRect) const {
 				worldRect.height};
 }
 
+world::PixelPoint Viewport::toWorld(
+	const world::PixelPoint& screenPoint) const {
+	return world::PixelPoint{screenPoint.x + offsetX_,
+				screenPoint.y + offsetY_};
+}
+
 bool Viewport::intersects(const world::PixelRect& screenRect) const {
 	if (screenRect.width <= 0 || screenRect.height <= 0) {
 		return false;

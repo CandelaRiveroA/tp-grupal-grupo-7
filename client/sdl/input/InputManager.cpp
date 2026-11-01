@@ -42,6 +42,14 @@ auto InputManager::defaultBindings() const -> std::unordered_map<SDL_Keycode, Ac
 
 void InputManager::handleEvent(const SDL_Event& event) {
 
+	// El puntero: su posición se actualiza con el movimiento del mouse
+	// (el dibujo del cursor la consulta cada frame).
+	if (event.type == SDL_MOUSEMOTION) {
+		pointerPosition_ =
+			game::PointerPosition{event.motion.x, event.motion.y};
+		return;
+	}
+
 	// El click es la pulsación del botón primario del puntero. Otros
 	// botones todavía no tienen significado: si algún día lo tienen,
 	// es vocabulario nuevo que entra acá.
@@ -111,6 +119,10 @@ std::vector<game::PointerClick> InputManager::takeClicks() {
 	std::vector<game::PointerClick> clicks;
 	clicks.swap(clicks_);
 	return clicks;
+}
+
+const game::PointerPosition& InputManager::mousePosition() const {
+	return pointerPosition_;
 }
 
 std::optional<world::Direction> InputManager::pressedDirection() const {

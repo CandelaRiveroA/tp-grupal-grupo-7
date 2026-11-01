@@ -49,4 +49,20 @@ TEST(ViewportTest, IntersectsOnlyWithPositiveOverlap) {
 	EXPECT_FALSE(viewport.intersects(PixelRect{0, 0, 0, 10}));
 }
 
+TEST(ViewportTest, ToWorldIsTheInverseOfToScreen) {
+	const Viewport viewport(100, 50, 200, 100);
+
+	// Un rect de mundo aparece desplazado por el offset al dibujarse...
+	const PixelRect worldRect{130, 70, 10, 10};
+	const PixelRect screen = viewport.toScreen(worldRect);
+	EXPECT_EQ(screen.x, 30);
+	EXPECT_EQ(screen.y, 20);
+
+	// ...y un punto de pantalla vuelve a su lugar con toWorld.
+	const world::PixelPoint worldPoint =
+		viewport.toWorld(world::PixelPoint{screen.x, screen.y});
+	EXPECT_EQ(worldPoint.x, 130);
+	EXPECT_EQ(worldPoint.y, 70);
+}
+
 }  // namespace

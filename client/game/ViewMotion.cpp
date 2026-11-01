@@ -50,8 +50,8 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 			track.known = true;
 			track.cellX = entity.cellX;
 			track.cellY = entity.cellY;
-			track.previousCellX = entity.cellX;
-			track.previousCellY = entity.cellY;
+			track.fromX = entity.cellX;
+			track.fromY = entity.cellY;
 			track.stepIteration = iteration;
 			relinked.push_back(std::move(track));
 			continue;
@@ -64,11 +64,18 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 			continue;
 		}
 
+		// Posición dibujada AHORA: si el paso anterior todavía está
+		// en tránsito, el nuevo arranca desde ahí (el sprite no
+		// salta aunque los pasos lleguen antes de la cadencia).
+		double drawnX = 0.0;
+		double drawnY = 0.0;
+		drawnCellPosition(track, iteration, drawnX, drawnY);
+
 		const bool singleStep = (std::abs(deltaX) + std::abs(deltaY) == 1);
-		track.previousCellX =
-			singleStep ? track.cellX : entity.cellX;
-		track.previousCellY =
-			singleStep ? track.cellY : entity.cellY;
+		track.fromX =
+			singleStep ? drawnX : static_cast<double>(entity.cellX);
+		track.fromY =
+			singleStep ? drawnY : static_cast<double>(entity.cellY);
 		track.cellX = entity.cellX;
 		track.cellY = entity.cellY;
 		track.stepIteration = iteration;
@@ -89,10 +96,26 @@ PixelOffset ViewMotion::offsetFor(const Track& track, const int iteration,
 		return PixelOffset{0, 0};
 	}
 
-	const int deltaX = (track.previousCellX - track.cellX) * cellPixelSize;
-	const int deltaY = (track.previousCellY - track.cellY) * cellPixelSize;
-	return PixelOffset{deltaX * remaining / track.cadence.stepTicks,
-			   deltaY * remaining / track.cadence.stepTicks};
+	return PixelOffset{
+		static_cast<int>((track.fromX - track.cellX) * cellPixelSize *
+				 remaining / track.cadence.stepTicks),
+		static_cast<int>((track.fromY - track.cellY) * cellPixelSize *
+				 remaining / track.cadence.stepTicks)};
+}
+
+void ViewMotion::drawnCellPosition(const Track& track, const int iteration,
+				   double& x, double& y) const {
+	const int elapsed = std::max(0, iteration - track.stepIteration);
+	const int remaining = track.cadence.stepTicks - elapsed;
+	if (remaining <= 0) {
+		x = track.cellX;
+		y = track.cellY;
+		return;
+	}
+	const double done =
+		1.0 - static_cast<double>(remaining) / track.cadence.stepTicks;
+	x = track.fromX + (track.cellX - track.fromX) * done;
+	y = track.fromY + (track.cellY - track.fromY) * done;
 }
 
 PixelOffset ViewMotion::offsetFor(const std::size_t index,
@@ -136,8 +159,7 @@ int ViewMotion::toolTickFor(const std::size_t index,
 }
 
 bool ViewMotion::inTransit(const Track& track, const int iteration) const {
-	if (track.previousCellX == track.cellX &&
-	    track.previousCellY == track.cellY) {
+	if (track.fromX == track.cellX && track.fromY == track.cellY) {
 		return false;
 	}
 

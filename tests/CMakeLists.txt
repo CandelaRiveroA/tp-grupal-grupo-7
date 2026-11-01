@@ -48,6 +48,7 @@ target_sources(taller_tests
     local_world_view_test.cpp
     frame_clock_test.cpp
     move_command_test.cpp
+    animal_overlay_client_test.cpp
     player_controller_test.cpp
     walk_pacer_test.cpp
     view_motion_test.cpp

@@ -46,8 +46,13 @@ private:
 		int cellX = 0;
 		int cellY = 0;
 
-		int previousCellX = 0;
-		int previousCellY = 0;
+		// Posición (fraccionaria, en celdas) desde la que arranca la
+		// interpolación del paso actual. Al iniciar un paso normal es
+		// la celda anterior; al re-basarse un paso a mitad de tránsito
+		// es la posición dibujada en ese tick: así la continuidad del
+		// sprite no depende de la cadencia.
+		double fromX = 0.0;
+		double fromY = 0.0;
 
 		int stepIteration = 0;
 
@@ -64,6 +69,11 @@ private:
 	// Estado interno de UN track: interpolación del paso en curso.
 	PixelOffset offsetFor(const Track& track, int iteration,
 			      int cellPixelSize) const;
+
+	// Posición dibujada del track en un tick, en celdas (puede ser
+	// fraccionaria: el sprite va entre dos celdas durante el paso).
+	void drawnCellPosition(const Track& track, int iteration,
+			       double& x, double& y) const;
 
 	bool inTransit(const Track& track, int iteration) const;
 

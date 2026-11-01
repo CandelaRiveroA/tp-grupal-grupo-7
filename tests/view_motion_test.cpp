@@ -418,4 +418,48 @@ TEST(ViewMotionTest, DrawBoxSnapsAfterATeleport) {
 	EXPECT_EQ(box.y, 9 * kCellPixels);
 }
 
+TEST(ViewMotionTest, StepMidTransitContinuesFromDrawnPosition) {
+	game::ViewMotion motion = makeMotion();
+
+	// Paso de (0,0) a (1,0) arrancando en el tick 0.
+	motion.observe(viewAt(0, 0), 0);
+	motion.observe(viewAt(1, 0), 0);
+
+	// A mitad de tránsito el sprite va entre ambas celdas.
+	const int mid = kStepTicks / 2;
+	const world::PixelRect origin =
+		motion.drawBoxFor(entityAt(0, 0), 0, kStepTicks, kCellPixels);
+	const world::PixelRect before =
+		motion.drawBoxFor(entityAt(1, 0), 0, mid, kCellPixels);
+	EXPECT_GT(before.x, origin.x);
+	EXPECT_LT(before.x, origin.x + kCellPixels);
+
+	// Llega un paso nuevo ANTES de cerrar la cadencia: el sprite
+	// continúa desde donde estaba dibujado, sin saltar.
+	motion.observe(viewAt(2, 0), mid);
+	const world::PixelRect after =
+		motion.drawBoxFor(entityAt(2, 0), 0, mid, kCellPixels);
+	EXPECT_NEAR(after.x, before.x, 1);
+	EXPECT_NEAR(after.y, before.y, 1);
+}
+
+TEST(ViewMotionTest, StepAfterCadenceStartsFromPreviousCell) {
+	game::ViewMotion motion = makeMotion();
+
+	// Paso de (0,0) a (1,0) completado en el tick kStepTicks.
+	motion.observe(viewAt(0, 0), 0);
+	motion.observe(viewAt(1, 0), 0);
+	motion.observe(viewAt(1, 0), kStepTicks);
+
+	// Al cerrar la ventana el sprite está exactamente en (1,0), y el
+	// paso siguiente arranca desde ahí (comportamiento de siempre).
+	const world::PixelRect done =
+		motion.drawBoxFor(entityAt(1, 0), 0, kStepTicks, kCellPixels);
+	motion.observe(viewAt(2, 0), kStepTicks);
+	const world::PixelRect next =
+		motion.drawBoxFor(entityAt(2, 0), 0, kStepTicks, kCellPixels);
+	EXPECT_EQ(next.x, done.x);
+	EXPECT_EQ(next.y, done.y);
+}
+
 }

@@ -1,37 +1,24 @@
 #pragma once
 
 #include <cstddef>
-#include <memory>
 #include <string>
 #include <vector>
 
 #include "common/common_command.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
-#include "world/CharacterCatalog.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 
 namespace game {
 
-class MockAnimalSimulation;
-
+// "Server falso": simula el mundo del lado del servidor (jugador,
+// minerales, inventario) sin red. Los animales NO viven acá: los
+// superpone game::AnimalOverlayClient sobre cualquier GameClient.
 class MockGameClient: public GameClient {
 public:
-    // Mundo con SOLO el jugador (compatibilidad con pruebas existentes).
     MockGameClient(int gridColumns, int gridRows, int startX, int startY,
                    int toolUseDurationTicks);
-
-    // Mundo con el jugador + simulación de animales (wander). El catálogo
-    // aporta el ritmo de paso de cada criatura (datos TOML); sin
-    // apariencias de animales declaradas, corre sin animales (sin romper).
-    MockGameClient(int gridColumns, int gridRows, int startX, int startY,
-                   int toolUseDurationTicks,
-                   const world::CharacterCatalog& characters);
-
-    // El destructor se define en el .cpp: el unique_ptr de
-    // MockAnimalSimulation necesita el tipo completo (está forward-declarado).
-    ~MockGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
     void update(int iteration) override;
@@ -77,22 +64,12 @@ private:
     // y que inventory.toml / resources.toml).
     std::string contentIdFor(world::ResourceKind kind) const;
 
-    // contentId de un producto/ítem (mismo vocabulario que el inventario).
-    std::string contentIdFor(world::ItemKind kind) const;
-
     // update() avanza la simulación un tick; worldState() solo consulta la vista.
     void advanceToolUse();
 
     // Emite el evento de obtención (si fue encolado por un Take) por un
     // solo tick. El servidor decidirá este evento; esto lo simula.
     void advanceObtained();
-
-    void spawnAnimals(const world::CharacterCatalog& characters);
-
-    // Toma lo que la simulación produjo en este tick y lo publica como
-    // ítem del suelo (validando reglas del "server falso": tope y celda
-    // ya ocupada por otro ítem).
-    void collectProducedItems();
 
     int gridColumns_;
     int gridRows_;
@@ -118,18 +95,10 @@ private:
     };
     std::vector<DroppedItem> dropped_;
 
-    // Productos de granja en el piso (huevos, leche): estado del
-    // "server falso". Sin simulación queda vacío.
-    std::vector<ViewDroppedItem> groundItems_;
-
     // Evento de obtención encolado por un Take exitoso: se emite en el
     // próximo update() y dura un solo tick.
     bool obtainedPending_ = false;
     world::ResourceKind obtainedKind_{};
-
-    // La simulación de animales es del lado del "server falso": nula en
-    // el mundo de solo jugador. Cada responsabilidad, en su clase.
-    std::unique_ptr<MockAnimalSimulation> simulation_;
 
     LocalWorldView view_;
 };

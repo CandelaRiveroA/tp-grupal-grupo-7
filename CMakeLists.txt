@@ -188,6 +188,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/ResourceAudioCue.cpp
         client/game/ObtainedBannerQueue.cpp
         client/game/MockGameClient.cpp
+        client/game/AnimalOverlayClient.cpp
         client/game/MockAnimalSimulation.cpp
         client/game/SoundCue.cpp
         client/game/SoundGate.cpp

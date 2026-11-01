@@ -99,6 +99,7 @@ target_sources(taller_client
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
+    game/AnimalOverlayClient.h
     game/PlayerController.h
     game/PointerClick.h
     game/ViewMotion.h

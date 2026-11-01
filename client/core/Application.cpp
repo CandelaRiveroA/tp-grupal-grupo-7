@@ -11,8 +11,9 @@
 
 #include "core/Constants.h"
 #include "core/PlaySession.h"
+#include "game/AnimalOverlayClient.h"
 #include "game/GameClient.h"
-#include "game/MockGameClient.h"
+#include "game/NetworkGameClient.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/log/Logger.h"
 #include "world/CharacterCatalog.h"
@@ -110,12 +111,15 @@ std::unique_ptr<game::GameClient> Application::createGameClient(
         const world::GridSpan& grid,
         const world::CharacterCatalog& characters,
         int toolUseDurationTicks) const {
-    // Fuente de estado: hoy el mock (con la simulación de animales).
-    // El seam para la red está acá: cambiar esta construcción por
-    // NetworkGameClient (ver connection-point.md) y nada más se toca.
-    return std::make_unique<game::MockGameClient>(
-            grid.columns, grid.rows, grid.columns / 2, grid.rows / 2,
-            toolUseDurationTicks, characters);
+    // Fuente de estado: el server por red (contrato §6: al conectar la
+    // red, el único cambio es quién llena la vista). La capa de
+    // animales se superpone hoy en el cliente; cuando el server los
+    // tenga, se saca y nada más cambia esta construcción.
+    return std::make_unique<game::AnimalOverlayClient>(
+            std::make_unique<game::NetworkGameClient>(
+                    core::kServerHost, core::kServerPort,
+                    toolUseDurationTicks),
+            characters, grid);
 }
 
 }  // namespace core

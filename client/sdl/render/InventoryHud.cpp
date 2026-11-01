@@ -103,7 +103,7 @@ void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 	// Los dígitos de la hoja son claros; se tiñen de negro al dibujarlos.
 	digitSheet_.setColorMod(0, 0, 0);
 	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
-		const world::DigitCell& cell = digits_.cellFor(digits[i]);
+		const world::SheetCell& cell = digits_.cellFor(digits[i]);
 		const world::PixelBox& box = boxes[i];
 		digitSheet_.draw(cell.col, cell.row,
 				 SDL2pp::Rect(box.x, box.y, box.width,

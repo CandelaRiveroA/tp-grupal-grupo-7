@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "world/ContentCatalog.h"
+#include "world/SpriteVisual.h"
 
 namespace world {
 
@@ -17,11 +18,6 @@ struct PixelBox {
 	int y = 0;
 	int width = 0;
 	int height = 0;
-};
-
-struct SheetCell {
-	int col = 0;
-	int row = 0;
 };
 
 struct FrameCells {

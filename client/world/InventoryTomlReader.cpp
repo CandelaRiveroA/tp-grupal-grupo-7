@@ -44,10 +44,7 @@ constexpr const char* kRight = "right";
 constexpr const char* kAnchorBottomCenter = "bottom_center";
 
 constexpr const char* kItems = "items";
-constexpr const char* kItemSheet = "sheet";
-constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
-constexpr const char* kItemDrawn = "drawn";
 
 constexpr const char* kBarDigitScale = "bar.digit_scale";
 constexpr const char* kBarDigitMargin = "bar.digit_margin";
@@ -143,35 +140,11 @@ void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
 	const std::vector<std::string> names = doc_.subtableKeys(kItems);
 	for (const std::string& name : names) {
 		const std::string base = join(kItems, name);
-		world::SpriteVisual visual;
-		visual.sheetImage = doc_.getString(join(base, kItemSheet));
-		const std::array<int, 2> cell =
-			doc_.getIntArray<2>(join(base, kItemCell));
-		visual.cellWidth = cell[0];
-		visual.cellHeight = cell[1];
-		const std::array<int, 2> at =
-			doc_.getIntArray<2>(join(base, kItemAt));
-		visual.col = at[0];
-		visual.row = at[1];
-		// Tamaño EN EL MAPA: opcional (default = celda nativa).
-		const std::string drawnKey = join(base, kItemDrawn);
-		if (doc_.hasKey(drawnKey)) {
-			const std::array<int, 2> drawn =
-				doc_.getIntArray<2>(drawnKey);
-			if (drawn[0] <= 0 || drawn[1] <= 0) {
-				throw ConfigError(Kind::InvalidValue,
-						  drawnKey);
-			}
-			visual.drawnWidth = drawn[0];
-			visual.drawnHeight = drawn[1];
-		}
-		if (visual.cellWidth <= 0 || visual.cellHeight <= 0 ||
-		    visual.col < 0 || visual.row < 0) {
-			throw ConfigError(Kind::InvalidValue, base);
-		}
 		// contentId = nombre de la subtabla. No se traduce a ningún
-		// enum: el inventario es genérico.
-		catalog.visuals.emplace(name, visual);
+		// enum: el inventario es genérico. El sprite se lee completo
+		// con el lector compartido (sheet/cell/at/drawn).
+		catalog.visuals.emplace(
+			name, world::SpriteVisual(doc_, base, kItemAt));
 	}
 }
 
@@ -220,11 +193,7 @@ std::string InventoryTomlReader::join(const std::string& section,
 }
 
 SheetCell InventoryTomlReader::readCell(const std::string& key) const {
-	const std::array<int, 2> cell = doc_.getIntArray<2>(key);
-	if (cell[0] < 0 || cell[1] < 0) {
-		throw ConfigError(Kind::InvalidValue, key);
-	}
-	return SheetCell{cell[0], cell[1]};
+	return SheetCell(doc_, key);
 }
 
 InventoryAnchor InventoryTomlReader::parseAnchor(

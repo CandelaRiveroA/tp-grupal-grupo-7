@@ -8,12 +8,6 @@
 
 namespace world {
 
-// Celda (col,row) de una hoja de sprites.
-struct BannerCell {
-    int col = 0;
-    int row = 0;
-};
-
 // Las 9 piezas del panel 9-slice: una celda representativa por pieza, que
 // se estira al dibujar (igual patrón que el marco del inventario).
 struct BannerFrame {
@@ -21,15 +15,15 @@ struct BannerFrame {
     int cellWidth = 0;
     int cellHeight = 0;
 
-    BannerCell topLeft;
-    BannerCell topRight;
-    BannerCell bottomLeft;
-    BannerCell bottomRight;
-    BannerCell top;
-    BannerCell bottom;
-    BannerCell left;
-    BannerCell right;
-    BannerCell fill;
+    SheetCell topLeft;
+    SheetCell topRight;
+    SheetCell bottomLeft;
+    SheetCell bottomRight;
+    SheetCell top;
+    SheetCell bottom;
+    SheetCell left;
+    SheetCell right;
+    SheetCell fill;
 };
 
 // El icono del mineral obtenido usa el sprite común (SpriteVisual):

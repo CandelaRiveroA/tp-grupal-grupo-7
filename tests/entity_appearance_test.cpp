@@ -209,7 +209,7 @@ TEST(EntityAppearanceTest, MirroredDirectionReusesTheSameFrames) {
 }
 
 
-TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
+TEST(EntityAppearanceTest, WalkSheetCellStartsAtZeroAndCyclesTheSequence) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, 0),
 		  0);
@@ -224,7 +224,7 @@ TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
 		  1);
 }
 
-TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
+TEST(EntityAppearanceTest, WalkSheetCellIsExactlyTheDrawnFrame) {
 	const int stepTicks = player().cadence.stepTicks;
 	for (int tick = 0; tick < 4 * stepTicks; tick += 7) {
 		const int frame = world::AppearanceResolver(player()).frameIndexFor( Direction::Front, ActionKind::Walk, tick);
@@ -237,7 +237,7 @@ TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
 }
 
 
-TEST(EntityAppearanceTest, IdleFrameIndexIsAlwaysZero) {
+TEST(EntityAppearanceTest, IdleSheetCellIsAlwaysZero) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Idle, 0),
 		  0);
@@ -291,7 +291,7 @@ TEST(EntityAppearanceTest, UncachedUseToolFallsBackToIdle) {
 	EXPECT_FALSE(front.mirrored);
 }
 
-TEST(EntityAppearanceTest, UncachedActionFrameIndexIsTheIdleFrame) {
+TEST(EntityAppearanceTest, UncachedActionSheetCellIsTheIdleFrame) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::UseTool, 0),
 		  0);

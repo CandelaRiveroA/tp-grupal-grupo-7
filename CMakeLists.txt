@@ -164,6 +164,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
         client/world/ContentCatalog.cpp
+        client/world/SpriteVisual.cpp
         client/world/DigitCatalog.cpp
         client/world/DigitConfigLoader.cpp
         client/world/DigitTomlReader.cpp

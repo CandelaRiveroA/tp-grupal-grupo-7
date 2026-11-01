@@ -71,7 +71,7 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 		requireNonNegative(a[0], cellPath);
 		requireNonNegative(a[1], cellPath);
 		return LayerFrame{static_cast<Layer>(layerIdx),
-				  FrameIndex{a[0], a[1]}, 1, 1};
+				  SheetCell{a[0], a[1]}, 1, 1};
 	}
 	if (n == 4) {
 		const std::array<int, 4> a = doc_.getIntArray<4>(cellPath);
@@ -80,7 +80,7 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 		requirePositive(a[2], cellPath);
 		requirePositive(a[3], cellPath);
 		return LayerFrame{static_cast<Layer>(layerIdx),
-				  FrameIndex{a[0], a[1]}, a[2], a[3]};
+				  SheetCell{a[0], a[1]}, a[2], a[3]};
 	}
 	throw ConfigError(Kind::InvalidValue, cellPath);
 }

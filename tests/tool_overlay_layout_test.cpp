@@ -7,7 +7,7 @@ namespace {
 
 using world::CharacterLayout;
 using world::FrameAnchor;
-using world::FrameIndex;
+using world::SheetCell;
 using world::Layer;
 using world::LayerFrame;
 using world::PixelRect;
@@ -17,7 +17,7 @@ using world::ToolOverlayFrame;
 using world::ToolOverlayLayout;
 
 LayerFrame makeLayer(int cols, int rows) {
-	return LayerFrame{Layer::Body, FrameIndex{0, 0}, cols, rows};
+	return LayerFrame{Layer::Body, SheetCell{0, 0}, cols, rows};
 }
 
 ToolOverlayFrame makeFrame(FrameAnchor anchor) {

@@ -36,7 +36,7 @@ int ObtainedBannerHud::borderThickness() const {
     return std::max(t, 1);
 }
 
-void ObtainedBannerHud::drawCell(const world::BannerCell& cell, int dx, int dy, int dw, int dh) {
+void ObtainedBannerHud::drawCell(const world::SheetCell& cell, int dx, int dy, int dw, int dh) {
     if (dw <= 0 || dh <= 0) {
         return;
     }

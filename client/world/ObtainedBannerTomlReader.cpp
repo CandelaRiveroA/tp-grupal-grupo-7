@@ -57,14 +57,9 @@ std::string ObtainedBannerTomlReader::join(const std::string& base, const std::s
     return base + "." + key;
 }
 
-BannerCell ObtainedBannerTomlReader::readCell(const std::string& base,
+SheetCell ObtainedBannerTomlReader::readCell(const std::string& base,
                                               const std::string& key) const {
-    const std::string path = join(base, key);
-    const std::array<int, 2> cell = doc_.getIntArray<2>(path);
-    if (cell[0] < 0 || cell[1] < 0) {
-        throw ConfigError(Kind::InvalidValue, path);
-    }
-    return BannerCell{cell[0], cell[1]};
+    return SheetCell(doc_, join(base, key));
 }
 
 BannerFrame ObtainedBannerTomlReader::readFrame() const {
@@ -97,30 +92,7 @@ BannerFrame ObtainedBannerTomlReader::readFrame() const {
 }
 
 SpriteVisual ObtainedBannerTomlReader::readIcon(const std::string& base) const {
-    SpriteVisual icon;
-
-    const std::string sheetPath = join(base, kSheet);
-    icon.sheetImage = doc_.getString(sheetPath);
-    if (icon.sheetImage.empty()) {
-        throw ConfigError(Kind::InvalidValue, sheetPath);
-    }
-
-    const std::string cellPath = join(base, kCell);
-    const std::array<int, 2> cell = doc_.getIntArray<2>(cellPath);
-    if (cell[0] <= 0 || cell[1] <= 0) {
-        throw ConfigError(Kind::InvalidValue, cellPath);
-    }
-    icon.cellWidth = cell[0];
-    icon.cellHeight = cell[1];
-
-    const std::string iconPath = join(base, kIcon);
-    const std::array<int, 2> pos = doc_.getIntArray<2>(iconPath);
-    if (pos[0] < 0 || pos[1] < 0) {
-        throw ConfigError(Kind::InvalidValue, iconPath);
-    }
-    icon.col = pos[0];
-    icon.row = pos[1];
-    return icon;
+    return SpriteVisual(doc_, base, kIcon);
 }
 
 ObtainedBannerCatalog ObtainedBannerTomlReader::read() const {

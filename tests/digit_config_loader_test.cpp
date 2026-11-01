@@ -49,7 +49,7 @@ TEST(DigitConfigLoaderTest, LoadsSheetAndCell) {
 TEST(DigitConfigLoaderTest, LoadsAllTenDigitsInRowZero) {
 	const world::DigitCatalog catalog = loadString(kDigitsToml);
 	for (int d = 0; d <= 9; ++d) {
-		const world::DigitCell& cell = catalog.cellFor(d);
+		const world::SheetCell& cell = catalog.cellFor(d);
 		EXPECT_EQ(cell.col, d);
 		EXPECT_EQ(cell.row, 0);
 	}

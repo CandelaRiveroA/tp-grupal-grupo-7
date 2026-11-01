@@ -80,14 +80,14 @@ LayerFrame ToolOverlayTomlReader::readLayer(
 		if (a[0] < 0 || a[1] < 0) {
 			throw ConfigError(Kind::InvalidValue, layerPath);
 		}
-		return LayerFrame{Layer::Body, FrameIndex{a[0], a[1]}, 1, 1};
+		return LayerFrame{Layer::Body, SheetCell{a[0], a[1]}, 1, 1};
 	}
 	if (n == 4) {
 		const std::array<int, 4> a = layerDoc.getIntArray<4>(layerPath);
 		if (a[0] < 0 || a[1] < 0 || a[2] <= 0 || a[3] <= 0) {
 			throw ConfigError(Kind::InvalidValue, layerPath);
 		}
-		return LayerFrame{Layer::Body, FrameIndex{a[0], a[1]}, a[2],
+		return LayerFrame{Layer::Body, SheetCell{a[0], a[1]}, a[2],
 				  a[3]};
 	}
 	throw ConfigError(Kind::InvalidValue, layerPath);

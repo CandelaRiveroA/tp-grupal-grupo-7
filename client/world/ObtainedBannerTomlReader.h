@@ -21,7 +21,7 @@ public:
 private:
     std::string join(const std::string& base, const std::string& key) const;
 
-    BannerCell readCell(const std::string& base, const std::string& key) const;
+    SheetCell readCell(const std::string& base, const std::string& key) const;
 
     BannerFrame readFrame() const;
 

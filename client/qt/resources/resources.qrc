@@ -1,9 +1,13 @@
 <RCC>
     <qresource prefix="/">
         <file>ui.qss</file>
+        <file alias="fonts/stardew.ttf">fonts/StardewValley.ttf</file>
         <file alias="ui/title/sky.png">ui/home_background.png</file>
         <file alias="ui/title/clouds.png">ui/Clouds.png</file>
         <file alias="ui/title/atlas.png">ui/TitleButtons.es-ES..png</file>
         <file alias="ui/cursor_arrow.png">ui/cursor_arrow.png</file>
+        <file alias="ui/join/scroll.png">ui/join_scroll.png</file>
+        <file alias="ui/join/input_box.png">ui/join_input_box.png</file>
+        <file alias="ui/join/ok.png">ui/join_ok.png</file>
     </qresource>
 </RCC>

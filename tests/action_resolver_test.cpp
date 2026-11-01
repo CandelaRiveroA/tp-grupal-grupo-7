@@ -63,6 +63,93 @@ cadence = { step = 24, frame = 12 }
       [[3, 16, 1, 2], [9, 16, 1, 2]],
       [[4, 16, 1, 2], [10, 16, 1, 2]],
     ]
+    [characters.player.right.pickup]
+    loops  = false
+    frames = [
+      [[4, 60], [10, 61]],
+      [[5, 60], [11, 61]],
+      [[0, 62], [6, 62]],
+      [[1, 62], [7, 62]],
+    ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -183,6 +270,42 @@ TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
 		const int phase = resolver.phaseFor(e, kPlayerIndex, it);
 		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(world::Direction::Right,
 						ActionKind::UseTool, phase),
+			  frame)
+			<< "en el cuadro " << frame;
+	}
+}
+
+TEST(ActionResolverTest, PickupAnimatesOnTheActionClock) {
+	ViewMotion motion(catalog());
+	// El jugador dejó de caminar hace rato (el reloj del paso quedó
+	// viejo) y la fuente enciende Pickup: la fase corre desde el
+	// arranque de la acción, así los cuadros salen 1-2-3-4.
+	motion.observe(viewWith(entity()), 0);
+	motion.observe(viewWith(entity(ActionKind::Pickup)), 100);
+	const ActionResolver resolver(motion);
+
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    100),
+		  0);
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    124),
+		  24);
+
+	const world::CreatureData& creature =
+		catalog().dataFor(world::CreatureKind::Player);
+	const int frameTicks = creature.cadence.frameTicks;
+	constexpr int kFrames = 4;
+	for (int frame = 0; frame < kFrames; ++frame) {
+		const int it = 100 + frame * frameTicks;
+		const int phase = resolver.phaseFor(entity(ActionKind::Pickup),
+						    kPlayerIndex, it);
+		ASSERT_EQ(resolver.actionFor(entity(ActionKind::Pickup),
+					     kPlayerIndex, it),
+			  ActionKind::Pickup)
+			<< "en el cuadro " << frame;
+		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(
+				  world::Direction::Right, ActionKind::Pickup,
+				  phase),
 			  frame)
 			<< "en el cuadro " << frame;
 	}

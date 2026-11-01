@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>ui.qss</file>
+        <file alias="ui/title/sky.png">ui/home_background.png</file>
+        <file alias="ui/title/clouds.png">ui/Clouds.png</file>
+        <file alias="ui/title/atlas.png">ui/TitleButtons.es-ES..png</file>
+        <file alias="ui/cursor_arrow.png">ui/cursor_arrow.png</file>
     </qresource>
 </RCC>

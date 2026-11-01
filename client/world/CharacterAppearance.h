@@ -2,15 +2,11 @@
 
 #include <vector>
 
+#include "world/SpriteVisual.h"
 #include "world/ViewDirection.h"
 
 namespace world {
 
-
-struct FrameIndex {
-    int col;
-    int row;
-};
 
 enum class Layer {
     Body,
@@ -21,7 +17,7 @@ enum class Layer {
 
 struct LayerFrame {
     Layer layer;
-    FrameIndex frame;
+    SheetCell frame;
     int cols = 1;
     int rows = 1;
 };
@@ -32,6 +28,8 @@ enum class ActionKind {
     Idle,
     Walk,
     UseTool,
+    Milk,
+    Pickup,
 };
 
 struct ActionData {

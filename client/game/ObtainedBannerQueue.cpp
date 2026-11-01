@@ -8,17 +8,17 @@ ObtainedBannerQueue::ObtainedBannerQueue(int durationTicks, int maxVisible):
         durationTicks_(durationTicks > 0 ? durationTicks : 1),
         maxVisible_(maxVisible > 0 ? maxVisible : 1) {}
 
-void ObtainedBannerQueue::push(world::ResourceKind kind) {
+void ObtainedBannerQueue::push(const std::string& contentId) {
     if (static_cast<int>(banners_.size()) >= maxVisible_) {
         return;  // pila llena: se descarta el evento nuevo
     }
     const int stackIndex = static_cast<int>(banners_.size());
-    banners_.push_back(ActiveBanner{kind, durationTicks_, stackIndex});
+    banners_.push_back(ActiveBanner{contentId, durationTicks_, stackIndex});
 }
 
-void ObtainedBannerQueue::observe(const std::vector<ViewResourceObtained>& obtained) {
-    for (const ViewResourceObtained& event: obtained) {
-        push(event.kind);
+void ObtainedBannerQueue::observe(const std::vector<ViewObtained>& obtained) {
+    for (const ViewObtained& event: obtained) {
+        push(event.contentId);
     }
 }
 

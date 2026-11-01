@@ -1,15 +1,14 @@
-#include "Renderer.h"
-
-#include <map>
+#include "sdl/render/Renderer.h"
 
 #include "core/Constants.h"
 #include "game/ActionResolver.h"
-#include "sdl/context/SdlConstants.h"
 #include "sdl/context/SdlContext.h"
 #include "sdl/render/ElementPainter.h"
-#include "world/CharacterAppearance.h"
-#include "world/EntityAppearance.h"
+#include "sdl/render/RenderConstants.h"
+#include "sdl/render/Viewport.h"
+#include "world/DroppedItemLayout.h"
 #include "world/ScenePixelMapper.h"
+#include "world/WorldConstants.h"
 
 namespace sdl {
 
@@ -19,169 +18,72 @@ Renderer::Renderer(SdlContext& context,
 		   const world::ResourceCatalog& resources,
 		   const world::ContentCatalog& content)
 	: context_(context)
-	, catalog_(characters)
-	, toolOverlay_(toolOverlay)
 	, resources_(resources)
 	, content_(content)
-	, characterSheet_(context,
-			  core::assetPath(characters.sheetFile(
-				  world::CreatureKind::Player)),
-			  characters.sheetCellWidth(world::CreatureKind::Player),
-			  characters.sheetCellHeight(world::CreatureKind::Player))
-	, character_(characterSheet_,
-		     characters.drawnWidth(world::CreatureKind::Player),
-		     characters.drawnHeight(world::CreatureKind::Player))
-	, sheetCache_(context) {}
+	, sheetCache_(context)
+	, entityRenderer_(sheetCache_, characters, toolOverlay) {}
 
-void Renderer::render(const world::SceneDescription& scene,
-		      const game::LocalWorldView& view,
-		      const game::ViewMotion& motion,
-		      const game::ActionResolver& actionResolver,
-		      int animationTick) {
-	renderScene(scene, view, motion, actionResolver, animationTick);
-	context_.present();
+void Renderer::prepareScene(const world::SceneDescription& scene) {
+	const world::ScenePixelMapper mapper(scene.cellPixelSize);
+	sceneIndex_.rebuild(scene, mapper);
+	sceneIndexReady_ = true;
 }
 
-void Renderer::renderScene(const world::SceneDescription& scene,
-			   const game::LocalWorldView& view,
-			   const game::ViewMotion& motion,
-			   const game::ActionResolver& actionResolver,
-			   int animationTick) {
-
+void Renderer::drawWorld(const world::SceneDescription& scene,
+			 const game::LocalWorldView& view,
+			 const game::ViewMotion& motion,
+			 const game::ActionResolver& actionResolver,
+			 const int animationTick,
+			 const Viewport& viewport) {
 	const world::Color& background = scene.floorColor;
 	context_.clear(SDL2pp::Color(background.r, background.g,
 				     background.b, background.a));
 
-	for (const world::ElementPlacement& element : scene.elements) {
-		drawElement(scene, element);
+	if (!sceneIndexReady_) {
+		prepareScene(scene);
+	}
+
+	const world::ScenePixelMapper mapper(scene.cellPixelSize);
+	const world::PixelRect visibleWorld = viewport.visibleWorldRect();
+	const world::PixelRect dynamicQuery{
+		visibleWorld.x - render::kSpriteOverdrawMarginPixels,
+		visibleWorld.y - render::kSpriteOverdrawMarginPixels,
+		visibleWorld.width + render::kSpriteOverdrawMarginPixels * 2,
+		visibleWorld.height + render::kSpriteOverdrawMarginPixels * 2,
+	};
+
+	viewIndex_.rebuild(view, mapper);
+
+	sceneIndex_.query(visibleWorld, visibleElements_);
+	viewIndex_.queryResources(dynamicQuery, visibleResources_);
+	viewIndex_.queryDroppedItems(dynamicQuery, visibleItems_);
+	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
+
+	for (const std::uint32_t index : visibleElements_) {
+		drawElement(scene, scene.elements[index], mapper, viewport);
 	}
 
 	// Recursos antes que las entidades: el personaje se dibuja encima.
-	for (const game::ViewResource& resource : view.resources) {
-		drawResource(scene, resource);
+	for (const std::uint32_t index : visibleResources_) {
+		drawResource(view.resources[index], mapper, viewport);
 	}
 
 	// Minerales caídos al piso: también debajo de las entidades, para que
 	// el personaje pase por encima al pararse sobre ellos.
-	for (const game::ViewDroppedItem& item : view.droppedItems) {
-		drawDroppedItem(scene, item);
+	for (const std::uint32_t index : visibleItems_) {
+		drawDroppedItem(view.droppedItems[index], mapper, viewport);
 	}
 
-	for (std::size_t i = 0; i < view.entities.size(); ++i) {
-		drawEntity(scene, view.entities[i], motion, actionResolver, i,
-			   animationTick);
-	}
-}
-
-void Renderer::drawEntity(const world::SceneDescription& scene,
-			  const game::ViewEntity& entity,
-			  const game::ViewMotion& motion,
-			  const game::ActionResolver& actionResolver,
-			  std::size_t entityIndex, int animationTick) {
-	const world::ScenePixelMapper mapper(scene.cellPixelSize);
-	const world::PixelRect box =
-		mapper.toPixels(world::GridCell{entity.cellX, entity.cellY},
-				world::GridSpan{1, 1});
-
-	const int phase =
-		actionResolver.phaseFor(entity, entityIndex, animationTick);
-
-	const world::ActionKind action =
-		actionResolver.actionFor(entity, entityIndex, animationTick);
-
-	const world::AppearanceResolver resolver(catalog_.dataFor(entity.kind));
-	const world::EntityAppearance appearance =
-		resolver.appearanceFor(entity.facing, action, phase);
-
-	const game::PixelOffset offset = motion.offsetFor(
-		entityIndex, animationTick, scene.cellPixelSize);
-
-	const Flip flip =
-		appearance.mirrored ? Flip::Horizontal : Flip::None;
-
-	const SDL2pp::Rect drawBox(box.x + offset.x, box.y + offset.y,
-				   box.width, box.height);
-
-	character_.draw(*appearance.pose, drawBox, flip);
-
-	drawToolOverlay(entity, drawBox, phase, action);
-}
-
-void Renderer::drawToolOverlay(const game::ViewEntity& entity,
-			       const SDL2pp::Rect& drawBox, int phase,
-			       world::ActionKind action) {
-	if (action != world::ActionKind::UseTool) {
-		return;
-	}
-	if (!entity.activeTool.has_value()) {
-		return;
-	}
-	const world::ItemKind tool = *entity.activeTool;
-	const world::Direction dir = entity.facing;
-	if (!toolOverlay_.has(tool, dir)) {
-		return;
-	}
-	const world::ToolOverlayAction& overlayAction =
-		toolOverlay_.actionFor(tool, dir);
-	if (overlayAction.frames.empty()) {
-		return;
-	}
-
-	const int frameCount =
-		static_cast<int>(overlayAction.frames.size());
-	const int frameIdx = (overlayAction.frameTicks > 0)
-		? (phase / overlayAction.frameTicks)
-		: 0;
-	const int clampedIdx =
-		frameIdx < frameCount ? frameIdx : frameCount - 1;
-	const world::ToolOverlayFrame& frame =
-		overlayAction.frames[static_cast<std::size_t>(clampedIdx)];
-
-	SpriteSheet& sheet = sheetCache_.sheet(
-		overlayAction.sheetImage,
-		core::assetPath(overlayAction.sheetImage),
-		overlayAction.cellWidth, overlayAction.cellHeight);
-
-	// Alineado al cuerpo con el mismo drawnWidth/Height que CharacterSprite.
-	const int drawnW = catalog_.drawnWidth(entity.kind);
-	const int drawnH = catalog_.drawnHeight(entity.kind);
-	const int bodyX  = drawBox.x + (drawBox.w - drawnW) / 2;
-	const int bodyBottom = drawBox.y + drawBox.h;
-	const int bodyTop = bodyBottom - drawnH;
-
-	for (const world::LayerFrame& layer : frame.layers) {
-		const int pxPerCellX = drawnW / layer.cols;
-		const int pxPerCellY = drawnH / layer.rows;
-		const int w = static_cast<int>(layer.cols * pxPerCellX *
-					       frame.scale);
-		const int h = static_cast<int>(layer.rows * pxPerCellY *
-					       frame.scale);
-		const int x = bodyX + frame.offsetX;
-		// Diccionario (no switch, por contrato) de anclaje a y base.
-		const std::map<world::FrameAnchor, int> anchorY = {
-			{world::FrameAnchor::Top, bodyTop - h},
-			{world::FrameAnchor::Body, bodyTop},
-			{world::FrameAnchor::Bottom, bodyBottom - h},
-		};
-		const int y = anchorY.at(frame.anchor) +
-			      toolOverlay_.offsetFor(frame.anchor) +
-			      frame.offsetY;
-		// Pivote en píxeles del rect: gira sobre el mango, no el centro.
-		const SDL2pp::Point pivot(
-			static_cast<int>(frame.pivotX * w),
-			static_cast<int>(frame.pivotY * h));
-		const Flip flip =
-			frame.flip ? Flip::Horizontal : Flip::None;
-		sheet.drawBlock(layer.frame.col, layer.frame.row,
-				layer.cols, layer.rows,
-				SDL2pp::Rect(x, y, w, h), flip, 1.0,
-				1.0, frame.angle, pivot);
+	for (const std::uint32_t index : visibleEntities_) {
+		entityRenderer_.draw(view.entities[index], index, scene, motion,
+				    actionResolver, animationTick, viewport);
 	}
 }
 
 void Renderer::drawElement(const world::SceneDescription& scene,
-			   const world::ElementPlacement& element) {
-
+			   const world::ElementPlacement& element,
+			   const world::ScenePixelMapper& mapper,
+			   const Viewport& viewport) {
 	const world::TileSetDef& tileset =
 		scene.tilesets.at(element.tileset);
 
@@ -189,29 +91,29 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 		element.tileset, core::assetPath(tileset.image),
 		tileset.cellWidth, tileset.cellHeight);
 
-	const world::ScenePixelMapper mapper(scene.cellPixelSize);
 	const world::PixelRect area =
-		mapper.toPixels(element.at, element.span);
+		viewport.toScreen(mapper.toPixels(element.at, element.span));
 
-	ElementPainter(tileset, element, area).paint(sheet);
-}
-
-void Renderer::drawResource(const world::SceneDescription& scene,
-			    const game::ViewResource& resource) {
-	if (!resources_.has(resource.kind, resource.state)) {
+	const ElementPainter painter(tileset, element, area);
+	if (!viewport.intersects(painter.bounds())) {
 		return;
 	}
-	const world::ResourceVisual& visual =
-		resources_.visualFor(resource.kind, resource.state);
+	painter.paint(sheet, viewport.screenRect());
+}
 
-	SpriteSheet& sheet = sheetCache_.sheet(
-		visual.sheetImage, core::assetPath(visual.sheetImage),
-		visual.cellWidth, visual.cellHeight);
+void Renderer::drawResource(const game::ViewResource& resource,
+			    const world::ScenePixelMapper& mapper,
+			    const Viewport& viewport) {
+	const world::ResourceVisual* found =
+		resources_.find(resource.kind, resource.state);
+	if (found == nullptr) {
+		return;
+	}
+	const world::ResourceVisual& visual = *found;
 
-	const world::ScenePixelMapper mapper(scene.cellPixelSize);
-	const world::PixelRect cell = mapper.toPixels(
+	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
 		world::GridCell{resource.cellX, resource.cellY},
-		world::GridSpan{1, 1});
+		world::kUnitCellSpan));
 
 	// Anclado a la base de la celda: al achicarse se desmorona desde
 	// arriba. scale agranda para tapar el aire transparente de arriba.
@@ -224,38 +126,54 @@ void Renderer::drawResource(const world::SceneDescription& scene,
 	const int x = cell.x + (cell.width - w) / 2;
 	const int y = cell.y + cell.height - h + resources_.offsetY;
 
-	sheet.drawBlock(visual.col, visual.row, visual.cols, visual.rows,
+	const world::PixelRect drawRect{x, y, w, h};
+	if (!viewport.intersects(drawRect)) {
+		return;
+	}
+
+	SpriteSheet& sheet = sheetCache_.sheet(
+		visual.sprite.sheetImage,
+		core::assetPath(visual.sprite.sheetImage),
+		visual.sprite.cellWidth, visual.sprite.cellHeight);
+
+	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
+			visual.rows,
 			SDL2pp::Rect(x, y, w, h));
 }
 
-void Renderer::drawDroppedItem(const world::SceneDescription& scene,
-			       const game::ViewDroppedItem& item) {
+void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
+			       const world::ScenePixelMapper& mapper,
+			       const Viewport& viewport) {
 	// El item en el piso se dibuja con el MISMO asset que en el slot del
 	// inventario (ContentCatalog, por contentId). Así un mineral, un
 	// huevo o cualquier recolectable futuro usan su celda sin casos
 	// especiales. Más chico que la celda y centrado, para que se lea
 	// como un item apoyado en el suelo.
-	if (!content_.has(item.contentId)) {
+	const world::SpriteVisual* found = content_.find(item.contentId);
+	if (found == nullptr) {
 		return;
 	}
-	const world::ItemVisual& visual = content_.visualFor(item.contentId);
+	const world::SpriteVisual& visual = *found;
+
+	// La geometría del ítem la calcula DroppedItemLayout: la misma que
+	// usa el pick, así lo que se toca coincide siempre con lo que se ve.
+	// El ajuste vertical para el piso lo lleva el sprite (offset_y).
+	const world::DroppedItemLayout layout;
+	const world::PixelRect drawRect = viewport.toScreen(layout.rectFor(
+		mapper.toPixels(world::GridCell{item.cellX, item.cellY},
+				world::kUnitCellSpan),
+		visual));
+	if (!viewport.intersects(drawRect)) {
+		return;
+	}
 
 	SpriteSheet& sheet = sheetCache_.sheet(
 		visual.sheetImage, core::assetPath(visual.sheetImage),
 		visual.cellWidth, visual.cellHeight);
 
-	const world::ScenePixelMapper mapper(scene.cellPixelSize);
-	const world::PixelRect cell = mapper.toPixels(
-		world::GridCell{item.cellX, item.cellY},
-		world::GridSpan{1, 1});
-
-	// Mitad del tamaño de la celda: queda como un item chico en el piso.
-	const int baseW = cell.width / 2;
-	const int baseH = cell.height / 2;
-	const int x = cell.x + (cell.width - baseW) / 2;
-	const int y = cell.y + cell.height - baseH + resources_.offsetY;
-
-	sheet.draw(visual.col, visual.row, SDL2pp::Rect(x, y, baseW, baseH));
+	sheet.draw(visual.col, visual.row,
+		   SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
+				drawRect.height));
 }
 
-}
+}  // namespace sdl

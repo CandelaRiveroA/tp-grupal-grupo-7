@@ -12,7 +12,7 @@ namespace {
 
 // Un tick del cliente: avanza el estado y devuelve la vista.
 const game::LocalWorldView& tick(game::GameClient& client) {
-    client.update();
+    client.update(0);
     return client.worldState();
 }
 
@@ -43,6 +43,8 @@ bool isValidDirection(world::Direction d) {
 bool isValidKind(world::CreatureKind k) {
     switch (k) {
         case world::CreatureKind::Player:
+        case world::CreatureKind::Chicken:
+        case world::CreatureKind::Cow:
             return true;
     }
     return false;
@@ -158,6 +160,15 @@ TEST(LocalWorldViewContract, DroppedItemsAreEmptyByDefault) {
     EXPECT_TRUE(view.droppedItems.empty());
 }
 
+TEST(LocalWorldViewContract, LocalPlayerCarriesStableIdZero) {
+    game::MockGameClient concrete = buildClient(10, 10, 5, 5);
+    GameClient& client = concrete;
+
+    EXPECT_EQ(client.worldState().entities[0].id, 0);
+    client.sendCommand(walk(world::Direction::Right));
+    EXPECT_EQ(client.worldState().entities[0].id, 0);
+}
+
 TEST(LocalWorldViewContract, DroppedItemCarriesContentIdAndCell) {
     LocalWorldView view;
     view.droppedItems.push_back(game::ViewDroppedItem{"gold", 3, 7});
@@ -179,6 +190,38 @@ TEST(LocalWorldViewContract, InventorySlotCarriesContentIdAndCount) {
     EXPECT_EQ(view.inventory[0].slotIndex, 2);
     EXPECT_EQ(view.inventory[0].contentId, "silver");
     EXPECT_EQ(view.inventory[0].count, 21);
+}
+
+TEST(LocalWorldViewContract, AddInventoryContentReturnsTheAssignedSlot) {
+    LocalWorldView view;
+    EXPECT_EQ(view.addInventoryContent("milk"), 0);
+    EXPECT_EQ(view.addInventoryContent("egg"), 1);
+    // Apila en el MISMO slot y lo devuelve.
+    EXPECT_EQ(view.addInventoryContent("milk"), 0);
+    ASSERT_EQ(view.inventory.size(), 2u);
+    EXPECT_EQ(view.inventory[0].count, 2);
+    EXPECT_EQ(view.inventory[1].count, 1);
+}
+
+TEST(LocalWorldViewContract, PlaceInventoryContentKeepsTheSlot) {
+    LocalWorldView view;
+    view.placeInventoryContent(3, "milk", 2);
+    ASSERT_EQ(view.inventory.size(), 1u);
+    EXPECT_EQ(view.inventory[0].slotIndex, 3);
+    EXPECT_EQ(view.inventory[0].count, 2);
+    // Otra vez: actualiza el conteo sin cambiar de slot.
+    view.placeInventoryContent(3, "milk", 5);
+    ASSERT_EQ(view.inventory.size(), 1u);
+    EXPECT_EQ(view.inventory[0].slotIndex, 3);
+    EXPECT_EQ(view.inventory[0].count, 5);
+}
+
+TEST(LocalWorldViewContract, InventorySlotFreeKnowsOccupiedSlots) {
+    LocalWorldView view;
+    EXPECT_TRUE(view.inventorySlotFree(0));
+    view.addInventoryContent("milk");
+    EXPECT_FALSE(view.inventorySlotFree(0));
+    EXPECT_TRUE(view.inventorySlotFree(1));
 }
 
 }  // namespace

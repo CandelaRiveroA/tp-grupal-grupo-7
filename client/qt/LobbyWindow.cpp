@@ -16,26 +16,28 @@
 #include "qt/services/fakes/FakeAssetCatalog.h"
 #include "qt/services/fakes/FakeSaveService.h"
 #include "qt/services/fakes/FakeWorldService.h"
+#include "qt/theme/GameCursor.h"
 
-LobbyWindow::LobbyWindow(const core::WindowConfig& config, QWidget* parent):
-        QWidget(parent),
-        stack_(nullptr),
-        screens_(),
-        current_(nullptr),
-        character_(nullptr),
-        sessions_(nullptr),
-        selection_(std::nullopt) {
-    setWindowTitle(QString::fromStdString(config.title()));
-    setFixedSize(1280, 720);
+LobbyWindow::LobbyWindow(const core::WindowConfig& config,
+			 core::MusicControl* music, QWidget* parent)
+	: QWidget(parent)
+	, stack_(nullptr)
+	, screens_()
+	, current_(nullptr)
+	, character_(nullptr)
+	, selection_(std::nullopt) {
+	setWindowTitle(QString::fromStdString(config.title()));
+	setFixedSize(1280, 720);
+	setCursor(GameCursor().cursor());
 
     stack_ = new QStackedWidget(this);
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(stack_);
 
-    auto* menu = new MainMenuScreen(stack_);
-    registerScreen(ScreenId::MainMenu, menu);
-    connect(menu, &MainMenuScreen::exitRequested, this, &QWidget::close);
+	auto* menu = new MainMenuScreen(stack_, music);
+	registerScreen(ScreenId::MainMenu, menu);
+	connect(menu, &MainMenuScreen::exitRequested, this, &QWidget::close);
 
     auto* worldService = new FakeWorldService(std::nullopt, this);
     auto* worlds = new WorldSelectScreen(worldService, stack_);

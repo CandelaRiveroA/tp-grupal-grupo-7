@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "toml/TomlDocument.h"
+#include "world/ActionNames.h"
 #include "world/CharacterAppearance.h"
 #include "world/CharacterCatalog.h"
 #include "world/CreatureCatalog.h"
@@ -28,8 +29,6 @@ private:
 			 const std::string& key) const;
 
 	std::string idx(const std::string& base, std::size_t i) const;
-
-	std::map<std::string, ActionKind> actionNames() const;
 
 	LayerFrame readLayer(const std::string& posePath,
 			     std::size_t layerIdx) const;
@@ -60,6 +59,8 @@ private:
 	void requireNonNegative(int value, const std::string& path) const;
 
 	const tomlcfg::TomlDocument& doc_;
+	// Vocabulario compartido de nombres de acción (ver ActionNames).
+	ActionNames actionNames_;
 };
 
 }

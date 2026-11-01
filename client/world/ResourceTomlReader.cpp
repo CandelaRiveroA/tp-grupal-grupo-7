@@ -60,11 +60,11 @@ ResourceVisual ResourceTomlReader::readVisual(const std::string& base,
 		throw ConfigError(Kind::InvalidValue, path);
 	}
 	ResourceVisual visual;
-	visual.sheetImage = sheet;
-	visual.cellWidth = cellWidth;
-	visual.cellHeight = cellHeight;
-	visual.col = block[0];
-	visual.row = block[1];
+	visual.sprite.sheetImage = sheet;
+	visual.sprite.cellWidth = cellWidth;
+	visual.sprite.cellHeight = cellHeight;
+	visual.sprite.col = block[0];
+	visual.sprite.row = block[1];
 	visual.cols = block[2];
 	visual.rows = block[3];
 	return visual;

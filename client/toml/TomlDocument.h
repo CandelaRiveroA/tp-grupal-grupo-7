@@ -48,6 +48,9 @@ public:
 	int getInt(const std::string& path) const;
 	std::string getString(const std::string& path) const;
 
+	// Array de strings.
+	std::vector<std::string> getStringArray(const std::string& path) const;
+
 	double getDouble(const std::string& path) const;
 
 	bool getBool(const std::string& path) const;

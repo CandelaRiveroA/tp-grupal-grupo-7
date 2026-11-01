@@ -44,13 +44,8 @@ DigitCatalog DigitTomlReader::read() const {
 	// Cada dígito 0..9 es una subtabla [digit.<n>] con at = [col, row].
 	for (int d = 0; d <= 9; ++d) {
 		const std::string base = join(kDigit, std::to_string(d));
-		const std::string atPath = join(base, kAt);
-		const std::array<int, 2> at = doc_.getIntArray<2>(atPath);
-		if (at[0] < 0 || at[1] < 0) {
-			throw ConfigError(Kind::InvalidValue, atPath);
-		}
 		catalog.digits[static_cast<std::size_t>(d)] =
-			DigitCell{at[0], at[1]};
+			SheetCell(doc_, join(base, kAt));
 	}
 
 	return catalog;

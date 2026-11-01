@@ -34,15 +34,39 @@ target_sources(taller_tests
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
+    audio_catalog_test.cpp
+    sound_gate_test.cpp
+    sound_cue_catalog_test.cpp
     character_catalog_loader_test.cpp
+    creature_data_test.cpp
     inventory_config_loader_test.cpp
     inventory_slots_test.cpp
     scene_pixel_mapper_test.cpp
+    camera_test.cpp
+    viewport_test.cpp
+    element_layout_test.cpp
+    character_layout_test.cpp
+    chunk_grid_test.cpp
+    scene_element_index_test.cpp
+    view_spatial_index_test.cpp
     world_contract_test.cpp
     mock_game_client_test.cpp
+    mock_animal_simulation_test.cpp
     local_world_view_test.cpp
     frame_clock_test.cpp
     move_command_test.cpp
+    mock_world_client_test.cpp
+    floor_items_test.cpp
+    content_ids_test.cpp
+    action_names_test.cpp
+    interaction_session_test.cpp
+    object_picker_test.cpp
+    cursor_config_loader_test.cpp
+    dialog_config_loader_test.cpp
+    dialog_animator_test.cpp
+    dialog_layout_test.cpp
+    dropped_item_layout_test.cpp
+    player_controller_test.cpp
     walk_pacer_test.cpp
     view_motion_test.cpp
     footstep_cue_test.cpp
@@ -53,6 +77,7 @@ target_sources(taller_tests
     obtained_banner_layout_test.cpp
     action_resolver_test.cpp
     tool_overlay_loader_test.cpp
+    tool_overlay_layout_test.cpp
     resource_config_loader_test.cpp
     digit_config_loader_test.cpp
     tile_layout_test.cpp
@@ -69,3 +94,19 @@ target_sources(taller_tests
 
 # world_view.h incluye el dominio del servidor con rutas relativas a server/.
 target_include_directories(taller_tests PRIVATE ${PROJECT_SOURCE_DIR}/server)
+
+# InputManager consume SDL_Event/SDL_Keycode (headers de SDL2). SDL2 se
+# fetchea solo si hay client/editor/tile-inspector (raíz del CMakeLists),
+# así que los tests de input se agregan únicamente en esa configuración;
+# en la config "solo tests" (make run-tests) no se compilan.
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+    target_sources(taller_tests
+        PRIVATE
+        input_manager_test.cpp
+        # El target de tests lo compila directo (igual que CharacterLayers).
+        ${PROJECT_SOURCE_DIR}/client/sdl/input/InputManager.cpp
+    )
+    # Linkear SDL2pp::SDL2pp propaga los includes de SDL2 (no se llaman
+    # funciones SDL: solo se construyen eventos sintéticos).
+    target_link_libraries(taller_tests SDL2pp::SDL2pp)
+endif()

@@ -1,10 +1,12 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <string>
 #include <vector>
 
 #include "world/ContentCatalog.h"
+#include "world/SpriteVisual.h"
 
 namespace world {
 
@@ -19,9 +21,9 @@ struct PixelBox {
 	int height = 0;
 };
 
-struct SheetCell {
-	int col = 0;
-	int row = 0;
+struct PixelSize {
+	int width = 0;
+	int height = 0;
 };
 
 struct FrameCells {
@@ -84,6 +86,12 @@ struct InventoryLayout {
 	FrameCells activeSlotFrame;
 
 	ContentCatalog content;
+
+	// Tamaño de cada ítem dibujado en la celda del inventario (clave
+	// `slot_drawn` en inventory.toml, opcional). Es presentación del
+	// BAR: el `drawn` del sprite es el tamaño en el mapa y puede ser
+	// distinto. Sin entrada, el HUD usa el `drawn` del sprite.
+	std::map<std::string, PixelSize> slotDrawn;
 
 
 	int scaled(int basePx) const;

@@ -3,46 +3,29 @@
 #include <QFile>
 #include <QString>
 #include <QtGlobal>
-#include <cstddef>
 #include <cstdlib>
 #include <exception>
-#include <map>
 #include <memory>
 #include <optional>
 #include <utility>
-#include <vector>
 
-#include "common/common_command.h"
 #include "core/Constants.h"
-#include "core/StartupScreens.h"
-#include "core/StartupSequence.h"
-#include "game/ActionResolver.h"
-#include "game/FootstepCue.h"
+#include "core/PlaySession.h"
+#include "game/MockWorldClient.h"
 #include "game/GameClient.h"
-#include "game/InventorySelector.h"
-#include "game/LocalWorldView.h"
-#include "game/MoveCommand.h"
 #include "game/NetworkGameClient.h"
-#include "game/ObtainedBannerQueue.h"
-#include "game/ResourceAudioCue.h"
-#include "game/ViewMotion.h"
-#include "game/WalkPacer.h"
 #include "qt/LobbyWindow.h"
-#include "sdl/audio/AudioPlayer.h"
-#include "sdl/context/SdlContext.h"
-#include "sdl/input/InputManager.h"
+#include "sdl/audio/MusicPlayer.h"
 #include "sdl/log/Logger.h"
-#include "sdl/loop/GameLoop.h"
-#include "sdl/render/InventoryHud.h"
-#include "sdl/render/ObtainedBannerHud.h"
-#include "sdl/render/Renderer.h"
 #include "world/CharacterCatalog.h"
 #include "world/CharacterCatalogLoader.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
+#include "world/CursorConfigLoader.h"
+#include "world/DialogConfigLoader.h"
 #include "world/DigitCatalog.h"
 #include "world/DigitConfigLoader.h"
-#include "world/EntityAppearance.h"
+#include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
 #include "world/ObtainedBannerCatalog.h"
@@ -78,24 +61,21 @@ int Application::run() {
         return 0;
     }
 
-    return runGame(std::move(*session));
+    return runGame();
 }
 
 std::optional<SessionConfig> Application::runLobby() {
 
-    LobbyWindow lobby(config_);
+    sdl::MusicPlayer music;
+    LobbyWindow lobby(config_, &music);
     lobby.show();
     app_.exec();
 
     return lobby.result();
 }
 
-int Application::runGame(SessionConfig session) {
+int Application::runGame() {
     const sdl::Logger logger;
-    if (!session.connection.has_value()) {
-        logger.error("No hay conexion con el servidor.");
-        return EXIT_FAILURE;
-    }
     try {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
@@ -113,11 +93,22 @@ int Application::runGame(SessionConfig session) {
                         core::assetPath(core::kObtainedBannerFile));
         const world::DigitCatalog digits =
                 world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
-        const int toolUseDuration = toolUseDurationTicks(characters);
+        const world::CursorCatalog cursors =
+                world::CursorConfigLoader().loadFromFile(
+                        core::assetPath(core::kCursorsFile));
+        const world::DialogCatalog dialogs =
+                world::DialogConfigLoader().loadFromFile(
+                        core::assetPath(core::kDialogsFile));
+        const int toolUseDuration =
+                characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
+        const world::GridSpan& grid = scenario.scene().grid;
         std::unique_ptr<game::GameClient> gameClient =
-                createGameClient(std::move(*session.connection), toolUseDuration);
-        return runGameLoop(session, scenario, *gameClient, characters, inventory, toolOverlay,
-                           resources, banner, digits);
+                createGameClient(grid, characters, toolUseDuration);
+        PlaySession session(config_, scenario, *gameClient, characters, inventory,
+                            toolOverlay, resources, banner, digits, cursors,
+                            dialogs);
+        session.run();
+        return 0;
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
         return EXIT_FAILURE;
@@ -127,160 +118,18 @@ int Application::runGame(SessionConfig session) {
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient(Socket&& socket,
-                                                                int toolUseDurationTicks) const {
-    return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks);
-}
-
-int Application::toolUseDurationTicks(const world::CharacterCatalog& characters) const {
-    const world::CreatureData& creature = characters.dataFor(world::CreatureKind::Player);
-    for (const world::DirectionAppearance& dir: creature.directions) {
-        const auto it = dir.actions.find(world::ActionKind::UseTool);
-        if (it != dir.actions.end()) {
-            const int frames = static_cast<int>(it->second.frames.size());
-            const int duration = frames * it->second.frameTicks;
-            return duration > 0 ? duration : 1;
-        }
-    }
-    return 1;
-}
-
-int Application::runGameLoop(
-        const SessionConfig& session, const world::Scenario& scenario, game::GameClient& gameClient,
-        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
-        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
-        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits) {
-
-    (void)session;
-
-    sdl::SdlContext sdlContext(config_);
-    sdl::Renderer renderer(sdlContext, characters, toolOverlay, resources, inventory.content);
-    sdl::InventoryHud inventoryHud(sdlContext, inventory, digits);
-    sdl::ObtainedBannerHud bannerHud(sdlContext, banner, inventory.slotDrawWidth());
-    game::ObtainedBannerQueue bannerQueue(banner.durationTicks, banner.maxVisible);
-    sdl::InputManager input(core::kInventorySlots);
-    sdl::AudioPlayer audio;
-
-    const StartupScreens screens(sdlContext, renderer, audio, scenario);
-    const game::MoveCommand moveCommand;
-
-    game::ViewMotion motion(characters);
-
-    game::FootstepCue footstepCue;
-
-    game::ResourceAudioCue resourceAudioCue;
-
-    const world::CreatureData& localCreature = characters.dataFor(world::CreatureKind::Player);
-    game::WalkPacer walkPacer(localCreature.cadence);
-
-    constexpr std::size_t kPlayerIndex = 0;
-    const game::ActionResolver actionResolver(motion);
-
-    game::InventorySelector inventorySelector;
-
-    bool connectionLost = false;
-    sdl::GameLoop loop(input, [&](int it) {
-        gameClient.update();
-        if (!gameClient.connected()) {
-            connectionLost = true;
-            loop.stop();
-            return;
-        }
-        const game::LocalWorldView& state = gameClient.worldState();
-
-        const GamePhase phase = phaseForIteration(it);
-        if (screens.draw(phase, it, state, motion, actionResolver)) {
-            return;
-        }
-
-        std::optional<world::Direction> pressed;
-        if (input.left()) {
-            pressed = world::Direction::Left;
-        } else if (input.right()) {
-            pressed = world::Direction::Right;
-        } else if (input.up()) {
-            pressed = world::Direction::Back;
-        } else if (input.down()) {
-            pressed = world::Direction::Front;
-        }
-
-        switch (walkPacer.intentFor(it, pressed)) {
-            case game::WalkIntent::None:
-                break;
-            case game::WalkIntent::Step: {
-                gameClient.sendCommand(moveCommand.propose(walkPacer.lastDirection()));
-                break;
-            }
-            case game::WalkIntent::Stop:
-                break;
-        }
-
-        if (input.takeUseTool() && !pressed.has_value()) {
-            gameClient.sendCommand(moveCommand.use(walkPacer.lastDirection()));
-        }
-
-        // Enter: recoger el mineral del piso en la celda actual. Es una
-        // INTENCIÓN (cliente dummy): la fuente decide si hay algo y, si lo
-        // hay, emite el evento obtained que dispara el panel + sonido.
-        if (input.takeCollect() && !pressed.has_value()) {
-            gameClient.sendCommand(moveCommand.take(walkPacer.lastDirection()));
-        }
-
-        if (const std::optional<int> slot = input.takeSlotSelect()) {
-            const int previous = inventorySelector.active();
-            inventorySelector.select(*slot, core::kInventorySlots);
-            if (inventorySelector.active() != previous) {
-                audio.play(sdl::SoundId::ToolSwitch);
-            }
-        }
-
-        const game::LocalWorldView& drawing = state;
-        motion.observe(drawing, it);
-
-        if (!drawing.entities.empty()) {
-            const game::ViewEntity& player = drawing.entities[kPlayerIndex];
-            const world::CreatureData& creature = characters.dataFor(player.kind);
-            const world::AppearanceResolver resolver(creature);
-            const int walkFrame = resolver.frameIndexFor(player.facing, world::ActionKind::Walk,
-                                                         motion.animationTickFor(kPlayerIndex, it));
-            const bool walking = motion.isWalking(kPlayerIndex, it, player.moving);
-            if (footstepCue.update(walking, walkFrame)) {
-                audio.play(sdl::SoundId::Step);
-            }
-        }
-
-        // Un sonido por impacto confirmado, aunque el aspecto no cambie.
-        const std::map<game::ResourceAudioEvent, sdl::SoundId> resourceSounds = {
-                {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
-                {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
-        };
-        for (const auto event: resourceAudioCue.update(drawing.resourceHits)) {
-            const auto soundIt = resourceSounds.find(event);
-            if (soundIt != resourceSounds.end()) {
-                audio.play(soundIt->second);
-            }
-        }
-
-        // Obtención: evento que manda la fuente (no se deduce del
-        // cambio visual). Dispara el sonido y el cartel al mismo tiempo.
-        for (std::size_t i = 0; i < drawing.obtained.size(); ++i) {
-            audio.play(sdl::SoundId::MineralObtained);
-            bannerQueue.push(drawing.obtained[i].kind);
-        }
-        bannerQueue.tick();
-
-        renderer.renderScene(scenario.scene(), drawing, motion, actionResolver, it);
-        inventoryHud.draw(drawing.inventory, inventorySelector.active());
-        bannerHud.draw(bannerQueue.active());
-        sdlContext.present();
-    });
-
-    loop.run();
-    if (connectionLost) {
-        sdl::Logger().error("Se perdio la conexion con el servidor.");
-        return EXIT_FAILURE;
-    }
-    return 0;
+std::unique_ptr<game::GameClient> Application::createGameClient(
+        const world::GridSpan& grid,
+        const world::CharacterCatalog& characters,
+        int toolUseDurationTicks) const {
+    // Fuente de estado: el server por red (contrato §6: al conectar la
+    // red, el único cambio es quién llena la vista). La capa de
+    // animales se superpone hoy en el cliente; cuando el server los
+    // tenga, se saca y nada más cambia esta construcción.
+    Socket socket(core::kServerHost, core::kServerPort);
+    return std::make_unique<game::MockWorldClient>(
+            std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks),
+            characters, grid);
 }
 
 }  // namespace core

@@ -22,9 +22,9 @@ C++): el loader valida que haya una tabla por cada valor del enum.
 
 ## 1. Una criatura
 
-Cada criatura es una tabla `[characters.<kind>]`. Hoy existe
-`[characters.player]`. El nombre (`player`) corresponde a un valor del
-enum `world::CreatureKind`.
+Cada criatura es una tabla `[characters.<kind>]`. El nombre corresponde
+a un valor del enum `world::CreatureKind` (hoy: `player`, `chicken`,
+`cow`).
 
 ```toml
 [characters.player]
@@ -280,6 +280,118 @@ cadence = { step = 24, frame = 12 }
    se reproduce.
 5. Guardá. El loader valida que haya una tabla por cada valor del enum; si
    falta alguna, el cliente no arranca y reporta la criatura ausente.
+
+### Ejemplo real: la gallina (`Farm/Chicken.png`)
+
+Hoja relevada con `taller_tile_inspector`: 64×112 px con celdas de 16×16
+(4 columnas × 7 filas). Las **cuatro direcciones traen su caminata
+explícita** (filas 0–3: frente, derecha, espaldas, izquierda), así que no
+se espeja nada (`mirrored = false` en todas). El cuerpo es **una capa de
+1×1 celdas**: cada cuadro es el cuerpo entero.
+
+```toml
+[characters.chicken]
+sheet   = "Farm/Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]                    # el cuerpo entero se dibuja 32x32
+cadence = { step = 32, frame = 8 }    # invariante: 32 == 8 * 4 (walk)
+
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [ [0, 4] ] ]           # fila 4: pose "parada" de frente
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]  # fila 0
+
+  [characters.chicken.right]
+  mirrored = false                    # la hoja trae derecha explícita
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [ [2, 4] ] ]           # fila 4: parada de lado derecho
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]  # fila 1
+
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [ [0, 5] ] ]           # fila 5: parada de espaldas
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]  # fila 2
+
+  [characters.chicken.left]
+  mirrored = false                    # la hoja trae izquierda explícita
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [ [2, 5] ] ]           # fila 5: parada de lado izquierdo
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [ [0, 3] ], [ [1, 3] ], [ [2, 3] ], [ [3, 3] ] ]  # fila 3
+```
+
+- Cada capa acá es `[col, row]` de 1×1 (sin tamaño extra): una capa puede
+  medir lo que quiera (§3).
+- Quedan relevadas, como dato sin usar todavía: las poses **sentadas** de
+  cada dirección (celdas (1,4), (3,4), (1,5), (3,5) de la hoja) y el
+  **picoteo** de frente (fila 6, 4 cuadros). Sumarlas después es solo
+  agregar subtablas de acción acá, sin tocar código.
+
+### Ejemplo real: la vaca (`Farm/Female_Cow_Brown.png`)
+
+Hoja relevada con `taller_tile_inspector`: 128×96 px con celdas de **32×32**
+(4 columnas × 3 filas) — cada sprite es 2×2 celdas de 16: el doble de
+grande que la gallina. Tres filas: 0 = caminata de **izquierda** (la hoja
+no trae derecha: se espeja con `mirrored = true`), 1 = frente, 2 =
+espaldas; 4 cuadros cada una. No trae poses de descanso: el idle reusa el
+primer cuadro del walk de cada dirección.
+
+```toml
+[characters.cow]
+sheet   = "Farm/Female_Cow_Brown.png"
+grid    = [32, 32]                    # cada sprite OCUPA la celda entera
+drawn   = [64, 64]                    # se dibuja 64x64 (2x)
+cadence = { step = 48, frame = 12 }   # invariante: 48 == 12 * 4 (walk)
+
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [ [0, 1] ] ]           # fila 1: primer cuadro del walk
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]  # fila 1
+
+  [characters.cow.right]
+  mirrored = true                     # la hoja NO trae derecha
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]  # fila 0
+
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [ [0, 2] ] ]           # fila 2: espaldas
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]  # fila 2
+
+  [characters.cow.left]
+  mirrored = false                    # la hoja trae izquierda explícita
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]  # fila 0
+```
 
 > El audio (sonidos de paso) todavía vive en C++ (`sdl/audio/AudioCatalog.h`):
 > son pocos sonidos y moverlos ensancharía esta migración sin cambiar nada.

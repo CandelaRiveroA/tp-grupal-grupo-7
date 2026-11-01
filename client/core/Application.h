@@ -15,14 +15,9 @@ class GameClient;
 }
 
 namespace world {
-class Scenario;
 class CharacterCatalog;
-struct InventoryLayout;
-struct ToolOverlayCatalog;
-struct ResourceCatalog;
-struct ObtainedBannerCatalog;
-struct DigitCatalog;
-}  // namespace world
+struct GridSpan;
+}
 
 namespace core {
 
@@ -40,22 +35,14 @@ private:
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();
 
-    int runGame(SessionConfig session);
+    // Carga los datos de la partida y corre la sesión de juego. Validar
+    // que el lobby haya dado una sesión le corresponde a run().
+    int runGame();
 
-    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket,
-                                                       int toolUseDurationTicks) const;
-
-    // Duración en ticks del golpe (UseTool) del jugador, derivada de los
-    // datos del personaje (frames x ticks por cuadro). Es lo que el cliente
-    // usa para mostrar la animación de golpe al recibir ToolUsed.
-    int toolUseDurationTicks(const world::CharacterCatalog& characters) const;
-
-    int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
-                    game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                    const world::InventoryLayout& inventory,
-                    const world::ToolOverlayCatalog& toolOverlay,
-                    const world::ResourceCatalog& resources,
-                    const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits);
+    std::unique_ptr<game::GameClient> createGameClient(
+            const world::GridSpan& grid,
+            const world::CharacterCatalog& characters,
+            int toolUseDurationTicks) const;
 
     WindowConfig config_;
     QApplication app_;

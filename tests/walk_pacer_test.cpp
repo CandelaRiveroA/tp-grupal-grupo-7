@@ -50,6 +50,85 @@ cadence = { step = 24, frame = 12 }
     [characters.player.right.walk]
     loops  = true
     frames = [ [[1, 1], [7, 1]], [[2, 1], [8, 1]] ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 world::MoveCadence playerCadence() {

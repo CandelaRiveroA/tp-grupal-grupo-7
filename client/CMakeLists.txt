@@ -18,6 +18,7 @@ target_sources(taller_client
     client_receiver.cpp
     game/NetworkGameClient.cpp
     core/Application.cpp
+    core/PlaySession.cpp
     core/Constants.cpp
     core/StartupScreens.cpp
     core/WindowConfig.cpp
@@ -38,27 +39,39 @@ target_sources(taller_client
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/theme/GameCursor.cpp
+    qt/theme/TitleBackdrop.cpp
+    qt/theme/TitleSprites.cpp
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
     qt/widgets/CharacterPreview.cpp
+    qt/widgets/TitleButton.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/ToolOverlayPainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
+    sdl/render/CursorPainter.cpp
+    sdl/render/DialogPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
+    sdl/audio/MusicPlayer.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
     core/Constants.h
+    core/MusicControl.h
+    core/MusicTrack.h
     core/SessionConfig.h
+    core/PlaySession.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -80,31 +93,53 @@ target_sources(taller_client
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/theme/CloudRects.h
+    qt/theme/CursorRects.h
+    qt/theme/GameCursor.h
+    qt/theme/TitleBackdrop.h
+    qt/theme/TitleSpriteRects.h
+    qt/theme/TitleSprites.h
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/TitleButton.h
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
     game/ResourceAudioCue.h
     game/ObtainedBannerQueue.h
     game/GameClient.h
+    game/GameConstants.h
+    game/InputCommand.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
+    game/Interactor.h
+    game/FloorItems.h
+    game/InteractionSession.h
+    game/AnimalSystem.h
+    game/MockWorldClient.h
+    game/DialogAnimator.h
+    game/PlayerController.h
+    game/PointerClick.h
+    game/ObjectPicker.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
     game/InventorySelector.h
+    world/ActionNames.h
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
+    world/CharacterLayout.h
+    world/WorldConstants.h
     world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
+    world/ContentIds.h
     world/CreatureCatalog.h
     world/EntityAppearance.h
     world/Grid.h
@@ -112,8 +147,19 @@ target_sources(taller_client
     world/InventoryLayout.h
     world/InventoryTomlReader.h
     world/InventoryConfigLoader.h
-    world/ItemCatalog.h
+    world/ItemKind.h
+    world/SpriteVisual.h
+    world/CursorCatalog.h
+    world/CursorConfigLoader.h
+    world/CursorTomlReader.h
+    world/Indication.h
+    world/DialogCatalog.h
+    world/DialogConfigLoader.h
+    world/DialogTomlReader.h
+    world/DialogLayout.h
+    world/DroppedItemLayout.h
     world/ToolOverlay.h
+    world/ToolOverlayLayout.h
     world/ToolOverlayLoader.h
     world/ToolOverlayTomlReader.h
     world/ResourceCatalog.h
@@ -128,6 +174,10 @@ target_sources(taller_client
     world/SceneKeys.h
     world/ScenePixelMapper.h
     world/SceneTomlReader.h
+    world/ElementLayout.h
+    world/ChunkGrid.h
+    world/SceneElementIndex.h
+    game/ViewSpatialIndex.h
     toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
@@ -135,15 +185,24 @@ target_sources(taller_client
     sdl/loop/GameLoop.h
     sdl/render/Renderer.h
     sdl/render/ElementPainter.h
+    sdl/render/EntityRenderer.h
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/Viewport.h
+    sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/RenderConstants.h
+    sdl/render/ToolOverlayPainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
+    sdl/render/CursorPainter.h
+    sdl/render/DialogPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
+    sdl/audio/AudioConfig.h
     sdl/audio/AudioPlayer.h
+    sdl/audio/MusicPlayer.h
     sdl/log/Logger.h
     )
 

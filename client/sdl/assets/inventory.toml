@@ -186,3 +186,30 @@ at    = [6, 5]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 at    = [6, 7]
+
+[items.egg]           # huevo: sprite ÚNICO (Farm/egg.png mide 10x11 px,
+                      # no es una grilla), así que la hoja es una sola
+                      # celda de 10x11 y el ítem es la celda [0, 0].
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+# drawn: tamaño del ítem dibujado EN EL MAPA (ítems en el suelo, ej. el
+# huevo que pone la gallina). 16x16 = EXACTAMENTE lo que mide el huevo
+# en las manos durante el recogido (la celda de 32 del personaje a
+# media escala): el mismo tamaño se ve en el piso y al levantarlo.
+drawn = [16, 16]
+# offset_y (opcional, default 0 — el huevo no lo necesita): ajuste
+# vertical al apoyarlo en el piso. 0 = pegado a los pies; los sprites
+# con aire transparente abajo lo bajan (los de ore.png usan 8, como en
+# resources.toml).
+# slot_drawn (opcional): tamaño en la celda del inventario, que puede
+# ser distinto del del mapa. El del slot se ve bien a 23x25.
+slot_drawn = [23, 25]
+
+[items.milk]          # leche: mismo sprite que el diálogo de la vaca
+                      # (Farm/large_milk.png, celda única 53x64).
+sheet = "Farm/large_milk.png"
+cell  = [53, 64]
+at    = [0, 0]
+# drawn: tamaño de la leche en la celda del slot (afinado a ojo).
+drawn = [23, 27]

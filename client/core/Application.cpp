@@ -14,6 +14,7 @@
 #include "game/GameClient.h"
 #include "game/NetworkGameClient.h"
 #include "qt/LobbyWindow.h"
+#include "sdl/audio/MusicPlayer.h"
 #include "sdl/log/Logger.h"
 #include "world/CharacterCatalog.h"
 #include "world/CharacterCatalogLoader.h"
@@ -61,7 +62,8 @@ int Application::run() {
 
 std::optional<SessionConfig> Application::runLobby() {
 
-    LobbyWindow lobby(config_);
+    sdl::MusicPlayer music;
+    LobbyWindow lobby(config_, &music);
     lobby.show();
     app_.exec();
 

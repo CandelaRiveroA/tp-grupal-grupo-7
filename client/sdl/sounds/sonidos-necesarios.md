@@ -28,7 +28,7 @@
 
 ### 💡 Momentos / pantallas (inferidos del recorrido del jugador)
 
-- [ ] Pantalla principal / menú — *main menu theme*
+- [x] Pantalla principal / menú — *main menu theme* (`music/menu_theme.ogg`, suena en `MainMenuScreen`)
 - [ ] Creación de partida y personaje — *character creation music*
 - [ ] **Victoria**: centro comunitario completo — *victory fanfare* (el enunciado pide "una pantalla especial felicitando al jugador por haber terminado el juego")
 - [ ] Fin de día (2 am) / transición al día siguiente — *day end jingle*

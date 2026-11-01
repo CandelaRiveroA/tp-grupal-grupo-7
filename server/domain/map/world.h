@@ -51,7 +51,11 @@ public:
     void record_resource_hit(uint16_t x, uint16_t y, bool destroyed);
     std::vector<ResourceHit> take_resource_hits();
     void set_player_facing(uint8_t player_id, Direction dir);
+    // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);
+
+    // -- - Actualización de Entidades ---
+    void dry_soil();
 };
 
 #endif  // WORLD_H

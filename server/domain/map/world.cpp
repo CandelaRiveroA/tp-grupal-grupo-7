@@ -187,3 +187,13 @@ void World::take_item(uint8_t player_id) {
 }
 
 void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }
+
+void World::dry_soil() {
+    for (uint16_t y = 0; y < this->height; ++y) {
+        for (uint16_t x = 0; x < this->width; ++x) {
+            if (this->grid[y][x].is_soil_watered()) {
+                this->grid[y][x].dry_soil();
+            }
+        }
+    }
+}

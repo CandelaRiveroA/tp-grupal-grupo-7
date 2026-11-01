@@ -80,6 +80,6 @@ bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
 }
 
-bool Player::is_walkable() const { return false; }
+bool Player::is_walkable() const { return true; }
 
 void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {}

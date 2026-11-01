@@ -14,31 +14,28 @@ World::World(uint16_t w, uint16_t h): width(w), height(h) {
 // COLISIONES
 // ---------------------------------------------------------
 bool World::can_walk_to(uint16_t x, uint16_t y) const {
-    // 1. ¿Se sale de los bordes del mapa?
     if (x >= this->width || y >= this->height) {
         return false;
     }
 
     const Cell& target_cell = this->grid[y][x];
 
-    // 2. ¿Es una pared estática del escenario?
     if (target_cell.is_wall) {
         return false;
     }
 
-    // 3. ¿Hay una entidad sólida en esa celda? ¿Se puede caminar encima?
-    if (!target_cell.is_empty() && !target_cell.entity->is_walkable()) {
-        return false;
+    for (const auto& entity : target_cell.entities) {
+        if (!entity->is_walkable()) {
+            return false;
+        }
     }
 
-    // 4. ¿Hay otro jugador parado ahí?
     for (const auto& [id, player]: this->players) {
         if (player->get_x() == x && player->get_y() == y) {
             return false;
         }
     }
 
-    // Si pasamos todos los filtros, la celda libre.
     return true;
 }
 
@@ -47,20 +44,27 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // ---------------------------------------------------------
 void World::move_player(uint8_t player_id, Direction dir) {
     Player& p = *this->players.at(player_id);
-
     p.set_facing(dir);
 
-    // Calculamos qué coordenada tiene enfrente ahora mismo
     auto [next_x, next_y] = p.get_target_tile();
 
     // Chequeamos colisiones
     if (this->can_walk_to(next_x, next_y)) {
-        // Finalmente, movemos fsicamente al jugador
         p.set_position(next_x, next_y);
         Cell& current_cell = this->grid[next_y][next_x];
 
+        // Efecto imán / Auto-Pickup: Interactuamos con TODAS las entidades pisables (ej. varios drops)
         if (!current_cell.is_empty()) {
-            current_cell.entity->interact(p, ToolType::HAND, *this);
+            // Usamos un vector temporal de punteros para iterar de forma segura, 
+            // ya que `interact` podría eliminar la entidad de la lista durante el ciclo.
+            std::vector<IEntity*> iteratable_entities;
+            for (const auto& ent : current_cell.entities) {
+                iteratable_entities.push_back(ent.get());
+            }
+            
+            for (IEntity* ent : iteratable_entities) {
+                ent->interact(p, ToolType::HAND, *this);
+            }
         }
     }
 }
@@ -80,40 +84,50 @@ uint16_t World::get_width() const { return this->width; }
 
 uint16_t World::get_height() const { return this->height; }
 
-const IEntity* World::get_entity_at(uint16_t x, uint16_t y) const {
+const std::vector<IEntity*> World::get_entity_at(uint16_t x, uint16_t y) const {
+    std::vector<IEntity*> found_entities;
+    
     if (x >= this->width || y >= this->height) {
-        return nullptr;
+        return found_entities;
     }
-    return this->grid[y][x].entity.get();
+
+    const Cell& target_cell = this->grid[y][x];
+    
+    for (const auto& ent : target_cell.entities) {
+        found_entities.push_back(ent.get());
+    }
+
+    return found_entities;
 }
 
 // ---------------------------------------------------------
 // GESTIÓN DE ENTIDADES en O(1)
 // ---------------------------------------------------------
 void World::set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity) {
-    // Simpre chequeamos que no salga del maa.
     if (x >= this->width || y >= this->height)
         return;
-
-    // TODO: (Opción A - Manejo de múltiples entidades por celda)
-    // Actualmente, reasignar `grid[y][x].entity` destruye la entidad previa por RAII.
-    // Esto funciona para el flujo básico (SilverRock -> DroppedItem).
-    // Si en el futuro se spawnea un drop sobre una celda ya ocupada (ej. varios huevos o drops
-    // simultáneos):
-    // 1. Verificar si !grid[y][x].is_empty().
-    // 2. Si está ocupada, buscar la celda adyacente desocupada más cercana (UP, DOWN, LEFT, RIGHT).
-    // 3. Colocar el nuevo `new_entity` allí para evitar sobreescribir y perder el drop existente.
 
     new_entity->set_position(x, y);
-
-    this->grid[y][x].entity = std::move(new_entity);
+    this->grid[y][x].entities.push_back(std::move(new_entity));
 }
 
-void World::remove_entity_at(uint16_t x, uint16_t y) {
-    if (x >= this->width || y >= this->height)
-        return;
+void World::remove_entity(IEntity* target_entity) {
+    if (!target_entity) return;
 
-    this->grid[y][x].entity.reset();
+    uint16_t x = target_entity->get_x();
+    uint16_t y = target_entity->get_y();
+
+    if (x >= this->width || y >= this->height) return;
+
+    auto& cell_entities = this->grid[y][x].entities;
+    
+    // Buscamos y borramos específicamente la entidad solicitada
+    for (auto it = cell_entities.begin(); it != cell_entities.end(); ++it) {
+        if (it->get() == target_entity) {
+            cell_entities.erase(it); // Se destruye automáticamente
+            break;
+        }
+    }
 }
 
 void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
@@ -129,10 +143,19 @@ void World::use_tool(uint8_t player_id) {
 
     Cell& target_cell = this->grid[ty][tx];
 
+    // Interactuar de frente (picar, levantar manual)
     if (!target_cell.is_empty()) {
-        target_cell.entity->interact(p, p.get_equipped_tool(), *this);
+        std::vector<IEntity*> iteratable_entities;
+        for (const auto& ent : target_cell.entities) {
+            iteratable_entities.push_back(ent.get());
+        }
+        
+        for (IEntity* ent : iteratable_entities) {
+            ent->interact(p, p.get_equipped_tool(), *this);
+        }
     }
 }
+
 void World::record_resource_hit(uint16_t x, uint16_t y, bool destroyed) {
     resource_hits.push_back(ResourceHit{x, y, destroyed});
 }
@@ -162,7 +185,15 @@ void World::take_item(uint8_t player_id) {
     Cell& own_cell = this->grid[p.get_y()][p.get_x()];
 
     if (!own_cell.is_empty()) {
-        own_cell.entity->interact(p, ToolType::HAND, *this);
+        std::vector<IEntity*> iteratable_entities;
+        for (const auto& ent : own_cell.entities) {
+            iteratable_entities.push_back(ent.get());
+        }
+        
+        for (IEntity* ent : iteratable_entities) {
+            ent->interact(p, ToolType::HAND, *this);
+        }
     }
 }
+
 void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }

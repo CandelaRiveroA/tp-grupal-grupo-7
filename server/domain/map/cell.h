@@ -2,11 +2,15 @@
 #define CELL_H
 
 #include <memory>
+#include <vector>
 #include "../entities/i_entity.h"
+
+//TODO: Una entidad no traspasable no pude vivir con otras entidades
+// Hacer filtra para que si la entidad no es traspasable, no se pueda agregar otra entidad a la celda
 
 struct Cell {
     bool is_wall; 
-    std::unique_ptr<IEntity> entity;
+    std::vector<std::unique_ptr<IEntity>> entities;
 
     Cell();
     Cell(const Cell&) = delete;

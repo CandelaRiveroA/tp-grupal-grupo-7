@@ -42,11 +42,11 @@ public:
 
     uint16_t get_width() const;
     uint16_t get_height() const;
-    const IEntity* get_entity_at(uint16_t x, uint16_t y) const;
+    const std::vector<IEntity*> get_entity_at(uint16_t x, uint16_t y) const;
 
     // --- Gestión de Entidades Físicas ---
     void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity);
-    void remove_entity_at(uint16_t x, uint16_t y);
+    void remove_entity(IEntity* target_entity);
 
     // ---
     void use_tool(uint8_t player_id);

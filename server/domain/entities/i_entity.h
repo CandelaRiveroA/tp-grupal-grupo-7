@@ -47,7 +47,7 @@ public:
     virtual std::optional<CellSnapshot> snapshot() const;
 
     // Método para que las entidades se actualicen en cada frame del GameLoop.
-    virtual void update();
+    virtual void update(World& w) = 0;
 };
 
 #endif  // IENTITY_H

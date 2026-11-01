@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include <QFile>
+#include <QFontDatabase>
 #include <QString>
 #include <QtGlobal>
 #include <cstdlib>
@@ -38,7 +39,15 @@ namespace core {
 
 Application::Application(int& argc, char** argv):
         config_(kWindowWidth, kWindowHeight, kWindowTitle), app_(argc, argv) {
+    loadFonts();
     loadStyleSheet();
+}
+
+void Application::loadFonts() {
+    const int id = QFontDatabase::addApplicationFont(":/fonts/stardew.ttf");
+    if (id < 0) {
+        qWarning("No se pudo registrar la fuente :/fonts/stardew.ttf");
+    }
 }
 
 void Application::loadStyleSheet() {

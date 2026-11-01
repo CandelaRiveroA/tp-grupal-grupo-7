@@ -174,3 +174,20 @@ ServerWelcome ProtocolReceiver::receive_welcome() {
 
     return ServerWelcome{receive_uint8()};
 }
+
+MatchRequest ProtocolReceiver::receive_match_request() {
+    const uint8_t type = receive_uint8();
+    if (type != static_cast<uint8_t>(MatchRequestType::Create) &&
+        type != static_cast<uint8_t>(MatchRequestType::Join)) {
+        throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
+    }
+    return MatchRequest{static_cast<MatchRequestType>(type), receive_string()};
+}
+
+LobbyStatus ProtocolReceiver::receive_lobby_status() {
+    const uint8_t status = receive_uint8();
+    if (status > static_cast<uint8_t>(LobbyStatus::Invalid)) {
+        throw std::invalid_argument("El estado del lobby no es valido.");
+    }
+    return static_cast<LobbyStatus>(status);
+}

@@ -2,15 +2,13 @@
 #define SERVER_H
 
 #include "acceptor.h"
-#include "common_queue.h"
-#include "match.h"
+#include "matches_monitor.h"
 #include "server_output_monitor.h"
 
 class Server {
 private:
-    Queue<MatchEvent> events;
     ServerOutputMonitor output;
-    Match match;
+    MatchesMonitor matches;
     Acceptor acceptor;
 
 public:

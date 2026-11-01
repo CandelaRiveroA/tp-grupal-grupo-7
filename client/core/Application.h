@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+#include "common/common_socket.h"
 #include "core/SessionConfig.h"
 #include "core/WindowConfig.h"
 
@@ -39,9 +40,10 @@ private:
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();
 
-    int runGame(const SessionConfig& session);
+    int runGame(SessionConfig session);
 
-    std::unique_ptr<game::GameClient> createGameClient(int toolUseDurationTicks) const;
+    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket,
+                                                       int toolUseDurationTicks) const;
 
     // Duración en ticks del golpe (UseTool) del jugador, derivada de los
     // datos del personaje (frames x ticks por cuadro). Es lo que el cliente

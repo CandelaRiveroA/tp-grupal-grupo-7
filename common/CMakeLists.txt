@@ -19,6 +19,7 @@ target_sources(taller_common
     common_protocol_sender.h
     common_protocol_receiver.h
     common_server_status.h
+    common_match_request.h
     common_worker.h
     model/draft/CharacterAppearance.h
     model/draft/GameSelection.h

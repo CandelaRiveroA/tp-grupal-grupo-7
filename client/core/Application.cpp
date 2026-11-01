@@ -78,7 +78,7 @@ int Application::run() {
         return 0;
     }
 
-    return runGame(*session);
+    return runGame(std::move(*session));
 }
 
 std::optional<SessionConfig> Application::runLobby() {
@@ -90,8 +90,12 @@ std::optional<SessionConfig> Application::runLobby() {
     return lobby.result();
 }
 
-int Application::runGame(const SessionConfig& session) {
+int Application::runGame(SessionConfig session) {
     const sdl::Logger logger;
+    if (!session.connection.has_value()) {
+        logger.error("No hay conexion con el servidor.");
+        return EXIT_FAILURE;
+    }
     try {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
@@ -110,7 +114,8 @@ int Application::runGame(const SessionConfig& session) {
         const world::DigitCatalog digits =
                 world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
         const int toolUseDuration = toolUseDurationTicks(characters);
-        std::unique_ptr<game::GameClient> gameClient = createGameClient(toolUseDuration);
+        std::unique_ptr<game::GameClient> gameClient =
+                createGameClient(std::move(*session.connection), toolUseDuration);
         return runGameLoop(session, scenario, *gameClient, characters, inventory, toolOverlay,
                            resources, banner, digits);
     } catch (const world::ConfigError& error) {
@@ -122,9 +127,9 @@ int Application::runGame(const SessionConfig& session) {
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient(int toolUseDurationTicks) const {
-    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort,
-                                                     toolUseDurationTicks);
+std::unique_ptr<game::GameClient> Application::createGameClient(Socket&& socket,
+                                                                int toolUseDurationTicks) const {
+    return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks);
 }
 
 int Application::toolUseDurationTicks(const world::CharacterCatalog& characters) const {
@@ -173,8 +178,14 @@ int Application::runGameLoop(
 
     game::InventorySelector inventorySelector;
 
+    bool connectionLost = false;
     sdl::GameLoop loop(input, [&](int it) {
         gameClient.update();
+        if (!gameClient.connected()) {
+            connectionLost = true;
+            loop.stop();
+            return;
+        }
         const game::LocalWorldView& state = gameClient.worldState();
 
         const GamePhase phase = phaseForIteration(it);
@@ -265,6 +276,10 @@ int Application::runGameLoop(
     });
 
     loop.run();
+    if (connectionLost) {
+        sdl::Logger().error("Se perdio la conexion con el servidor.");
+        return EXIT_FAILURE;
+    }
     return 0;
 }
 

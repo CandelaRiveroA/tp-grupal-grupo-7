@@ -4,12 +4,19 @@ target_sources(taller_tests
     character_layers.cpp
     index_cycle.cpp
     invite_code_format.cpp
+    matches_monitor_test.cpp
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     ../server/world_view.cpp
+    ../server/matches_monitor.cpp
+    ../server/match.cpp
+    ../server/server_output_monitor.cpp
+    ../server/commands/move_command.cpp
+    ../server/commands/pick_command.cpp
+    ../server/commands/take_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/slot.cpp

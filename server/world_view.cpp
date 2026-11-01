@@ -18,9 +18,7 @@ std::string content_id_for(ItemID id) {
     return it != content_ids.end() ? it->second : "";
 }
 
-namespace {
-
-ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
+static ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
     if (hits_taken == 0) {
         return ResourceDamage::Intact;
     }
@@ -31,8 +29,6 @@ ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
 
     return ResourceDamage::Cracked;
 }
-
-}  // namespace
 
 std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id) const {
     std::vector<ServerMessage> out;

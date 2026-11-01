@@ -17,6 +17,9 @@ public:
 
     // Consulta la vista del último update(). No avanza el estado.
     virtual const LocalWorldView& worldState() const = 0;
+
+    // Falso si la conexión con el servidor se perdió: el juego no puede seguir.
+    virtual bool connected() const = 0;
 };
 
 }  // namespace game

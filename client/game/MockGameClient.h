@@ -19,6 +19,7 @@ public:
     void sendCommand(const protocol::ClientMessage& message) override;
     void update() override;
     const LocalWorldView& worldState() const override;
+    bool connected() const override { return true; }
 
 private:
     // Mineral simulado: a los 3 golpes se agota. Simula al servidor.

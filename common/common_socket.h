@@ -173,6 +173,12 @@ public:
     void shutdown(int how);
 
     /*
+     * Tiempo máximo de espera por cada recepción, en segundos (0 = sin límite).
+     * Vencido el tiempo, recv lanza excepción.
+     * */
+    void set_receive_timeout(int seconds);
+
+    /*
      * Determina si el stream de envio (send) o de recepción (recv)
      * están cerrado (sea por que se hizo un shutdown o por que el
      * otro endpoint hizo un shutdown).

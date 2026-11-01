@@ -19,10 +19,8 @@ ToolOverlayPainter::ToolOverlayPainter(
 
 void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 			      const SDL2pp::Rect& drawBox, const int phase,
-			      const world::ActionKind action) const {
-	if (action != world::ActionKind::UseTool) {
-		return;
-	}
+			      const world::ActionKind action,
+			      const world::Pose& pose) const {
 	if (!entity.activeTool.has_value()) {
 		return;
 	}
@@ -36,11 +34,21 @@ void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 
 	const world::ToolOverlayAction& overlayAction = *found;
 
+	// Cada overlay declara con qué acción se sincroniza (dato, no
+	// código): el mismo mecanismo dibuja la herramienta en use_tool y
+	// el huevo en las manos al recoger.
+	if (overlayAction.action != action) {
+		return;
+	}
+
 	const world::CharacterLayout body(
 		world::PixelRect{drawBox.x, drawBox.y, drawBox.w, drawBox.h},
 		characters_.drawnWidth(entity.kind),
 		characters_.drawnHeight(entity.kind));
-	const world::ToolOverlayLayout layout(body, toolOverlay_);
+	// La capa base del pose es la primera (el cuerpo), el mismo
+	// convenio que CharacterSprite.
+	const world::ToolOverlayLayout layout(body, toolOverlay_,
+					      pose.front());
 
 	const world::ToolOverlayFrame* frame =
 		layout.frameAt(overlayAction, phase);

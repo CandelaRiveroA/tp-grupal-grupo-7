@@ -186,4 +186,101 @@ frames = [
 	}
 }
 
+TEST(ToolOverlayLoaderTest, LoadsEggForPickupAction) {
+	const std::string toml = R"(
+[egg.right]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+)";
+	const world::ToolOverlayCatalog catalog = loadString(toml);
+	const world::ToolOverlayAction* action =
+		catalog.find(world::ItemKind::Egg, world::Direction::Right);
+	ASSERT_NE(action, nullptr);
+	// Cada overlay declara con qué acción se sincroniza (dato): el
+	// mismo mecanismo vale para la herramienta y para el huevo.
+	EXPECT_EQ(action->action, world::ActionKind::Pickup);
+	EXPECT_EQ(action->frames.size(), 1u);
+}
+
+TEST(ToolOverlayLoaderTest, ActionDefaultsToUseTool) {
+	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
+	const world::ToolOverlayAction* action =
+		catalog.find(world::ItemKind::Pickaxe, world::Direction::Back);
+	ASSERT_NE(action, nullptr);
+	EXPECT_EQ(action->action, world::ActionKind::UseTool);
+}
+
+TEST(ToolOverlayLoaderTest, LoadsEggFrontCentered) {
+	const std::string toml = R"(
+[egg.front]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 8, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = 8, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, layers = [ [0, 0, 1, 1] ] },
+]
+)";
+	const world::ToolOverlayCatalog catalog = loadString(toml);
+	const world::ToolOverlayAction* action =
+		catalog.find(world::ItemKind::Egg, world::Direction::Front);
+	ASSERT_NE(action, nullptr);
+	EXPECT_EQ(action->action, world::ActionKind::Pickup);
+	EXPECT_EQ(action->frames.size(), 4u);
+	EXPECT_EQ(action->frames[0].offsetX, 8);
+}
+
+TEST(ToolOverlayLoaderTest, LoadsEggBackWithEggOnlyInLastFrame) {
+	const std::string toml = R"(
+[egg.back]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+  { anchor = "body", offset_x = 8, offset_y = -8, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+)";
+	const world::ToolOverlayCatalog catalog = loadString(toml);
+	const world::ToolOverlayAction* action =
+		catalog.find(world::ItemKind::Egg, world::Direction::Back);
+	ASSERT_NE(action, nullptr);
+	EXPECT_EQ(action->action, world::ActionKind::Pickup);
+	ASSERT_EQ(action->frames.size(), 4u);
+	// El huevo solo se dibuja en el último cuadro (brazos arriba).
+	EXPECT_TRUE(action->frames[0].layers.empty());
+	EXPECT_TRUE(action->frames[2].layers.empty());
+	EXPECT_EQ(action->frames[3].layers.size(), 1u);
+}
+
+TEST(ToolOverlayLoaderTest, UnknownActionIsInvalidValue) {
+	const std::string toml = R"(
+[egg.right]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "dance"
+frame_ticks = 12
+frames = [
+  { layers = [ [0, 0, 1, 1] ] },
+]
+)";
+	try {
+		loadString(toml);
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+	}
+}
+
 }

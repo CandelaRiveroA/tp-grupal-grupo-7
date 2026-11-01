@@ -28,7 +28,9 @@ struct SheetCell {
 // en el mundo. Es EL struct común de todo lo que se muestra (ítems,
 // íconos, productos): una cosa nueva comparte este mecanismo y solo
 // agrega sus datos al TOML. drawn = tamaño en el mapa (0 = el nativo de
-// la celda de la hoja). La hoja se resuelve por SheetCache al dibujar.
+// la celda de la hoja); offset_y = ajuste vertical al apoyarlo en el
+// piso (0 = pegado a los pies; para hojas con aire transparente
+// abajo). La hoja se resuelve por SheetCache al dibujar.
 struct SpriteVisual {
 	std::string sheetImage;
 	int col = 0;
@@ -37,8 +39,14 @@ struct SpriteVisual {
 	int cellHeight = 0;
 	int drawnWidth = 0;
 	int drawnHeight = 0;
+	int offsetY = 0;
 
 	SpriteVisual() = default;
+
+	// Lee sheet/cell/drawn de la subtabla `base`, SIN celda de posición:
+	// para hojas cuyas celdas las da otro dato (ej. los frames de un
+	// diálogo, cada uno en su propia celda).
+	SpriteVisual(const tomlcfg::TomlDocument& doc, const std::string& base);
 
 	// Lee el sprite completo de la subtabla `base`: `<base>.sheet`,
 	// `<base>.cell`, `<base>.<posKey>` ([col, row]) y `<base>.drawn`
@@ -48,6 +56,12 @@ struct SpriteVisual {
 	// clave que falló.
 	SpriteVisual(const tomlcfg::TomlDocument& doc, const std::string& base,
 		     const std::string& posKey);
+
+	// Tamaño final en pantalla: `drawn` si lo declara, si no el nativo
+	// de la celda de la hoja. Todos los que dibujan un sprite usan
+	// esta regla (ítems, cursores, diálogos).
+	int displayWidth() const;
+	int displayHeight() const;
 };
 
 }

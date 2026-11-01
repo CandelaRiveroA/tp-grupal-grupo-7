@@ -17,6 +17,7 @@ constexpr const char* kOffset = "offset";
 constexpr const char* kSheet = "sheet";
 constexpr const char* kCell = "cell";
 constexpr const char* kFrameTicks = "frame_ticks";
+constexpr const char* kAction = "action";
 constexpr const char* kFrames = "frames";
 constexpr const char* kPivot = "pivot";
 constexpr const char* kLayers = "layers";
@@ -35,19 +36,6 @@ constexpr const char* kAnchorBottom = "bottom";
 // Front=0, Back=1, Left=2, Right=3.
 constexpr std::array<const char*, 4> kDirectionKeys = {
 	"front", "back", "left", "right"};
-
-// Ítem lógico -> tabla del TOML que describe su overlay.
-struct ItemBinding {
-	ItemKind kind;
-	const char* tableKey;
-};
-
-constexpr std::array<ItemBinding, 4> kItemBindings = {{
-	{ItemKind::Pickaxe, "pickaxe"},
-	{ItemKind::Shovel, "shovel"},
-	{ItemKind::WateringCan, "watering_can"},
-	{ItemKind::Sword, "sword"},
-}};
 
 }
 
@@ -142,6 +130,18 @@ ToolOverlayAction ToolOverlayTomlReader::readAction(
 	const std::string& base) const {
 	ToolOverlayAction action;
 
+	// Acción con la que se sincroniza el overlay (opcional; sin la
+	// clave, use_tool: el caso histórico de la herramienta).
+	const std::string actionPath = join(base, kAction);
+	if (doc_.hasKey(actionPath)) {
+		const ActionKind* kind =
+			actionNames_.find(doc_.getString(actionPath));
+		if (kind == nullptr) {
+			throw ConfigError(Kind::InvalidValue, actionPath);
+		}
+		action.action = *kind;
+	}
+
 	const std::string sheetPath = join(base, kSheet);
 	action.sheetImage = doc_.getString(sheetPath);
 	if (action.sheetImage.empty()) {
@@ -193,12 +193,13 @@ ToolOverlayAppearance ToolOverlayTomlReader::readAppearance(
 ToolOverlayCatalog ToolOverlayTomlReader::read() const {
 	ToolOverlayCatalog catalog;
 	catalog.anchorOffsets = readAnchorOffsets();
-	for (const ItemBinding& binding : kItemBindings) {
-		if (!doc_.hasKey(binding.tableKey)) {
+	// Las tablas del TOML se llaman como los contentIds (el vocabulario
+	// compartido): recorrerlas es recorrer el vocabulario.
+	for (const auto& [kind, tableKey] : contentIds_.itemEntries()) {
+		if (!doc_.hasKey(tableKey)) {
 			continue;
 		}
-		catalog.tools.emplace(binding.kind,
-				      readAppearance(binding.tableKey));
+		catalog.tools.emplace(kind, readAppearance(tableKey));
 	}
 	return catalog;
 }

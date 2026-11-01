@@ -33,6 +33,11 @@ struct CreatureData {
 	// la acción. Devuelve 1 como mínimo (y también si la criatura no
 	// tiene la acción), para que la ventana del golpe nunca sea nula.
 	int toolUseDurationTicks() const;
+
+	// Duración de UN ciclo de la acción (frames x frameTicks), o 0 si la
+	// criatura no la tiene. Es la MISMA cuenta que usa la animación:
+	// ventana y animación no pueden desfasarse (contrato §10).
+	int actionCycleTicks(ActionKind action) const;
 };
 
 }

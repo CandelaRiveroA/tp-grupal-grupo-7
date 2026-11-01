@@ -68,7 +68,7 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 		appearance.mirrored ? Flip::Horizontal : Flip::None;
 	const SDL2pp::Rect drawBox(box.x, box.y, box.width, box.height);
 	sprite.draw(*appearance.pose, drawBox, flip);
-	toolOverlay_.draw(entity, drawBox, phase, action);
+	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose);
 }
 
 }  // namespace sdl

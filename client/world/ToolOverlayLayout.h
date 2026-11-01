@@ -14,7 +14,8 @@ namespace world {
 class ToolOverlayLayout {
 public:
 	ToolOverlayLayout(const CharacterLayout& body,
-			  const ToolOverlayCatalog& catalog);
+			  const ToolOverlayCatalog& catalog,
+			  const LayerFrame& baseLayer);
 
 	// Frame de la animación para la fase recibida. nullptr si la acción
 	// no tiene frames dibujables.
@@ -36,6 +37,10 @@ private:
 	int anchorBaseY(FrameAnchor anchor, int frameHeight) const;
 
 	CharacterLayout body_;
+	// Capa base del pose (el cuerpo): de ella sale el factor de píxeles
+	// por celda, igual que CharacterLayout. Así una capa 1x1 del
+	// overlay (el huevo) mide una celda aunque el cuerpo sea 1x2.
+	LayerFrame base_;
 	const ToolOverlayCatalog& catalog_;
 	std::map<FrameAnchor, AnchorBaseMethod> anchorBases_;
 };

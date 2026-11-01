@@ -104,3 +104,75 @@ frames = [
   { anchor = "body",   flip = true, angle = -50, offset_x = -34, offset_y = -8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
   { anchor = "body",   flip = true, angle = -100, offset_x = -34, offset_y = 10, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
 ]
+
+# --- Huevo en las manos (acción pickup) --------------------------------
+# El overlay no es solo de herramientas: cada entrada declara con qué
+# ACCIÓN se sincroniza (action; default use_tool). El huevo se dibuja
+# durante el pickup, subiendo POR DELANTE del personaje (según mire
+# izq o der) desde las manos hasta la altura de la cabeza. El sprite es
+# el MISMO que el huevo del piso (Farm/egg.png) a media celda (scale),
+# y los offsets se afinan a ojo como los del pico.
+# 4 frames = 4 cuadros del pickup en characters.toml; frame_ticks igual
+# que los de esa acción (sin `frame` = cadence.frame = 12) para que la
+# animación y el overlay no se desfasen.
+[egg.right]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 16, offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = 18, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 20, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 20, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección left: espejo EXACTO de right. El offset_x se mide desde el
+# borde izquierdo del cuerpo, así que espejar no es negar: la fórmula es
+# izquierda = anchoCuerpo - anchoCapa - derecha (32 - 16 - der, con el
+# huevo a media celda). Con el cuerpo de 32 px y la capa de 16 px eso da
+# 16 - der. (Negar sirve solo cuando la capa ocupa todo el ancho, como
+# las del pico.) Afinar a ojo como siempre.
+[egg.left]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 0,  offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = -2, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = -4, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = -4, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección front (mirando a cámara): el mismo recorrido vertical que el
+# de costado pero centrado al frente del cuerpo (el huevo de 16 px en el
+# cuerpo de 32 px => offset_x = 8). Sin flip ni espejo: se mira de
+# frente.
+[egg.front]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 8, offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = 8, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección back (de espaldas): el huevo solo se ve en el último cuadro,
+# con los brazos arriba (los frames sin layers = [] no dibujan nada, el
+# mismo truco que el pico de espaldas). Centrado a la altura de la
+# cabeza, como el frame final de costado.
+[egg.back]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+  { anchor = "body", offset_x = 8, offset_y = -8, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]

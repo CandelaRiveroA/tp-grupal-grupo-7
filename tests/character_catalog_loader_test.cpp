@@ -481,6 +481,41 @@ TEST(CharacterCatalogLoaderTest, RealFileToolUseDurationIsUniform) {
 	ASSERT_GT(expectedTicks, 0);
 }
 
+TEST(CharacterCatalogLoaderTest, RealFileHasPickupFrontAndMilkBack) {
+	CharacterCatalogLoader loader;
+	const CharacterCatalog catalog =
+		loader.loadFromFile(TALLER_CHARACTERS_TOML);
+
+	// Recoger de frente: 4 poses one-shot (brazos de 1x1 a 1x2).
+	const world::ActionData& pickup =
+		actionOf(catalog, Direction::Front, ActionKind::Pickup);
+	EXPECT_FALSE(pickup.loops);
+	EXPECT_EQ(pickup.frames.size(), 4u);
+	EXPECT_EQ(pickup.frames[0][1].rows, 1);
+	EXPECT_EQ(pickup.frames[3][1].rows, 2);
+
+	// Ordeñar de espaldas: 2 poses que alternan (brazos 1x1).
+	const world::ActionData& milk =
+		actionOf(catalog, Direction::Back, ActionKind::Milk);
+	EXPECT_TRUE(milk.loops);
+	EXPECT_EQ(milk.frames.size(), 2u);
+	EXPECT_EQ(milk.frames[0][1].rows, 1);
+
+	// Las 4 direcciones cubren las dos interacciones: ordeñar de
+	// frente y recoger de espaldas también existen.
+	const world::ActionData& milkFront =
+		actionOf(catalog, Direction::Front, ActionKind::Milk);
+	EXPECT_TRUE(milkFront.loops);
+	EXPECT_EQ(milkFront.frames.size(), 2u);
+
+	const world::ActionData& pickupBack =
+		actionOf(catalog, Direction::Back, ActionKind::Pickup);
+	EXPECT_FALSE(pickupBack.loops);
+	EXPECT_EQ(pickupBack.frames.size(), 4u);
+	EXPECT_EQ(pickupBack.frames[0][1].rows, 1);
+	EXPECT_EQ(pickupBack.frames[3][1].rows, 2);
+}
+
 TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 	CharacterCatalogLoader loader;
 	const CharacterCatalog catalog =

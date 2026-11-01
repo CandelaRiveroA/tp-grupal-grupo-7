@@ -28,6 +28,8 @@ enum class ActionKind {
     Idle,
     Walk,
     UseTool,
+    Milk,
+    Pickup,
 };
 
 struct ActionData {

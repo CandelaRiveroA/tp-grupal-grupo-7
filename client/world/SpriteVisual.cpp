@@ -7,14 +7,6 @@
 
 namespace world {
 
-namespace {
-
-std::string join(const std::string& base, const std::string& key) {
-	return base + "." + key;
-}
-
-}
-
 SheetCell::SheetCell(int colValue, int rowValue)
 	: col(colValue), row(rowValue) {}
 
@@ -28,14 +20,14 @@ SheetCell::SheetCell(const tomlcfg::TomlDocument& doc, const std::string& key) {
 }
 
 SpriteVisual::SpriteVisual(const tomlcfg::TomlDocument& doc,
-			   const std::string& base, const std::string& posKey) {
-	const std::string sheetPath = join(base, "sheet");
+			   const std::string& base) {
+	const std::string sheetPath = base + ".sheet";
 	sheetImage = doc.getString(sheetPath);
 	if (sheetImage.empty()) {
 		throw ConfigError(ConfigErrorKind::InvalidValue, sheetPath);
 	}
 
-	const std::string cellPath = join(base, "cell");
+	const std::string cellPath = base + ".cell";
 	const std::array<int, 2> cell = doc.getIntArray<2>(cellPath);
 	if (cell[0] <= 0 || cell[1] <= 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue, cellPath);
@@ -43,12 +35,8 @@ SpriteVisual::SpriteVisual(const tomlcfg::TomlDocument& doc,
 	cellWidth = cell[0];
 	cellHeight = cell[1];
 
-	const SheetCell position(doc, join(base, posKey));
-	col = position.col;
-	row = position.row;
-
 	// Tamaño EN EL MAPA: opcional (default = celda nativa).
-	const std::string drawnPath = join(base, "drawn");
+	const std::string drawnPath = base + ".drawn";
 	if (doc.hasKey(drawnPath)) {
 		const std::array<int, 2> drawn = doc.getIntArray<2>(drawnPath);
 		if (drawn[0] <= 0 || drawn[1] <= 0) {
@@ -58,6 +46,29 @@ SpriteVisual::SpriteVisual(const tomlcfg::TomlDocument& doc,
 		drawnWidth = drawn[0];
 		drawnHeight = drawn[1];
 	}
+
+	// Ajuste vertical al apoyarlo en el piso: opcional (default 0 =
+	// pegado a los pies). Compensa el aire transparente del sprite.
+	const std::string offsetPath = base + ".offset_y";
+	if (doc.hasKey(offsetPath)) {
+		offsetY = doc.getInt(offsetPath);
+	}
+}
+
+SpriteVisual::SpriteVisual(const tomlcfg::TomlDocument& doc,
+			   const std::string& base, const std::string& posKey)
+	: SpriteVisual(doc, base) {
+	const SheetCell position(doc, base + "." + posKey);
+	col = position.col;
+	row = position.row;
+}
+
+int SpriteVisual::displayWidth() const {
+	return drawnWidth > 0 ? drawnWidth : cellWidth;
+}
+
+int SpriteVisual::displayHeight() const {
+	return drawnHeight > 0 ? drawnHeight : cellHeight;
 }
 
 }

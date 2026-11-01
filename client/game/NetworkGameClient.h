@@ -30,6 +30,7 @@ public:
     void sendCommand(const protocol::ClientMessage& message) override;
     void update(int iteration) override;
     const LocalWorldView& worldState() const override;
+    bool connected() const override;
 
 private:
     struct RemotePlayer {

@@ -180,4 +180,8 @@ void NetworkGameClient::update(int) {
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }
 
+bool NetworkGameClient::connected() const {
+    return !clientSender_.failed() && !clientReceiver_.failed();
+}
+
 }  // namespace game

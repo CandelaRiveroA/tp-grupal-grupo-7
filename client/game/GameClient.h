@@ -17,6 +17,8 @@ public:
     // RECIBIR: el estado actual del mundo que dibuja el cliente.
     virtual const LocalWorldView& worldState() const = 0;
 
+    virtual bool connected() const { return true; }
+
     // Tick de la simulación: UNA llamada por iteración del loop, al
     // arrancar el tick (ver connection-point.md §4, paso 1). Avanza lo
     // que corre del lado de la fuente de estado: hoy, la simulación de

@@ -51,9 +51,8 @@ struct ToolOverlayCatalog {
 
 	std::map<ItemKind, ToolOverlayAppearance> tools;
 
-	bool has(ItemKind kind, Direction dir) const;
-
-	const ToolOverlayAction& actionFor(ItemKind kind, Direction dir) const;
+	// Una sola búsqueda: nullptr si (kind, dir) no tiene overlay.
+	const ToolOverlayAction* find(ItemKind kind, Direction dir) const;
 
 	int offsetFor(FrameAnchor anchor) const;
 };

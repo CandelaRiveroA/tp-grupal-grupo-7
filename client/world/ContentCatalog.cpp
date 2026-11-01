@@ -2,13 +2,9 @@
 
 namespace world {
 
-bool ContentCatalog::has(const std::string& contentId) const {
-	return visuals.find(contentId) != visuals.end();
-}
-
-const SpriteVisual& ContentCatalog::visualFor(
-	const std::string& contentId) const {
-	return visuals.at(contentId);
+const SpriteVisual* ContentCatalog::find(const std::string& contentId) const {
+	const auto it = visuals.find(contentId);
+	return it == visuals.end() ? nullptr : &it->second;
 }
 
 }  // namespace world

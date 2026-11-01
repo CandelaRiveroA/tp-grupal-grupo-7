@@ -8,7 +8,7 @@
 #include "game/MockAnimalSimulation.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
-#include "world/ItemCatalog.h"
+#include "world/ItemKind.h"
 
 namespace {
 

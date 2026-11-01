@@ -27,7 +27,7 @@ world::ToolOverlayCatalog loadString(const std::string& toml) {
 
 TEST(ToolOverlayLoaderTest, LoadsPickaxeBack) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
-	ASSERT_TRUE(catalog.has(world::ItemKind::Pickaxe,
+	ASSERT_TRUE(catalog.find(world::ItemKind::Pickaxe,
 				world::Direction::Back));
 }
 
@@ -63,7 +63,7 @@ TEST(ToolOverlayLoaderTest, MissingOffsetDefaultsToZero) {
 TEST(ToolOverlayLoaderTest, LoadsSheetAndCell) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	EXPECT_EQ(action.sheetImage, "Players/main/tools/Tools.png");
 	EXPECT_EQ(action.cellWidth, 16);
@@ -73,7 +73,7 @@ TEST(ToolOverlayLoaderTest, LoadsSheetAndCell) {
 TEST(ToolOverlayLoaderTest, LoadsFrameTicks) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	EXPECT_EQ(action.frameTicks, 6);
 }
@@ -81,7 +81,7 @@ TEST(ToolOverlayLoaderTest, LoadsFrameTicks) {
 TEST(ToolOverlayLoaderTest, LoadsFrameCount) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	EXPECT_EQ(action.frames.size(), 5u);
 }
@@ -89,7 +89,7 @@ TEST(ToolOverlayLoaderTest, LoadsFrameCount) {
 TEST(ToolOverlayLoaderTest, LoadsFrameCells) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	ASSERT_FALSE(action.frames.empty());
 	ASSERT_FALSE(action.frames[0].layers.empty());
@@ -101,19 +101,19 @@ TEST(ToolOverlayLoaderTest, LoadsFrameCells) {
 
 TEST(ToolOverlayLoaderTest, MissingItemIsNotInCatalog) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
-	EXPECT_FALSE(catalog.has(world::ItemKind::Shovel,
+	EXPECT_FALSE(catalog.find(world::ItemKind::Shovel,
 				 world::Direction::Back));
 }
 
 TEST(ToolOverlayLoaderTest, MissingDirectionIsNotInCatalog) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
-	EXPECT_FALSE(catalog.has(world::ItemKind::Pickaxe,
+	EXPECT_FALSE(catalog.find(world::ItemKind::Pickaxe,
 				 world::Direction::Front));
 }
 
 TEST(ToolOverlayLoaderTest, EmptyTomlGivesEmptyCatalog) {
 	const world::ToolOverlayCatalog catalog = loadString("");
-	EXPECT_FALSE(catalog.has(world::ItemKind::Pickaxe,
+	EXPECT_FALSE(catalog.find(world::ItemKind::Pickaxe,
 				 world::Direction::Back));
 }
 
@@ -130,7 +130,7 @@ frames = [
 )";
 	const world::ToolOverlayCatalog catalog = loadString(toml);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	ASSERT_EQ(action.frames.size(), 2u);
 	EXPECT_FALSE(action.frames[0].layers.empty());
@@ -140,7 +140,7 @@ frames = [
 TEST(ToolOverlayLoaderTest, FrameAnchorDefaultsToTop) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Back);
 	// El frame vacío no declaró anchor → default Top.
 	EXPECT_EQ(action.frames[1].anchor, world::FrameAnchor::Top);
@@ -160,7 +160,7 @@ frames = [
 )";
 	const world::ToolOverlayCatalog catalog = loadString(toml);
 	const world::ToolOverlayAction& action =
-		catalog.actionFor(world::ItemKind::Pickaxe,
+		*catalog.find(world::ItemKind::Pickaxe,
 				  world::Direction::Front);
 	ASSERT_EQ(action.frames.size(), 3u);
 	EXPECT_EQ(action.frames[0].anchor, world::FrameAnchor::Top);

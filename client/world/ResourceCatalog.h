@@ -43,10 +43,8 @@ struct ResourceCatalog {
 
 	std::map<ResourceKind, std::map<ResourceState, ResourceVisual>> visuals;
 
-	bool has(ResourceKind kind, ResourceState state) const;
-
-	const ResourceVisual& visualFor(ResourceKind kind,
-					ResourceState state) const;
+	// Una sola búsqueda: nullptr si el par (kind, state) no tiene visual.
+	const ResourceVisual* find(ResourceKind kind, ResourceState state) const;
 };
 
 }

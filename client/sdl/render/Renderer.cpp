@@ -103,11 +103,12 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 void Renderer::drawResource(const game::ViewResource& resource,
 			    const world::ScenePixelMapper& mapper,
 			    const Viewport& viewport) {
-	if (!resources_.has(resource.kind, resource.state)) {
+	const world::ResourceVisual* found =
+		resources_.find(resource.kind, resource.state);
+	if (found == nullptr) {
 		return;
 	}
-	const world::ResourceVisual& visual =
-		resources_.visualFor(resource.kind, resource.state);
+	const world::ResourceVisual& visual = *found;
 
 	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
 		world::GridCell{resource.cellX, resource.cellY},
@@ -147,10 +148,11 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 	// huevo o cualquier recolectable futuro usan su celda sin casos
 	// especiales. Más chico que la celda y centrado, para que se lea
 	// como un item apoyado en el suelo.
-	if (!content_.has(item.contentId)) {
+	const world::SpriteVisual* found = content_.find(item.contentId);
+	if (found == nullptr) {
 		return;
 	}
-	const world::SpriteVisual& visual = content_.visualFor(item.contentId);
+	const world::SpriteVisual& visual = *found;
 
 	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
 		world::GridCell{item.cellX, item.cellY},

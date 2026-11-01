@@ -42,7 +42,8 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	if (!viewport.intersects(cullBox)) {
 		return;
 	}
-	if (!characters_.has(entity.kind)) {
+	const world::CreatureData* creature = characters_.find(entity.kind);
+	if (creature == nullptr) {
 		return;
 	}
 
@@ -51,8 +52,7 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const world::ActionKind action =
 		actions.actionFor(entity, entityIndex, animationTick);
 
-	const world::AppearanceResolver resolver(
-		characters_.dataFor(entity.kind));
+	const world::AppearanceResolver resolver(*creature);
 	const world::EntityAppearance appearance =
 		resolver.appearanceFor(entity.facing, action, phase);
 

@@ -29,12 +29,12 @@ void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 
 	const world::ItemKind tool = *entity.activeTool;
 	const world::Direction dir = entity.facing;
-	if (!toolOverlay_.has(tool, dir)) {
+	const world::ToolOverlayAction* found = toolOverlay_.find(tool, dir);
+	if (found == nullptr) {
 		return;
 	}
 
-	const world::ToolOverlayAction& overlayAction =
-		toolOverlay_.actionFor(tool, dir);
+	const world::ToolOverlayAction& overlayAction = *found;
 
 	const world::CharacterLayout body(
 		world::PixelRect{drawBox.x, drawBox.y, drawBox.w, drawBox.h},

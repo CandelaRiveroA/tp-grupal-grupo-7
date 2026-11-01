@@ -74,18 +74,19 @@ void InventoryHud::draw(
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
 		}
-		if (!layout_.content.has(entry.contentId)) {
+		const world::SpriteVisual* visual =
+			layout_.content.find(entry.contentId);
+		if (visual == nullptr) {
 			continue;
 		}
-		const world::SpriteVisual& visual =
-			layout_.content.visualFor(entry.contentId);
 		SpriteSheet& itemSheet = itemSheets_.sheet(
-			visual.sheetImage, core::assetPath(visual.sheetImage),
-			visual.cellWidth, visual.cellHeight);
+			visual->sheetImage,
+			core::assetPath(visual->sheetImage),
+			visual->cellWidth, visual->cellHeight);
 		const world::PixelBox& slotBox =
 			boxes[static_cast<std::size_t>(entry.slotIndex)];
 		const world::PixelBox icon = layout_.iconBox(slotBox);
-		itemSheet.draw(visual.col, visual.row,
+		itemSheet.draw(visual->col, visual->row,
 			       SDL2pp::Rect(icon.x, icon.y, icon.width,
 					    icon.height));
 		// Cantidad: solo se dibuja si hay más de 1.

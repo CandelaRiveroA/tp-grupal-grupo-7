@@ -20,9 +20,9 @@ namespace world {
 struct ContentCatalog {
 	std::map<std::string, SpriteVisual> visuals;
 
-	bool has(const std::string& contentId) const;
-
-	const SpriteVisual& visualFor(const std::string& contentId) const;
+	// Una sola búsqueda: nullptr si el contentId no tiene visual (no se
+	// dibuja). Reemplaza al par has()/visualFor().
+	const SpriteVisual* find(const std::string& contentId) const;
 };
 
 }  // namespace world

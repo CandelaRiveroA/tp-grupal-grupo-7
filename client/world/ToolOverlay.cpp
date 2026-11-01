@@ -2,17 +2,14 @@
 
 namespace world {
 
-bool ToolOverlayCatalog::has(ItemKind kind, Direction dir) const {
+const ToolOverlayAction* ToolOverlayCatalog::find(ItemKind kind,
+						  Direction dir) const {
 	const auto toolIt = tools.find(kind);
 	if (toolIt == tools.end()) {
-		return false;
+		return nullptr;
 	}
-	return toolIt->second.find(dir) != toolIt->second.end();
-}
-
-const ToolOverlayAction& ToolOverlayCatalog::actionFor(ItemKind kind,
-						       Direction dir) const {
-	return tools.at(kind).at(dir);
+	const auto it = toolIt->second.find(dir);
+	return it == toolIt->second.end() ? nullptr : &it->second;
 }
 
 int ToolOverlayCatalog::offsetFor(FrameAnchor anchor) const {

@@ -223,20 +223,20 @@ cell  = [16, 16]
 at    = [6, 1]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.content.has("shovel"));
-	ASSERT_TRUE(bar.content.has("pickaxe"));
-	ASSERT_TRUE(bar.content.has("watering_can"));
+	ASSERT_TRUE(bar.content.find("shovel"));
+	ASSERT_TRUE(bar.content.find("pickaxe"));
+	ASSERT_TRUE(bar.content.find("watering_can"));
 	// El inventario es genérico: también guarda minerales por string.
-	ASSERT_TRUE(bar.content.has("silver"));
-	const world::SpriteVisual& shovel = bar.content.visualFor("shovel");
+	ASSERT_TRUE(bar.content.find("silver"));
+	const world::SpriteVisual& shovel = *bar.content.find("shovel");
 	EXPECT_EQ(shovel.sheetImage, "Players/main/tools/Tools.png");
 	EXPECT_EQ(shovel.col, 5);
 	EXPECT_EQ(shovel.row, 2);
 	EXPECT_EQ(shovel.cellWidth, 16);
-	const world::SpriteVisual& can = bar.content.visualFor("watering_can");
+	const world::SpriteVisual& can = *bar.content.find("watering_can");
 	EXPECT_EQ(can.col, 3);
 	EXPECT_EQ(can.row, 14);
-	const world::SpriteVisual& silver = bar.content.visualFor("silver");
+	const world::SpriteVisual& silver = *bar.content.find("silver");
 	EXPECT_EQ(silver.sheetImage, "Cavern/ore.png");
 	EXPECT_EQ(silver.col, 6);
 	EXPECT_EQ(silver.row, 1);
@@ -244,7 +244,7 @@ at    = [6, 1]
 
 TEST(InventoryConfigLoaderTest, NoItemsSectionLeavesCatalogEmpty) {
 	const world::InventoryLayout bar = loadBar();
-	EXPECT_FALSE(bar.content.has("shovel"));
+	EXPECT_FALSE(bar.content.find("shovel"));
 }
 
 TEST(InventoryConfigLoaderTest, ArbitraryContentNameIsValid) {
@@ -268,8 +268,8 @@ cell  = [16, 16]
 at    = [0, 0]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.content.has("catapult"));
-	const world::SpriteVisual& v = bar.content.visualFor("catapult");
+	ASSERT_TRUE(bar.content.find("catapult"));
+	const world::SpriteVisual& v = *bar.content.find("catapult");
 	EXPECT_EQ(v.sheetImage, "x.png");
 	EXPECT_EQ(v.col, 0);
 	EXPECT_EQ(v.row, 0);
@@ -302,9 +302,9 @@ at    = [0, 0]
 drawn = [15, 16]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.content.has("egg"));
+	ASSERT_TRUE(bar.content.find("egg"));
 
-	const world::SpriteVisual& egg = bar.content.visualFor("egg");
+	const world::SpriteVisual& egg = *bar.content.find("egg");
 	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
 	EXPECT_EQ(egg.cellWidth, 10);
 	EXPECT_EQ(egg.cellHeight, 11);
@@ -324,8 +324,8 @@ cell  = [10, 11]
 at    = [0, 0]
 )";
 	const world::InventoryLayout bar = loadString(toml);
-	ASSERT_TRUE(bar.content.has("egg"));
-	const world::SpriteVisual& egg = bar.content.visualFor("egg");
+	ASSERT_TRUE(bar.content.find("egg"));
+	const world::SpriteVisual& egg = *bar.content.find("egg");
 	EXPECT_EQ(egg.drawnWidth, 0);
 	EXPECT_EQ(egg.drawnHeight, 0);
 }
@@ -510,15 +510,15 @@ TEST(InventoryConfigLoaderTest, LoadsRealInventoryFile) {
 	EXPECT_EQ(bar.slotFrame.topLeft.col, 8);
 
 	// El huevo de la gallina está en el catálogo (sprite único 10x11).
-	ASSERT_TRUE(bar.content.has("egg"));
-	const world::SpriteVisual& egg = bar.content.visualFor("egg");
+	ASSERT_TRUE(bar.content.find("egg"));
+	const world::SpriteVisual& egg = *bar.content.find("egg");
 	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
 	EXPECT_EQ(egg.drawnWidth, 15);
 	EXPECT_EQ(egg.drawnHeight, 16);
 
 	// La leche de la vaca está en el catálogo (sprite único 10x12).
-	ASSERT_TRUE(bar.content.has("milk"));
-	const world::SpriteVisual& milk = bar.content.visualFor("milk");
+	ASSERT_TRUE(bar.content.find("milk"));
+	const world::SpriteVisual& milk = *bar.content.find("milk");
 	EXPECT_EQ(milk.sheetImage, "Farm/milk.png");
 	EXPECT_EQ(milk.drawnWidth, 15);
 	EXPECT_EQ(milk.drawnHeight, 18);

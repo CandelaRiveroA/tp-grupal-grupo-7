@@ -194,7 +194,7 @@ TEST(CharacterCatalogLoaderTest, LoadsCadence) {
 
 TEST(CharacterCatalogLoaderTest, HasPlayer) {
 	const CharacterCatalog catalog = loadPlayer();
-	EXPECT_TRUE(catalog.has(CreatureKind::Player));
+	EXPECT_TRUE(catalog.find(CreatureKind::Player));
 }
 
 
@@ -441,7 +441,7 @@ TEST(CharacterCatalogLoaderTest, LoadsRealCharactersFile) {
 	CharacterCatalogLoader loader;
 	const CharacterCatalog catalog =
 		loader.loadFromFile(TALLER_CHARACTERS_TOML);
-	ASSERT_TRUE(catalog.has(CreatureKind::Player));
+	ASSERT_TRUE(catalog.find(CreatureKind::Player));
 	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
 	EXPECT_EQ(data.cadence.stepTicks, 24);
 	EXPECT_EQ(data.cadence.frameTicks, 12);
@@ -485,7 +485,7 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 	CharacterCatalogLoader loader;
 	const CharacterCatalog catalog =
 		loader.loadFromFile(TALLER_CHARACTERS_TOML);
-	ASSERT_TRUE(catalog.has(CreatureKind::Chicken));
+	ASSERT_TRUE(catalog.find(CreatureKind::Chicken));
 
 	EXPECT_EQ(catalog.sheetFile(CreatureKind::Chicken),
 		  "Farm/Chicken.png");
@@ -547,7 +547,7 @@ TEST(CharacterCatalogLoaderTest, RealFileLoadsCow) {
 	CharacterCatalogLoader loader;
 	const CharacterCatalog catalog =
 		loader.loadFromFile(TALLER_CHARACTERS_TOML);
-	ASSERT_TRUE(catalog.has(CreatureKind::Cow));
+	ASSERT_TRUE(catalog.find(CreatureKind::Cow));
 
 	EXPECT_EQ(catalog.sheetFile(CreatureKind::Cow),
 		  "Farm/Female_Cow_Brown.png");

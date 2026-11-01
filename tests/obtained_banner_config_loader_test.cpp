@@ -87,7 +87,7 @@ TEST(ObtainedBannerConfigLoaderTest, LoadsDeclaredIcons) {
     const world::ObtainedBannerCatalog catalog = loadString(kBannerToml);
     ASSERT_TRUE(catalog.hasIcon(world::ResourceKind::Silver));
     ASSERT_TRUE(catalog.hasIcon(world::ResourceKind::Gold));
-    const world::BannerIcon& gold = catalog.iconFor(world::ResourceKind::Gold);
+    const world::SpriteVisual& gold = catalog.iconFor(world::ResourceKind::Gold);
     EXPECT_EQ(gold.sheetImage, "Cavern/ore.png");
     EXPECT_EQ(gold.cellWidth, 16);
     EXPECT_EQ(gold.cellHeight, 16);

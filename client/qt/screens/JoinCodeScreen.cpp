@@ -4,16 +4,27 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QPushButton>
+#include <QPainter>
+#include <QTimerEvent>
 #include <QVBoxLayout>
 
 #include <utility>
 
+#include "core/MusicControl.h"
+#include "core/MusicTrack.h"
 #include "qt/services/SessionService.h"
+#include "qt/theme/CloudRects.h"
+#include "qt/theme/GameCursor.h"
+#include "qt/theme/JoinCodeRects.h"
+#include "qt/theme/TitleSprites.h"
+#include "qt/widgets/ParchmentBanner.h"
+#include "qt/widgets/TitleButton.h"
 
-JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent)
+JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
+			       core::MusicControl* music)
 	: Screen(parent)
 	, sessionService_(sessions)
+	, music_(music)
 	, code_(nullptr)
 	, ok_(nullptr)
 	, back_(nullptr)
@@ -22,42 +33,64 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent)
 	setObjectName("joinCode");
 
 	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(96, 64, 96, 64);
+	layout->setContentsMargins(96, 64, 28, 12);
 
-	layout->addStretch();
+	
+	auto* central = new QWidget(this);
+	auto* centralLayout = new QVBoxLayout(central);
+	
+	centralLayout->setSpacing(0);
+	centralLayout->setContentsMargins(0, 0, 68, 0);
+	layout->addWidget(central);
 
-	auto* prompt = new QLabel("Ingresá el código de invitación…", this);
+	centralLayout->addSpacing(JOIN_SCROLL_TOP_Y - 64);
+
+	auto* prompt = new QLabel("Ingresá el código de invitación...");
 	prompt->setObjectName("codePrompt");
-	prompt->setAlignment(Qt::AlignCenter);
-	layout->addWidget(prompt);
+	auto* banner = new ParchmentBanner(joinSprites_.scrollBanner(), prompt, central);
+	banner->setObjectName("scrollBanner");
+	centralLayout->addWidget(banner, 0, Qt::AlignHCenter);
+	centralLayout->addSpacing(JOIN_SCROLL_ROW_GAP);
 
 	auto* row = new QHBoxLayout();
-	row->setSpacing(16);
-	code_ = new QLineEdit(this);
+	row->setSpacing(4);
+	auto* box = new QLabel(central);
+	box->setPixmap(joinSprites_.inputBox());
+	box->setFixedSize(JOIN_INPUT_LOGICAL_W * 2, JOIN_INPUT_LOGICAL_H * 2);
+	box->setObjectName("codeBox");
+	auto* boxLayout = new QVBoxLayout(box);
+	boxLayout->setContentsMargins(JOIN_INPUT_PAD_LEFT, JOIN_INPUT_PAD_TOP,
+				      JOIN_INPUT_PAD_RIGHT, JOIN_INPUT_PAD_BOTTOM);
+	code_ = new QLineEdit(box);
 	code_->setObjectName("codeInput");
-	code_->setMinimumWidth(320);
-	ok_ = new QPushButton("OK", this);
+	code_->setFrame(false);
+	code_->setCursor(GameCursor().cursor());
+	boxLayout->addWidget(code_);
+	ok_ = new TitleButton(joinSprites_.okButton(), joinSprites_.okButtonHover(), "OK",
+			      central);
 	ok_->setObjectName("okButton");
 	ok_->setEnabled(false);
 	row->addStretch();
-	row->addWidget(code_);
-	row->addWidget(ok_);
+	row->addWidget(box);
+	row->addWidget(ok_, 0, Qt::AlignVCenter);
 	row->addStretch();
-	layout->addLayout(row);
+	centralLayout->addLayout(row);
 
-	status_ = new QLabel(this);
+	status_ = new QLabel(central);
 	status_->setObjectName("screenStatus");
 	status_->setAlignment(Qt::AlignCenter);
 	status_->setWordWrap(true);
 	status_->setVisible(false);
-	layout->addWidget(status_);
+	centralLayout->addSpacing(JOIN_STATUS_ROW_GAP);
+	centralLayout->addWidget(status_);
 
 	layout->addStretch();
 
 	auto* buttons = new QHBoxLayout();
-	back_ = new QPushButton("Volver", this);
+	TitleSprites sprites;
+	back_ = new TitleButton(sprites.backButton(), sprites.backButtonHover(), "Volver", this);
 	back_->setObjectName("backButton");
-	connect(back_, &QPushButton::clicked, this, [this]() {
+	connect(back_, &QAbstractButton::clicked, this, [this]() {
 		emit requestNavigate(ScreenId::MainMenu);
 	});
 	buttons->addStretch();
@@ -66,7 +99,8 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent)
 
 	connect(code_, &QLineEdit::textChanged, this,
 		&JoinCodeScreen::updateJoin);
-	connect(ok_, &QPushButton::clicked, this, &JoinCodeScreen::onJoin);
+	connect(code_, &QLineEdit::returnPressed, this, &JoinCodeScreen::onJoin);
+	connect(ok_, &QAbstractButton::clicked, this, &JoinCodeScreen::onJoin);
 	connect(sessionService_, &SessionService::gameJoined, this,
 		&JoinCodeScreen::onGameJoined);
 	connect(sessionService_, &SessionService::sessionFailed, this,
@@ -75,10 +109,39 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent)
 	buildMessages();
 }
 
-void JoinCodeScreen::onEnter() { code_->setFocus(); }
+void JoinCodeScreen::onEnter() {
+	code_->setFocus();
+
+	if (!cloudTimer_.isActive()) {
+		cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
+	}
+
+	if (music_ != nullptr) {
+		music_->play(core::MusicTrack::MenuTheme);
+	}
+}
 
 void JoinCodeScreen::onExit() {
 	joining_ = false;
+	if (cloudTimer_.isActive()) {
+		cloudTimer_.stop();
+	}
+}
+
+void JoinCodeScreen::paintEvent(QPaintEvent* event) {
+	QPainter painter(this);
+	backdrop_.paint(painter);
+	painter.fillRect(rect(), QColor(0, 0, 0, JOIN_BACKDROP_DIM_ALPHA));
+	QWidget::paintEvent(event);
+}
+
+void JoinCodeScreen::timerEvent(QTimerEvent* event) {
+	if (event->timerId() == cloudTimer_.timerId()) {
+		backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
+		update();
+		return;
+	}
+	QWidget::timerEvent(event);
 }
 
 void JoinCodeScreen::buildMessages() {
@@ -131,7 +194,7 @@ void JoinCodeScreen::showState(ScreenState state) {
 	ok_->setEnabled(!busy && canJoin());
 	status_->setVisible(busy);
 	if (busy) {
-		status_->setText("Conectando…");
+		status_->setText("Conectando...");
 	}
 }
 

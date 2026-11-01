@@ -45,6 +45,7 @@ constexpr const char* kAnchorBottomCenter = "bottom_center";
 
 constexpr const char* kItems = "items";
 constexpr const char* kItemAt = "at";
+constexpr const char* kSlotDrawn = "slot_drawn";
 
 constexpr const char* kBarDigitScale = "bar.digit_scale";
 constexpr const char* kBarDigitMargin = "bar.digit_margin";
@@ -130,21 +131,32 @@ InventoryLayout InventoryTomlReader::read() const {
 	}
 
 	if (doc_.hasKey(kItems)) {
-		readItems(layout.content);
+		readItems(layout);
 	}
 
 	return layout;
 }
 
-void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
+void InventoryTomlReader::readItems(world::InventoryLayout& layout) const {
 	const std::vector<std::string> names = doc_.subtableKeys(kItems);
 	for (const std::string& name : names) {
 		const std::string base = join(kItems, name);
 		// contentId = nombre de la subtabla. No se traduce a ningún
 		// enum: el inventario es genérico. El sprite se lee completo
 		// con el lector compartido (sheet/cell/at/drawn).
-		catalog.visuals.emplace(
+		layout.content.visuals.emplace(
 			name, world::SpriteVisual(doc_, base, kItemAt));
+		// slot_drawn (opcional): el tamaño en la celda del
+		// inventario, que puede diferir del `drawn` del mapa.
+		const std::string slotPath = join(base, kSlotDrawn);
+		if (doc_.hasKey(slotPath)) {
+			const std::array<int, 2> size =
+				doc_.getIntArray<2>(slotPath);
+			if (size[0] <= 0 || size[1] <= 0) {
+				throw ConfigError(Kind::InvalidValue, slotPath);
+			}
+			layout.slotDrawn.emplace(name, PixelSize{size[0], size[1]});
+		}
 	}
 }
 

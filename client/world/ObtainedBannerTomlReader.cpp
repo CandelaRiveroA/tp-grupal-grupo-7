@@ -35,19 +35,10 @@ constexpr const char* kDurationTicks = "duration_ticks";
 constexpr const char* kMaxVisible = "max_visible";
 constexpr const char* kStackGap = "stack_gap";
 
-// Mineral lógico -> tabla del TOML que describe su icono. Reusa el mismo
-// vocabulario que resources.toml.
-struct IconBinding {
-    ResourceKind kind;
-    const char* tableKey;
-};
-
-constexpr std::array<IconBinding, 4> kIconBindings = {{
-        {ResourceKind::Silver, "silver"},
-        {ResourceKind::Coal, "coal"},
-        {ResourceKind::Lapis, "lapis"},
-        {ResourceKind::Gold, "gold"},
-}};
+// Iconos del cartel: subtablas [icons.<contentId>]. Cualquier contenido
+// del juego puede tener su icono (vocabulario genérico: el mismo del
+// inventario y los ítems del piso).
+constexpr const char* kIcons = "icons";
 
 }  // namespace
 
@@ -140,11 +131,12 @@ ObtainedBannerCatalog ObtainedBannerTomlReader::read() const {
         }
     }
 
-    for (const IconBinding& binding: kIconBindings) {
-        if (!doc_.hasKey(binding.tableKey)) {
-            continue;
+    // La tabla de iconos es opcional: un TOML sin [icons] no tiene
+    // ningún icono (igual que los items del inventario).
+    if (doc_.hasKey(kIcons)) {
+        for (const std::string& name : doc_.subtableKeys(kIcons)) {
+            catalog.icons.emplace(name, readIcon(join(kIcons, name)));
         }
-        catalog.icons.emplace(binding.kind, readIcon(binding.tableKey));
     }
     return catalog;
 }

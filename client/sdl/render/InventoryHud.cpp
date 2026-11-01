@@ -86,9 +86,23 @@ void InventoryHud::draw(
 		const world::PixelBox& slotBox =
 			boxes[static_cast<std::size_t>(entry.slotIndex)];
 		const world::PixelBox icon = layout_.iconBox(slotBox);
+		// Tamaño en la celda: el `slot_drawn` del ítem si lo declara,
+		// si no el `drawn` del sprite (centrado), si no la caja
+		// entera (los de celda 16x16, por ejemplo).
+		int drawW = icon.width;
+		int drawH = icon.height;
+		const auto slotIt = layout_.slotDrawn.find(entry.contentId);
+		if (slotIt != layout_.slotDrawn.end()) {
+			drawW = slotIt->second.width;
+			drawH = slotIt->second.height;
+		} else if (visual->drawnWidth > 0 && visual->drawnHeight > 0) {
+			drawW = visual->displayWidth();
+			drawH = visual->displayHeight();
+		}
 		itemSheet.draw(visual->col, visual->row,
-			       SDL2pp::Rect(icon.x, icon.y, icon.width,
-					    icon.height));
+			       SDL2pp::Rect(icon.x + (icon.width - drawW) / 2,
+					    icon.y + (icon.height - drawH) / 2,
+					    drawW, drawH));
 		// Cantidad: solo se dibuja si hay más de 1.
 		if (entry.count > 1) {
 			drawCount(slotBox, entry.count);

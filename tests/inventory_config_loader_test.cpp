@@ -330,6 +330,78 @@ at    = [0, 0]
 	EXPECT_EQ(egg.drawnHeight, 0);
 }
 
+TEST(InventoryConfigLoaderTest, SlotDrawnIsIndependentOfDrawn) {
+	// `drawn` es el tamaño en el mapa; `slot_drawn` (opcional) el de la
+	// celda del inventario: pueden ser distintos.
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+drawn = [15, 16]
+slot_drawn = [23, 25]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	const auto slotIt = bar.slotDrawn.find("egg");
+	ASSERT_NE(slotIt, bar.slotDrawn.end());
+	EXPECT_EQ(slotIt->second.width, 23);
+	EXPECT_EQ(slotIt->second.height, 25);
+	const world::SpriteVisual& egg = *bar.content.find("egg");
+	EXPECT_EQ(egg.drawnWidth, 15);
+	EXPECT_EQ(egg.drawnHeight, 16);
+}
+
+TEST(InventoryConfigLoaderTest, ItemWithoutSlotDrawnHasNoEntry) {
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+drawn = [15, 16]
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	EXPECT_EQ(bar.slotDrawn.find("egg"), bar.slotDrawn.end());
+}
+
+TEST(InventoryConfigLoaderTest, GroundOffsetYIsOptional) {
+	// Sin offset_y, el ítem se apoya en los pies (0). Con offset_y se
+	// baja para compensar el aire del sprite (como los de ore.png).
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+
+[items.silver]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 1]
+offset_y = 8
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	const world::SpriteVisual& egg = *bar.content.find("egg");
+	EXPECT_EQ(egg.offsetY, 0);
+	const world::SpriteVisual& silver = *bar.content.find("silver");
+	EXPECT_EQ(silver.offsetY, 8);
+}
+
+TEST(InventoryConfigLoaderTest, ZeroSlotDrawnIsInvalidValue) {
+	const std::string toml = std::string(kItemBarToml) + R"(
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+slot_drawn = [0, 25]
+)";
+	try {
+		loadString(toml);
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(),
+			  world::ConfigErrorKind::InvalidValue);
+	}
+}
+
 TEST(InventoryConfigLoaderTest, ZeroDrawnIsInvalidValue) {
 	const std::string toml = std::string(kItemBarToml) + R"(
 [items.egg]
@@ -513,15 +585,23 @@ TEST(InventoryConfigLoaderTest, LoadsRealInventoryFile) {
 	ASSERT_TRUE(bar.content.find("egg"));
 	const world::SpriteVisual& egg = *bar.content.find("egg");
 	EXPECT_EQ(egg.sheetImage, "Farm/egg.png");
-	EXPECT_EQ(egg.drawnWidth, 15);
+	// El tamaño del mapa (drawn) es el MISMO que el huevo en las manos
+	// durante el recogido; el del slot (slot_drawn) es distinto.
+	EXPECT_EQ(egg.drawnWidth, 16);
 	EXPECT_EQ(egg.drawnHeight, 16);
+	const auto eggSlot = bar.slotDrawn.find("egg");
+	ASSERT_NE(eggSlot, bar.slotDrawn.end());
+	EXPECT_EQ(eggSlot->second.width, 23);
+	EXPECT_EQ(eggSlot->second.height, 25);
 
-	// La leche de la vaca está en el catálogo (sprite único 10x12).
+	// La leche de la vaca está en el catálogo (mismo sprite que el
+	// diálogo de la vaca, celda única 53x64, dibujada más chica en el
+	// slot).
 	ASSERT_TRUE(bar.content.find("milk"));
 	const world::SpriteVisual& milk = *bar.content.find("milk");
-	EXPECT_EQ(milk.sheetImage, "Farm/milk.png");
-	EXPECT_EQ(milk.drawnWidth, 15);
-	EXPECT_EQ(milk.drawnHeight, 18);
+	EXPECT_EQ(milk.sheetImage, "Farm/large_milk.png");
+	EXPECT_EQ(milk.drawnWidth, 23);
+	EXPECT_EQ(milk.drawnHeight, 27);
 }
 #endif
 

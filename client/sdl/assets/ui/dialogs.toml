@@ -1,0 +1,30 @@
+# Diálogos que las entidades muestran sobre sí mismas (indicaciones del
+# estado de juego: el server las manda; hoy el mock las simula). Cada
+# diálogo es: animación de aparición (frames sobre una hoja común) +
+# contenido centrado adentro + ancla sobre la entidad.
+#
+# Cambiar lo que muestra un diálogo = datos. Agregar uno = una entrada
+# acá + su valor en world::Indication; el dibujo no cambia.
+
+[ready_to_milk]
+# Offset en px desde la esquina superior izquierda de la caja dibujada de
+# la entidad (Y negativa = sobre ella).
+anchor_offset = [0, -40]
+
+  [ready_to_milk.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  # Los frames de la animación, de chico a grande: una celda por frame.
+  frames      = [ [0, 0], [1, 0], [2, 0], [3, 0] ]
+
+  [ready_to_milk.content]
+  sheet = "Farm/large_milk.png"
+  cell  = [53, 64]
+  at    = [0, 0]
+  # Un tamaño menos que la mitad (53x64 -> 13x16, conserva proporción).
+  drawn = [13, 16]
+  # Corrección óptica del centrado (4 px más arriba).
+  offset = [0, -4]

@@ -38,6 +38,10 @@ public:
     PlayerEvents tick(int iteration, const std::optional<world::Direction>& pressed,
                       const std::vector<game::InputCommand>& commands);
 
+    // Intención de tocar/agarrar lo que se clickeó: manda un Take hacia
+    // la fuente de estado, que decide (cercanía, validez, qué pasa).
+    void interact();
+
     int activeSlot() const;
 
 private:

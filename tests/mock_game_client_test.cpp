@@ -273,7 +273,7 @@ TEST(MockGameClientTest, TakeOnDroppedCellEmitsObtained) {
     client.sendCommand(take(world::Direction::Right));
     const game::LocalWorldView& view = tick(client);
     ASSERT_EQ(view.obtained.size(), 1u);
-    EXPECT_EQ(view.obtained.front().kind, world::ResourceKind::Silver);
+    EXPECT_EQ(view.obtained.front().contentId, "silver");
     // El item desaparece del piso al recogerse.
     EXPECT_FALSE(droppedAt(client, 6, 5).has_value());
 }

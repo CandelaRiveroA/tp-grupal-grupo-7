@@ -150,7 +150,7 @@ void MockGameClient::advanceObtained() {
     // El evento de obtención lo dispara un Take exitoso (no se deduce):
     // se emite por un solo tick y luego se limpia.
     if (obtainedPending_) {
-        view_.obtained.push_back(ViewResourceObtained{obtainedKind_});
+        view_.obtained.push_back(ViewObtained{obtainedContentId_});
         obtainedPending_ = false;
     }
 }
@@ -170,51 +170,22 @@ void MockGameClient::collectAt(int cellX, int cellY) {
         return;  // no hay nada para recoger en esa celda
     }
     const world::ResourceKind kind = dropped_[static_cast<std::size_t>(index)].kind;
-    obtainedKind_ = kind;
+    const std::string contentId = contentIdFor(kind);
+    obtainedContentId_ = contentId;
     obtainedPending_ = true;
     dropped_.erase(dropped_.begin() + index);
     // Recoger = sumar al inventario. El servidor manda la cantidad; el
     // mock la simula acumulando +1.
-    addToInventory(contentIdFor(kind));
+    addToInventory(contentId);
 }
 
 void MockGameClient::addToInventory(const std::string& contentId) {
-    for (ViewInventorySlot& slot: view_.inventory) {
-        // cppcheck-suppress useStlAlgorithm
-        if (slot.contentId == contentId) {
-            ++slot.count;
-            return;
-        }
-    }
-    // No estaba: ocupar el primer slotIndex libre.
-    int index = 0;
-    bool used = true;
-    while (used) {
-        used = false;
-        for (const ViewInventorySlot& slot: view_.inventory) {
-            // cppcheck-suppress useStlAlgorithm
-            if (slot.slotIndex == index) {
-                used = true;
-                ++index;
-                break;
-            }
-        }
-    }
-    view_.inventory.push_back({index, contentId, 1});
+    view_.addInventoryContent(contentId);
 }
 
 std::string MockGameClient::contentIdFor(world::ResourceKind kind) const {
-    switch (kind) {
-        case world::ResourceKind::Silver:
-            return "silver";
-        case world::ResourceKind::Coal:
-            return "coal";
-        case world::ResourceKind::Lapis:
-            return "lapis";
-        case world::ResourceKind::Gold:
-            return "gold";
-    }
-    return "";
+    const std::string* found = contentIds_.find(kind);
+    return found != nullptr ? *found : "";
 }
 
 void MockGameClient::rebuildView() {

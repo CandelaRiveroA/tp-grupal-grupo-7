@@ -58,7 +58,7 @@ private:
     std::map<std::pair<int, int>, ViewDroppedItem> dropped_;
     std::map<int, ViewInventorySlot> inventory_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
-    std::vector<ViewResourceObtained> obtained_;
+    std::vector<ViewObtained> obtained_;
     LocalWorldView view_;
 };
 

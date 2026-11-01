@@ -1,9 +1,10 @@
+#include <cstdlib>
 #include <memory>
 #include <variant>
 #include <vector>
 
 #include "common/common_command.h"
-#include "game/AnimalOverlayClient.h"
+#include "game/MockWorldClient.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
 #include "game/MockGameClient.h"
@@ -14,7 +15,7 @@
 
 namespace {
 
-using game::AnimalOverlayClient;
+using game::MockWorldClient;
 using game::GameClient;
 using game::LocalWorldView;
 using game::ViewDroppedItem;
@@ -40,7 +41,7 @@ const world::CharacterCatalog& worldCatalog() {
 // los animales, igual que en el juego (donde el inner es la red).
 std::unique_ptr<GameClient> makeClient(
         const world::CharacterCatalog& characters) {
-    return std::make_unique<AnimalOverlayClient>(
+    return std::make_unique<MockWorldClient>(
             std::make_unique<game::MockGameClient>(
                     kRoomColumns, kRoomRows, kPlayerX, kPlayerY, kToolTicks),
             characters, world::GridSpan{kRoomColumns, kRoomRows});
@@ -62,7 +63,20 @@ protocol::ClientMessage walk(world::Direction direction) {
     return protocol::MoveMessage{world::wireDirectionFrom(direction)};
 }
 
-TEST(AnimalOverlayClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
+protocol::ClientMessage take(world::Direction direction) {
+    return protocol::TakeMessage{world::wireDirectionFrom(direction)};
+}
+
+world::Direction toward(int fromX, int fromY, int toX, int toY) {
+    const int dx = toX - fromX;
+    const int dy = toY - fromY;
+    if (std::abs(dx) >= std::abs(dy)) {
+        return dx >= 0 ? world::Direction::Right : world::Direction::Left;
+    }
+    return dy >= 0 ? world::Direction::Front : world::Direction::Back;
+}
+
+TEST(MockWorldClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     const LocalWorldView& view = client->worldState();
     // 3 gallinas + 3 vacas + jugador, en orden de spawn.
@@ -87,7 +101,7 @@ TEST(AnimalOverlayClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
     }
 }
 
-TEST(AnimalOverlayClientTest, WithoutAppearancesOnlyThePlayerShows) {
+TEST(MockWorldClientTest, WithoutAppearancesOnlyThePlayerShows) {
     const world::CharacterCatalog empty;
     const std::unique_ptr<GameClient> client = makeClient(empty);
     const LocalWorldView& view = client->worldState();
@@ -95,7 +109,7 @@ TEST(AnimalOverlayClientTest, WithoutAppearancesOnlyThePlayerShows) {
     EXPECT_EQ(view.entities[0].kind, CreatureKind::Player);
 }
 
-TEST(AnimalOverlayClientTest, AnimalIdsAreUnique) {
+TEST(MockWorldClientTest, AnimalIdsAreUnique) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     const LocalWorldView& view = client->worldState();
     for (std::size_t a = 0; a < view.entities.size(); ++a) {
@@ -105,7 +119,7 @@ TEST(AnimalOverlayClientTest, AnimalIdsAreUnique) {
     }
 }
 
-TEST(AnimalOverlayClientTest, AnimalsMoveOverUpdateTicks) {
+TEST(MockWorldClientTest, AnimalsMoveOverUpdateTicks) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
 
     int movedCells = 0;
@@ -142,7 +156,7 @@ TEST(AnimalOverlayClientTest, AnimalsMoveOverUpdateTicks) {
     EXPECT_GT(movedCells, 0);
 }
 
-TEST(AnimalOverlayClientTest, AnimalActionMatchesItsMovement) {
+TEST(MockWorldClientTest, AnimalActionMatchesItsMovement) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     for (int it = 0; it <= 200; ++it) {
         client->update(it);
@@ -158,7 +172,7 @@ TEST(AnimalOverlayClientTest, AnimalActionMatchesItsMovement) {
     }
 }
 
-TEST(AnimalOverlayClientTest, CommandsReachTheInnerSource) {
+TEST(MockWorldClientTest, CommandsReachTheInnerSource) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
 
     // El jugador camina una celda a la derecha en el mock de adentro;
@@ -173,7 +187,7 @@ TEST(AnimalOverlayClientTest, CommandsReachTheInnerSource) {
 
 // --- Huevos: la gallina pone, el ítem aparece en el suelo ---------------
 
-TEST(AnimalOverlayClientTest, ProducingAnimalsDropItemsOnTheGround) {
+TEST(MockWorldClientTest, ProducingAnimalsDropItemsOnTheGround) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
 
     // El período de postura es largo (gama en el .cpp de la
@@ -183,11 +197,11 @@ TEST(AnimalOverlayClientTest, ProducingAnimalsDropItemsOnTheGround) {
     ASSERT_FALSE(drops.empty());
 
     for (const ViewDroppedItem& drop : drops) {
-        // El ítem es uno de los que la tabla de postura declara para
-        // algún kind (gallina -> huevo, vaca -> leche).
-        const bool knownDrop =
-                drop.contentId == "egg" || drop.contentId == "milk";
-        EXPECT_TRUE(knownDrop);
+        // Al piso caen huevos; la leche NO: la vaca queda lista para
+        // ordeñar y lo dice con su diálogo.
+        EXPECT_EQ(drop.contentId, "egg");
+        // El "server falso" los marca interactivos (tocables).
+        EXPECT_TRUE(drop.interactive);
         EXPECT_GE(drop.cellX, 0);
         EXPECT_LT(drop.cellX, kRoomColumns);
         EXPECT_GE(drop.cellY, 0);
@@ -195,9 +209,19 @@ TEST(AnimalOverlayClientTest, ProducingAnimalsDropItemsOnTheGround) {
         // Nadie suelta un ítem en la celda del jugador.
         EXPECT_FALSE(drop.cellX == kPlayerX && drop.cellY == kPlayerY);
     }
+
+    // Y al menos una vaca queda con su indicación de lista.
+    bool anyReady = false;
+    for (const game::ViewEntity& entity : client->worldState().entities) {
+        if (entity.kind == CreatureKind::Cow &&
+            entity.indication == world::Indication::ReadyToMilk) {
+            anyReady = true;
+        }
+    }
+    EXPECT_TRUE(anyReady);
 }
 
-TEST(AnimalOverlayClientTest, GroundItemCountNeverExceedsTheCap) {
+TEST(MockWorldClientTest, GroundItemCountNeverExceedsTheCap) {
     // Sin recogida, el tope de ítems en el suelo es lo que evita que
     // la vista se llene de ítems (regla silenciosa del "server
     // falso", como el límite de slots del inventario).
@@ -206,7 +230,7 @@ TEST(AnimalOverlayClientTest, GroundItemCountNeverExceedsTheCap) {
     EXPECT_LE(drops.size(), 3u);
 }
 
-TEST(AnimalOverlayClientTest, GroundItemsAreStableBetweenFrames) {
+TEST(MockWorldClientTest, GroundItemsAreStableBetweenFrames) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     const std::vector<ViewDroppedItem> drops = groundItemsAfter(*client, 3000);
     ASSERT_FALSE(drops.empty());
@@ -225,7 +249,7 @@ TEST(AnimalOverlayClientTest, GroundItemsAreStableBetweenFrames) {
     }
 }
 
-TEST(AnimalOverlayClientTest, GroundItemsNeverShareACell) {
+TEST(MockWorldClientTest, GroundItemsNeverShareACell) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     for (int it = 0; it <= 8000; ++it) {
         client->update(it);
@@ -240,6 +264,161 @@ TEST(AnimalOverlayClientTest, GroundItemsNeverShareACell) {
             }
         }
     }
+}
+
+// --- Ordeñe: tocar la vaca lista, animar, y recibir la leche -------------
+
+TEST(MockWorldClientTest, MilkingAReadyCowYieldsMilkAfterTheWindow) {
+    const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
+
+    // Avanzar hasta que alguna vaca quede lista para ordeñar.
+    int it = 0;
+    int cowId = -1;
+    for (; it <= 8000; ++it) {
+        client->update(it);
+        for (const game::ViewEntity& entity : client->worldState().entities) {
+            if (entity.indication == world::Indication::ReadyToMilk) {
+                cowId = entity.id;
+                break;
+            }
+        }
+        if (cowId >= 0) {
+            break;
+        }
+    }
+    ASSERT_GE(cowId, 0);
+
+    // Acercarse: la vaca camina, así que seguirla paso a paso hasta
+    // estar a menos de una celda (la cercanía la valida la fuente).
+    for (int steps = 0; steps < 200; ++steps) {
+        const game::LocalWorldView& view = client->worldState();
+        const game::ViewEntity& player = view.entities[0];
+        const game::ViewEntity* cow = nullptr;
+        for (const game::ViewEntity& entity : view.entities) {
+            if (entity.id == cowId) {
+                cow = &entity;
+                break;
+            }
+        }
+        ASSERT_NE(cow, nullptr);
+        if (std::abs(cow->cellX - player.cellX) <= 1 &&
+            std::abs(cow->cellY - player.cellY) <= 1) {
+            break;
+        }
+        client->sendCommand(walk(toward(player.cellX, player.cellY,
+                                        cow->cellX, cow->cellY)));
+        client->update(++it);
+    }
+
+    // Tocar la vaca: arranca el ordeñe (el jugador queda con la acción
+    // Milk, mirando a la vaca).
+    client->sendCommand(take(world::Direction::Front));
+    client->update(++it);
+    const game::ViewEntity& milking = client->worldState().entities[0];
+    EXPECT_EQ(milking.action, world::ActionKind::Milk);
+
+    // Tras la ventana (2 ciclos de la animación): la leche entra al
+    // inventario con su evento de obtenido, y la vaca deja de estar
+    // lista (su diálogo se cierra).
+    bool obtainedMilk = false;
+    bool hasMilk = false;
+    for (int n = 0; n < 200 && !hasMilk; ++n) {
+        client->update(++it);
+        for (const game::ViewObtained& event : client->worldState().obtained) {
+            if (event.contentId == "milk") {
+                obtainedMilk = true;
+            }
+        }
+        for (const game::ViewInventorySlot& slot :
+             client->worldState().inventory) {
+            if (slot.contentId == "milk" && slot.count > 0) {
+                hasMilk = true;
+            }
+        }
+    }
+    EXPECT_TRUE(obtainedMilk);
+    EXPECT_TRUE(hasMilk);
+
+    // El jugador vuelve a la normalidad y la vaca ya no está lista.
+    const game::LocalWorldView& end = client->worldState();
+    EXPECT_NE(end.entities[0].action, world::ActionKind::Milk);
+    for (const game::ViewEntity& entity : end.entities) {
+        if (entity.id == cowId) {
+            EXPECT_FALSE(entity.indication.has_value());
+        }
+    }
+}
+
+// --- Recoger: tocar el huevo del piso, animar, y recibirlo ----------------
+
+TEST(MockWorldClientTest, PickingUpAGroundEggYieldsItAfterTheWindow) {
+    const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
+
+    // Avanzar hasta que un animal deje algo en el piso.
+    int it = 0;
+    for (; it <= 8000 && client->worldState().droppedItems.empty(); ++it) {
+        client->update(it);
+    }
+    ASSERT_FALSE(client->worldState().droppedItems.empty());
+
+    // Acercarse al ítem (está quieto: basta caminar hacia él).
+    for (int steps = 0; steps < 200; ++steps) {
+        const game::LocalWorldView& view = client->worldState();
+        const game::ViewEntity& player = view.entities[0];
+        const game::ViewDroppedItem& item = view.droppedItems[0];
+        if (std::abs(item.cellX - player.cellX) <= 1 &&
+            std::abs(item.cellY - player.cellY) <= 1) {
+            break;
+        }
+        client->sendCommand(walk(toward(player.cellX, player.cellY,
+                                        item.cellX, item.cellY)));
+        client->update(++it);
+    }
+
+    const game::ViewDroppedItem& target = client->worldState().droppedItems[0];
+    const std::string picked = target.contentId;
+    const int pickedCellX = target.cellX;
+    const int pickedCellY = target.cellY;
+
+    // Tocar el ítem: arranca el recogido — el huevo queda en las manos
+    // (el piso lo pierde) y el jugador hace la acción Pickup.
+    client->sendCommand(take(world::Direction::Front));
+    client->update(++it);
+    const game::ViewEntity& picking = client->worldState().entities[0];
+    EXPECT_EQ(picking.action, world::ActionKind::Pickup);
+    ASSERT_TRUE(picking.activeTool.has_value());
+    EXPECT_EQ(*picking.activeTool, world::ItemKind::Egg);
+    for (const game::ViewDroppedItem& item :
+         client->worldState().droppedItems) {
+        EXPECT_FALSE(item.cellX == pickedCellX && item.cellY == pickedCellY)
+                << "el ítem siguió en el piso durante el recogido";
+    }
+
+    // Tras la ventana (1 ciclo de la animación): el ítem entra al
+    // inventario con su evento de obtenido.
+    bool obtained = false;
+    bool hasIt = false;
+    for (int n = 0; n < 200 && !hasIt; ++n) {
+        client->update(++it);
+        for (const game::ViewObtained& event :
+             client->worldState().obtained) {
+            if (event.contentId == picked) {
+                obtained = true;
+            }
+        }
+        for (const game::ViewInventorySlot& slot :
+             client->worldState().inventory) {
+            if (slot.contentId == picked && slot.count > 0) {
+                hasIt = true;
+            }
+        }
+    }
+    EXPECT_TRUE(obtained);
+    EXPECT_TRUE(hasIt);
+
+    // El jugador vuelve a la normalidad.
+    EXPECT_NE(client->worldState().entities[0].action,
+              world::ActionKind::Pickup);
 }
 
 }  // namespace

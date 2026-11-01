@@ -7,6 +7,7 @@
 #include "common/common_command.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
+#include "world/ContentIds.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 
@@ -14,7 +15,7 @@ namespace game {
 
 // "Server falso": simula el mundo del lado del servidor (jugador,
 // minerales, inventario) sin red. Los animales NO viven acá: los
-// superpone game::AnimalOverlayClient sobre cualquier GameClient.
+// superpone game::MockWorldClient sobre cualquier GameClient.
 class MockGameClient: public GameClient {
 public:
     MockGameClient(int gridColumns, int gridRows, int startX, int startY,
@@ -64,6 +65,9 @@ private:
     // y que inventory.toml / resources.toml).
     std::string contentIdFor(world::ResourceKind kind) const;
 
+    // Vocabulario contentId compartido (ver world::ContentIds).
+    world::ContentIds contentIds_;
+
     // update() avanza la simulación un tick; worldState() solo consulta la vista.
     void advanceToolUse();
 
@@ -98,7 +102,7 @@ private:
     // Evento de obtención encolado por un Take exitoso: se emite en el
     // próximo update() y dura un solo tick.
     bool obtainedPending_ = false;
-    world::ResourceKind obtainedKind_{};
+    std::string obtainedContentId_;
 
     LocalWorldView view_;
 };

@@ -118,6 +118,17 @@ TEST(PlayerControllerTest, CommandsRunInArrivalOrder) {
     EXPECT_EQ(player.activeSlot(), 1);
 }
 
+TEST(PlayerControllerTest, InteractSendsTake) {
+    RecordingGameClient client;
+    PlayerController player(client, kCadence, 4);
+
+    // El click sobre algo del mundo manda la intención de tomarlo; la
+    // fuente decide qué pasa con ella.
+    player.interact();
+    ASSERT_EQ(client.sent.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<protocol::TakeMessage>(client.sent[0]));
+}
+
 TEST(PlayerControllerTest, UnknownCommandKindThrows) {
     RecordingGameClient client;
     PlayerController player(client, kCadence, 4);

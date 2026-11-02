@@ -157,6 +157,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/SceneTomlReader.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
+        client/world/CharacterPaletteLoader.cpp
         client/world/CreatureCatalog.cpp
         client/world/CharacterTomlReader.cpp
         client/world/CharacterLayout.cpp

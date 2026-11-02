@@ -633,6 +633,17 @@ int main(int argc, char** argv) {
 			     int(loading), st4->text().toUtf8().constData());
 		check(loading, "cargando: se congela el formulario y el estado lo dice");
 		check(slow.creates == 1, "doble disparo con el pedido en vuelo = un solo createGame");
+		// Salir con el pedido en vuelo: la respuesta tardia no entra al juego.
+		int lateConfirmed = 0;
+		QObject::connect(&s4, &CharacterScreen::characterConfirmed,
+				 [&](CharacterSelection) { ++lateConfirmed; });
+		s4.onExit();
+		{
+			QEventLoop loop;
+			QTimer::singleShot(500, &loop, &QEventLoop::quit);
+			loop.exec();
+		}
+		check(lateConfirmed == 0, "salir con el pedido en vuelo no emite characterConfirmed");
 		// error de nombre tomado
 		CountingSession failing(20, ServiceError::GameNameTaken);
 		CharacterScreen s3(&failing, &catalog2);

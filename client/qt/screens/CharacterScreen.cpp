@@ -379,6 +379,10 @@ void CharacterScreen::submit() {
 }
 
 void CharacterScreen::onCreated() {
+	if (!submitting_) {
+		// Llegó después de salir de la pantalla: no se entra al juego.
+		return;
+	}
 	submitting_ = false;
 	emit characterConfirmed(selection_);
 }

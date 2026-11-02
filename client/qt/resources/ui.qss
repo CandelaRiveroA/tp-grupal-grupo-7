@@ -1,7 +1,73 @@
 /*
  * Hoja de estilos global del cliente.
  *
- * En esta etapa está vacía a propósito: la tanda N1 solo verifica que el
- * recurso llegue al binario y que Application pueda aplicarlo. Las reglas
- * reales se agregan en la fase V1, cuando exista el bundle de assets.
+ * Los estilados se limitan a selectores con objectName: una regla sin id
+ * alcanza a todas las instancias del widget y cambia el look de las
+ * demás pantallas. La familia "StardewValley" es registrada por
+ * Application en el arranque (recursos del qrc).
  */
+
+QLabel#codePrompt {
+    color: #4a1808;
+    font-family: "StardewValley";
+    font-size: 26px;
+}
+
+QLineEdit#codeInput {
+    color: #3b170c;
+    background: transparent;
+    border: none;
+    font-family: "StardewValley";
+    font-size: 26px;
+}
+
+QLabel#screenStatus {
+    color: #fff0ba;
+    font-family: "StardewValley";
+    font-size: 26px;
+}
+
+/* Pantalla de personaje: acotada a #character; el texto va en Pixel Operator. */
+QWidget#character QLabel {
+    color: #56160c;
+    font-family: "Pixel Operator";
+    font-size: 24px;
+}
+
+QWidget#character QLabel#screenStatus {
+    color: #fff0ba;
+    font-family: "Pixel Operator";
+    font-size: 24px;
+}
+
+QLineEdit#characterInput,
+QLineEdit#gameInput {
+    color: #3b170c;
+    background: transparent;
+    border: none;
+    font-family: "Pixel Operator";
+    font-size: 24px;
+}
+
+QLineEdit#gameInput:read-only {
+    color: #7a5a40;
+}
+
+/* Deslizadores: linea fina y perilla chica de Cursors. */
+QSlider#eyesSlider::groove:horizontal,
+QSlider#hairColorSlider::groove:horizontal,
+QSlider#pantsColorSlider::groove:horizontal {
+    background: #4a2a1c;
+    border: none;
+    height: 3px;
+}
+
+QSlider#eyesSlider::handle:horizontal,
+QSlider#hairColorSlider::handle:horizontal,
+QSlider#pantsColorSlider::handle:horizontal {
+    image: url(:/ui/character/slider_knob.png);
+    border: none;
+    width: 11px;
+    height: 14px;
+    margin: -6px 0;
+}

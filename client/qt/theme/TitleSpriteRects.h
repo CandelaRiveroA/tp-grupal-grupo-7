@@ -15,6 +15,13 @@
 #define ATLAS_BUTTON_HOVER_Y 244
 #define ATLAS_BUTTON_COUNT 4
 
+// Boton "Volver": franja derecha de la segunda fila (usado por JoinCodeScreen)
+#define ATLAS_BACK_X 296
+#define ATLAS_BACK_Y_NORMAL 252
+#define ATLAS_BACK_Y_HOVER 279
+#define ATLAS_BACK_W 66
+#define ATLAS_BACK_H 27
+
 // Tamano fijo de la ventana del lobby
 #define TITLE_SCREEN_W 1280
 #define TITLE_SCREEN_H 720

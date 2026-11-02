@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include <QFile>
+#include <QFontDatabase>
 #include <QString>
 #include <QtGlobal>
 #include <cstdlib>
@@ -18,6 +19,8 @@
 #include "sdl/log/Logger.h"
 #include "world/CharacterCatalog.h"
 #include "world/CharacterCatalogLoader.h"
+#include "world/CharacterPaletteLoader.h"
+#include "world/CharacterPalettes.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
 #include "world/CursorConfigLoader.h"
@@ -41,7 +44,17 @@ namespace core {
 
 Application::Application(int& argc, char** argv):
         config_(kWindowWidth, kWindowHeight, kWindowTitle), app_(argc, argv) {
+    loadFonts();
     loadStyleSheet();
+}
+
+void Application::loadFonts() {
+    // StardewValley: pergaminos; Pixel Operator: el resto de los textos.
+    for (const char* path: {":/fonts/stardew.ttf", ":/fonts/pixel_operator.ttf"}) {
+        if (QFontDatabase::addApplicationFont(path) < 0) {
+            qWarning("No se pudo registrar la fuente %s", path);
+        }
+    }
 }
 
 void Application::loadStyleSheet() {
@@ -54,19 +67,33 @@ void Application::loadStyleSheet() {
 }
 
 int Application::run() {
+    std::optional<SessionConfig> session;
+    try {
+        session = runLobby();
+    } catch (const world::ConfigError& error) {
+        const sdl::Logger logger;
+        logger.error(error.what());
+        return EXIT_FAILURE;
+    }
 
-    std::optional<SessionConfig> session = runLobby();
     if (!session.has_value()) {
         return 0;
     }
-
     return runGame(std::move(*session));
 }
 
 std::optional<SessionConfig> Application::runLobby() {
+    const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+            core::assetPath(core::kCharactersFile));
+    QFile paletteFile(core::kPalettesResource);
+    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
+    }
+    const world::CharacterPalettes palettes =
+            world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
 
     sdl::MusicPlayer music;
-    LobbyWindow lobby(config_, &music);
+    LobbyWindow lobby(config_, characters, palettes, &music);
     lobby.show();
     app_.exec();
 

@@ -11,17 +11,17 @@
 
 #include <utility>
 
-#include "qt/services/AssetCatalog.h"
+#include "qt/services/CharacterLayerSource.h"
 #include "qt/services/SaveService.h"
 #include "qt/services/SessionService.h"
 #include "qt/widgets/CharacterPreview.h"
 
 SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
-			       const AssetCatalog* catalog, QWidget* parent)
+			       const CharacterLayerSource* source, QWidget* parent)
 	: Screen(parent)
 	, saveService_(saves)
 	, sessionService_(sessions)
-	, catalog_(catalog)
+	, source_(source)
 	, scroll_(nullptr)
 	, rowsHost_(nullptr)
 	, rowsLayout_(nullptr)
@@ -104,6 +104,7 @@ SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
 void SaveListScreen::onEnter() {
 	// Siempre se vuelve a pedir: el server puede haber creado o borrado
 	// partidas desde la última visita.
+	Screen::onEnter();
 	requestSaves();
 }
 
@@ -172,7 +173,7 @@ QWidget* SaveListScreen::makeRow(const SaveSummary& save, int index) {
 
 	// Retrato a escala 2 del lienzo (el sizeHint del preview apunta a la
 	// escala 6 de la pantalla de personaje).
-	auto* portrait = new CharacterPreview(catalog_, row);
+	auto* portrait = new CharacterPreview(source_, row);
 	portrait->setAttribute(Qt::WA_TransparentForMouseEvents);
 	portrait->setAppearance(save.players.empty() ? CharacterAppearance{}
 						     : save.players.front()

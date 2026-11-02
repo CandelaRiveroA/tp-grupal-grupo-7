@@ -2,7 +2,6 @@
 
 #include <QString>
 
-#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -11,16 +10,19 @@
 #include "common/model/draft/WorldSummary.h"
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
-#include "qt/util/CharacterLayer.h"
-#include "qt/util/CharacterLayers.h"
+#include "qt/theme/CharacterSprites.h"
 
-class AssetCatalog;
-class CharacterPreview;
+namespace core {
+class MusicControl;
+}
+
+class CharacterAppearanceEditor;
+class CharacterLayerSource;
 class QFrame;
 class QLabel;
 class QLineEdit;
-class QPushButton;
-class QSlider;
+class QVBoxLayout;
+class TitleButton;
 class QWidget;
 class SessionService;
 
@@ -36,8 +38,9 @@ class CharacterScreen : public Screen {
 	Q_OBJECT
 
 public:
-	CharacterScreen(SessionService* session, const AssetCatalog* catalog,
-			QWidget* parent = nullptr);
+	CharacterScreen(SessionService* session, const CharacterLayerSource* source,
+			QWidget* parent = nullptr,
+			core::MusicControl* music = nullptr);
 
 	// El shell llama antes de navegar: fija el mundo y limpia el borrador.
 	void startNewGame(const WorldSummary& world);
@@ -48,25 +51,26 @@ public:
 	void startJoinGame(const std::string& gameName);
 
 	void onEnter() override;
+	void onExit() override;
 
 signals:
 	void characterConfirmed(CharacterSelection selection);
 
 private:
 	SessionService* session_;
-	const AssetCatalog* catalog_;
-	CharacterLayers layers_;
+	core::MusicControl* music_;
+	const CharacterLayerSource* source_;
+
+	CharacterSprites sprites_;
+	CharacterAppearanceEditor* editor_;
 
 	QFrame* content_;
-	CharacterPreview* preview_;
 	QLabel* worldLabel_;
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
-	QPushButton* create_;
-	QPushButton* backButton_;
+	TitleButton* create_;
+	TitleButton* backButton_;
 	QLabel* status_;
-	std::map<CharacterLayer, QLabel*> values_;
-	std::map<CharacterLayer, QSlider*> sliders_;
 	std::map<ServiceError, QString> errorMessages_;
 
 	CharacterSelection selection_;
@@ -80,17 +84,11 @@ private:
 	// Un createGame en vuelo: bloquea reenvío y respuestas ajenas.
 	bool submitting_ = false;
 
-	static constexpr int kWindowMaxWidth = 960;
-
 	void buildMessages();
 	void buildUi();
-	QWidget* makePreviewColumn();
 	QWidget* makeFormColumn();
-	QWidget* makeRow(CharacterLayer layer, const QString& name);
-	QWidget* makeSlider(CharacterLayer layer, const QString& name);
-	void cycleLayer(CharacterLayer layer, int direction);
-	void setLayer(CharacterLayer layer, std::uint8_t index);
-	void applyDraft();
+	QLineEdit* makeInputRow(QVBoxLayout* layout, const QString& label,
+				const QString& objectName, int maxLength);
 	void updateValidation();
 	void submit();
 	void onCreated();

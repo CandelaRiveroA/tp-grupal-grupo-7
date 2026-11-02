@@ -8,19 +8,25 @@
 
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
+#include "qt/theme/JoinCodeSprites.h"
+
+namespace core {
+class MusicControl;
+}
 
 class QLineEdit;
 class QLabel;
-class QPushButton;
+class QPaintEvent;
 class SessionService;
+class TitleButton;
 class QWidget;
 
 class JoinCodeScreen : public Screen {
 	Q_OBJECT
 
 public:
-	explicit JoinCodeScreen(SessionService* sessions,
-				QWidget* parent = nullptr);
+	explicit JoinCodeScreen(SessionService* sessions, QWidget* parent = nullptr,
+				core::MusicControl* music = nullptr);
 
 	void onEnter() override;
 	void onExit() override;
@@ -31,9 +37,10 @@ signals:
 private:
 	SessionService* sessionService_;
 
+	core::MusicControl* music_;
 	QLineEdit* code_;
-	QPushButton* ok_;
-	QPushButton* back_;
+	TitleButton* ok_;
+	TitleButton* back_;
 	QLabel* status_;
 	std::map<ServiceError, QString> errorMessages_;
 
@@ -47,4 +54,8 @@ private:
 	void showState(ScreenState state);
 	QString messageFor(ServiceError error) const;
 	bool canJoin() const;
+
+	void paintEvent(QPaintEvent* event) override;
+
+	JoinCodeSprites joinSprites_;
 };

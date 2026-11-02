@@ -13,6 +13,8 @@ public:
     const QPixmap& logo() const;
     const QPixmap& button(int index) const;
     const QPixmap& buttonHover(int index) const;
+    const QPixmap& backButton() const;
+    const QPixmap& backButtonHover() const;
 
 private:
     QPixmap scaledTimesTwo(const QPixmap& sprite) const;
@@ -20,4 +22,6 @@ private:
     QPixmap logo_;
     QPixmap buttons_[ATLAS_BUTTON_COUNT];
     QPixmap buttonsHover_[ATLAS_BUTTON_COUNT];
+    QPixmap back_;
+    QPixmap backHover_;
 };

@@ -1,18 +1,23 @@
 #include "CharacterPreview.h"
 
+#include <QColor>
+#include <QImage>
 #include <QPainter>
 #include <QPalette>
 
 #include <algorithm>
+#include <map>
 
-#include "qt/services/AssetCatalog.h"
+#include "qt/services/CharacterLayerSource.h"
 
-CharacterPreview::CharacterPreview(const AssetCatalog* catalog,
+CharacterPreview::CharacterPreview(const CharacterLayerSource* source,
 				   QWidget* parent)
 	: QWidget(parent)
-	, catalog_(catalog)
+	, source_(source)
 	, layers_()
 	, appearance_()
+	, tints_({{CharacterLayer::Hair, CharacterLayer::HairColor},
+		  {CharacterLayer::Pants, CharacterLayer::PantsColor}})
 	, background_()
 	, drawables_() {
 	setObjectName("characterPreview");
@@ -30,55 +35,71 @@ void CharacterPreview::setBackground(const QPixmap& background) {
 }
 
 QSize CharacterPreview::sizeHint() const {
-	if (catalog_ == nullptr) {
+	if (source_ == nullptr) {
 		return QSize(192, 288);
 	}
-	return catalog_->canvasSize() * 6;
+	return source_->canvasSize() * 6;
 }
 
 void CharacterPreview::refresh() {
 	drawables_.clear();
-	if (catalog_ == nullptr) {
+	if (source_ == nullptr) {
 		update();
 		return;
 	}
 
-	const QPixmap tint = catalog_->pixmap(
-		CharacterLayer::HairColor,
-		layers_.value(appearance_, CharacterLayer::HairColor));
+	// Las capas de color aportan el tinte de otra capa; no se dibujan solas.
+	std::map<CharacterLayer, bool> isTint;
+	for (const auto& entry : tints_) {
+		isTint[entry.second] = true;
+	}
 
 	for (int layer = 0; layer < static_cast<int>(CharacterLayer::Count);
 	     ++layer) {
 		const auto current = static_cast<CharacterLayer>(layer);
-		// El color de pelo no es un sprite: se aplica como tinte sobre el
-		// pelo, así que no entra en la lista de capas dibujables.
-		if (current == CharacterLayer::HairColor) {
+		if (isTint.count(current) > 0) {
 			continue;
 		}
 
-		const QPixmap image = catalog_->pixmap(
+		const QPixmap image = source_->pixmap(
 			current, layers_.value(appearance_, current));
-		if (current == CharacterLayer::Hair) {
-			drawables_.push_back(tintedHair(image, tint));
-		} else {
+		const auto tint = tints_.find(current);
+		if (tint == tints_.end()) {
 			drawables_.push_back(image);
+			continue;
 		}
+		const CharacterLayer colorLayer = tint->second;
+		drawables_.push_back(tinted(
+			image, source_->pixmap(colorLayer,
+						layers_.value(appearance_,
+							      colorLayer))));
 	}
 	update();
 }
 
-QPixmap CharacterPreview::tintedHair(const QPixmap& hair,
-				     const QPixmap& tint) const {
-	if (hair.isNull() || tint.isNull()) {
-		return hair;
+// Multiplica cada pixel por el tinte: conserva el sombreado y el alfa.
+QPixmap CharacterPreview::tinted(const QPixmap& sprite,
+				  const QPixmap& tint) const {
+	if (sprite.isNull() || tint.isNull()) {
+		return sprite;
 	}
 
-	QPixmap result(hair);
-	QPainter painter(&result);
-	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-	painter.drawPixmap(result.rect(), tint);
-	painter.end();
-	return result;
+	const QColor color = tint.toImage().pixelColor(0, 0);
+	QImage image = sprite.toImage().convertToFormat(QImage::Format_ARGB32);
+	for (int y = 0; y < image.height(); ++y) {
+		for (int x = 0; x < image.width(); ++x) {
+			const QRgb pixel = image.pixel(x, y);
+			if (qAlpha(pixel) == 0) {
+				continue;
+			}
+			image.setPixel(x, y,
+				       qRgba(qRed(pixel) * color.red() / 255,
+					     qGreen(pixel) * color.green() / 255,
+					     qBlue(pixel) * color.blue() / 255,
+					     qAlpha(pixel)));
+		}
+	}
+	return QPixmap::fromImage(image);
 }
 
 void CharacterPreview::paintEvent(QPaintEvent*) {
@@ -89,11 +110,11 @@ void CharacterPreview::paintEvent(QPaintEvent*) {
 		painter.drawPixmap(rect(), background_);
 	}
 
-	if (catalog_ == nullptr) {
+	if (source_ == nullptr) {
 		return;
 	}
 
-	const QSize canvas = catalog_->canvasSize();
+	const QSize canvas = source_->canvasSize();
 	if (canvas.isEmpty() || width() <= 0 || height() <= 0) {
 		return;
 	}

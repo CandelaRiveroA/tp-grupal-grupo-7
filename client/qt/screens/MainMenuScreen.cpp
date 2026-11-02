@@ -2,13 +2,9 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPainter>
-#include <QTimerEvent>
 #include <QVBoxLayout>
 
 #include "core/MusicControl.h"
-#include "qt/theme/CloudRects.h"
-#include "qt/theme/TitleBackdrop.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/widgets/TitleButton.h"
 
@@ -64,39 +60,13 @@ TitleButton* MainMenuScreen::makeNavButton(int spriteIndex, const QString& acces
     return button;
 }
 
-void MainMenuScreen::paintEvent(QPaintEvent* event) {
-    QPainter painter(this);
-    backdrop_.paint(painter);
-    QWidget::paintEvent(event);
-}
-
 void MainMenuScreen::onEnter() {
     // Al volver devuelve el foco a la pantalla para no dejar ningun boton marcado.
     setFocus(Qt::OtherFocusReason);
-    if (!cloudTimer_.isActive()) {
-        cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
-    }
+    Screen::onEnter();
     if (music_ != nullptr) {
         music_->play(core::MusicTrack::MenuTheme);
     }
 }
 
-void MainMenuScreen::onExit() {
-    if (cloudTimer_.isActive()) {
-        cloudTimer_.stop();
-    }
-    if (music_ != nullptr) {
-        music_->stop();
-    }
-}
-
-bool MainMenuScreen::isAnimating() const { return cloudTimer_.isActive(); }
-
-void MainMenuScreen::timerEvent(QTimerEvent* event) {
-    if (event->timerId() == cloudTimer_.timerId()) {
-        backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
-        update();
-        return;
-    }
-    QWidget::timerEvent(event);
-}
+void MainMenuScreen::onExit() { Screen::onExit(); }

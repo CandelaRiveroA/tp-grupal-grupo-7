@@ -10,7 +10,7 @@
 #include "qt/services/ServiceError.h"
 #include "qt/widgets/AsyncStateView.h"
 
-class AssetCatalog;
+class CharacterLayerSource;
 class QButtonGroup;
 class QLabel;
 class QPushButton;
@@ -28,7 +28,7 @@ class SaveListScreen : public Screen {
 
 public:
 	SaveListScreen(SaveService* saves, SessionService* sessions,
-		       const AssetCatalog* catalog, QWidget* parent = nullptr);
+		       const CharacterLayerSource* source, QWidget* parent = nullptr);
 
 	void onEnter() override;
 
@@ -39,7 +39,7 @@ signals:
 private:
 	SaveService* saveService_;
 	SessionService* sessionService_;
-	const AssetCatalog* catalog_;
+	const CharacterLayerSource* source_;
 
 	QScrollArea* scroll_;
 	QWidget* rowsHost_;

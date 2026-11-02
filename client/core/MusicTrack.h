@@ -7,6 +7,7 @@ namespace core {
 // es sumar un valor acá y su archivo en sdl::MusicPlayer.
 enum class MusicTrack {
 	MenuTheme,
+	CharacterSelect,
 };
 
 }

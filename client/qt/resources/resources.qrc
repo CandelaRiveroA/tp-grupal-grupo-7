@@ -1,9 +1,27 @@
 <RCC>
     <qresource prefix="/">
         <file>ui.qss</file>
+        <file alias="fonts/stardew.ttf">fonts/StardewValley.ttf</file>
+        <file alias="fonts/pixel_operator.ttf">fonts/PixelOperator.ttf</file>
         <file alias="ui/title/sky.png">ui/home_background.png</file>
         <file alias="ui/title/clouds.png">ui/Clouds.png</file>
         <file alias="ui/title/atlas.png">ui/TitleButtons.es-ES..png</file>
         <file alias="ui/cursor_arrow.png">ui/cursor_arrow.png</file>
+        <file alias="ui/join/scroll.png">ui/join_scroll.png</file>
+        <file alias="ui/join/input_box.png">ui/join_input_box.png</file>
+        <file alias="ui/join/ok.png">ui/join_ok.png</file>
+        <file alias="ui/character/arrow_left.png">ui/char_arrow_left.png</file>
+        <file alias="ui/character/arrow_right.png">ui/char_arrow_right.png</file>
+        <file alias="ui/character/recessed_box.png">ui/char_recessed_box.png</file>
+        <file alias="ui/character/slider_knob.png">ui/char_slider_knob.png</file>
+        <file alias="ui/character/backgrounds.png">character/Character_Backgrounds.png</file>
+        <file alias="ui/character/text_box.png">character/Character_TextBox.png</file>
+        <file alias="character/base.png">character/Character_Base.png</file>
+        <file alias="character/skins.png">character/skinColors..png</file>
+        <file alias="character/hairstyles.png">character/StardewValley_Character_Hairstyles.png</file>
+        <file alias="character/shirts.png">character/StardewValley_Character_Shirts.png</file>
+        <file alias="character/pants.png">character/StardewValley_Character_Pants.png</file>
+        <file alias="character/accessories.png">character/StardewValley_Character_Accessories.png</file>
+        <file alias="character/palettes.toml">character/character_palettes.toml</file>
     </qresource>
 </RCC>

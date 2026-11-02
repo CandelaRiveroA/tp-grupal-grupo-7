@@ -20,6 +20,7 @@ MusicPlayer::MusicPlayer() : tracks_{}, current_(nullptr), opened_(false) {
 
 	const std::map<core::MusicTrack, std::string> files = {
 		{core::MusicTrack::MenuTheme, MUSIC_MENU_THEME_FILE},
+		{core::MusicTrack::CharacterSelect, MUSIC_CHARACTER_SELECT_FILE},
 	};
 	for (const auto& entry : files) {
 		Mix_Music* music = Mix_LoadMUS(core::soundPath(entry.second).c_str());

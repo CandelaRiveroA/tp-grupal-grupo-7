@@ -14,6 +14,11 @@ class MusicControl;
 class WindowConfig;
 }
 
+namespace world {
+class CharacterCatalog;
+struct CharacterPalettes;
+}
+
 class CharacterScreen;
 class NetworkSessionService;
 class QStackedWidget;
@@ -26,9 +31,11 @@ class LobbyWindow: public QWidget {
     Q_OBJECT
 
 public:
-	explicit LobbyWindow(const core::WindowConfig& config,
-			     core::MusicControl* music = nullptr,
-			     QWidget* parent = nullptr);
+	LobbyWindow(const core::WindowConfig& config,
+		    const world::CharacterCatalog& characters,
+		    const world::CharacterPalettes& palettes,
+		    core::MusicControl* music = nullptr,
+		    QWidget* parent = nullptr);
 
     // Resultado del lobby. Vacío si el usuario cerró sin confirmar.
     std::optional<core::SessionConfig> result();

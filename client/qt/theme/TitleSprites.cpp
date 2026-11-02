@@ -19,6 +19,11 @@ TitleSprites::TitleSprites() {
         buttonsHover_[i] =
                 scaledTimesTwo(atlas.copy(x, ATLAS_BUTTON_HOVER_Y, ATLAS_BUTTON_W, ATLAS_BUTTON_H));
     }
+
+    back_ = scaledTimesTwo(
+            atlas.copy(ATLAS_BACK_X, ATLAS_BACK_Y_NORMAL, ATLAS_BACK_W, ATLAS_BACK_H));
+    backHover_ = scaledTimesTwo(
+            atlas.copy(ATLAS_BACK_X, ATLAS_BACK_Y_HOVER, ATLAS_BACK_W, ATLAS_BACK_H));
 }
 
 const QPixmap& TitleSprites::logo() const { return logo_; }
@@ -38,6 +43,10 @@ const QPixmap& TitleSprites::buttonHover(int index) const {
     }
     return buttonsHover_[index];
 }
+
+const QPixmap& TitleSprites::backButton() const { return back_; }
+
+const QPixmap& TitleSprites::backButtonHover() const { return backHover_; }
 
 QPixmap TitleSprites::scaledTimesTwo(const QPixmap& sprite) const {
     return sprite.scaled(sprite.width() * 2, sprite.height() * 2, Qt::IgnoreAspectRatio,

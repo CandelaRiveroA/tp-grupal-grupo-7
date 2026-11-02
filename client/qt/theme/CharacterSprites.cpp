@@ -7,70 +7,46 @@
 #include "CharacterRects.h"
 #include "NineSlice.h"
 
-CharacterSprites::CharacterSprites() {
-    // La hoja trae dos fondos lado a lado (diurno | nocturno); se usa el diurno.
-    QPixmap backgrounds(":/ui/character/backgrounds.png");
-    if (backgrounds.isNull()) {
-        qWarning("CharacterSprites: :/ui/character/backgrounds.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
-    }
-    portraitBackground_ = backgrounds.copy(0, 0, CHAR_PREVIEW_W, CHAR_PREVIEW_H);
+CharacterSprites::CharacterSprites():
+        // La hoja trae dos fondos lado a lado (diurno | nocturno); se usa el diurno.
+        portraitBackground_(
+                load(":/ui/character/backgrounds.png").copy(0, 0, CHAR_PREVIEW_W, CHAR_PREVIEW_H)),
+        leftArrow_(load(":/ui/character/arrow_left.png")
+                           .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
+                                   Qt::FastTransformation)),
+        leftArrowHover_(brightenPercent(leftArrow_)),
+        rightArrow_(load(":/ui/character/arrow_right.png")
+                            .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
+                                    Qt::FastTransformation)),
+        rightArrowHover_(brightenPercent(rightArrow_)),
+        okButton_(load(":/ui/join/ok.png")
+                          .scaled(CHAR_OK_SIZE, CHAR_OK_SIZE, Qt::IgnoreAspectRatio,
+                                  Qt::FastTransformation)),
+        okButtonHover_(brightenPercent(okButton_)),
+        inputBox_(inputBoxFrom(load(":/ui/character/text_box.png"))),
+        windowBox_(
+                NineSlice(load(":/ui/join/input_box.png"),
+                          QMargins(CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE,
+                                   CHAR_WINDOW_SLICE))
+                        .build(CHAR_WINDOW_LOGICAL_W, CHAR_WINDOW_LOGICAL_H, CHAR_WINDOW_SCALE)) {}
 
-    QPixmap left(":/ui/character/arrow_left.png");
-    if (left.isNull()) {
-        qWarning("CharacterSprites: :/ui/character/arrow_left.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
+QPixmap CharacterSprites::load(const char* path) const {
+    QPixmap sprite(path);
+    if (sprite.isNull()) {
+        qWarning("CharacterSprites: %s no carga (alias mal escrito en el .qrc o archivo ausente).",
+                 path);
     }
-    leftArrow_ =
-            left.scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-    leftArrowHover_ = brightenPercent(leftArrow_);
+    return sprite;
+}
 
-    QPixmap right(":/ui/character/arrow_right.png");
-    if (right.isNull()) {
-        qWarning("CharacterSprites: :/ui/character/arrow_right.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
-    }
-    rightArrow_ =
-            right.scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-    rightArrowHover_ = brightenPercent(rightArrow_);
-
-    QPixmap ok(":/ui/join/ok.png");
-    if (ok.isNull()) {
-        qWarning("CharacterSprites: :/ui/join/ok.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
-    }
-    okButton_ =
-            ok.scaled(CHAR_OK_SIZE, CHAR_OK_SIZE, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-    okButtonHover_ = brightenPercent(okButton_);
-
-    QPixmap textBox(":/ui/character/text_box.png");
-    if (textBox.isNull()) {
-        qWarning("CharacterSprites: :/ui/character/text_box.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
-    }
-    const QPixmap textBoxLogical = textBox.scaled(textBox.width() / CHAR_INPUT_SOURCE_DIV,
-                                                  textBox.height() / CHAR_INPUT_SOURCE_DIV,
-                                                  Qt::IgnoreAspectRatio, Qt::FastTransformation);
+QPixmap CharacterSprites::inputBoxFrom(const QPixmap& source) const {
+    const QPixmap logical = source.scaled(source.width() / CHAR_INPUT_SOURCE_DIV,
+                                          source.height() / CHAR_INPUT_SOURCE_DIV,
+                                          Qt::IgnoreAspectRatio, Qt::FastTransformation);
     const QMargins margins(CHAR_INPUT_MARGIN_LEFT, CHAR_INPUT_MARGIN_TOP, CHAR_INPUT_MARGIN_RIGHT,
                            CHAR_INPUT_MARGIN_BOTTOM);
-    inputBox_ = NineSlice(textBoxLogical, margins)
-                        .build(CHAR_INPUT_LOGICAL_W, CHAR_INPUT_LOGICAL_H, CHAR_INPUT_SCALE);
-
-    QPixmap frame(":/ui/join/input_box.png");
-    if (frame.isNull()) {
-        qWarning("CharacterSprites: :/ui/join/input_box.png no carga "
-                 "(alias mal escrito en el .qrc o archivo ausente).");
-        return;
-    }
-    const QMargins slice(CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE,
-                         CHAR_WINDOW_SLICE);
-    windowBox_ = NineSlice(frame, slice)
-                         .build(CHAR_WINDOW_LOGICAL_W, CHAR_WINDOW_LOGICAL_H, CHAR_WINDOW_SCALE);
+    return NineSlice(logical, margins)
+            .build(CHAR_INPUT_LOGICAL_W, CHAR_INPUT_LOGICAL_H, CHAR_INPUT_SCALE);
 }
 
 QPixmap CharacterSprites::brightenPercent(const QPixmap& sprite) const {

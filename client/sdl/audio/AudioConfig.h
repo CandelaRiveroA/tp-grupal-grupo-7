@@ -8,6 +8,7 @@
 
 // Músicas de fondo (relativas a core::soundPath).
 #define MUSIC_MENU_THEME_FILE "music/menu_theme.ogg"
+#define MUSIC_CHARACTER_SELECT_FILE "music/character_select.ogg"
 
 // Fade in al empezar una pista y fade out al cortarla.
 #define MUSIC_FADE_IN_MS 1000

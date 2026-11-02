@@ -5,7 +5,6 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPainter>
-#include <QTimerEvent>
 #include <QVBoxLayout>
 
 #include <utility>
@@ -13,7 +12,6 @@
 #include "core/MusicControl.h"
 #include "core/MusicTrack.h"
 #include "qt/services/SessionService.h"
-#include "qt/theme/CloudRects.h"
 #include "qt/theme/JoinCodeRects.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/widgets/InputBox.h"
@@ -107,10 +105,7 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
 
 void JoinCodeScreen::onEnter() {
 	code_->setFocus();
-
-	if (!cloudTimer_.isActive()) {
-		cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
-	}
+	Screen::onEnter();
 
 	if (music_ != nullptr) {
 		music_->play(core::MusicTrack::MenuTheme);
@@ -119,25 +114,13 @@ void JoinCodeScreen::onEnter() {
 
 void JoinCodeScreen::onExit() {
 	joining_ = false;
-	if (cloudTimer_.isActive()) {
-		cloudTimer_.stop();
-	}
+	Screen::onExit();
 }
 
 void JoinCodeScreen::paintEvent(QPaintEvent* event) {
+	Screen::paintEvent(event);
 	QPainter painter(this);
-	backdrop_.paint(painter);
 	painter.fillRect(rect(), QColor(0, 0, 0, JOIN_BACKDROP_DIM_ALPHA));
-	QWidget::paintEvent(event);
-}
-
-void JoinCodeScreen::timerEvent(QTimerEvent* event) {
-	if (event->timerId() == cloudTimer_.timerId()) {
-		backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
-		update();
-		return;
-	}
-	QWidget::timerEvent(event);
 }
 
 void JoinCodeScreen::buildMessages() {

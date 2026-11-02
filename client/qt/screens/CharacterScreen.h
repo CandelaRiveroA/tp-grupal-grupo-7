@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QBasicTimer>
 #include <QString>
 
 #include <cstdint>
@@ -13,7 +12,6 @@
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
 #include "qt/theme/CharacterSprites.h"
-#include "qt/theme/TitleBackdrop.h"
 #include "qt/util/CharacterLayer.h"
 #include "qt/util/CharacterLayers.h"
 
@@ -27,8 +25,6 @@ class CycleRow;
 class QFrame;
 class QLabel;
 class QLineEdit;
-class QPaintEvent;
-class QTimerEvent;
 class SliderRow;
 class QVBoxLayout;
 class TitleButton;
@@ -96,9 +92,6 @@ private:
 	// Un createGame en vuelo: bloquea reenvío y respuestas ajenas.
 	bool submitting_ = false;
 
-	TitleBackdrop backdrop_;
-	QBasicTimer cloudTimer_;
-
 	void buildMessages();
 	void buildUi();
 	QWidget* makePreviewColumn();
@@ -119,7 +112,4 @@ private:
 	void showState(ScreenState state, const QString& message);
 	bool canSubmit() const;
 	QString messageFor(ServiceError error) const;
-
-	void paintEvent(QPaintEvent* event) override;
-	void timerEvent(QTimerEvent* event) override;
 };

@@ -5,10 +5,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPainter>
 #include <QSignalBlocker>
 #include <QStyle>
-#include <QTimerEvent>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -75,9 +73,7 @@ void CharacterScreen::onEnter() {
 	}
 
 	characterName_->setFocus();
-	if (!cloudTimer_.isActive()) {
-		cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
-	}
+	Screen::onEnter();
 }
 
 void CharacterScreen::onExit() {
@@ -86,27 +82,9 @@ void CharacterScreen::onExit() {
 		music_->play(core::MusicTrack::MenuTheme);
 	}
 
-	if (cloudTimer_.isActive()) {
-		cloudTimer_.stop();
-	}
+	Screen::onExit();
 	submitting_ = false;
 }
-
-void CharacterScreen::paintEvent(QPaintEvent* event) {
-	QPainter painter(this);
-	backdrop_.paint(painter);
-	QWidget::paintEvent(event);
-}
-
-void CharacterScreen::timerEvent(QTimerEvent* event) {
-	if (event->timerId() == cloudTimer_.timerId()) {
-		backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
-		update();
-		return;
-	}
-	QWidget::timerEvent(event);
-}
-
 
 void CharacterScreen::buildMessages() {
 	errorMessages_[ServiceError::GameNameTaken] =

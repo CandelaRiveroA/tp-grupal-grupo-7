@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QBasicTimer>
 #include <QString>
 
 #include <cstdint>
@@ -10,7 +9,6 @@
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
 #include "qt/theme/JoinCodeSprites.h"
-#include "qt/theme/TitleBackdrop.h"
 
 namespace core {
 class MusicControl;
@@ -19,7 +17,6 @@ class MusicControl;
 class QLineEdit;
 class QLabel;
 class QPaintEvent;
-class QTimerEvent;
 class SessionService;
 class TitleButton;
 class QWidget;
@@ -59,9 +56,6 @@ private:
 	bool canJoin() const;
 
 	void paintEvent(QPaintEvent* event) override;
-	void timerEvent(QTimerEvent* event) override;
 
-	TitleBackdrop backdrop_;
-	QBasicTimer cloudTimer_;
 	JoinCodeSprites joinSprites_;
 };

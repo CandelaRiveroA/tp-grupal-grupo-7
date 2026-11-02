@@ -104,6 +104,7 @@ SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
 void SaveListScreen::onEnter() {
 	// Siempre se vuelve a pedir: el server puede haber creado o borrado
 	// partidas desde la última visita.
+	Screen::onEnter();
 	requestSaves();
 }
 

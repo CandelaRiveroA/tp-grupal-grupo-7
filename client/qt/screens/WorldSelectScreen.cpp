@@ -104,6 +104,7 @@ WorldSelectScreen::WorldSelectScreen(WorldService* service, QWidget* parent)
 }
 
 void WorldSelectScreen::onEnter() {
+	Screen::onEnter();
 	if (!loaded_ && !loading_) {
 		requestWorlds();
 	}

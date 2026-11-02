@@ -13,13 +13,15 @@
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/SaveListScreen.h"
 #include "qt/screens/WorldSelectScreen.h"
-#include "qt/services/fakes/FakeAssetCatalog.h"
 #include "qt/services/fakes/FakeSaveService.h"
 #include "qt/services/fakes/FakeSessionService.h"
 #include "qt/services/fakes/FakeWorldService.h"
+#include "qt/services/CharacterSpriteComposer.h"
 #include "qt/theme/GameCursor.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config,
+			 const world::CharacterCatalog& characters,
+			 const world::CharacterPalettes& palettes,
 			 core::MusicControl* music, QWidget* parent)
 	: QWidget(parent)
 	, stack_(nullptr)
@@ -47,7 +49,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 		&LobbyWindow::onWorldChosen);
 
 	auto* sessionService = new FakeSessionService(std::nullopt, this);
-	auto* catalog = new FakeAssetCatalog(this);
+	auto* composer = new CharacterSpriteComposer(characters, palettes, this);
 
 	auto* joins = new JoinCodeScreen(sessionService, stack_, music);
 	registerScreen(ScreenId::JoinCode, joins);
@@ -56,13 +58,13 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 
 	auto* saveService = new FakeSaveService(std::nullopt, this);
 	auto* saves =
-		new SaveListScreen(saveService, sessionService, catalog,
+		new SaveListScreen(saveService, sessionService, composer,
 				   stack_);
 	registerScreen(ScreenId::SaveList, saves);
 	connect(saves, &SaveListScreen::saveLoaded, this,
 		&LobbyWindow::onSaveLoaded);
 
-	character_ = new CharacterScreen(sessionService, catalog, stack_);
+	character_ = new CharacterScreen(sessionService, composer, stack_, music);
 	registerScreen(ScreenId::Character, character_);
 	connect(character_, &CharacterScreen::characterConfirmed, this,
 		&LobbyWindow::onCharacterConfirmed);

@@ -19,6 +19,8 @@
 #include "sdl/log/Logger.h"
 #include "world/CharacterCatalog.h"
 #include "world/CharacterCatalogLoader.h"
+#include "world/CharacterPaletteLoader.h"
+#include "world/CharacterPalettes.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
 #include "world/DigitCatalog.h"
@@ -60,19 +62,32 @@ void Application::loadStyleSheet() {
 }
 
 int Application::run() {
-
-    std::optional<SessionConfig> session = runLobby();
-    if (!session.has_value()) {
-        return 0;
+    try {
+        std::optional<SessionConfig> session = runLobby();
+        if (!session.has_value()) {
+            return 0;
+        }
+    } catch (const world::ConfigError& error) {
+        const sdl::Logger logger;
+        logger.error(error.what());
+        return EXIT_FAILURE;
     }
 
     return runGame();
 }
 
 std::optional<SessionConfig> Application::runLobby() {
+    const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+            core::assetPath(core::kCharactersFile));
+    QFile paletteFile(core::kPalettesResource);
+    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
+    }
+    const world::CharacterPalettes palettes =
+            world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
 
     sdl::MusicPlayer music;
-    LobbyWindow lobby(config_, &music);
+    LobbyWindow lobby(config_, characters, palettes, &music);
     lobby.show();
     app_.exec();
 

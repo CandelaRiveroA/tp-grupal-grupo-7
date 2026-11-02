@@ -8,15 +8,15 @@
 
 #include "qt/util/CharacterLayer.h"
 
-// Fuente de las imágenes del personaje. Responde cuántas variantes hay por
-// capa y entrega el pixmap de cada una; no compone ni dibuja.
-// Todas las capas comparten el mismo lienzo, así que se apilan sin offsets.
-class AssetCatalog : public QObject {
+// Fuente de las capas del personaje: cuántas variantes hay por capa y el pixmap
+// de cada una. Quien implementa decide cómo las arma; quien la usa las apila
+// (todas comparten el mismo lienzo, sin offsets).
+class CharacterLayerSource : public QObject {
 	Q_OBJECT
 
 public:
-	explicit AssetCatalog(QObject* parent = nullptr);
-	~AssetCatalog() override;
+	explicit CharacterLayerSource(QObject* parent = nullptr);
+	~CharacterLayerSource() override;
 
 	virtual QSize canvasSize() const = 0;
 	virtual std::uint8_t count(CharacterLayer layer) const = 0;

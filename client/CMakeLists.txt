@@ -30,14 +30,15 @@ target_sources(taller_client
     qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
     qt/screens/WorldSelectScreen.cpp
-    qt/services/AssetCatalog.cpp
+    qt/services/CharacterLayerSource.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
+    qt/services/CharacterSpriteComposer.cpp
     qt/services/WorldService.cpp
-    qt/services/fakes/FakeAssetCatalog.cpp
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/theme/CharacterSheets.cpp
     qt/theme/GameCursor.cpp
     qt/theme/TitleBackdrop.cpp
     qt/theme/TitleSprites.cpp
@@ -47,6 +48,7 @@ target_sources(taller_client
     qt/widgets/CharacterPreview.cpp
     qt/theme/JoinCodeSprites.cpp
     qt/theme/NineSlice.cpp
+    qt/theme/SkinRecolorer.cpp
     qt/widgets/InputBox.cpp
     qt/widgets/ParchmentBanner.cpp
     qt/widgets/TitleButton.cpp
@@ -83,12 +85,12 @@ target_sources(taller_client
     qt/screens/SaveListScreen.h
     qt/screens/Screen.h
     qt/screens/WorldSelectScreen.h
-    qt/services/AssetCatalog.h
+    qt/services/CharacterLayerSource.h
+    qt/services/CharacterSpriteComposer.h
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h
     qt/services/WorldService.h
-    qt/services/fakes/FakeAssetCatalog.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
@@ -97,7 +99,10 @@ target_sources(taller_client
     qt/theme/CloudRects.h
     qt/theme/JoinCodeRects.h
     qt/theme/JoinCodeSprites.h
+    qt/theme/CharacterSheetRects.h
+    qt/theme/CharacterSheets.h
     qt/theme/NineSlice.h
+    qt/theme/SkinRecolorer.h
     qt/theme/CursorRects.h
     qt/theme/GameCursor.h
     qt/theme/TitleBackdrop.h

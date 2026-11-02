@@ -7,6 +7,7 @@ CharacterLayers::CharacterLayers() : fields_() {
 	fields_[CharacterLayer::HairColor] = &CharacterAppearance::hairColor;
 	fields_[CharacterLayer::Shirt] = &CharacterAppearance::shirt;
 	fields_[CharacterLayer::Pants] = &CharacterAppearance::pants;
+	fields_[CharacterLayer::PantsColor] = &CharacterAppearance::pantsColor;
 	fields_[CharacterLayer::Accessory] = &CharacterAppearance::accessory;
 }
 

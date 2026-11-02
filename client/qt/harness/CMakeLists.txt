@@ -31,6 +31,8 @@ set(HARNESS_QT_SOURCES
     ${HARNESS_QT_DIR}/theme/TitleSprites.cpp
     ${HARNESS_QT_DIR}/util/CharacterLayers.cpp
     ${HARNESS_QT_DIR}/util/IndexCycle.cpp
+    ${HARNESS_QT_DIR}/widgets/CharacterAppearanceEditor.cpp
+    ${HARNESS_QT_DIR}/widgets/CharacterAppearanceEditor.h
     ${HARNESS_QT_DIR}/widgets/CharacterPreview.cpp
     ${HARNESS_QT_DIR}/widgets/CycleRow.cpp
     ${HARNESS_QT_DIR}/widgets/CycleRow.h

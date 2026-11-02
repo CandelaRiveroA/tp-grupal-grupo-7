@@ -17,11 +17,8 @@
 #include "qt/services/SessionService.h"
 #include "qt/theme/CharacterRects.h"
 #include "qt/theme/TitleSprites.h"
-#include "qt/util/IndexCycle.h"
-#include "qt/widgets/CharacterPreview.h"
-#include "qt/widgets/CycleRow.h"
+#include "qt/widgets/CharacterAppearanceEditor.h"
 #include "qt/widgets/InputBox.h"
-#include "qt/widgets/SliderRow.h"
 #include "qt/widgets/TitleButton.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,
@@ -31,19 +28,19 @@ CharacterScreen::CharacterScreen(SessionService* session,
 	, session_(session)
 	, music_(music)
 	, source_(source)
-	, layers_()
+	, editor_(nullptr)
 	, content_(nullptr)
-	, preview_(nullptr)
 	, worldLabel_(nullptr)
 	, characterName_(nullptr)
 	, gameName_(nullptr)
 	, create_(nullptr)
 	, backButton_(nullptr)
 	, status_(nullptr)
-	, cycleRows_()
-	, sliderRows_()
 	, errorMessages_() {
 	buildMessages();
+	editor_ = new CharacterAppearanceEditor(source_, sprites_, this);
+	connect(editor_, &CharacterAppearanceEditor::appearanceChanged, this,
+		&CharacterScreen::updateValidation);
 	buildUi();
 
 	connect(session_, &SessionService::gameCreated, this,
@@ -114,7 +111,7 @@ void CharacterScreen::buildUi() {
 
 	auto* columns = new QHBoxLayout();
 	columns->setSpacing(CHAR_COLUMN_GAP);
-	columns->addWidget(makePreviewColumn(), 0, Qt::AlignTop);
+	columns->addWidget(editor_->previewColumn(this), 0, Qt::AlignTop);
 	columns->addWidget(makeFormColumn(), 0, Qt::AlignTop);
 	window->addLayout(columns, 1);
 
@@ -157,36 +154,6 @@ void CharacterScreen::buildUi() {
 	root->addLayout(buttons);
 }
 
-QWidget* CharacterScreen::makePreviewColumn() {
-	auto* column = new QWidget(this);
-	column->setObjectName("previewColumn");
-	column->setFixedWidth(CHAR_PREVIEW_COL_W);
-	auto* layout = new QVBoxLayout(column);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(CHAR_ROW_GAP);
-
-	preview_ = new CharacterPreview(source_, column);
-	preview_->setFixedSize(CHAR_PREVIEW_W, CHAR_PREVIEW_H);
-	preview_->setBackground(sprites_.portraitBackground());
-	layout->addWidget(preview_, 0, Qt::AlignHCenter);
-
-	struct Row {
-		CharacterLayer layer;
-		const char* name;
-	};
-	const Row rows[] = {
-		{CharacterLayer::Skin, "Piel"},
-		{CharacterLayer::Hair, "Pelo"},
-		{CharacterLayer::Shirt, "Camisa"},
-		{CharacterLayer::Pants, "Pantalón"},
-		{CharacterLayer::Accessory, "Accesorio"},
-	};
-	for (const Row& row : rows) {
-		layout->addWidget(makeRow(row.layer, row.name));
-	}
-	return column;
-}
-
 QLineEdit* CharacterScreen::makeInputRow(QVBoxLayout* layout,
 					 const QString& label,
 					 const QString& objectName, int maxLength) {
@@ -225,12 +192,7 @@ QWidget* CharacterScreen::makeFormColumn() {
 	layout->addWidget(worldLabel_);
 
 	layout->addSpacing(16);
-	layout->addWidget(makeSlider(CharacterLayer::Eyes, "Color de ojos", "eyesSlider"));
-	layout->addWidget(
-		makeSlider(CharacterLayer::HairColor, "Color de pelo",
-			   "hairColorSlider"));
-	layout->addWidget(makeSlider(CharacterLayer::PantsColor,
-				     "Color de pantalón", "pantsColorSlider"));
+	layout->addWidget(editor_->sliderColumn(column));
 	layout->addStretch();
 
 	connect(characterName_, &QLineEdit::textChanged, this,
@@ -248,79 +210,6 @@ QWidget* CharacterScreen::makeFormColumn() {
 	connect(gameName_, &QLineEdit::returnPressed, this,
 		&CharacterScreen::submit);
 	return column;
-}
-
-QWidget* CharacterScreen::makeRow(CharacterLayer layer, const QString& name) {
-	auto* row = new CycleRow(name, sprites_.leftArrow(),
-				 sprites_.leftArrowHover(),
-				 sprites_.rightArrow(),
-				 sprites_.rightArrowHover(), this);
-	connect(row, &CycleRow::stepRequested, this,
-		[this, layer](int direction) { cycleLayer(layer, direction); });
-	cycleRows_[layer] = row;
-	return row;
-}
-
-QWidget* CharacterScreen::makeSlider(CharacterLayer layer,
-				     const QString& name,
-				     const QString& objectName) {
-	const int total = source_->count(layer);
-	auto* row = new SliderRow(name, objectName, total > 0 ? total - 1 : 0,
-				  this);
-	connect(row, &SliderRow::valueChanged, this, [this, layer](int value) {
-		setLayer(layer, static_cast<std::uint8_t>(value));
-	});
-	sliderRows_[layer] = row;
-	return row;
-}
-
-void CharacterScreen::cycleLayer(CharacterLayer layer, int direction) {
-	const std::uint8_t total = source_->count(layer);
-	if (total == 0) {
-		return;
-	}
-
-	const IndexCycle cycle(total);
-	const std::uint8_t current =
-		layers_.value(selection_.appearance, layer);
-	const std::uint8_t next = direction > 0 ? cycle.next(current)
-					       : cycle.previous(current);
-	setLayer(layer, next);
-}
-
-void CharacterScreen::setLayer(CharacterLayer layer, std::uint8_t index) {
-	const std::uint8_t total = source_->count(layer);
-	if (total == 0) {
-		return;
-	}
-	if (index >= total) {
-		index = static_cast<std::uint8_t>(total - 1);
-	}
-
-	layers_.set(selection_.appearance, layer, index);
-	applyDraft();
-}
-
-void CharacterScreen::applyDraft() {
-	preview_->setAppearance(selection_.appearance);
-
-	for (int layer = 0; layer < static_cast<int>(CharacterLayer::Count);
-	     ++layer) {
-		const auto current = static_cast<CharacterLayer>(layer);
-		const std::uint8_t value =
-			layers_.value(selection_.appearance, current);
-
-		const auto cycle = cycleRows_.find(current);
-		if (cycle != cycleRows_.end()) {
-			cycle->second->setValue(QString::number(value));
-		}
-
-		const auto slider = sliderRows_.find(current);
-		if (slider != sliderRows_.end()) {
-			slider->second->setValue(value);
-		}
-	}
-	updateValidation();
 }
 
 void CharacterScreen::updateValidation() {
@@ -347,6 +236,8 @@ void CharacterScreen::submit() {
 
 	submitting_ = true;
 	showState(ScreenState::Loading, "Creando partida...");
+
+	selection_.appearance = editor_->appearance();
 
 	GameSelection game;
 	game.gameName = selection_.gameName;
@@ -410,7 +301,7 @@ void CharacterScreen::resetDraft() {
 	create_->setToolTip(create_->text());
 
 	showState(ScreenState::Ready, QString());
-	applyDraft();
+	editor_->setAppearance(selection_.appearance);
 }
 
 void CharacterScreen::showState(ScreenState state, const QString& message) {

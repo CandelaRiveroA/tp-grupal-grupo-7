@@ -2,7 +2,6 @@
 
 #include <QString>
 
-#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -12,20 +11,16 @@
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
 #include "qt/theme/CharacterSprites.h"
-#include "qt/util/CharacterLayer.h"
-#include "qt/util/CharacterLayers.h"
 
 namespace core {
 class MusicControl;
 }
 
+class CharacterAppearanceEditor;
 class CharacterLayerSource;
-class CharacterPreview;
-class CycleRow;
 class QFrame;
 class QLabel;
 class QLineEdit;
-class SliderRow;
 class QVBoxLayout;
 class TitleButton;
 class QWidget;
@@ -65,20 +60,17 @@ private:
 	SessionService* session_;
 	core::MusicControl* music_;
 	const CharacterLayerSource* source_;
-	CharacterLayers layers_;
 
 	CharacterSprites sprites_;
+	CharacterAppearanceEditor* editor_;
 
 	QFrame* content_;
-	CharacterPreview* preview_;
 	QLabel* worldLabel_;
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
 	TitleButton* create_;
 	TitleButton* backButton_;
 	QLabel* status_;
-	std::map<CharacterLayer, CycleRow*> cycleRows_;
-	std::map<CharacterLayer, SliderRow*> sliderRows_;
 	std::map<ServiceError, QString> errorMessages_;
 
 	CharacterSelection selection_;
@@ -94,16 +86,9 @@ private:
 
 	void buildMessages();
 	void buildUi();
-	QWidget* makePreviewColumn();
 	QWidget* makeFormColumn();
 	QLineEdit* makeInputRow(QVBoxLayout* layout, const QString& label,
 				const QString& objectName, int maxLength);
-	QWidget* makeRow(CharacterLayer layer, const QString& name);
-	QWidget* makeSlider(CharacterLayer layer, const QString& name,
-			    const QString& objectName);
-	void cycleLayer(CharacterLayer layer, int direction);
-	void setLayer(CharacterLayer layer, std::uint8_t index);
-	void applyDraft();
 	void updateValidation();
 	void submit();
 	void onCreated();

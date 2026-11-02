@@ -45,6 +45,7 @@ target_sources(taller_client
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
+    qt/widgets/CharacterAppearanceEditor.cpp
     qt/widgets/CharacterPreview.cpp
     qt/widgets/CycleRow.cpp
     qt/theme/CharacterSprites.cpp
@@ -116,6 +117,7 @@ target_sources(taller_client
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
+    qt/widgets/CharacterAppearanceEditor.h
     qt/widgets/CharacterPreview.h
     qt/widgets/CycleRow.h
     qt/widgets/InputBox.h

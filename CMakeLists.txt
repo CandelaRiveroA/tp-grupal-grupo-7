@@ -288,6 +288,9 @@ if(TALLER_TILE_INSPECTOR)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/sdl/assets
                 ${CMAKE_BINARY_DIR}/assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/qt/resources
+                ${CMAKE_BINARY_DIR}/assets/qt/resources
         COMMENT "Copiando assets para el tile inspector")
 endif()
 

@@ -1,9 +1,11 @@
 #include "JoinCodeSprites.h"
 
+#include <QMargins>
 #include <QPainter>
 #include <QtGlobal>
 
 #include "JoinCodeRects.h"
+#include "NineSlice.h"
 
 JoinCodeSprites::JoinCodeSprites() {
     QPixmap scroll(":/ui/join/scroll.png");
@@ -20,7 +22,9 @@ JoinCodeSprites::JoinCodeSprites() {
                  "(alias mal escrito en el .qrc o archivo ausente).");
         return;
     }
-    inputBox_ = assembleInputBox(frame);
+    inputBox_ = NineSlice(frame, QMargins(JOIN_INPUT_SLICE, JOIN_INPUT_SLICE, JOIN_INPUT_SLICE,
+                                          JOIN_INPUT_SLICE))
+                        .build(JOIN_INPUT_LOGICAL_W, JOIN_INPUT_LOGICAL_H, JOIN_INPUT_SCALE);
 
     QPixmap ok(":/ui/join/ok.png");
     if (ok.isNull()) {
@@ -57,49 +61,6 @@ QPixmap JoinCodeSprites::assembleScroll(const QPixmap& scroll) const {
 }
 
 // Nueve piezas: esquinas intactas, bordes y centro estirados
-QPixmap JoinCodeSprites::assembleInputBox(const QPixmap& frame) const {
-    const int logicalW = JOIN_INPUT_LOGICAL_W;
-    const int logicalH = JOIN_INPUT_LOGICAL_H;
-    const int slice = JOIN_INPUT_SLICE;
-    const int edgeW = logicalW - 2 * slice;
-    const int edgeH = logicalH - 2 * slice;
-
-    QPixmap box(logicalW, logicalH);
-    box.fill(Qt::transparent);
-    QPainter painter(&box);
-    // Esquinas intactas
-    painter.drawPixmap(0, 0, frame.copy(0, 0, slice, slice));
-    painter.drawPixmap(logicalW - slice, 0, frame.copy(2 * slice, 0, slice, slice));
-    painter.drawPixmap(0, logicalH - slice, frame.copy(0, 2 * slice, slice, slice));
-    painter.drawPixmap(logicalW - slice, logicalH - slice,
-                       frame.copy(2 * slice, 2 * slice, slice, slice));
-    // Bordes: solo se estira la pieza, nunca una esquina
-    painter.drawPixmap(
-            slice, 0,
-            frame.copy(slice, 0, slice, slice)
-                    .scaled(edgeW, slice, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-    painter.drawPixmap(
-            slice, logicalH - slice,
-            frame.copy(slice, 2 * slice, slice, slice)
-                    .scaled(edgeW, slice, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-    painter.drawPixmap(
-            0, slice,
-            frame.copy(0, slice, slice, slice)
-                    .scaled(slice, edgeH, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-    painter.drawPixmap(
-            logicalW - slice, slice,
-            frame.copy(2 * slice, slice, slice, slice)
-                    .scaled(slice, edgeH, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-    // Centro
-    painter.drawPixmap(
-            slice, slice,
-            frame.copy(slice, slice, slice, slice)
-                    .scaled(edgeW, edgeH, Qt::IgnoreAspectRatio, Qt::FastTransformation));
-    painter.end();
-
-    return box.scaled(box.width() * 2, box.height() * 2, Qt::IgnoreAspectRatio,
-                      Qt::FastTransformation);
-}
 
 QPixmap JoinCodeSprites::brightenPercent(const QPixmap& sprite) const {
     QImage image = sprite.toImage().convertToFormat(QImage::Format_ARGB32);

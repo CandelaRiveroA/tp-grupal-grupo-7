@@ -22,6 +22,7 @@
 #define JOIN_INPUT_SLICE 6
 #define JOIN_INPUT_LOGICAL_W 139
 #define JOIN_INPUT_LOGICAL_H 24
+#define JOIN_INPUT_SCALE 2
 
 // Margenes internos del texto dentro de la caja (px logicos).
 #define JOIN_INPUT_PAD_LEFT 14

@@ -14,7 +14,6 @@ public:
 
 private:
     QPixmap assembleScroll(const QPixmap& scroll) const;
-    QPixmap assembleInputBox(const QPixmap& frame) const;
     QPixmap brightenPercent(const QPixmap& sprite) const;
     QPixmap nullPixmap_;
     QPixmap scrollBanner_;

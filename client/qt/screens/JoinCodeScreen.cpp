@@ -14,9 +14,9 @@
 #include "core/MusicTrack.h"
 #include "qt/services/SessionService.h"
 #include "qt/theme/CloudRects.h"
-#include "qt/theme/GameCursor.h"
 #include "qt/theme/JoinCodeRects.h"
 #include "qt/theme/TitleSprites.h"
+#include "qt/widgets/InputBox.h"
 #include "qt/widgets/ParchmentBanner.h"
 #include "qt/widgets/TitleButton.h"
 
@@ -54,18 +54,14 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
 
 	auto* row = new QHBoxLayout();
 	row->setSpacing(4);
-	auto* box = new QLabel(central);
-	box->setPixmap(joinSprites_.inputBox());
-	box->setFixedSize(JOIN_INPUT_LOGICAL_W * 2, JOIN_INPUT_LOGICAL_H * 2);
+	auto* box = new InputBox(
+		joinSprites_.inputBox(),
+		QMargins(JOIN_INPUT_PAD_LEFT, JOIN_INPUT_PAD_TOP,
+			 JOIN_INPUT_PAD_RIGHT, JOIN_INPUT_PAD_BOTTOM),
+		central);
 	box->setObjectName("codeBox");
-	auto* boxLayout = new QVBoxLayout(box);
-	boxLayout->setContentsMargins(JOIN_INPUT_PAD_LEFT, JOIN_INPUT_PAD_TOP,
-				      JOIN_INPUT_PAD_RIGHT, JOIN_INPUT_PAD_BOTTOM);
-	code_ = new QLineEdit(box);
+	code_ = box->edit();
 	code_->setObjectName("codeInput");
-	code_->setFrame(false);
-	code_->setCursor(GameCursor().cursor());
-	boxLayout->addWidget(code_);
 	ok_ = new TitleButton(joinSprites_.okButton(), joinSprites_.okButtonHover(), "OK",
 			      central);
 	ok_->setObjectName("okButton");

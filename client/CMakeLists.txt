@@ -46,6 +46,8 @@ target_sources(taller_client
     qt/widgets/AsyncStateView.cpp
     qt/widgets/CharacterPreview.cpp
     qt/theme/JoinCodeSprites.cpp
+    qt/theme/NineSlice.cpp
+    qt/widgets/InputBox.cpp
     qt/widgets/ParchmentBanner.cpp
     qt/widgets/TitleButton.cpp
     world/Scenario.cpp
@@ -95,6 +97,7 @@ target_sources(taller_client
     qt/theme/CloudRects.h
     qt/theme/JoinCodeRects.h
     qt/theme/JoinCodeSprites.h
+    qt/theme/NineSlice.h
     qt/theme/CursorRects.h
     qt/theme/GameCursor.h
     qt/theme/TitleBackdrop.h
@@ -105,6 +108,7 @@ target_sources(taller_client
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/InputBox.h
     qt/widgets/ParchmentBanner.h
     qt/widgets/TitleButton.h
     client_sender.h

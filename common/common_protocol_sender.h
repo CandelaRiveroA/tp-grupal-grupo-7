@@ -23,6 +23,7 @@ private:
     void send_message(const protocol::MoveMessage& message);
     void send_message(const protocol::PickMessage& message);
     void send_message(const protocol::TakeMessage& message);
+    void send_message(const protocol::SleepMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -33,6 +34,8 @@ private:
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
     void send_message(const ServerAnimal& animal);
+    void send_message(const ServerSleep& sleep);
+    void send_message(const ServerFurniture& furniture);
 
 public:
     explicit ProtocolSender(Socket& socket);

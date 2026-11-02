@@ -60,6 +60,11 @@ void ProtocolSender::send_message(const protocol::TakeMessage& message) {
     send_uint8(static_cast<uint8_t>(message.direction));
 }
 
+void ProtocolSender::send_message(const protocol::SleepMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Sleep));
+    send_uint8(message.accept ? 1 : 0);
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -129,6 +134,19 @@ void ProtocolSender::send_message(const ServerAnimal& animal) {
     send_uint16(animal.x);
     send_uint16(animal.y);
     send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerSleep& sleep) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Sleep));
+    send_uint8(sleep.sleeping);
+    send_uint8(sleep.total);
+}
+
+void ProtocolSender::send_message(const ServerFurniture& furniture) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Furniture));
+    send_uint16(furniture.x);
+    send_uint16(furniture.y);
+    send_string(furniture.content_id);
 }
 
 void ProtocolSender::send_server_message(const ServerMessage& message) {

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "../entities/player.h"
@@ -25,6 +26,14 @@ private:
     std::vector<Cow*> cows;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
+
+    // Sueño: jugadores en la cama (sleepers) y los que ya dieron OK
+    // (accepted). accepted ⊆ sleepers, así que vaciar sleepers vacía
+    // accepted. Quien está en sleepers no se puede mover.
+    std::unordered_set<uint8_t> sleepers;
+    std::unordered_set<uint8_t> accepted;
+    // Consumido por take_sleep_advanced: una sola vez por día dormido.
+    bool sleep_advanced;
     // TODO: Persistencia del inventario del jugador.
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
@@ -69,6 +78,23 @@ public:
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
     void take_item(uint8_t player_id);
+
+    // --- Sueño (votación para dormir y pasar de día) ---
+    // El jugador pisa la cama: entra en la votación y queda sin movimiento.
+    void record_sleep_request(uint8_t player_id);
+    // Responde al aviso: accept = confirma dormir, false = cancelar (sale
+    // de la cama, le devuelve el movimiento y limpia los OK de todos).
+    void answer_sleep(uint8_t player_id, bool accept);
+    // true una sola vez cuando el sueño avanzó el día. Lo consume Match.
+    bool take_sleep_advanced();
+    uint8_t sleeping_count() const;
+    bool is_sleeping(uint8_t player_id) const;
+    // Cancela la votación abierta sin mover a nadie (lo usa el día forzado).
+    void clear_sleep();
+    void set_player_position(uint8_t player_id, uint16_t x, uint16_t y);
+
+private:
+    void try_advance_sleep();
 };
 
 #endif  // WORLD_H

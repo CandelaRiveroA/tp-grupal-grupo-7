@@ -18,7 +18,8 @@ std::string content_id_for(ItemID id) {
             {ItemID::LAPIS_ORB, "lapis"},
             {ItemID::GOLD_ORB, "gold"},
             {ItemID::EGG, "egg"},
-            {ItemID::MILK, "milk"}};
+            {ItemID::MILK, "milk"},
+            {ItemID::BED, "bed"}};
 
     const auto it = content_ids.find(id);
     return it != content_ids.end() ? it->second : "";
@@ -63,6 +64,10 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                     out.push_back(
                             ServerResource{x, y, content_id_for(snap->item),
                                            damage_for(snap->hits_taken, snap->hits_to_destroy)});
+                } else if (snap->kind == CellSnapshot::Kind::Furniture) {
+                    // El mueble va como ServerFurniture: el cliente no debe
+                    // tratarlo como un ítem del piso recogible.
+                    out.push_back(ServerFurniture{x, y, content_id_for(snap->item)});
                 } else {
                     out.push_back(ServerDropped{x, y, content_id_for(snap->item)});
                 }

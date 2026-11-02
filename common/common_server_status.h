@@ -19,6 +19,8 @@ enum class ServerMessageType : uint8_t {
     ResourceHit = 9,
     Reset = 10,
     Animal = 11,
+    Sleep = 12,
+    Furniture = 13,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -93,8 +95,24 @@ struct ServerAnimal {
     bool ready_to_milk;
 };
 
+// Aviso de sueño: sleeping de total jugadores están en la cama. Mientras
+// sleeping > 0 el aviso queda abierto; en 0 se cierra (nadie duerme más).
+struct ServerSleep {
+    uint8_t sleeping;
+    uint8_t total;
+};
+
+// Mueble colocado en el mundo (cama, mesa, silla). Va aparte de
+// ServerDropped para que el cliente no lo trate como un ítem del piso.
+struct ServerFurniture {
+    uint16_t x;
+    uint16_t y;
+    std::string content_id;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
-                     ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal>;
+                     ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
+                     ServerSleep, ServerFurniture>;
 
 #endif

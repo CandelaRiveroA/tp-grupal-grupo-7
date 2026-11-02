@@ -1,6 +1,7 @@
 #ifndef MATCH_H
 #define MATCH_H
 
+#include <atomic>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -34,12 +35,17 @@ struct DayPassed {};
 using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
+// restart() corta el día en curso SIN empujar DayPassed: lo usa el sueño,
+// que ya avanzó el día, para que los 30 segundos arranquen de cero.
 class DayClock: public Worker {
 private:
     Queue<MatchEvent>& events;
+    std::atomic<bool> restart_requested;
 
 public:
     explicit DayClock(Queue<MatchEvent>& events);
+
+    void restart();
 
 protected:
     void execute() override;
@@ -50,8 +56,12 @@ private:
     Queue<MatchEvent>& events;
     ServerOutputMonitor& output;
     World world;
+    DayClock clock;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
     WorldView views;
+    // Último ServerSleep enviado: solo se manda si cambió.
+    uint8_t sleeping_sent;
+    uint8_t total_sent;
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
@@ -62,6 +72,7 @@ private:
     void place_animals();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
+    void push_sleep_state();
     void closeOutputs();
 
 public:

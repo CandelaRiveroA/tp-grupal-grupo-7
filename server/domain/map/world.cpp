@@ -7,7 +7,7 @@
 #include "../animals/animal.h"
 #include "../animals/cow.h"
 
-World::World(uint16_t w, uint16_t h): width(w), height(h) {
+World::World(uint16_t w, uint16_t h): width(w), height(h), sleep_advanced(false) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -36,6 +36,11 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
     }
 
     for (const auto& [id, player]: this->players) {
+        // Un jugador durmiendo no ocupa su celda: así todos pueden
+        // superponerse en la misma cama.
+        if (this->sleepers.count(id) > 0) {
+            continue;
+        }
         if (player->get_x() == x && player->get_y() == y) {
             return false;
         }
@@ -49,6 +54,12 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
 // ---------------------------------------------------------
 void World::move_player(uint8_t player_id, Direction dir) {
     Player& p = *this->players.at(player_id);
+
+    // Durmiendo no se mueve: solo cancelar le devuelve el movimiento.
+    if (this->sleepers.count(player_id) > 0) {
+        return;
+    }
+
     p.set_facing(dir);
 
     auto [next_x, next_y] = p.get_target_tile();
@@ -180,6 +191,10 @@ void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
 }
 
 void World::use_tool(uint8_t player_id) {
+    // Durmiendo no se usan herramientas.
+    if (this->sleepers.count(player_id) > 0) {
+        return;
+    }
     Player& p = *this->players.at(player_id);
     auto [tx, ty] = p.get_target_tile();
 
@@ -227,6 +242,10 @@ void World::set_player_facing(uint8_t player_id, Direction dir) {
 }
 
 void World::take_item(uint8_t player_id) {
+    // Durmiendo no se toma nada ni se ordeña.
+    if (this->sleepers.count(player_id) > 0) {
+        return;
+    }
     Player& p = *this->players.at(player_id);
 
     // Ordeñar: una vaca lista a una celda de distancia (las 8 vecinas) tiene
@@ -255,4 +274,71 @@ void World::take_item(uint8_t player_id) {
     }
 }
 
-void World::remove_player(uint8_t player_id) { this->players.erase(player_id); }
+void World::remove_player(uint8_t player_id) {
+    this->players.erase(player_id);
+    // Nadie queda esperando a un jugador que ya no está en la partida.
+    this->sleepers.erase(player_id);
+    this->accepted.erase(player_id);
+    // Si el que se fue era el único que faltaba aceptar, el día tiene que avanzar.
+    this->try_advance_sleep();
+}
+
+void World::set_player_position(uint8_t player_id, uint16_t x, uint16_t y) {
+    this->players.at(player_id)->set_position(x, y);
+}
+
+void World::clear_sleep() {
+    this->sleepers.clear();
+    this->accepted.clear();
+}
+
+// ---------------------------------------------------------
+// SUEÑO
+// ---------------------------------------------------------
+void World::record_sleep_request(uint8_t player_id) {
+    // Idempotente: pisar la cama o usar la mano encima vuelve a llamar acá.
+    if (this->sleepers.count(player_id) > 0) {
+        return;
+    }
+    this->sleepers.insert(player_id);
+}
+
+void World::answer_sleep(uint8_t player_id, bool accept) {
+    // Solo quien está en la cama responde al aviso.
+    if (this->sleepers.count(player_id) == 0) {
+        return;
+    }
+
+    if (!accept) {
+        // Cancelar: sale de la cama y los OK se limpian. Los demás siguen
+        // esperando y pueden cancelar también (nadie queda bloqueado).
+        this->sleepers.erase(player_id);
+        this->accepted.clear();
+        return;
+    }
+
+    this->accepted.insert(player_id);
+    this->try_advance_sleep();
+}
+
+// Avanza cuando todos los de la partida están en la cama y aceptaron.
+void World::try_advance_sleep() {
+    if (this->players.empty() || this->sleepers.size() < this->players.size() ||
+        this->accepted.size() < this->players.size()) {
+        return;
+    }
+
+    this->clear_sleep();
+    this->tick_day();
+    this->sleep_advanced = true;
+}
+
+bool World::take_sleep_advanced() {
+    const bool advanced = this->sleep_advanced;
+    this->sleep_advanced = false;
+    return advanced;
+}
+
+uint8_t World::sleeping_count() const { return static_cast<uint8_t>(this->sleepers.size()); }
+
+bool World::is_sleeping(uint8_t player_id) const { return this->sleepers.count(player_id) > 0; }

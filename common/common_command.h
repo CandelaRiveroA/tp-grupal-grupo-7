@@ -8,7 +8,7 @@
 
 namespace protocol {
 
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4 };
 
 // Move: camina en la dirección dada (y la fija como facing).
 struct MoveMessage {
@@ -25,7 +25,14 @@ struct TakeMessage {
     Direction direction;
 };
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage>;
+// Sleep: responde al aviso de la cama. accept = true confirma dormir (y
+// avanzar de día si ya aceptaron todos); false cancela: sale de la cama y
+// recupera el movimiento.
+struct SleepMessage {
+    bool accept;
+};
+
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage>;
 
 }  // namespace protocol
 

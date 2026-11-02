@@ -40,8 +40,8 @@ world::ResourceState resourceStateFor(ResourceDamage damage) {
 
 }  // namespace
 
-NetworkGameClient::NetworkGameClient(const char* host, const char* port, int toolUseDurationTicks):
-        socket_(host, port),
+NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks):
+        socket_(std::move(socket)),
         sender_(socket_),
         receiver_(socket_),
         clientSender_(sender_, commands_),
@@ -179,5 +179,9 @@ void NetworkGameClient::update(int) {
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }
+
+bool NetworkGameClient::connected() const {
+    return !clientSender_.failed() && !clientReceiver_.failed();
+}
 
 }  // namespace game

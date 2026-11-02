@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+#include "common/common_socket.h"
 #include "core/SessionConfig.h"
 #include "core/WindowConfig.h"
 
@@ -16,7 +17,7 @@ class GameClient;
 namespace world {
 class CharacterCatalog;
 struct GridSpan;
-}
+}  // namespace world
 
 namespace core {
 
@@ -36,12 +37,11 @@ private:
 
     // Carga los datos de la partida y corre la sesión de juego. Validar
     // que el lobby haya dado una sesión le corresponde a run().
-    int runGame();
+    int runGame(SessionConfig session);
 
-    std::unique_ptr<game::GameClient> createGameClient(
-            const world::GridSpan& grid,
-            const world::CharacterCatalog& characters,
-            int toolUseDurationTicks) const;
+    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket, const world::GridSpan& grid,
+                                                       const world::CharacterCatalog& characters,
+                                                       int toolUseDurationTicks) const;
 
     WindowConfig config_;
     QApplication app_;

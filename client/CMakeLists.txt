@@ -33,6 +33,7 @@ target_sources(taller_client
     qt/services/AssetCatalog.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
+    qt/services/NetworkSessionService.cpp
     qt/services/WorldService.cpp
     qt/services/fakes/FakeAssetCatalog.cpp
     qt/services/fakes/FakeSaveService.cpp
@@ -85,6 +86,7 @@ target_sources(taller_client
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h
+    qt/services/NetworkSessionService.h
     qt/services/WorldService.h
     qt/services/fakes/FakeAssetCatalog.h
     qt/services/fakes/FakeLatency.h

@@ -5,6 +5,7 @@ target_sources(taller_server
     server.cpp
     acceptor.cpp
     client_handler.cpp
+    matches_monitor.cpp
     server_sender.cpp
     server_receiver.cpp
     match.cpp
@@ -32,6 +33,7 @@ target_sources(taller_server
     server.h
     acceptor.h
     client_handler.h
+    matches_monitor.h
     server_sender.h
     server_receiver.h
     match.h

@@ -11,8 +11,8 @@
 
 #include "core/Constants.h"
 #include "core/PlaySession.h"
-#include "game/MockWorldClient.h"
 #include "game/GameClient.h"
+#include "game/MockWorldClient.h"
 #include "game/NetworkGameClient.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/audio/MusicPlayer.h"
@@ -61,7 +61,7 @@ int Application::run() {
         return 0;
     }
 
-    return runGame();
+    return runGame(std::move(*session));
 }
 
 std::optional<SessionConfig> Application::runLobby() {
@@ -74,8 +74,12 @@ std::optional<SessionConfig> Application::runLobby() {
     return lobby.result();
 }
 
-int Application::runGame() {
+int Application::runGame(SessionConfig session) {
     const sdl::Logger logger;
+    if (!session.connection.has_value()) {
+        logger.error("No hay conexion con el servidor.");
+        return EXIT_FAILURE;
+    }
     try {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
@@ -94,20 +98,17 @@ int Application::runGame() {
         const world::DigitCatalog digits =
                 world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
         const world::CursorCatalog cursors =
-                world::CursorConfigLoader().loadFromFile(
-                        core::assetPath(core::kCursorsFile));
+                world::CursorConfigLoader().loadFromFile(core::assetPath(core::kCursorsFile));
         const world::DialogCatalog dialogs =
-                world::DialogConfigLoader().loadFromFile(
-                        core::assetPath(core::kDialogsFile));
+                world::DialogConfigLoader().loadFromFile(core::assetPath(core::kDialogsFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         const world::GridSpan& grid = scenario.scene().grid;
         std::unique_ptr<game::GameClient> gameClient =
-                createGameClient(grid, characters, toolUseDuration);
-        PlaySession session(config_, scenario, *gameClient, characters, inventory,
-                            toolOverlay, resources, banner, digits, cursors,
-                            dialogs);
-        session.run();
+                createGameClient(std::move(*session.connection), grid, characters, toolUseDuration);
+        PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
+                                resources, banner, digits, cursors, dialogs);
+        playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
@@ -119,17 +120,10 @@ int Application::runGame() {
 }
 
 std::unique_ptr<game::GameClient> Application::createGameClient(
-        const world::GridSpan& grid,
-        const world::CharacterCatalog& characters,
+        Socket&& socket, const world::GridSpan& grid, const world::CharacterCatalog& characters,
         int toolUseDurationTicks) const {
-    // Fuente de estado: el server por red (contrato §6: al conectar la
-    // red, el único cambio es quién llena la vista). La capa de
-    // animales se superpone hoy en el cliente; cuando el server los
-    // tenga, se saca y nada más cambia esta construcción.
     return std::make_unique<game::MockWorldClient>(
-            std::make_unique<game::NetworkGameClient>(
-                    core::kServerHost, core::kServerPort,
-                    toolUseDurationTicks),
+            std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks),
             characters, grid);
 }
 

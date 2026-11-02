@@ -130,3 +130,12 @@ void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Welcome));
     send_uint8(welcome.player_id);
 }
+
+void ProtocolSender::send_match_request(const MatchRequest& request) {
+    send_uint8(static_cast<uint8_t>(request.type));
+    send_string(request.name);
+}
+
+void ProtocolSender::send_lobby_status(LobbyStatus status) {
+    send_uint8(static_cast<uint8_t>(status));
+}

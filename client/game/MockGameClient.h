@@ -18,12 +18,12 @@ namespace game {
 // superpone game::MockWorldClient sobre cualquier GameClient.
 class MockGameClient: public GameClient {
 public:
-    MockGameClient(int gridColumns, int gridRows, int startX, int startY,
-                   int toolUseDurationTicks);
+    MockGameClient(int gridColumns, int gridRows, int startX, int startY, int toolUseDurationTicks);
 
     void sendCommand(const protocol::ClientMessage& message) override;
     void update(int iteration) override;
     const LocalWorldView& worldState() const override;
+    bool connected() const override { return true; }
 
 private:
     // Mineral simulado: a los 3 golpes se agota. Simula al servidor.

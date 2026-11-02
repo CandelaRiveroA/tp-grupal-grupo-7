@@ -24,12 +24,13 @@ class NetworkGameClient: public GameClient {
 public:
     // toolUseDurationTicks: cuánto dura la animación de golpe en el cliente.
     // Es presentación: el servidor avisa cuándo se usó la herramienta.
-    NetworkGameClient(const char* host, const char* port, int toolUseDurationTicks);
+    NetworkGameClient(Socket&& socket, int toolUseDurationTicks);
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
     void update(int iteration) override;
     const LocalWorldView& worldState() const override;
+    bool connected() const override;
 
 private:
     struct RemotePlayer {

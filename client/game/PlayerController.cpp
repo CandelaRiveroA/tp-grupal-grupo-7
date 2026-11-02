@@ -46,6 +46,10 @@ int PlayerController::activeSlot() const {
     return inventorySelector_.active();
 }
 
+void PlayerController::interact() {
+    client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection()));
+}
+
 void PlayerController::stepWalk() {
     client_.sendCommand(moveCommand_.propose(walkPacer_.lastDirection()));
 }

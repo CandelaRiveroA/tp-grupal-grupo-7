@@ -16,9 +16,9 @@ void LapisRock::mine_mineral(World& w) {
 
     int chance = std::rand() % 100;
 
-    if (chance <= 15) {
-        w.remove_entity_at(rx, ry);
-    } else {
+    // La roca se rompe siempre; desde acá this queda destruido (solo rx y ry).
+    w.remove_entity(this);
+    if (chance > 15) {
         auto orb = std::make_unique<Product>(ItemID::LAPIS_ORB, 100, Quality::BASE);
         auto drop = std::make_unique<DroppedItem>(std::move(orb), rx, ry);
         w.set_entity_at(rx, ry, std::move(drop));

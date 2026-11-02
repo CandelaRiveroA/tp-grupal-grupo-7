@@ -50,24 +50,46 @@ left         = [0, 17]
 right        = [3, 17]
 fill         = [1, 17]
 
-# --- Iconos de minerales (celdas 1x1 de Cavern/ore.png) -------------------
-# Mismo vocabulario que resources.toml (silver/coal/lapis/gold).
-[silver]
+# --- Iconos por contenido (celdas de sus hojas) --------------------------
+# Vocabulario genérico contentId (el mismo del inventario y los ítems del
+# piso): cualquier contenido del juego puede tener su icono acá. Agregar
+# uno = una entrada, sin tocar código.
+[icons.silver]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 1]
 
-[coal]
+[icons.coal]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 3]
 
-[lapis]
+[icons.lapis]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 5]
 
-[gold]
+[icons.gold]
 sheet = "Cavern/ore.png"
 cell  = [16, 16]
 icon  = [6, 7]
+
+[icons.milk]
+# Mismo sprite que el diálogo de la vaca (Farm/large_milk.png, celda
+# única 53x64). El tamaño queda como estaba: se ve bien.
+sheet = "Farm/large_milk.png"
+cell  = [53, 64]
+icon  = [0, 0]
+# drawn: a la mitad de la caja del panel (34 px → 17 de alto), con la
+# proporción nativa 53:64. Sin `drawn` el icono llena la caja entera
+# (como los minerales, que se ven bien así).
+drawn = [16, 19]
+
+[icons.egg]
+# Mismo sprite que el huevo del piso (Farm/egg.png, celda única 10x11).
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+icon  = [0, 0]
+# drawn: el mismo tamaño que la leche del panel (aprobado), con la
+# proporción nativa 10:11.
+drawn = [17, 19]

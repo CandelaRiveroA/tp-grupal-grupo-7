@@ -2,10 +2,10 @@
 
 namespace world {
 
-bool ObtainedBannerCatalog::hasIcon(ResourceKind kind) const {
-    return icons.find(kind) != icons.end();
+const SpriteVisual* ObtainedBannerCatalog::find(
+    const std::string& contentId) const {
+    const auto it = icons.find(contentId);
+    return it == icons.end() ? nullptr : &it->second;
 }
-
-const BannerIcon& ObtainedBannerCatalog::iconFor(ResourceKind kind) const { return icons.at(kind); }
 
 }  // namespace world

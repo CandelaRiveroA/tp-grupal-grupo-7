@@ -5,7 +5,9 @@
 #include "core/StartupScreens.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/DialogAnimator.h"
 #include "game/FootstepCue.h"
+#include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
 #include "game/ResourceAudioCue.h"
@@ -15,9 +17,13 @@
 #include "sdl/context/SdlContext.h"
 #include "sdl/input/InputManager.h"
 #include "sdl/render/Camera.h"
+#include "sdl/render/CursorPainter.h"
+#include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/Renderer.h"
+#include "world/CursorCatalog.h"
+#include "world/DialogCatalog.h"
 
 namespace game {
 class GameClient;
@@ -49,7 +55,9 @@ public:
                 const world::ToolOverlayCatalog& toolOverlay,
                 const world::ResourceCatalog& resources,
                 const world::ObtainedBannerCatalog& banner,
-                const world::DigitCatalog& digits);
+                const world::DigitCatalog& digits,
+                const world::CursorCatalog& cursors,
+                const world::DialogCatalog& dialogs);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -61,6 +69,11 @@ private:
     // celda lógica: así también se centra durante la interpolación del paso.
     void updateCamera(const game::LocalWorldView& view,
                       const game::ViewMotion& motion, int iteration);
+
+    // ¿El objetivo del pick es interactivo? Lo dice el estado (la fuente
+    // decide); esto solo lo lee para elegir la variante del cursor.
+    bool isInteractive(const game::PickTarget& target,
+                       const game::LocalWorldView& view) const;
 
     const world::Scenario& scenario_;
     game::GameClient& gameClient_;
@@ -81,6 +94,12 @@ private:
     game::ResourceAudioCue resourceAudioCue_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
+    game::ObjectPicker picker_;
+    world::CursorCatalog cursorCatalog_;
+    sdl::CursorPainter cursorPainter_;
+    game::DialogAnimator dialogAnimator_;
+    world::DialogCatalog dialogCatalog_;
+    sdl::DialogPainter dialogPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

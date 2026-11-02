@@ -29,7 +29,7 @@ public:
         sent.push_back(message);
     }
 
-    void update() override {}
+    void update(int) override {}
 
     const LocalWorldView& worldState() const override { return view; }
 
@@ -116,6 +116,17 @@ TEST(PlayerControllerTest, CommandsRunInArrivalOrder) {
     EXPECT_TRUE(std::holds_alternative<protocol::PickMessage>(client.sent[0]));
     EXPECT_TRUE(std::holds_alternative<protocol::TakeMessage>(client.sent[1]));
     EXPECT_EQ(player.activeSlot(), 1);
+}
+
+TEST(PlayerControllerTest, InteractSendsTake) {
+    RecordingGameClient client;
+    PlayerController player(client, kCadence, 4);
+
+    // El click sobre algo del mundo manda la intención de tomarlo; la
+    // fuente decide qué pasa con ella.
+    player.interact();
+    ASSERT_EQ(client.sent.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<protocol::TakeMessage>(client.sent[0]));
 }
 
 TEST(PlayerControllerTest, UnknownCommandKindThrows) {

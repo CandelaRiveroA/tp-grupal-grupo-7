@@ -122,6 +122,15 @@ void ProtocolSender::send_message(const ServerReset& /*reset*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Reset));
 }
 
+void ProtocolSender::send_message(const ServerAnimal& animal) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Animal));
+    send_uint8(animal.id);
+    send_string(animal.kind);
+    send_uint16(animal.x);
+    send_uint16(animal.y);
+    send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -129,4 +138,13 @@ void ProtocolSender::send_server_message(const ServerMessage& message) {
 void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Welcome));
     send_uint8(welcome.player_id);
+}
+
+void ProtocolSender::send_match_request(const MatchRequest& request) {
+    send_uint8(static_cast<uint8_t>(request.type));
+    send_string(request.name);
+}
+
+void ProtocolSender::send_lobby_status(LobbyStatus status) {
+    send_uint8(static_cast<uint8_t>(status));
 }

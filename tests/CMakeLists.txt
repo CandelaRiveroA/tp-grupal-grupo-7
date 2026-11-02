@@ -4,12 +4,20 @@ target_sources(taller_tests
     character_layers.cpp
     index_cycle.cpp
     invite_code_format.cpp
+    matches_monitor_test.cpp
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
+    animals_test.cpp
     ../server/world_view.cpp
+    ../server/matches_monitor.cpp
+    ../server/match.cpp
+    ../server/server_output_monitor.cpp
+    ../server/commands/move_command.cpp
+    ../server/commands/pick_command.cpp
+    ../server/commands/take_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/slot.cpp
@@ -17,6 +25,9 @@ target_sources(taller_tests
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
     ../server/domain/entities/dropped_item.cpp
+    ../server/domain/animals/animal.cpp
+    ../server/domain/animals/chicken.cpp
+    ../server/domain/animals/cow.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
     ../server/domain/minerals/mineral.cpp
@@ -27,6 +38,9 @@ target_sources(taller_tests
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
+    audio_catalog_test.cpp
+    sound_gate_test.cpp
+    sound_cue_catalog_test.cpp
     character_catalog_loader_test.cpp
     character_palette_loader_test.cpp
     creature_data_test.cpp
@@ -42,9 +56,21 @@ target_sources(taller_tests
     view_spatial_index_test.cpp
     world_contract_test.cpp
     mock_game_client_test.cpp
+    mock_animal_simulation_test.cpp
     local_world_view_test.cpp
     frame_clock_test.cpp
     move_command_test.cpp
+    mock_world_client_test.cpp
+    floor_items_test.cpp
+    content_ids_test.cpp
+    action_names_test.cpp
+    interaction_session_test.cpp
+    object_picker_test.cpp
+    cursor_config_loader_test.cpp
+    dialog_config_loader_test.cpp
+    dialog_animator_test.cpp
+    dialog_layout_test.cpp
+    dropped_item_layout_test.cpp
     player_controller_test.cpp
     walk_pacer_test.cpp
     view_motion_test.cpp

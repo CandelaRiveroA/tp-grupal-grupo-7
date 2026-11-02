@@ -4,7 +4,6 @@
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QVBoxLayout>
-
 #include <utility>
 
 #include "core/WindowConfig.h"
@@ -13,8 +12,8 @@
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/SaveListScreen.h"
 #include "qt/screens/WorldSelectScreen.h"
+#include "qt/services/NetworkSessionService.h"
 #include "qt/services/fakes/FakeSaveService.h"
-#include "qt/services/fakes/FakeSessionService.h"
 #include "qt/services/fakes/FakeWorldService.h"
 #include "qt/services/CharacterSpriteComposer.h"
 #include "qt/theme/GameCursor.h"
@@ -33,22 +32,22 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	setFixedSize(1280, 720);
 	setCursor(GameCursor().cursor());
 
-	stack_ = new QStackedWidget(this);
-	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->addWidget(stack_);
+    stack_ = new QStackedWidget(this);
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(stack_);
 
 	auto* menu = new MainMenuScreen(stack_, music);
 	registerScreen(ScreenId::MainMenu, menu);
 	connect(menu, &MainMenuScreen::exitRequested, this, &QWidget::close);
 
-	auto* worldService = new FakeWorldService(std::nullopt, this);
-	auto* worlds = new WorldSelectScreen(worldService, stack_);
-	registerScreen(ScreenId::WorldSelect, worlds);
-	connect(worlds, &WorldSelectScreen::worldChosen, this,
-		&LobbyWindow::onWorldChosen);
+    auto* worldService = new FakeWorldService(std::nullopt, this);
+    auto* worlds = new WorldSelectScreen(worldService, stack_);
+    registerScreen(ScreenId::WorldSelect, worlds);
+    connect(worlds, &WorldSelectScreen::worldChosen, this, &LobbyWindow::onWorldChosen);
 
-	auto* sessionService = new FakeSessionService(std::nullopt, this);
+	sessions_ = new NetworkSessionService(this);
+	auto* sessionService = sessions_;
 	auto* composer = new CharacterSpriteComposer(characters, palettes, this);
 
 	auto* joins = new JoinCodeScreen(sessionService, stack_, music);
@@ -69,69 +68,74 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	connect(character_, &CharacterScreen::characterConfirmed, this,
 		&LobbyWindow::onCharacterConfirmed);
 
-	current_ = menu;
-	stack_->setCurrentWidget(menu);
-	menu->onEnter();
+    current_ = menu;
+    stack_->setCurrentWidget(menu);
+    menu->onEnter();
 
-	auto* back = new QShortcut(QKeySequence(Qt::Key_Escape), this);
-	connect(back, &QShortcut::activated, this, &LobbyWindow::goBack);
+    auto* back = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    connect(back, &QShortcut::activated, this, &LobbyWindow::goBack);
 }
 
-std::optional<core::SessionConfig> LobbyWindow::result() const {
-	return selection_;
-}
+std::optional<core::SessionConfig> LobbyWindow::result() { return std::move(selection_); }
 
 void LobbyWindow::registerScreen(ScreenId id, Screen* screen) {
-	screens_[id] = screen;
-	stack_->addWidget(screen);
-	connect(screen, &Screen::requestNavigate, this, &LobbyWindow::navigateTo);
+    screens_[id] = screen;
+    stack_->addWidget(screen);
+    connect(screen, &Screen::requestNavigate, this, &LobbyWindow::navigateTo);
 }
 
 void LobbyWindow::navigateTo(ScreenId id) {
-	auto it = screens_.find(id);
-	if (it == screens_.end() || it->second == current_) {
-		// Destino todavía no implementado: no hay a dónde ir.
-		return;
-	}
+    auto it = screens_.find(id);
+    if (it == screens_.end() || it->second == current_) {
+        // Destino todavía no implementado: no hay a dónde ir.
+        return;
+    }
 
-	current_->onExit();
-	current_ = it->second;
-	stack_->setCurrentWidget(current_);
-	current_->onEnter();
+    current_->onExit();
+    current_ = it->second;
+    stack_->setCurrentWidget(current_);
+    current_->onEnter();
 }
 
-void LobbyWindow::goBack() { navigateTo(ScreenId::MainMenu); }
+void LobbyWindow::goBack() {
+    sessions_->discardConnection();
+    navigateTo(ScreenId::MainMenu);
+}
 
 void LobbyWindow::acceptSelection(core::SessionConfig session) {
-	selection_ = std::move(session);
-	close();
-	QApplication::quit();
+    session.connection = sessions_->takeConnection();
+    selection_ = std::move(session);
+    close();
+    QApplication::quit();
 }
 
 void LobbyWindow::onWorldChosen(WorldSummary world) {
-	character_->startNewGame(world);
-	navigateTo(ScreenId::Character);
+    character_->startNewGame(world);
+    navigateTo(ScreenId::Character);
 }
 
 void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
-	acceptSelection(core::SessionConfig{selection.gameName,
-					    selection.characterName});
+    core::SessionConfig session;
+    session.partida = selection.gameName;
+    session.personaje = selection.characterName;
+    acceptSelection(std::move(session));
 }
 
 void LobbyWindow::onSaveLoaded(SaveSummary save) {
-	// El jugador local al retomar es el primero de la partida guardada.
-	// TODO con protocolo: confirmar cómo se identifica al jugador que
-	// pide la carga.
-	const std::string character =
-		save.players.empty() ? std::string()
-				     : save.players.front().name;
-	acceptSelection(core::SessionConfig{save.gameName, character});
+    // El jugador local al retomar es el primero de la partida guardada.
+    // TODO con protocolo: confirmar cómo se identifica al jugador que
+    // pide la carga.
+    const std::string character = save.players.empty() ? std::string() : save.players.front().name;
+    core::SessionConfig session;
+    session.partida = save.gameName;
+    session.personaje = character;
+    acceptSelection(std::move(session));
 }
 
 void LobbyWindow::onJoinAccepted(std::string gameName) {
-	// Solo queda customizar el personaje: la partida y el mundo ya los
-	// definió el anfitrión. El worldId del server no nos alcanza acá.
-	// TODO con protocolo: cómo viaja el personaje del joiner al server.
-	character_->startJoinGame(gameName);
-	navigateTo(ScreenId::Character);
+    // Solo queda customizar el personaje: la partida y el mundo ya los
+    // definió el anfitrión. El worldId del server no nos alcanza acá.
+    // TODO con protocolo: cómo viaja el personaje del joiner al server.
+    character_->startJoinGame(gameName);
+    navigateTo(ScreenId::Character);
 }

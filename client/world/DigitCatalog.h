@@ -4,13 +4,9 @@
 #include <string>
 #include <vector>
 
-namespace world {
+#include "world/SpriteVisual.h"
 
-// Celda (col,row) de un dígito en la hoja de dígitos.
-struct DigitCell {
-	int col = 0;
-	int row = 0;
-};
+namespace world {
 
 // Hoja de dígitos (0-9) descrita como DATOS: de qué imagen salen y qué
 // celda es cada dígito. Permite componer cualquier número (la cantidad
@@ -23,10 +19,10 @@ struct DigitCatalog {
 	int cellHeight = 0;
 
 	// Indexado por valor del dígito: digits[0]..digits[9].
-	std::array<DigitCell, 10> digits{};
+	std::array<SheetCell, 10> digits{};
 
 	// Celda del dígito d (0-9). Precondición: 0 <= d <= 9.
-	const DigitCell& cellFor(int digit) const;
+	const SheetCell& cellFor(int digit) const;
 };
 
 // Descompone n en sus dígitos decimales, de más significativo a menos

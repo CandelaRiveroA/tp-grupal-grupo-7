@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 #include "common_protocol_receiver.h"
 #include "common_protocol_sender.h"
@@ -11,7 +12,7 @@
 #include "common_socket.h"
 #include "common_thread.h"
 #include "common_worker.h"
-#include "match.h"
+#include "matches_monitor.h"
 #include "server_output_monitor.h"
 #include "server_receiver.h"
 #include "server_sender.h"
@@ -19,20 +20,21 @@
 class ClientHandler: public Thread {
 private:
     Socket peer;
-    uint8_t player_id;
-    Queue<MatchEvent>& events;
+    MatchesMonitor& matches;
     ServerOutputMonitor& output;
     std::shared_ptr<Queue<ServerMessage>> statuses;
     ProtocolSender protocol_sender;
     ProtocolReceiver protocol_receiver;
-    ServerReceiver receiver;
     ServerSender sender;
+    std::mutex peer_mutex;
+    bool peer_closed;
 
+    void serve();
+    void closePeer();
     void reportFailure(const Worker& worker);
 
 public:
-    ClientHandler(Socket&& client_socket, uint8_t player_id, Queue<MatchEvent>& events,
-                  ServerOutputMonitor& output);
+    ClientHandler(Socket&& client_socket, MatchesMonitor& matches, ServerOutputMonitor& output);
 
     void run() override;
     void stop() override;

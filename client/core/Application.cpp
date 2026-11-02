@@ -23,8 +23,11 @@
 #include "world/CharacterPalettes.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
+#include "world/CursorConfigLoader.h"
+#include "world/DialogConfigLoader.h"
 #include "world/DigitCatalog.h"
 #include "world/DigitConfigLoader.h"
+#include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
 #include "world/ObtainedBannerCatalog.h"
@@ -64,18 +67,19 @@ void Application::loadStyleSheet() {
 }
 
 int Application::run() {
+    std::optional<SessionConfig> session;
     try {
-        std::optional<SessionConfig> session = runLobby();
-        if (!session.has_value()) {
-            return 0;
-        }
+        session = runLobby();
     } catch (const world::ConfigError& error) {
         const sdl::Logger logger;
         logger.error(error.what());
         return EXIT_FAILURE;
     }
 
-    return runGame();
+    if (!session.has_value()) {
+        return 0;
+    }
+    return runGame(std::move(*session));
 }
 
 std::optional<SessionConfig> Application::runLobby() {
@@ -96,8 +100,12 @@ std::optional<SessionConfig> Application::runLobby() {
     return lobby.result();
 }
 
-int Application::runGame() {
+int Application::runGame(SessionConfig session) {
     const sdl::Logger logger;
+    if (!session.connection.has_value()) {
+        logger.error("No hay conexion con el servidor.");
+        return EXIT_FAILURE;
+    }
     try {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
@@ -115,12 +123,17 @@ int Application::runGame() {
                         core::assetPath(core::kObtainedBannerFile));
         const world::DigitCatalog digits =
                 world::DigitConfigLoader().loadFromFile(core::assetPath(core::kDigitsFile));
+        const world::CursorCatalog cursors =
+                world::CursorConfigLoader().loadFromFile(core::assetPath(core::kCursorsFile));
+        const world::DialogCatalog dialogs =
+                world::DialogConfigLoader().loadFromFile(core::assetPath(core::kDialogsFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
-        std::unique_ptr<game::GameClient> gameClient = createGameClient(toolUseDuration);
-        PlaySession session(config_, scenario, *gameClient, characters, inventory,
-                            toolOverlay, resources, banner, digits);
-        session.run();
+        std::unique_ptr<game::GameClient> gameClient =
+                createGameClient(std::move(*session.connection), characters, toolUseDuration);
+        PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
+                                resources, banner, digits, cursors, dialogs);
+        playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
@@ -131,9 +144,11 @@ int Application::runGame() {
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient(int toolUseDurationTicks) const {
-    return std::make_unique<game::NetworkGameClient>(core::kServerHost, core::kServerPort,
-                                                     toolUseDurationTicks);
+std::unique_ptr<game::GameClient> Application::createGameClient(
+        Socket&& socket, const world::CharacterCatalog& characters,
+        int toolUseDurationTicks) const {
+    return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks,
+                                                     characters);
 }
 
 }  // namespace core

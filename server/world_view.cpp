@@ -9,18 +9,22 @@
 // Vocabulario compartido con el cliente (inventory.toml y resources.toml).
 std::string content_id_for(ItemID id) {
     static const std::map<ItemID, std::string> content_ids = {
-            {ItemID::PICKAXE, "pickaxe"},           {ItemID::SHOVEL, "shovel"},
-            {ItemID::WATERING_CAN, "watering_can"}, {ItemID::SWORD, "sword"},
-            {ItemID::SILVER_ORB, "silver"},         {ItemID::COAL_ORB, "coal"},
-            {ItemID::LAPIS_ORB, "lapis"},           {ItemID::GOLD_ORB, "gold"}};
+            {ItemID::PICKAXE, "pickaxe"},
+            {ItemID::SHOVEL, "shovel"},
+            {ItemID::WATERING_CAN, "watering_can"},
+            {ItemID::SWORD, "sword"},
+            {ItemID::SILVER_ORB, "silver"},
+            {ItemID::COAL_ORB, "coal"},
+            {ItemID::LAPIS_ORB, "lapis"},
+            {ItemID::GOLD_ORB, "gold"},
+            {ItemID::EGG, "egg"},
+            {ItemID::MILK, "milk"}};
 
     const auto it = content_ids.find(id);
     return it != content_ids.end() ? it->second : "";
 }
 
-namespace {
-
-ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
+static ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
     if (hits_taken == 0) {
         return ResourceDamage::Intact;
     }
@@ -31,8 +35,6 @@ ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
 
     return ResourceDamage::Cracked;
 }
-
-}  // namespace
 
 std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id) const {
     std::vector<ServerMessage> out;
@@ -47,16 +49,23 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
 
     for (uint16_t y = 0; y < world.get_height(); ++y) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
-            const IEntity* entity = world.get_entity_at(x, y);
-            const auto snap = entity ? entity->snapshot() : std::nullopt;
-            if (!snap) {
-                continue;
-            }
-            if (snap->kind == CellSnapshot::Kind::Resource) {
-                out.push_back(ServerResource{x, y, content_id_for(snap->item),
-                                             damage_for(snap->hits_taken, snap->hits_to_destroy)});
-            } else {
-                out.push_back(ServerDropped{x, y, content_id_for(snap->item)});
+            for (const IEntity* entity: world.get_entity_at(x, y)) {
+                if (const auto animal = entity->animal_snapshot()) {
+                    out.push_back(
+                            ServerAnimal{animal->id, animal->kind, x, y, animal->ready_to_milk});
+                    continue;
+                }
+                const auto snap = entity->snapshot();
+                if (!snap) {
+                    continue;
+                }
+                if (snap->kind == CellSnapshot::Kind::Resource) {
+                    out.push_back(
+                            ServerResource{x, y, content_id_for(snap->item),
+                                           damage_for(snap->hits_taken, snap->hits_to_destroy)});
+                } else {
+                    out.push_back(ServerDropped{x, y, content_id_for(snap->item)});
+                }
             }
         }
     }

@@ -71,6 +71,15 @@ void MockGameClient::sendCommand(const protocol::ClientMessage& message) {
     rebuildView();
 }
 
+void MockGameClient::update(int) {
+    view_.resourceHits.clear();
+    advanceToolUse();
+    rebuildView();
+    advanceObtained();
+}
+
+const LocalWorldView& MockGameClient::worldState() const { return view_; }
+
 void MockGameClient::frontCell(::Direction direction, int& cellX, int& cellY) const {
     cellX = playerCellX_;
     cellY = playerCellY_;
@@ -141,7 +150,7 @@ void MockGameClient::advanceObtained() {
     // El evento de obtención lo dispara un Take exitoso (no se deduce):
     // se emite por un solo tick y luego se limpia.
     if (obtainedPending_) {
-        view_.obtained.push_back(ViewResourceObtained{obtainedKind_});
+        view_.obtained.push_back(ViewObtained{obtainedContentId_});
         obtainedPending_ = false;
     }
 }
@@ -161,59 +170,32 @@ void MockGameClient::collectAt(int cellX, int cellY) {
         return;  // no hay nada para recoger en esa celda
     }
     const world::ResourceKind kind = dropped_[static_cast<std::size_t>(index)].kind;
-    obtainedKind_ = kind;
+    const std::string contentId = contentIdFor(kind);
+    obtainedContentId_ = contentId;
     obtainedPending_ = true;
     dropped_.erase(dropped_.begin() + index);
     // Recoger = sumar al inventario. El servidor manda la cantidad; el
     // mock la simula acumulando +1.
-    addToInventory(contentIdFor(kind));
+    addToInventory(contentId);
 }
 
 void MockGameClient::addToInventory(const std::string& contentId) {
-    for (ViewInventorySlot& slot: view_.inventory) {
-        // cppcheck-suppress useStlAlgorithm
-        if (slot.contentId == contentId) {
-            ++slot.count;
-            return;
-        }
-    }
-    // No estaba: ocupar el primer slotIndex libre.
-    int index = 0;
-    bool used = true;
-    while (used) {
-        used = false;
-        for (const ViewInventorySlot& slot: view_.inventory) {
-            // cppcheck-suppress useStlAlgorithm
-            if (slot.slotIndex == index) {
-                used = true;
-                ++index;
-                break;
-            }
-        }
-    }
-    view_.inventory.push_back({index, contentId, 1});
+    view_.addInventoryContent(contentId);
 }
 
-std::string MockGameClient::contentIdFor(world::ResourceKind kind) {
-    switch (kind) {
-        case world::ResourceKind::Silver:
-            return "silver";
-        case world::ResourceKind::Coal:
-            return "coal";
-        case world::ResourceKind::Lapis:
-            return "lapis";
-        case world::ResourceKind::Gold:
-            return "gold";
-    }
-    return "";
+std::string MockGameClient::contentIdFor(world::ResourceKind kind) const {
+    const std::string* found = contentIds_.find(kind);
+    return found != nullptr ? *found : "";
 }
 
 void MockGameClient::rebuildView() {
     view_.entities.clear();
     view_.grid = world::GridSpan{gridColumns_, gridRows_};
 
+    // El jugador es SIEMPRE la entidad 0 con id estable 0.
     ViewEntity player;
     player.kind = world::CreatureKind::Player;
+    player.id = 0;
     player.cellX = playerCellX_;
     player.cellY = playerCellY_;
     player.facing = playerFacing_;
@@ -266,15 +248,6 @@ void MockGameClient::rebuildResources() {
         view_.resources.push_back(resource);
     }
 }
-
-void MockGameClient::update() {
-    view_.resourceHits.clear();
-    advanceToolUse();
-    rebuildView();
-    advanceObtained();
-}
-
-const LocalWorldView& MockGameClient::worldState() const { return view_; }
 
 void MockGameClient::rebuildInventory() {
     // El inventario es genérico: cada slot lleva un contentId (string) y

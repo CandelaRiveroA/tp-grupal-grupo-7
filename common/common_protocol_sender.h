@@ -5,6 +5,7 @@
 #include <string>
 
 #include "common_command.h"
+#include "common_match_request.h"
 #include "common_server_status.h"
 #include "common_socket.h"
 
@@ -31,6 +32,7 @@ private:
     void send_message(const ServerToolUsed& used);
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
+    void send_message(const ServerAnimal& animal);
 
 public:
     explicit ProtocolSender(Socket& socket);
@@ -38,6 +40,8 @@ public:
     void send_client_message(const protocol::ClientMessage& message);
     void send_server_message(const ServerMessage& message);
     void send_welcome(const ServerWelcome& welcome);
+    void send_match_request(const MatchRequest& request);
+    void send_lobby_status(LobbyStatus status);
 };
 
 #endif

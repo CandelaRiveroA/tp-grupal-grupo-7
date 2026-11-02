@@ -3,6 +3,8 @@
 #include <map>
 #include <string>
 
+#include "world/SpriteVisual.h"
+
 namespace world {
 
 // Recurso picable del mundo (vocabulario del juego, lo comunica el
@@ -23,13 +25,10 @@ enum class ResourceState {
 };
 
 // Bloque de la hoja a dibujar: col/row es la esquina sup-izq; cols/rows
-// el tamaño en celdas. El tamaño puede variar por estado.
+// el tamaño en celdas. El tamaño puede variar por estado. Compone el
+// sprite común (sus campos drawn no aplican a bloques de celdas).
 struct ResourceVisual {
-	std::string sheetImage;
-	int cellWidth = 0;
-	int cellHeight = 0;
-	int col = 0;
-	int row = 0;
+	SpriteVisual sprite;
 	int cols = 1;
 	int rows = 1;
 };
@@ -44,10 +43,8 @@ struct ResourceCatalog {
 
 	std::map<ResourceKind, std::map<ResourceState, ResourceVisual>> visuals;
 
-	bool has(ResourceKind kind, ResourceState state) const;
-
-	const ResourceVisual& visualFor(ResourceKind kind,
-					ResourceState state) const;
+	// Una sola búsqueda: nullptr si el par (kind, state) no tiene visual.
+	const ResourceVisual* find(ResourceKind kind, ResourceState state) const;
 };
 
 }

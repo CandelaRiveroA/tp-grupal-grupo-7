@@ -24,6 +24,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
                 {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
                 {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
+                {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -156,6 +157,18 @@ ServerMessage ProtocolReceiver::receive_tool_used_message() {
 
 ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
 
+ServerMessage ProtocolReceiver::receive_animal_message() {
+    const uint8_t id = receive_uint8();
+    std::string kind = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const uint8_t ready = receive_uint8();
+    if (ready > 1) {
+        throw std::invalid_argument("El indicador de ordeñe no es valido.");
+    }
+    return ServerAnimal{id, std::move(kind), x, y, ready == 1};
+}
+
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
     const auto handler = server_handlers.find(type);
@@ -173,4 +186,21 @@ ServerWelcome ProtocolReceiver::receive_welcome() {
     }
 
     return ServerWelcome{receive_uint8()};
+}
+
+MatchRequest ProtocolReceiver::receive_match_request() {
+    const uint8_t type = receive_uint8();
+    if (type != static_cast<uint8_t>(MatchRequestType::Create) &&
+        type != static_cast<uint8_t>(MatchRequestType::Join)) {
+        throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
+    }
+    return MatchRequest{static_cast<MatchRequestType>(type), receive_string()};
+}
+
+LobbyStatus ProtocolReceiver::receive_lobby_status() {
+    const uint8_t status = receive_uint8();
+    if (status > static_cast<uint8_t>(LobbyStatus::Invalid)) {
+        throw std::invalid_argument("El estado del lobby no es valido.");
+    }
+    return static_cast<LobbyStatus>(status);
 }

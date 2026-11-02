@@ -59,6 +59,24 @@ cadence = { step = 24, frame = 12 }
       [ [3, 22, 1, 2], [9, 22, 1, 2] ],
       [ [4, 22, 1, 2], [10, 22, 1, 2] ],
     ]
+    # Recoger de frente: 4 poses one-shot, brazos subiendo de 1x1 a 1x2
+    # (mismo patrón que el de costado). El huevo lo dibuja el overlay
+    # [egg.front] (tools_overlay.toml), centrado al frente del cuerpo.
+    [characters.player.front.pickup]
+    loops  = false
+    frames = [
+      [ [0, 18, 1, 2], [6, 19, 1, 1] ],
+      [ [1, 18, 1, 2], [7, 19, 1, 1] ],
+      [ [2, 18, 1, 2], [8, 18, 1, 2] ],
+      [ [3, 18, 1, 2], [9, 18, 1, 2] ],
+    ]
+    # Ordeñar de frente: 2 poses que alternan (loops), brazos 1x1.
+    [characters.player.front.milk]
+    loops  = true
+    frames = [
+      [ [4, 8, 1, 2], [10, 9, 1, 1] ],
+      [ [3, 8, 1, 2], [9, 9, 1, 1] ],
+    ]
 
   # Espaldas (caminar hacia arriba) — RELEVADA. Brazos 1x2 (suben).
   [characters.player.back]
@@ -87,6 +105,24 @@ cadence = { step = 24, frame = 12 }
       [ [2, 62, 1, 2], [8, 63, 1, 1] ],
       [ [4, 62, 1, 2], [10, 62, 1, 2] ],
     ]
+    # Ordeñar de espaldas: 2 poses que alternan (loops), brazos 1x1 en
+    # ambas (a diferencia del de costado, cuyo frame 2 es 1x2).
+    [characters.player.back.milk]
+    loops  = true
+    frames = [
+      [ [2, 20, 1, 2], [8, 21, 1, 1] ],
+      [ [3, 20, 1, 2], [9, 21, 1, 1] ],
+    ]
+    # Recoger de espaldas: 4 poses one-shot, brazos subiendo de 1x1 a
+    # 1x2. El huevo lo dibuja [egg.back] solo en el último cuadro.
+    [characters.player.back.pickup]
+    loops  = false
+    frames = [
+      [ [2, 20, 1, 2], [8, 21, 1, 1] ],
+      [ [3, 20, 1, 2], [9, 21, 1, 1] ],
+      [ [4, 20, 1, 2], [10, 20, 1, 2] ],
+      [ [5, 20, 1, 2], [11, 20, 1, 2] ],
+    ]
 
   # Izquierda — RELEVADA (mismas celdas que derecha, espejada).
   [characters.player.left]
@@ -112,6 +148,27 @@ cadence = { step = 24, frame = 12 }
       [ [2, 16, 1, 2], [8, 16, 1, 2] ],
       [ [3, 16, 1, 2], [9, 16, 1, 2] ],
       [ [4, 16, 1, 2], [10, 16, 1, 2] ],
+    ]
+    # Ordeñar: dos poses que alternan (cuerpo 1x2 + brazos), espejadas
+    # igual que picar. loops = true = la alternancia 1-2-1-2; cuántas
+    # vueltas da lo decide la fuente de estado (la duración de la
+    # acción), no estos datos.
+    [characters.player.left.milk]
+    loops  = true
+    frames = [
+      [ [4, 18, 1, 2], [10, 19, 1, 1] ],
+      [ [5, 18, 1, 2], [11, 18, 1, 2] ],
+    ]
+    # Recoger (el huevo del piso): 4 poses one-shot, brazos subiendo de
+    # 1x1 a 1x2. El huevo en las manos lo dibuja el overlay
+    # (tools_overlay.toml [egg.*]), sincronizado con estos cuadros.
+    [characters.player.left.pickup]
+    loops  = false
+    frames = [
+      [ [4, 60, 1, 2], [10, 61, 1, 1] ],
+      [ [5, 60, 1, 2], [11, 61, 1, 1] ],
+      [ [0, 62, 1, 2], [6, 62, 1, 2] ],
+      [ [1, 62, 1, 2], [7, 62, 1, 2] ],
     ]
 
   # Derecha — RELEVADA. Brazos 1x1 (bajos, se anclan abajo).
@@ -140,3 +197,129 @@ cadence = { step = 24, frame = 12 }
       [ [3, 16, 1, 2], [9, 16, 1, 2] ],
       [ [4, 16, 1, 2], [10, 16, 1, 2] ],
     ]
+    # Ordeñar: mismas celdas que left (con mirrored=true las voltea).
+    # Dos poses que alternan; cuántas vueltas da lo decide la fuente.
+    [characters.player.right.milk]
+    loops  = true
+    frames = [
+      [ [4, 18, 1, 2], [10, 19, 1, 1] ],
+      [ [5, 18, 1, 2], [11, 18, 1, 2] ],
+    ]
+    # Recoger: mismas celdas que left (espejado). 4 poses one-shot.
+    [characters.player.right.pickup]
+    loops  = false
+    frames = [
+      [ [4, 60, 1, 2], [10, 61, 1, 1] ],
+      [ [5, 60, 1, 2], [11, 61, 1, 1] ],
+      [ [0, 62, 1, 2], [6, 62, 1, 2] ],
+      [ [1, 62, 1, 2], [7, 62, 1, 2] ],
+    ]
+
+# --- Gallina -----------------------------------------------------------
+# Relevada con taller_tile_inspector sobre Farm/Chicken.png (64x112 px,
+# celdas de 16x16 => 4 columnas x 7 filas). Fila 0: caminata de frente
+# (4 cuadros, cols 0-3). Fila 1: caminata de derecha. Fila 2: de espaldas.
+# Fila 3: de izquierda (la hoja trae izquierda explícita: NO se espeja).
+# Fila 4: descanso — parada de frente (0,4), sentada de frente (1,4),
+# parada de lado derecho (2,4), sentada de lado derecho (3,4). Fila 5:
+# parada de espaldas (0,5), sentada de espaldas (1,5), parada de lado
+# izquierdo (2,5), sentada de lado izquierdo (3,5). Fila 6: picoteando
+# de frente, 4 cuadros (cols 0-3), disponible para una acción futura.
+#
+# idle = pose "parada" de cada dirección (capa única 1x1). La variante
+# "sentada" queda relevada para un idle más rico (dato, sin código).
+# cadence: walk son 4 cuadros => invariante step == frame * 4
+# (32 == 8 * 4). Cada capa es 1x1: el cuerpo entero es un cuadro.
+[characters.chicken]
+sheet   = "Farm/Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 32, frame = 8 }
+
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [ [0, 4] ] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]
+
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [ [2, 4] ] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]
+
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [ [0, 5] ] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]
+
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [ [2, 5] ] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [ [0, 3] ], [ [1, 3] ], [ [2, 3] ], [ [3, 3] ] ]
+
+# --- Vaca ---------------------------------------------------------------
+# Relevada con taller_tile_inspector sobre Farm/Female_Cow_Brown.png
+# (128x96 px, celdas de 32x32 => 4 columnas x 3 filas: cada sprite es
+# 2x2 celdas de 16, el doble de grande que la gallina). Fila 0:
+# caminata de IZQUIERDA (4 cuadros; la hoja no trae derecha:
+# mirrored=true la voltea). Fila 1: caminata de frente. Fila 2: de
+# espaldas. Sin poses de descanso en la hoja: el idle reusa el primer
+# cuadro del walk de cada dirección (dato, sin código). cadence: walk
+# son 4 cuadros => invariante step == frame * 4 (48 == 12 * 4); paso
+# más pesado que el de la gallina.
+[characters.cow]
+sheet   = "Farm/Female_Cow_Brown.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 48, frame = 12 }
+
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [ [0, 1] ] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [ [0, 1] ], [ [1, 1] ], [ [2, 1] ], [ [3, 1] ] ]
+
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [ [0, 2] ] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [ [0, 2] ], [ [1, 2] ], [ [2, 2] ], [ [3, 2] ] ]
+
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]
+
+  [characters.cow.right]
+  mirrored = true
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [ [0, 0] ] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [ [0, 0] ], [ [1, 0] ], [ [2, 0] ], [ [3, 0] ] ]

@@ -3,10 +3,12 @@
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
+#include <SDL2/SDL_mouse.h>
 
 #include "gtest/gtest.h"
 
 #include "game/InputCommand.h"
+#include "game/PointerClick.h"
 #include "sdl/input/InputManager.h"
 #include "world/ViewDirection.h"
 
@@ -14,6 +16,7 @@ namespace {
 
 using Command = game::InputCommand;
 using CommandKind = game::InputCommand::Kind;
+using game::PointerClick;
 using sdl::InputManager;
 using world::Direction;
 
@@ -31,6 +34,24 @@ SDL_Event keyDown(SDL_Keycode sym, Uint8 repeat = 0) {
 
 SDL_Event keyUp(SDL_Keycode sym) {
     return keyEvent(SDL_KEYUP, sym, 0);
+}
+
+SDL_Event mouseButtonDown(int x, int y, Uint8 button = SDL_BUTTON_LEFT) {
+    SDL_Event event{};
+    event.type = SDL_MOUSEBUTTONDOWN;
+    event.button.button = button;
+    event.button.x = x;
+    event.button.y = y;
+    return event;
+}
+
+SDL_Event mouseButtonUp(int x, int y, Uint8 button = SDL_BUTTON_LEFT) {
+    SDL_Event event{};
+    event.type = SDL_MOUSEBUTTONUP;
+    event.button.button = button;
+    event.button.x = x;
+    event.button.y = y;
+    return event;
 }
 
 TEST(InputManagerTest, RepeatKeyEventsAreIgnored) {
@@ -158,6 +179,76 @@ TEST(InputManagerTest, PressedDirectionFollowsMovementKeys) {
     input.handleEvent(keyUp(SDLK_RIGHT));
     input.handleEvent(keyDown(SDLK_w));
     EXPECT_EQ(input.pressedDirection(), Direction::Back);
+}
+
+TEST(InputManagerTest, MouseMotionTracksPointerPosition) {
+    InputManager input(4);
+
+    // Sin movimiento, el puntero arranca en el origen.
+    EXPECT_EQ(input.mousePosition().x, 0);
+    EXPECT_EQ(input.mousePosition().y, 0);
+
+    SDL_Event motion{};
+    motion.type = SDL_MOUSEMOTION;
+    motion.motion.x = 320;
+    motion.motion.y = 240;
+    input.handleEvent(motion);
+    EXPECT_EQ(input.mousePosition().x, 320);
+    EXPECT_EQ(input.mousePosition().y, 240);
+
+    // El teclado no mueve el puntero.
+    input.handleEvent(keyDown(SDLK_UP));
+    EXPECT_EQ(input.mousePosition().x, 320);
+    EXPECT_EQ(input.mousePosition().y, 240);
+}
+
+TEST(InputManagerTest, MouseClickCarriesPosition) {
+    InputManager input(4);
+
+    input.handleEvent(mouseButtonDown(320, 240));
+    const std::vector<PointerClick> clicks = input.takeClicks();
+    ASSERT_EQ(clicks.size(), 1u);
+    EXPECT_EQ(clicks[0].x, 320);
+    EXPECT_EQ(clicks[0].y, 240);
+    EXPECT_TRUE(input.takeClicks().empty());
+}
+
+TEST(InputManagerTest, ClickIsOneShotPerPress) {
+    InputManager input(4);
+
+    input.handleEvent(mouseButtonDown(10, 10));
+    input.handleEvent(mouseButtonUp(10, 10));
+    // Soltar el botón no genera otro click.
+    ASSERT_EQ(input.takeClicks().size(), 1u);
+
+    // Varios clicks en el mismo frame salen juntos y en orden.
+    input.handleEvent(mouseButtonDown(1, 1));
+    input.handleEvent(mouseButtonDown(2, 2));
+    const std::vector<PointerClick> clicks = input.takeClicks();
+    ASSERT_EQ(clicks.size(), 2u);
+    EXPECT_EQ(clicks[0].x, 1);
+    EXPECT_EQ(clicks[1].x, 2);
+}
+
+TEST(InputManagerTest, OnlyPrimaryButtonClicks) {
+    InputManager input(4);
+
+    input.handleEvent(mouseButtonDown(5, 5, SDL_BUTTON_RIGHT));
+    input.handleEvent(mouseButtonDown(5, 5, SDL_BUTTON_MIDDLE));
+    EXPECT_TRUE(input.takeClicks().empty());
+}
+
+TEST(InputManagerTest, KeyboardAndMotionDoNotGenerateClicks) {
+    InputManager input(4);
+
+    input.handleEvent(keyDown(SDLK_SPACE));
+    input.handleEvent(keyUp(SDLK_SPACE));
+    SDL_Event motion{};
+    motion.type = SDL_MOUSEMOTION;
+    motion.motion.x = 10;
+    motion.motion.y = 20;
+    input.handleEvent(motion);
+    EXPECT_TRUE(input.takeClicks().empty());
 }
 
 TEST(InputManagerTest, NonKeyboardEventsAreIgnored) {

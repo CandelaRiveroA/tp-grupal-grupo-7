@@ -1,21 +1,21 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "game/LocalWorldView.h"
-#include "world/ResourceCatalog.h"
 
 namespace game {
 
 // Un cartel vivo en la pila. stackIndex 0 = arriba de todo; crece hacia
 // abajo. remainingTicks baja hasta 0 y entonces el cartel se descarta.
 struct ActiveBanner {
-    world::ResourceKind kind;
+    std::string contentId;
     int remainingTicks;
     int stackIndex;
 };
 
-// Mantiene la pila de carteles de "mineral obtenido" con sus timers. Es
+// Mantiene la pila de carteles de "contenido obtenido" con sus timers. Es
 // presentación PURA (sin SDL): recibe los eventos de obtención que manda
 // la fuente (no los deduce) y decide qué carteles hay y en qué orden.
 // Análogo a ResourceAudioCue/FootstepCue: decide, no dibuja.
@@ -28,9 +28,9 @@ public:
     // descartan.
     ObtainedBannerQueue(int durationTicks, int maxVisible);
 
-    void push(world::ResourceKind kind);
+    void push(const std::string& contentId);
 
-    void observe(const std::vector<ViewResourceObtained>& obtained);
+    void observe(const std::vector<ViewObtained>& obtained);
 
     // Descuenta timers, descarta expirados y recompacta los stackIndex.
     void tick();

@@ -14,7 +14,16 @@
 
 ## ✅ Ya conseguido
 
-- [x] Vaca (balido) → `Farm/Cow.mp3`
+- [x] Vaca (muuge **ambiental**, espontáneo cada ~20-45 s) →
+  `sfx/farm/cow.ogg` — **conectado al cliente**: mismo modelo que el
+  cacareo (cue `cow_moo`, eventos per-tick, gate por sala; la sala
+  actual declara ambos cues en `scenes.toml`).
+- [x] Gallina (cacareo **ambiental**, espontáneo cada ~20-45 s) →
+  `sfx/farm/chicken_cluck.ogg` — **conectado al cliente**: cue
+  `chicken_cluck` (`game/SoundCue.h`), eventos per-tick de la simulación
+  (`LocalWorldView.soundEvents`) y gate por sala en `scenes.toml`
+  (cada sala declara en `sounds = [...]` qué se oye mientras se la
+  renderiza). El día que exista el granero, su sala declara el cue y listo.
 
 ---
 
@@ -81,9 +90,12 @@
 📌 "cuidar animales" está en la lista explícita de efectos.
 
 - [ ] Interacción / **cuidar animal** 📌 — *pet animal happy*
-- [ ] Vaca **lista para ordeñar** (notificación) 💡 — *cow moo* ← ya tenemos `Farm/Cow.mp3`, sirve
+- [ ] Vaca **lista para ordeñar** (notificación) 💡 — *cow moo* ← ya tenemos `sfx/farm/cow.ogg`, sirve
 - [ ] **Ordeñar** vaca 💡 — *milk bucket*
 - [ ] Gallina **pone huevo** (notificación) 💡 — *chicken cluck / egg drop*
+  (el cacareo AMBIENTAL ya está conectado — ver "Ya conseguido"; la
+  notificación particular de la postura queda pendiente: hoy el huevo
+  aparece sin sonido propio)
 - [ ] Recoger huevo 💡 — *egg pickup*
 - [ ] Comprar animal (Marnie) 💡 — *purchase animal*
 - [ ] Vender animal 💡 — *sell*

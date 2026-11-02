@@ -14,10 +14,12 @@ enum class SoundId {
 	MineralHit,
 	MineralCrack,
 	MineralObtained,
+	ChickenCluck,
+	CowMoo,
 };
 
 inline constexpr int kSoundCount =
-	static_cast<int>(SoundId::MineralObtained) + 1;
+	static_cast<int>(SoundId::CowMoo) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -31,6 +33,8 @@ inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/tools/hammer.ogg", SoundCategory::Sfx},
 	 {"sfx/mining/brick2.ogg", SoundCategory::Sfx},
 	 {"sfx/mining/discoverMineral.ogg", SoundCategory::Sfx},
+	 {"sfx/farm/chicken_cluck.ogg", SoundCategory::Sfx},
+	 {"sfx/farm/cow.ogg", SoundCategory::Sfx},
 }};
 
 }

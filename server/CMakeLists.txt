@@ -5,6 +5,7 @@ target_sources(taller_server
     server.cpp
     acceptor.cpp
     client_handler.cpp
+    matches_monitor.cpp
     server_sender.cpp
     server_receiver.cpp
     match.cpp
@@ -18,6 +19,9 @@ target_sources(taller_server
     domain/entities/i_entity.cpp
     domain/entities/player.cpp
     domain/entities/dropped_item.cpp
+    domain/animals/animal.cpp
+    domain/animals/chicken.cpp
+    domain/animals/cow.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp
@@ -32,6 +36,7 @@ target_sources(taller_server
     server.h
     acceptor.h
     client_handler.h
+    matches_monitor.h
     server_sender.h
     server_receiver.h
     match.h

@@ -5,13 +5,13 @@
 namespace {
 
 using world::CharacterLayout;
-using world::FrameIndex;
+using world::SheetCell;
 using world::Layer;
 using world::LayerFrame;
 using world::PixelRect;
 
 LayerFrame makeLayer(int cols, int rows) {
-	return LayerFrame{Layer::Body, FrameIndex{0, 0}, cols, rows};
+	return LayerFrame{Layer::Body, SheetCell{0, 0}, cols, rows};
 }
 
 TEST(CharacterLayoutTest, BodyIsCenteredHorizontallyInTheBox) {

@@ -7,6 +7,7 @@
 #include <string>
 
 #include "common_command.h"
+#include "common_match_request.h"
 #include "common_server_status.h"
 #include "common_socket.h"
 
@@ -34,6 +35,7 @@ private:
     ServerMessage receive_tool_used_message();
     ServerMessage receive_resource_hit_message();
     ServerMessage receive_reset_message();
+    ServerMessage receive_animal_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);
@@ -44,6 +46,8 @@ public:
     std::optional<protocol::ClientMessage> receive_command();
     ServerMessage receive_server_message();
     ServerWelcome receive_welcome();
+    MatchRequest receive_match_request();
+    LobbyStatus receive_lobby_status();
 };
 
 #endif

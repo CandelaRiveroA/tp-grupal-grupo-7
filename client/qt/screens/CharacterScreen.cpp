@@ -1,31 +1,38 @@
 #include "CharacterScreen.h"
 
+#include <QAbstractButton>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
-#include <QPushButton>
 #include <QSignalBlocker>
-#include <QSlider>
+#include <QStyle>
 #include <QTimerEvent>
 #include <QVBoxLayout>
 #include <QWidget>
 
 #include "common/model/draft/GameSelection.h"
-#include "qt/services/AssetCatalog.h"
+#include "core/MusicControl.h"
+#include "core/MusicTrack.h"
+#include "qt/services/CharacterLayerSource.h"
 #include "qt/services/SessionService.h"
 #include "qt/theme/CharacterRects.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/util/IndexCycle.h"
 #include "qt/widgets/CharacterPreview.h"
+#include "qt/widgets/CycleRow.h"
+#include "qt/widgets/InputBox.h"
+#include "qt/widgets/SliderRow.h"
 #include "qt/widgets/TitleButton.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,
-				 const AssetCatalog* catalog, QWidget* parent)
+				 const CharacterLayerSource* source, QWidget* parent,
+				 core::MusicControl* music)
 	: Screen(parent)
 	, session_(session)
-	, catalog_(catalog)
+	, music_(music)
+	, source_(source)
 	, layers_()
 	, content_(nullptr)
 	, preview_(nullptr)
@@ -35,8 +42,8 @@ CharacterScreen::CharacterScreen(SessionService* session,
 	, create_(nullptr)
 	, backButton_(nullptr)
 	, status_(nullptr)
-	, values_()
-	, sliders_()
+	, cycleRows_()
+	, sliderRows_()
 	, errorMessages_() {
 	buildMessages();
 	buildUi();
@@ -63,6 +70,10 @@ void CharacterScreen::startJoinGame(const std::string& gameName) {
 }
 
 void CharacterScreen::onEnter() {
+	if (music_ != nullptr) {
+		music_->play(core::MusicTrack::CharacterSelect);
+	}
+
 	characterName_->setFocus();
 	if (!cloudTimer_.isActive()) {
 		cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
@@ -70,6 +81,11 @@ void CharacterScreen::onEnter() {
 }
 
 void CharacterScreen::onExit() {
+	// Devuelve la musica del lobby: las demas pantallas no piden pista.
+	if (music_ != nullptr) {
+		music_->play(core::MusicTrack::MenuTheme);
+	}
+
 	if (cloudTimer_.isActive()) {
 		cloudTimer_.stop();
 	}
@@ -107,24 +123,28 @@ void CharacterScreen::buildUi() {
 	root->setSpacing(8);
 
 	// Ventana con toda la configuración, centrada sobre la pantalla.
-	content_ = new QFrame(this);
-	content_->setObjectName("characterWindow");
-	content_->setMaximumWidth(CHAR_WINDOW_MAX_W);
+	// El panel de madera es un QLabel con el pixmap
+	auto* frame = new QLabel(this);
+	frame->setPixmap(sprites_.windowBox());
+	frame->setFixedSize(CHAR_WINDOW_W, CHAR_WINDOW_H);
+	frame->setObjectName("characterWindow");
+	content_ = frame;
 	auto* window = new QVBoxLayout(content_);
-	window->setContentsMargins(24, 24, 24, 24);
+	window->setContentsMargins(CHAR_WINDOW_PAD, CHAR_WINDOW_PAD,
+				   CHAR_WINDOW_PAD, CHAR_WINDOW_PAD - 4);
 	window->setSpacing(16);
 
 	auto* columns = new QHBoxLayout();
-	columns->setSpacing(48);
+	columns->setSpacing(CHAR_COLUMN_GAP);
 	columns->addWidget(makePreviewColumn(), 0, Qt::AlignTop);
-	columns->addWidget(makeFormColumn(), 1, Qt::AlignTop);
+	columns->addWidget(makeFormColumn(), 0, Qt::AlignTop);
 	window->addLayout(columns, 1);
 
-	create_ = new QPushButton("Crear", content_);
+	create_ = new TitleButton(sprites_.okButton(), sprites_.okButtonHover(),
+				  "Crear", content_);
 	create_->setObjectName("createButton");
-	create_->setDefault(true);
 	create_->setEnabled(false);
-	connect(create_, &QPushButton::clicked, this,
+	connect(create_, &QAbstractButton::clicked, this,
 		&CharacterScreen::submit);
 	auto* createRow = new QHBoxLayout();
 	createRow->addStretch();
@@ -162,12 +182,14 @@ void CharacterScreen::buildUi() {
 QWidget* CharacterScreen::makePreviewColumn() {
 	auto* column = new QWidget(this);
 	column->setObjectName("previewColumn");
+	column->setFixedWidth(CHAR_PREVIEW_COL_W);
 	auto* layout = new QVBoxLayout(column);
 	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(6);
+	layout->setSpacing(CHAR_ROW_GAP);
 
-	preview_ = new CharacterPreview(catalog_, column);
-	preview_->setFixedSize(preview_->sizeHint());
+	preview_ = new CharacterPreview(source_, column);
+	preview_->setFixedSize(CHAR_PREVIEW_W, CHAR_PREVIEW_H);
+	preview_->setBackground(sprites_.portraitBackground());
 	layout->addWidget(preview_, 0, Qt::AlignHCenter);
 
 	struct Row {
@@ -184,49 +206,53 @@ QWidget* CharacterScreen::makePreviewColumn() {
 	for (const Row& row : rows) {
 		layout->addWidget(makeRow(row.layer, row.name));
 	}
-	layout->addStretch();
 	return column;
+}
+
+QLineEdit* CharacterScreen::makeInputRow(QVBoxLayout* layout,
+					 const QString& label,
+					 const QString& objectName, int maxLength) {
+	QWidget* parent = layout->parentWidget();
+	auto* field = new QVBoxLayout();
+	field->setSpacing(CHAR_INPUT_LABEL_GAP);
+	field->addWidget(new QLabel(label, parent));
+	auto* box = new InputBox(
+		sprites_.inputBox(),
+		QMargins(CHAR_INPUT_PAD_LEFT, CHAR_INPUT_PAD_TOP,
+			 CHAR_INPUT_PAD_RIGHT, CHAR_INPUT_PAD_BOTTOM),
+		parent);
+	QLineEdit* edit = box->edit();
+	edit->setObjectName(objectName);
+	edit->setMaxLength(maxLength);
+	field->addWidget(box, 0, Qt::AlignLeft);
+	layout->addLayout(field);
+	return edit;
 }
 
 QWidget* CharacterScreen::makeFormColumn() {
 	auto* column = new QWidget(this);
 	column->setObjectName("formColumn");
+	column->setFixedWidth(CHAR_FORM_COL_W);
 	auto* layout = new QVBoxLayout(column);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(12);
 
-	auto* nameRow = new QHBoxLayout();
-	auto* nameLabel = new QLabel("Nombre", column);
-	nameLabel->setMinimumWidth(110);
-	nameRow->addWidget(nameLabel);
-	characterName_ = new QLineEdit(column);
-	characterName_->setObjectName("characterInput");
-	characterName_->setMaxLength(16);
-	characterName_->setMaximumWidth(420);
-	characterName_->setPlaceholderText("Nombre del personaje");
-	nameRow->addWidget(characterName_, 1);
-	layout->addLayout(nameRow);
-
-	auto* gameRow = new QHBoxLayout();
-	auto* gameLabel = new QLabel("Partida", column);
-	gameLabel->setMinimumWidth(110);
-	gameRow->addWidget(gameLabel);
-	gameName_ = new QLineEdit(column);
-	gameName_->setObjectName("gameInput");
-	gameName_->setMaxLength(20);
-	gameName_->setMaximumWidth(420);
-	gameName_->setPlaceholderText("Nombre de la partida");
-	gameRow->addWidget(gameName_, 1);
-	layout->addLayout(gameRow);
+	characterName_ = makeInputRow(layout, "Nombre", "characterInput",
+				      CHAR_INPUT_MAX_CHARS);
+	gameName_ = makeInputRow(layout, "Nombre de la granja", "gameInput",
+				 CHAR_INPUT_MAX_CHARS);
 
 	worldLabel_ = new QLabel(column);
 	worldLabel_->setObjectName("worldLabel");
 	layout->addWidget(worldLabel_);
 
 	layout->addSpacing(16);
-	layout->addWidget(makeSlider(CharacterLayer::Eyes, "Color de ojos"));
+	layout->addWidget(makeSlider(CharacterLayer::Eyes, "Color de ojos", "eyesSlider"));
 	layout->addWidget(
-		makeSlider(CharacterLayer::HairColor, "Color de pelo"));
+		makeSlider(CharacterLayer::HairColor, "Color de pelo",
+			   "hairColorSlider"));
+	layout->addWidget(makeSlider(CharacterLayer::PantsColor,
+				     "Color de pantalón", "pantsColorSlider"));
 	layout->addStretch();
 
 	connect(characterName_, &QLineEdit::textChanged, this,
@@ -239,81 +265,39 @@ QWidget* CharacterScreen::makeFormColumn() {
 			selection_.gameName = text.trimmed().toStdString();
 			updateValidation();
 		});
+	connect(characterName_, &QLineEdit::returnPressed, this,
+		&CharacterScreen::submit);
+	connect(gameName_, &QLineEdit::returnPressed, this,
+		&CharacterScreen::submit);
 	return column;
 }
 
 QWidget* CharacterScreen::makeRow(CharacterLayer layer, const QString& name) {
-	auto* row = new QWidget(this);
-	auto* layout = new QVBoxLayout(row);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(0);
-
-	auto* line = new QHBoxLayout();
-	line->setSpacing(8);
-
-	auto* previous = new QPushButton("◀", row);
-	previous->setFixedWidth(36);
-	connect(previous, &QPushButton::clicked, this, [this, layer]() {
-		cycleLayer(layer, -1);
-	});
-	line->addWidget(previous);
-
-	auto* label = new QLabel(name, row);
-	label->setAlignment(Qt::AlignCenter);
-	label->setMinimumWidth(120);
-	line->addWidget(label, 1);
-
-	auto* next = new QPushButton("▶", row);
-	next->setFixedWidth(36);
-	connect(next, &QPushButton::clicked, this, [this, layer]() {
-		cycleLayer(layer, 1);
-	});
-	line->addWidget(next);
-	layout->addLayout(line);
-
-	auto* value = new QLabel(row);
-	value->setAlignment(Qt::AlignCenter);
-	layout->addWidget(value);
-	values_[layer] = value;
+	auto* row = new CycleRow(name, sprites_.leftArrow(),
+				 sprites_.leftArrowHover(),
+				 sprites_.rightArrow(),
+				 sprites_.rightArrowHover(), this);
+	connect(row, &CycleRow::stepRequested, this,
+		[this, layer](int direction) { cycleLayer(layer, direction); });
+	cycleRows_[layer] = row;
 	return row;
 }
 
 QWidget* CharacterScreen::makeSlider(CharacterLayer layer,
-				     const QString& name) {
-	auto* block = new QWidget(this);
-	auto* layout = new QVBoxLayout(block);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(2);
-
-	layout->addWidget(new QLabel(name, block));
-
-	auto* line = new QHBoxLayout();
-	line->setSpacing(12);
-
-	auto* slider = new QSlider(Qt::Horizontal, block);
-	const int total = catalog_->count(layer);
-	slider->setRange(0, total > 0 ? total - 1 : 0);
-	slider->setSingleStep(1);
-	slider->setPageStep(1);
-	connect(slider, &QSlider::valueChanged, this,
-		[this, layer](int value) {
-			setLayer(layer, static_cast<std::uint8_t>(value));
-		});
-	line->addWidget(slider, 1);
-
-	auto* value = new QLabel(block);
-	value->setMinimumWidth(24);
-	value->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-	line->addWidget(value);
-	layout->addLayout(line);
-
-	sliders_[layer] = slider;
-	values_[layer] = value;
-	return block;
+				     const QString& name,
+				     const QString& objectName) {
+	const int total = source_->count(layer);
+	auto* row = new SliderRow(name, objectName, total > 0 ? total - 1 : 0,
+				  this);
+	connect(row, &SliderRow::valueChanged, this, [this, layer](int value) {
+		setLayer(layer, static_cast<std::uint8_t>(value));
+	});
+	sliderRows_[layer] = row;
+	return row;
 }
 
 void CharacterScreen::cycleLayer(CharacterLayer layer, int direction) {
-	const std::uint8_t total = catalog_->count(layer);
+	const std::uint8_t total = source_->count(layer);
 	if (total == 0) {
 		return;
 	}
@@ -327,7 +311,7 @@ void CharacterScreen::cycleLayer(CharacterLayer layer, int direction) {
 }
 
 void CharacterScreen::setLayer(CharacterLayer layer, std::uint8_t index) {
-	const std::uint8_t total = catalog_->count(layer);
+	const std::uint8_t total = source_->count(layer);
 	if (total == 0) {
 		return;
 	}
@@ -348,14 +332,13 @@ void CharacterScreen::applyDraft() {
 		const std::uint8_t value =
 			layers_.value(selection_.appearance, current);
 
-		const auto label = values_.find(current);
-		if (label != values_.end()) {
-			label->second->setText(QString::number(value));
+		const auto cycle = cycleRows_.find(current);
+		if (cycle != cycleRows_.end()) {
+			cycle->second->setValue(QString::number(value));
 		}
 
-		const auto slider = sliders_.find(current);
-		if (slider != sliders_.end()) {
-			const QSignalBlocker blocker(slider->second);
+		const auto slider = sliderRows_.find(current);
+		if (slider != sliderRows_.end()) {
 			slider->second->setValue(value);
 		}
 	}
@@ -385,7 +368,7 @@ void CharacterScreen::submit() {
 	}
 
 	submitting_ = true;
-	showState(ScreenState::Loading, "Creando partida…");
+	showState(ScreenState::Loading, "Creando partida...");
 
 	GameSelection game;
 	game.gameName = selection_.gameName;
@@ -424,6 +407,8 @@ void CharacterScreen::resetDraft() {
 	gameName_->clear();
 
 	gameName_->setReadOnly(mode_ == Mode::JoinGame);
+	gameName_->style()->unpolish(gameName_);
+	gameName_->style()->polish(gameName_);
 	worldLabel_->setVisible(mode_ != Mode::JoinGame);
 	if (mode_ == Mode::JoinGame) {
 		selection_.gameName = joinedName;
@@ -440,6 +425,7 @@ void CharacterScreen::resetDraft() {
 	}
 
 	create_->setText(mode_ == Mode::JoinGame ? "Aceptar" : "Crear");
+	create_->setToolTip(create_->text());
 
 	showState(ScreenState::Ready, QString());
 	applyDraft();

@@ -46,10 +46,13 @@ target_sources(taller_client
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
     qt/widgets/CharacterPreview.cpp
+    qt/widgets/CycleRow.cpp
+    qt/theme/CharacterSprites.cpp
     qt/theme/JoinCodeSprites.cpp
     qt/theme/NineSlice.cpp
     qt/theme/SkinRecolorer.cpp
     qt/widgets/InputBox.cpp
+    qt/widgets/SliderRow.cpp
     qt/widgets/ParchmentBanner.cpp
     qt/widgets/TitleButton.cpp
     world/Scenario.cpp
@@ -98,6 +101,7 @@ target_sources(taller_client
     qt/theme/CharacterRects.h
     qt/theme/CloudRects.h
     qt/theme/JoinCodeRects.h
+    qt/theme/CharacterSprites.h
     qt/theme/JoinCodeSprites.h
     qt/theme/CharacterSheetRects.h
     qt/theme/CharacterSheets.h
@@ -113,7 +117,9 @@ target_sources(taller_client
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/CycleRow.h
     qt/widgets/InputBox.h
+    qt/widgets/SliderRow.h
     qt/widgets/ParchmentBanner.h
     qt/widgets/TitleButton.h
     client_sender.h

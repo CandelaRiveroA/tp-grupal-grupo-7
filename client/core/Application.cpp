@@ -46,9 +46,11 @@ Application::Application(int& argc, char** argv):
 }
 
 void Application::loadFonts() {
-    const int id = QFontDatabase::addApplicationFont(":/fonts/stardew.ttf");
-    if (id < 0) {
-        qWarning("No se pudo registrar la fuente :/fonts/stardew.ttf");
+    // StardewValley: pergaminos; Pixel Operator: el resto de los textos.
+    for (const char* path: {":/fonts/stardew.ttf", ":/fonts/pixel_operator.ttf"}) {
+        if (QFontDatabase::addApplicationFont(path) < 0) {
+            qWarning("No se pudo registrar la fuente %s", path);
+        }
     }
 }
 

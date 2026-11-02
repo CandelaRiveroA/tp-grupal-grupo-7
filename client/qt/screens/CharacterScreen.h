@@ -12,19 +12,25 @@
 #include "common/model/draft/WorldSummary.h"
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
+#include "qt/theme/CharacterSprites.h"
 #include "qt/theme/TitleBackdrop.h"
 #include "qt/util/CharacterLayer.h"
 #include "qt/util/CharacterLayers.h"
 
-class AssetCatalog;
+namespace core {
+class MusicControl;
+}
+
+class CharacterLayerSource;
 class CharacterPreview;
+class CycleRow;
 class QFrame;
 class QLabel;
 class QLineEdit;
 class QPaintEvent;
-class QPushButton;
-class QSlider;
 class QTimerEvent;
+class SliderRow;
+class QVBoxLayout;
 class TitleButton;
 class QWidget;
 class SessionService;
@@ -41,8 +47,9 @@ class CharacterScreen : public Screen {
 	Q_OBJECT
 
 public:
-	CharacterScreen(SessionService* session, const AssetCatalog* catalog,
-			QWidget* parent = nullptr);
+	CharacterScreen(SessionService* session, const CharacterLayerSource* source,
+			QWidget* parent = nullptr,
+			core::MusicControl* music = nullptr);
 
 	// El shell llama antes de navegar: fija el mundo y limpia el borrador.
 	void startNewGame(const WorldSummary& world);
@@ -60,19 +67,22 @@ signals:
 
 private:
 	SessionService* session_;
-	const AssetCatalog* catalog_;
+	core::MusicControl* music_;
+	const CharacterLayerSource* source_;
 	CharacterLayers layers_;
+
+	CharacterSprites sprites_;
 
 	QFrame* content_;
 	CharacterPreview* preview_;
 	QLabel* worldLabel_;
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
-	QPushButton* create_;
+	TitleButton* create_;
 	TitleButton* backButton_;
 	QLabel* status_;
-	std::map<CharacterLayer, QLabel*> values_;
-	std::map<CharacterLayer, QSlider*> sliders_;
+	std::map<CharacterLayer, CycleRow*> cycleRows_;
+	std::map<CharacterLayer, SliderRow*> sliderRows_;
 	std::map<ServiceError, QString> errorMessages_;
 
 	CharacterSelection selection_;
@@ -93,8 +103,11 @@ private:
 	void buildUi();
 	QWidget* makePreviewColumn();
 	QWidget* makeFormColumn();
+	QLineEdit* makeInputRow(QVBoxLayout* layout, const QString& label,
+				const QString& objectName, int maxLength);
 	QWidget* makeRow(CharacterLayer layer, const QString& name);
-	QWidget* makeSlider(CharacterLayer layer, const QString& name);
+	QWidget* makeSlider(CharacterLayer layer, const QString& name,
+			    const QString& objectName);
 	void cycleLayer(CharacterLayer layer, int direction);
 	void setLayer(CharacterLayer layer, std::uint8_t index);
 	void applyDraft();

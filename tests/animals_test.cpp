@@ -33,3 +33,43 @@ TEST(AnimalsTest, ChickenLaysAnEggEveryDayOnItsCell) {
     world.tick_day();
     EXPECT_EQ(world.get_entity_at(3, 3).size(), 3u);
 }
+
+// ---------------------------------------------------------
+// Movimiento aleatorio
+// ---------------------------------------------------------
+TEST(AnimalsTest, ElAnimalSeMueveAUnaCeldaLibre) {
+    World world(5, 5);
+    world.add_animal(std::make_unique<Chicken>(1, 1));
+    IEntity* chicken = world.get_entity_at(1, 1).at(0);
+
+    world.move_entity(chicken, 2, 1);
+
+    EXPECT_EQ(chicken->get_x(), 2u);
+    EXPECT_EQ(world.get_entity_at(1, 1).size(), 0u);
+    EXPECT_EQ(world.get_entity_at(2, 1).size(), 1u);
+}
+
+TEST(AnimalsTest, ElAnimalNoEntraEnUnaCeldaOcupadaPorUnaVaca) {
+    World world(5, 5);
+    world.add_animal(std::make_unique<Chicken>(1, 1));
+    world.add_cow(std::make_unique<Cow>(2, 1));
+    IEntity* chicken = world.get_entity_at(1, 1).at(0);
+
+    world.move_entity(chicken, 2, 1);
+
+    EXPECT_EQ(chicken->get_x(), 1u);
+    EXPECT_EQ(world.get_entity_at(1, 1).size(), 1u);
+}
+
+TEST(AnimalsTest, TickAnimalesMantieneAlAnimalDentroDelMapa) {
+    World world(5, 5);
+    world.add_animal(std::make_unique<Chicken>(0, 0));
+    const IEntity* chicken = world.get_entity_at(0, 0).at(0);
+
+    for (int step = 0; step < 50; ++step) {
+        world.tick_animals();
+    }
+
+    EXPECT_LT(chicken->get_x(), 5u);
+    EXPECT_LT(chicken->get_y(), 5u);
+}

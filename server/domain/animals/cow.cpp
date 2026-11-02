@@ -16,7 +16,7 @@ std::string Cow::kind_name() const { return "cow"; }
 bool Cow::ready_to_milk() const { return is_ready_to_milk; }
 
 std::optional<AnimalSnapshot> Cow::animal_snapshot() const {
-    return AnimalSnapshot{get_id(), kind_name(), is_ready_to_milk};
+    return AnimalSnapshot{get_id(), kind_name(), is_ready_to_milk, wander_dir};
 }
 
 void Cow::update(World& /*w*/) {

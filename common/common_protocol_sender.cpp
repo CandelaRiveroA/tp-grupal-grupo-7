@@ -123,11 +123,14 @@ void ProtocolSender::send_message(const ServerReset& /*reset*/) {
 }
 
 void ProtocolSender::send_message(const ServerAnimal& animal) {
+    validate_direction(animal.direction);
+
     send_uint8(static_cast<uint8_t>(ServerMessageType::Animal));
     send_uint8(animal.id);
     send_string(animal.kind);
     send_uint16(animal.x);
     send_uint16(animal.y);
+    send_uint8(static_cast<uint8_t>(animal.direction));
     send_uint8(animal.ready_to_milk ? 1 : 0);
 }
 

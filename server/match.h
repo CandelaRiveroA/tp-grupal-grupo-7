@@ -31,7 +31,10 @@ struct PlayerLeft {
 
 struct DayPassed {};
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed>;
+// Dispara el paso de movimiento de los animales (un paso por segundo).
+struct AnimalTick {};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, AnimalTick>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
 class DayClock: public Worker {
@@ -57,6 +60,7 @@ private:
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
     void handle(const DayPassed& day);
+    void handle(const AnimalTick& tick);
     void sync_all();
     void place_minerals();
     void place_animals();

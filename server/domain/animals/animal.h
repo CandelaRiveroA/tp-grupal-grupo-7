@@ -29,7 +29,16 @@ public:
 
     virtual void produce(World& w) = 0;
 
+    // Un paso del reloj de animales: avanza en la dirección actual o elige una
+    // nueva cuando se agota el tiempo en esa dirección.
+    void wander(World& w);
+
     std::optional<AnimalSnapshot> animal_snapshot() const override;
+
+protected:
+    Direction wander_dir;
+    uint8_t ticks_to_turn;
+    uint8_t ticks_to_pause;
 };
 
 #endif  // ANIMAL_H

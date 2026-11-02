@@ -29,7 +29,21 @@ struct PlayerLeft {
     uint8_t player_id;
 };
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft>;
+struct DayPassed {};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed>;
+
+// Empuja un DayPassed cada día de juego mientras la partida corre.
+class DayClock: public Worker {
+private:
+    Queue<MatchEvent>& events;
+
+public:
+    explicit DayClock(Queue<MatchEvent>& events);
+
+protected:
+    void execute() override;
+};
 
 class Match: public Worker {
 private:
@@ -42,8 +56,10 @@ private:
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
+    void handle(const DayPassed& day);
     void sync_all();
     void place_minerals();
+    void place_animals();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
     void closeOutputs();

@@ -32,6 +32,7 @@ private:
     void send_message(const ServerToolUsed& used);
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
+    void send_message(const ServerAnimal& animal);
 
 public:
     explicit ProtocolSender(Socket& socket);

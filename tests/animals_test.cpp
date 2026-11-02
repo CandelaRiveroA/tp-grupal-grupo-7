@@ -1,0 +1,35 @@
+#include <memory>
+
+#include <gtest/gtest.h>
+
+#include "../server/domain/animals/chicken.h"
+#include "../server/domain/animals/cow.h"
+#include "../server/domain/entities/player.h"
+#include "../server/domain/map/world.h"
+
+TEST(AnimalsTest, CowIsReadyToMilkAfterTwoDays) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_cow(std::make_unique<Cow>(2, 1));
+
+    world.tick_day();
+    world.take_item(1);
+    EXPECT_TRUE(world.take_pickups().empty());
+
+    world.tick_day();
+    world.take_item(1);
+    const std::vector<PlayerPickup> pickups = world.take_pickups();
+    ASSERT_EQ(pickups.size(), 1u);
+    EXPECT_EQ(pickups[0].item, ItemID::MILK);
+}
+
+TEST(AnimalsTest, ChickenLaysAnEggEveryDayOnItsCell) {
+    World world(5, 5);
+    world.add_animal(std::make_unique<Chicken>(3, 3));
+
+    world.tick_day();
+    EXPECT_EQ(world.get_entity_at(3, 3).size(), 2u);
+
+    world.tick_day();
+    EXPECT_EQ(world.get_entity_at(3, 3).size(), 3u);
+}

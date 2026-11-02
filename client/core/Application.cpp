@@ -12,7 +12,6 @@
 #include "core/Constants.h"
 #include "core/PlaySession.h"
 #include "game/GameClient.h"
-#include "game/MockWorldClient.h"
 #include "game/NetworkGameClient.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/audio/MusicPlayer.h"
@@ -103,9 +102,8 @@ int Application::runGame(SessionConfig session) {
                 world::DialogConfigLoader().loadFromFile(core::assetPath(core::kDialogsFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
-        const world::GridSpan& grid = scenario.scene().grid;
         std::unique_ptr<game::GameClient> gameClient =
-                createGameClient(std::move(*session.connection), grid, characters, toolUseDuration);
+                createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
                                 resources, banner, digits, cursors, dialogs);
         playSession.run();
@@ -120,11 +118,10 @@ int Application::runGame(SessionConfig session) {
 }
 
 std::unique_ptr<game::GameClient> Application::createGameClient(
-        Socket&& socket, const world::GridSpan& grid, const world::CharacterCatalog& characters,
+        Socket&& socket, const world::CharacterCatalog& characters,
         int toolUseDurationTicks) const {
-    return std::make_unique<game::MockWorldClient>(
-            std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks),
-            characters, grid);
+    return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks,
+                                                     characters);
 }
 
 }  // namespace core

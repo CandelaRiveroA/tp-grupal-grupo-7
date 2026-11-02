@@ -11,12 +11,18 @@
 #include "player_pickup.h"
 #include "resource_hit.h"
 
+class Animal;
+class Cow;
+
 class World {
 private:
     uint16_t width;
     uint16_t height;
 
     std::vector<std::vector<Cell>> grid;
+    // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
+    std::vector<Animal*> animals;
+    std::vector<Cow*> cows;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
     // TODO: Persistencia del inventario del jugador.
@@ -47,6 +53,13 @@ public:
     // --- Gestión de Entidades Físicas ---
     void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> new_entity);
     void remove_entity(IEntity* target_entity);
+    void remove_entity_at(uint16_t x, uint16_t y);
+
+    void add_animal(std::unique_ptr<Animal> animal);
+    void add_cow(std::unique_ptr<Cow> cow);
+
+    // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
+    void tick_day();
 
     // ---
     void use_tool(uint8_t player_id);

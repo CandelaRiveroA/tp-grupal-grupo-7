@@ -15,9 +15,8 @@ bool IEntity::is_walkable() const {
     return false;  // Por defecto bloquean el paso
 }
 
-void IEntity::update() {
-    // Por defecto no hace nada (útil para minerales).
-    // Los NPC o cultivos lo sobreescribirán.
-}
-
 std::optional<CellSnapshot> IEntity::snapshot() const { return std::nullopt; }
+
+std::optional<AnimalSnapshot> IEntity::animal_snapshot() const { return std::nullopt; }
+
+void IEntity::update(World& /*w*/) {}

@@ -10,6 +10,7 @@ target_sources(taller_tests
     mineral_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
+    animals_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
     ../server/match.cpp
@@ -24,6 +25,9 @@ target_sources(taller_tests
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
     ../server/domain/entities/dropped_item.cpp
+    ../server/domain/animals/animal.cpp
+    ../server/domain/animals/chicken.cpp
+    ../server/domain/animals/cow.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
     ../server/domain/minerals/mineral.cpp

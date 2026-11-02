@@ -18,6 +18,7 @@ enum class ServerMessageType : uint8_t {
     ToolUsed = 8,
     ResourceHit = 9,
     Reset = 10,
+    Animal = 11,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -82,8 +83,18 @@ struct ServerResourceHit {
 // siempre el estado completo, así que lo que no vuelva ya no existe.
 struct ServerReset {};
 
+// Animal del mundo (vaca, gallina). kind es el vocabulario de characters.toml;
+// ready_to_milk avisa al jugador que la vaca se puede ordeñar.
+struct ServerAnimal {
+    uint8_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    bool ready_to_milk;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
-                     ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset>;
+                     ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal>;
 
 #endif

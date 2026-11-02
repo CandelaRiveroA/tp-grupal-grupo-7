@@ -24,11 +24,9 @@ void DroppedItem::interact(Player& p, ToolType tool, World& w) {
     if (tool == ToolType::HAND && this->payload) {
         // El payload se mueve al inventario: el item se lee antes.
         const ItemID picked = this->payload->get_id();
-        uint16_t cx = this->pos_x;
-        uint16_t cy = this->pos_y;
 
         if (p.pick_up_item(std::move(this->payload))) {
-            w.remove_entity_at(cx, cy);
+            w.remove_entity(this);
             w.record_pickup(p.get_id(), picked);
         }
     }

@@ -13,6 +13,8 @@ void GoldRock::mine_mineral(World& w) {
     uint16_t rx = this->pos_x;
     uint16_t ry = this->pos_y;
 
+    // Desde acá this queda destruido: solo se usan rx y ry.
+    w.remove_entity(this);
     auto orb = std::make_unique<Product>(ItemID::GOLD_ORB, 750, Quality::BASE);
     auto drop = std::make_unique<DroppedItem>(std::move(orb), rx, ry);
 

@@ -39,7 +39,7 @@ private:
     // que el lobby haya dado una sesión le corresponde a run().
     int runGame(SessionConfig session);
 
-    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket, const world::GridSpan& grid,
+    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket,
                                                        const world::CharacterCatalog& characters,
                                                        int toolUseDurationTicks) const;
 

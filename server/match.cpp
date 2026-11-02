@@ -1,11 +1,15 @@
 #include "match.h"
 
+#include <chrono>
 #include <exception>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 #include <variant>
 
 #include "commands/commands.h"
+#include "domain/animals/chicken.h"
+#include "domain/animals/cow.h"
 #include "domain/minerals/coal_rock.h"
 #include "domain/minerals/gold_rock.h"
 #include "domain/minerals/lapis_rock.h"
@@ -17,9 +21,29 @@
 #define kSpawnX 15
 #define kSpawnY 10
 
-Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
-        events(events), output(output), world(kWidth, kHeight) {
-    place_minerals();
+// shortcut: un día fijo de 30s.
+#define kDayDurationSeconds 30
+#define kClockStepMs 100
+
+DayClock::DayClock(Queue<MatchEvent>& events): events(events) {}
+
+void DayClock::execute() {
+    while (true) {
+        const auto day_start = std::chrono::steady_clock::now();
+        // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
+        while (std::chrono::steady_clock::now() - day_start <
+               std::chrono::seconds(kDayDurationSeconds)) {
+            if (!should_keep_running()) {
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
+        }
+        try {
+            events.push(MatchEvent(DayPassed{}));
+        } catch (const ClosedQueue&) {
+            return;
+        }
+    }
 }
 
 void Match::place_minerals() {
@@ -36,6 +60,25 @@ void Match::place_minerals() {
     world.set_entity_at(kSpawnX - 1, kSpawnY + 2,
                         std::make_unique<GoldRock>(kSpawnX - 1, kSpawnY + 2));
     world.set_entity_at(kSpawnX + 3, kSpawnY, std::make_unique<LapisRock>(kSpawnX + 3, kSpawnY));
+}
+
+void Match::place_animals() {
+    // Animales de prueba, igual que las piedras: hasta que haya generación de mundo.
+    world.add_animal(std::make_unique<Chicken>(3, 3));
+    world.add_animal(std::make_unique<Chicken>(26, 4));
+    world.add_cow(std::make_unique<Cow>(4, 4));
+    world.add_cow(std::make_unique<Cow>(25, 5));
+}
+
+Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
+        events(events), output(output), world(kWidth, kHeight) {
+    place_minerals();
+    place_animals();
+}
+
+void Match::handle(const DayPassed& /*day*/) {
+    world.tick_day();
+    sync_all();
 }
 
 void Match::handle(const PlayerJoined& joined) {
@@ -119,6 +162,8 @@ void Match::send_to(uint8_t player_id, const ServerMessage& message) {
 }
 
 void Match::execute() {
+    DayClock clock(events);
+    clock.start();
     try {
         while (should_keep_running()) {
             const MatchEvent event = events.pop();
@@ -126,6 +171,8 @@ void Match::execute() {
         }
     } catch (const ClosedQueue&) {
         closeOutputs();
+        clock.stop();
+        clock.join();
         throw;
     } catch (const std::exception& error) {
         closeOutputs();
@@ -133,6 +180,10 @@ void Match::execute() {
         if (should_keep_running()) {
             output.printError("Error en la partida: ", error.what());
         }
+        clock.stop();
+        clock.join();
         throw;
     }
+    clock.stop();
+    clock.join();
 }

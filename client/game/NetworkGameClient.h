@@ -13,7 +13,9 @@
 #include "common/common_server_status.h"
 #include "common/common_socket.h"
 #include "game/GameClient.h"
+#include "game/InteractionSession.h"
 #include "game/LocalWorldView.h"
+#include "world/CharacterCatalog.h"
 
 #include "client_receiver.h"
 #include "client_sender.h"
@@ -24,7 +26,9 @@ class NetworkGameClient: public GameClient {
 public:
     // toolUseDurationTicks: cuánto dura la animación de golpe en el cliente.
     // Es presentación: el servidor avisa cuándo se usó la herramienta.
-    NetworkGameClient(Socket&& socket, int toolUseDurationTicks);
+    // characters: duración de la animación de ordeñe (presentación).
+    NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
+                      const world::CharacterCatalog& characters);
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
@@ -43,6 +47,10 @@ private:
 
     void apply(const ServerMessage& message);
 
+    // Un Take cerca de una vaca lista abre la animación de ordeñe. La
+    // leche la entrega el servidor: acá solo se anima.
+    void startMilking();
+
     Socket socket_;
     ProtocolSender sender_;
     ProtocolReceiver receiver_;
@@ -53,11 +61,15 @@ private:
 
     uint8_t localPlayerId_;
     int toolUseDurationTicks_;
+    const world::CharacterCatalog* characters_;
 
     std::map<uint8_t, RemotePlayer> players_;
+    std::map<uint8_t, ViewEntity> animals_;
     std::map<std::pair<int, int>, ViewResource> resources_;
-    std::map<std::pair<int, int>, ViewDroppedItem> dropped_;
+    // Lista (no mapa por celda): varios huevos pueden estar apilados.
+    std::vector<ViewDroppedItem> dropped_;
     std::map<int, ViewInventorySlot> inventory_;
+    InteractionSession session_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
     std::vector<ViewObtained> obtained_;
     LocalWorldView view_;

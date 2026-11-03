@@ -19,7 +19,7 @@ void FakeSessionService::createGame(const GameSelection&) {
 	});
 }
 
-void FakeSessionService::joinGame(const std::string& code) {
+void FakeSessionService::joinGame(const std::string& code, const std::string&) {
 	QTimer::singleShot(kFakeDelayMs, this, [this, code]() {
 		if (failure_) {
 			emit sessionFailed(*failure_);

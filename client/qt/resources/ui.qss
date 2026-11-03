@@ -91,7 +91,8 @@ QWidget#saveList QLabel#savePlayer {
     font-size: 28px;
 }
 
-QWidget#saveList QLabel#saveBadge {
+QWidget#saveList QLabel#saveBadge,
+QWidget#saveList QLabel#savePlayers {
     color: #7a5230;
     font-family: "Pixel Operator";
     font-size: 20px;

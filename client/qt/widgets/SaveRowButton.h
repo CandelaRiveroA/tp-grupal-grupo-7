@@ -29,6 +29,7 @@ protected:
 private:
     QString formatGold(std::uint32_t gold) const;
     QString formatPlayTime(std::uint32_t seconds) const;
+    QString formatPlayers() const;
 
     const SaveListSprites& sprites_;
 
@@ -38,5 +39,7 @@ private:
 
     std::uint32_t gold_;
     std::uint32_t seconds_;
+    std::uint32_t connectedPlayers_;
+    std::uint32_t maxPlayers_;
     bool multiplayer_;
 };

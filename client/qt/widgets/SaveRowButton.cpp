@@ -27,6 +27,8 @@ SaveRowButton::SaveRowButton(const SaveSummary& save, int rowNumber,
         date_(QString::fromStdString(save.inGameDate)),
         gold_(save.gold),
         seconds_(save.playTimeSeconds),
+        connectedPlayers_(save.connectedPlayers),
+        maxPlayers_(save.maxPlayers),
         multiplayer_(save.multiplayer) {
     setObjectName("saveRow");
     setAccessibleName(name_);
@@ -60,6 +62,13 @@ SaveRowButton::SaveRowButton(const SaveSummary& save, int rowNumber,
         playerLabel->setObjectName("savePlayer");
         playerLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
         left->addWidget(playerLabel);
+    }
+    if (multiplayer_) {
+        auto* playersLabel = new QLabel(formatPlayers(), this);
+        playersLabel->setObjectName("savePlayers");
+        playersLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        playersLabel->setToolTip("Jugadores conectados ahora");
+        left->addWidget(playersLabel);
     }
     left->addStretch(1);
     if (!date_.isEmpty()) {
@@ -191,3 +200,6 @@ QString SaveRowButton::formatPlayTime(std::uint32_t seconds) const {
 }
 
 
+QString SaveRowButton::formatPlayers() const {
+    return QString("%1/%2 jugadores").arg(connectedPlayers_).arg(maxPlayers_);
+}

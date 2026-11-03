@@ -3,7 +3,7 @@ target_sources(taller_tests
     # .cpp files
     character_layers.cpp
     index_cycle.cpp
-    invite_code_format.cpp
+    invite_code.cpp
     matches_monitor_test.cpp
     inventory_test.cpp
     world_test.cpp

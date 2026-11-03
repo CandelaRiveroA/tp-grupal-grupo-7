@@ -8,7 +8,7 @@ target_sources(taller_common
     common_protocol_sender.cpp
     common_protocol_receiver.cpp
     common_worker.cpp
-    model/draft/ProvisionalInviteCodeFormat.cpp
+    model/InviteCode.cpp
     PUBLIC
     # .h files
     common_liberror.h
@@ -23,8 +23,7 @@ target_sources(taller_common
     common_worker.h
     model/draft/CharacterAppearance.h
     model/draft/GameSelection.h
-    model/draft/InviteCodeFormat.h
-    model/draft/ProvisionalInviteCodeFormat.h
+    model/InviteCode.h
     model/draft/SaveSummary.h
     model/draft/WorldSummary.h
     )

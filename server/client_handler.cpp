@@ -39,6 +39,7 @@ void ClientHandler::serve() {
     try {
         const MatchRequest request = protocol_receiver.receive_match_request();
         name = request.name;
+        // TODO con protocolo: usar request.username (validarlo y asociarlo al jugador).
         seat = request.type == MatchRequestType::Create ? matches.create(name, statuses) :
                                                           matches.join(name, statuses);
         protocol_sender.send_lobby_status(seat.status);

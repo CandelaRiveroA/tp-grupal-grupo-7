@@ -143,6 +143,7 @@ void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
 void ProtocolSender::send_match_request(const MatchRequest& request) {
     send_uint8(static_cast<uint8_t>(request.type));
     send_string(request.name);
+    // TODO con protocolo: enviar request.username despues de name.
 }
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {

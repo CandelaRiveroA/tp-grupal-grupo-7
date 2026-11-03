@@ -194,6 +194,7 @@ MatchRequest ProtocolReceiver::receive_match_request() {
         type != static_cast<uint8_t>(MatchRequestType::Join)) {
         throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
     }
+    // TODO con protocolo: leer username en el mismo orden que el sender.
     return MatchRequest{static_cast<MatchRequestType>(type), receive_string()};
 }
 

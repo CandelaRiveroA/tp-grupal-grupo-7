@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 
+#include "common/model/InviteCode.h"
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
 
@@ -42,10 +43,12 @@ private:
 	TitleButton* back_;
 	QLabel* status_;
 	std::map<ServiceError, QString> errorMessages_;
+	InviteCode codeFormat_;
 
 	bool joining_ = false;
 
 	void buildMessages();
+	void onCodeChanged();
 	void updateJoin();
 	void onJoin();
 	void onGameJoined(std::string gameName, std::uint32_t worldId);

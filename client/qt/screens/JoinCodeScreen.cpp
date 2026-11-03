@@ -49,6 +49,7 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
 	form->inputBox()->setObjectName("codeBox");
 	code_ = form->edit();
 	code_->setObjectName("codeInput");
+	code_->setMaxLength(InviteCode::kLength);
 	ok_ = form->okButton();
 	ok_->setObjectName("okButton");
 	ok_->setEnabled(false);
@@ -76,7 +77,7 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
 	layout->addLayout(buttons);
 
 	connect(code_, &QLineEdit::textChanged, this,
-		&JoinCodeScreen::updateJoin);
+		&JoinCodeScreen::onCodeChanged);
 	connect(code_, &QLineEdit::returnPressed, this, &JoinCodeScreen::onJoin);
 	connect(ok_, &QAbstractButton::clicked, this, &JoinCodeScreen::onJoin);
 	connect(sessionService_, &SessionService::gameJoined, this,
@@ -113,6 +114,20 @@ void JoinCodeScreen::buildMessages() {
 	errorMessages_[ServiceError::InvalidCode] =
 		"No hay ninguna partida con ese código.";
 	errorMessages_[ServiceError::GameFull] = "La partida está llena.";
+}
+
+void JoinCodeScreen::onCodeChanged() {
+	// Los códigos del formato son mayúsculas: lo tipeado en minúsculas se
+	// normaliza al vuelo, así el tipeo natural pasa la validación.
+	const QString normalized = code_->text().toUpper();
+	if (code_->text() == normalized) {
+		updateJoin();
+		return;
+	}
+	const int cursor = code_->cursorPosition();
+	code_->setText(normalized);
+	code_->setCursorPosition(cursor);
+	// setText re-dispara textChanged: la decisión del botón pasa por ahí.
 }
 
 void JoinCodeScreen::updateJoin() { ok_->setEnabled(canJoin()); }
@@ -170,5 +185,8 @@ QString JoinCodeScreen::messageFor(ServiceError error) const {
 }
 
 bool JoinCodeScreen::canJoin() const {
-	return !joining_ && !code_->text().trimmed().isEmpty();
+	// El esperado: sintaxis válida para el formato. Que el código exista
+	// lo dice el servidor (ServiceError::InvalidCode).
+	return !joining_ && codeFormat_.isValid(
+			code_->text().trimmed().toStdString());
 }

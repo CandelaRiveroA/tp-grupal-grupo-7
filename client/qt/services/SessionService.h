@@ -18,7 +18,8 @@ public:
 	~SessionService() override;
 
 	virtual void createGame(const GameSelection& selection) = 0;
-	virtual void joinGame(const std::string& code, const std::string& username) = 0;
+	virtual void joinGame(const std::string& code, const std::string& username,
+			      const std::string& characterName) = 0;
 	virtual void loadGame(std::uint32_t saveId) = 0;
 
 signals:

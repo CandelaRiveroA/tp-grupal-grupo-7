@@ -55,7 +55,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	auto* sessionService = sessions_;
 	auto* composer = new CharacterSpriteComposer(characters, palettes, this);
 
-	auto* joins = new JoinCodeScreen(sessionService, stack_, music);
+	auto* joins = new JoinCodeScreen(stack_, music);
 	registerScreen(ScreenId::JoinCode, joins);
 	connect(joins, &JoinCodeScreen::joinAccepted, this,
 		&LobbyWindow::onJoinAccepted);
@@ -147,10 +147,8 @@ void LobbyWindow::onSaveLoaded(SaveSummary save) {
     acceptSelection(std::move(session));
 }
 
-void LobbyWindow::onJoinAccepted(std::string gameName) {
-    // Solo queda customizar el personaje: la partida y el mundo ya los
-    // definió el anfitrión. El worldId del server no nos alcanza acá.
-    // TODO con protocolo: cómo viaja el personaje del joiner al server.
-    character_->startJoinGame(gameName);
+void LobbyWindow::onJoinAccepted(std::string code) {
+    // La unión al server se hace en CharacterScreen, al confirmar el personaje.
+    character_->startJoinGame(code);
     navigateTo(ScreenId::Character);
 }

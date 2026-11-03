@@ -20,7 +20,9 @@ constexpr std::uint32_t kJoinedWorldId = 1;
 ServiceError serviceErrorFor(LobbyStatus status) {
     static const std::unordered_map<LobbyStatus, ServiceError> statusToError = {
             {LobbyStatus::NameTaken, ServiceError::GameNameTaken},
-            {LobbyStatus::Full, ServiceError::GameFull}};
+            {LobbyStatus::Full, ServiceError::GameFull},
+            {LobbyStatus::UsernameTaken, ServiceError::UsernameTaken},
+            {LobbyStatus::CharacterNameTaken, ServiceError::CharacterNameTaken}};
 
     auto it = statusToError.find(status);
     if (it != statusToError.end()) {
@@ -41,13 +43,13 @@ NetworkSessionService::~NetworkSessionService() {
 }
 
 void NetworkSessionService::createGame(const GameSelection& selection) {
-    // TODO con protocolo: mandar selection.username en el MatchRequest.
-    sendRequest(MatchRequestType::Create, selection.gameName);
+    sendRequest(MatchRequest{MatchRequestType::Create, selection.gameName, selection.gameName,
+                             selection.username, selection.characterName});
 }
 
-void NetworkSessionService::joinGame(const std::string& code, const std::string&) {
-    // TODO con protocolo: enviar username en el MatchRequest (hoy se descarta).
-    sendRequest(MatchRequestType::Join, code);
+void NetworkSessionService::joinGame(const std::string& code, const std::string& username,
+                                     const std::string& characterName) {
+    sendRequest(MatchRequest{MatchRequestType::Join, code, "", username, characterName});
 }
 
 void NetworkSessionService::loadGame(std::uint32_t) {
@@ -69,18 +71,18 @@ void NetworkSessionService::discardConnection() {
     connection_.reset();
 }
 
-void NetworkSessionService::sendRequest(MatchRequestType type, const std::string& name) {
+void NetworkSessionService::sendRequest(const MatchRequest& request) {
     discardConnection();
-    worker_ = std::thread([this, type, name]() { runRequest(type, name); });
+    worker_ = std::thread([this, request]() { runRequest(request); });
 }
 
-void NetworkSessionService::runRequest(MatchRequestType type, const std::string& name) {
+void NetworkSessionService::runRequest(const MatchRequest& request) {
     try {
         Socket socket(core::kServerHost, core::kServerPort);
         socket.set_receive_timeout(kLobbyTimeoutSeconds);
         ProtocolSender sender(socket);
         ProtocolReceiver receiver(socket);
-        sender.send_match_request(MatchRequest{type, name});
+        sender.send_match_request(request);
         const LobbyStatus status = receiver.receive_lobby_status();
         if (status != LobbyStatus::Ok) {
             emit sessionFailed(serviceErrorFor(status));
@@ -93,9 +95,9 @@ void NetworkSessionService::runRequest(MatchRequestType type, const std::string&
         return;
     }
 
-    if (type == MatchRequestType::Create) {
+    if (request.type == MatchRequestType::Create) {
         emit gameCreated();
     } else {
-        emit gameJoined(name, kJoinedWorldId);
+        emit gameJoined(request.codeMatch, kJoinedWorldId);
     }
 }

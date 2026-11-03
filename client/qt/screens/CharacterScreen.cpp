@@ -51,6 +51,8 @@ CharacterScreen::CharacterScreen(SessionService* session,
 
 	connect(session_, &SessionService::gameCreated, this,
 		&CharacterScreen::onCreated);
+	connect(session_, &SessionService::gameJoined, this,
+		&CharacterScreen::onJoined);
 	connect(session_, &SessionService::sessionFailed, this,
 		&CharacterScreen::onSessionFailed);
 
@@ -104,6 +106,12 @@ void CharacterScreen::onExit() {
 void CharacterScreen::buildMessages() {
 	errorMessages_[ServiceError::GameNameTaken] =
 		"Ya existe una partida con ese nombre.";
+	errorMessages_[ServiceError::InvalidCode] =
+		"No hay ninguna partida con ese código.";
+	errorMessages_[ServiceError::GameFull] = "La partida está llena.";
+	errorMessages_[ServiceError::CharacterNameTaken] =
+		"Ya hay un jugador con ese personaje en la partida.";
+	errorMessages_[ServiceError::UsernameTaken] = "Ese usuario ya está conectado.";
 	errorMessages_[ServiceError::Network] =
 		"No se pudo conectar con el servidor.";
 }
@@ -250,11 +258,9 @@ void CharacterScreen::submit() {
 	}
 
 	if (mode_ == Mode::JoinGame) {
-		// La sesión ya se unió al aceptar el código: acá solo queda
-		// confirmar el personaje. TODO con protocolo: confirmar cómo
-		// viaja el personaje del joiner (ver
-		// docs/ui/plan-e2-servicios.md).
-		emit characterConfirmed(selection_);
+		submitting_ = true;
+		showState(ScreenState::Loading, "Uniéndose a la partida...");
+		session_->joinGame(selection_.gameName, username(), selection_.characterName);
 		return;
 	}
 
@@ -279,6 +285,14 @@ void CharacterScreen::submit() {
 void CharacterScreen::onCreated() {
 	if (!submitting_) {
 		// Llegó después de salir de la pantalla: no se entra al juego.
+		return;
+	}
+	submitting_ = false;
+	emit characterConfirmed(selection_);
+}
+
+void CharacterScreen::onJoined(const std::string&, std::uint32_t) {
+	if (!submitting_) {
 		return;
 	}
 	submitting_ = false;

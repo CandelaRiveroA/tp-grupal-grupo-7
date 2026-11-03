@@ -19,7 +19,8 @@ public:
     ~NetworkSessionService() override;
 
     void createGame(const GameSelection& selection) override;
-    void joinGame(const std::string& code, const std::string& username) override;
+    void joinGame(const std::string& code, const std::string& username,
+                  const std::string& characterName) override;
     void loadGame(std::uint32_t saveId) override;
 
     // Socket ya unido a la partida. Solo válido después de gameCreated/gameJoined.
@@ -31,6 +32,6 @@ private:
     std::thread worker_;
     std::optional<Socket> connection_;
 
-    void sendRequest(MatchRequestType type, const std::string& name);
-    void runRequest(MatchRequestType type, const std::string& name);
+    void sendRequest(const MatchRequest& request);
+    void runRequest(const MatchRequest& request);
 };

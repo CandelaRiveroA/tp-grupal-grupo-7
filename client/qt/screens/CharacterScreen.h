@@ -2,6 +2,7 @@
 
 #include <QString>
 
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -96,6 +97,7 @@ private:
 	void updateValidation();
 	void submit();
 	void onCreated();
+	void onJoined(const std::string& gameName, std::uint32_t worldId);
 	void onSessionFailed(ServiceError error);
 	void onWorldSelected(WorldSummary world);
 	void resetDraft();

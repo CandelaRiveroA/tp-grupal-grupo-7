@@ -17,7 +17,8 @@ public:
 		QObject* parent = nullptr);
 
 	void createGame(const GameSelection& selection) override;
-	void joinGame(const std::string& code, const std::string& username) override;
+	void joinGame(const std::string& code, const std::string& username,
+		      const std::string& characterName) override;
 	void loadGame(std::uint32_t saveId) override;
 
 private:

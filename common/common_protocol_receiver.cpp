@@ -195,13 +195,17 @@ MatchRequest ProtocolReceiver::receive_match_request() {
         type != static_cast<uint8_t>(MatchRequestType::Join)) {
         throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
     }
-    // TODO con protocolo: leer username en el mismo orden que el sender.
-    return MatchRequest{static_cast<MatchRequestType>(type), receive_string()};
+    std::string codeMatch = receive_string();
+    std::string nameMatch = receive_string();
+    std::string username = receive_string();
+    std::string characterName = receive_string();
+    return MatchRequest{static_cast<MatchRequestType>(type), std::move(codeMatch),
+                        std::move(nameMatch), std::move(username), std::move(characterName)};
 }
 
 LobbyStatus ProtocolReceiver::receive_lobby_status() {
     const uint8_t status = receive_uint8();
-    if (status > static_cast<uint8_t>(LobbyStatus::Invalid)) {
+    if (status > static_cast<uint8_t>(LobbyStatus::CharacterNameTaken)) {
         throw std::invalid_argument("El estado del lobby no es valido.");
     }
     return static_cast<LobbyStatus>(status);

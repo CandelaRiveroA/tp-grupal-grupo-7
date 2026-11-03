@@ -60,5 +60,5 @@ private:
     void onNewGameRequested();
     void onCharacterConfirmed(CharacterSelection selection);
     void onSaveLoaded(SaveSummary save);
-    void onJoinAccepted(std::string gameName);
+    void onJoinAccepted(std::string code);
 };

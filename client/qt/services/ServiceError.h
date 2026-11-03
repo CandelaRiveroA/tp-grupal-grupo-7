@@ -6,5 +6,7 @@ enum class ServiceError {
 	InvalidCode,
 	GameFull,
 	GameNameTaken,
+	UsernameTaken,
+	CharacterNameTaken,
 	SaveNotFound,
 };

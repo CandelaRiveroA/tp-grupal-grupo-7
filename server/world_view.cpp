@@ -51,8 +51,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         for (uint16_t x = 0; x < world.get_width(); ++x) {
             for (const IEntity* entity: world.get_entity_at(x, y)) {
                 if (const auto animal = entity->animal_snapshot()) {
-                    out.push_back(
-                            ServerAnimal{animal->id, animal->kind, x, y, animal->ready_to_milk});
+                    out.push_back(ServerAnimal{animal->id, animal->kind, x, y, animal->facing,
+                                               animal->ready_to_milk});
                     continue;
                 }
                 const auto snap = entity->snapshot();

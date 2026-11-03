@@ -27,6 +27,7 @@ struct AnimalSnapshot {
     uint8_t id;
     std::string kind;
     bool ready_to_milk;
+    Direction facing;
 };
 
 class IEntity {

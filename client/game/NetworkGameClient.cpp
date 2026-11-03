@@ -125,7 +125,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         const std::optional<world::CreatureKind> kind = creatureKindFor(animal->kind);
         if (kind.has_value()) {
             ViewEntity entity{kind.value(), animal->x,
-                              animal->y,    world::Direction::Front,
+                              animal->y,    world::viewDirectionFrom(animal->direction),
                               false,        world::ActionKind::Idle,
                               std::nullopt};
             entity.id = animal->id;

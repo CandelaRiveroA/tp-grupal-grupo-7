@@ -24,12 +24,15 @@
 // shortcut: un día fijo de 30s.
 #define kDayDurationSeconds 30
 #define kClockStepMs 100
+// Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
+#define kAnimalTickSteps 40
 
 DayClock::DayClock(Queue<MatchEvent>& events): events(events) {}
 
 void DayClock::execute() {
     while (true) {
         const auto day_start = std::chrono::steady_clock::now();
+        uint8_t animal_steps = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
                std::chrono::seconds(kDayDurationSeconds)) {
@@ -37,6 +40,15 @@ void DayClock::execute() {
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
+            // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
+            if (++animal_steps >= kAnimalTickSteps) {
+                animal_steps = 0;
+                try {
+                    events.push(MatchEvent(AnimalTick{}));
+                } catch (const ClosedQueue&) {
+                    return;
+                }
+            }
         }
         try {
             events.push(MatchEvent(DayPassed{}));
@@ -78,6 +90,11 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
 
 void Match::handle(const DayPassed& /*day*/) {
     world.tick_day();
+    sync_all();
+}
+
+void Match::handle(const AnimalTick& /*tick*/) {
+    world.tick_animals();
     sync_all();
 }
 

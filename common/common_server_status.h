@@ -84,12 +84,13 @@ struct ServerResourceHit {
 struct ServerReset {};
 
 // Animal del mundo (vaca, gallina). kind es el vocabulario de characters.toml;
-// ready_to_milk avisa al jugador que la vaca se puede ordeñar.
+// ready_to_milk avisa al jugador que la vaca se puede ordeñar; direction es hacia dónde mira.
 struct ServerAnimal {
     uint8_t id;
     std::string kind;
     uint16_t x;
     uint16_t y;
+    Direction direction;
     bool ready_to_milk;
 };
 

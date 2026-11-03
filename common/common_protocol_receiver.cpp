@@ -162,11 +162,12 @@ ServerMessage ProtocolReceiver::receive_animal_message() {
     std::string kind = receive_string();
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
+    const Direction direction = direction_from_byte(receive_uint8());
     const uint8_t ready = receive_uint8();
     if (ready > 1) {
         throw std::invalid_argument("El indicador de ordeñe no es valido.");
     }
-    return ServerAnimal{id, std::move(kind), x, y, ready == 1};
+    return ServerAnimal{id, std::move(kind), x, y, direction, ready == 1};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {

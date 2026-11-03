@@ -175,6 +175,44 @@ void World::tick_day() {
     }
 }
 
+void World::tick_animals() {
+    for (Animal* animal: animals) {
+        animal->wander(*this);
+    }
+}
+
+void World::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
+    if (!entity || (x == entity->get_x() && y == entity->get_y())) {
+        return;
+    }
+    if (!this->can_walk_to(x, y)) {
+        return;
+    }
+
+    const uint16_t from_x = entity->get_x();
+    const uint16_t from_y = entity->get_y();
+    if (from_x >= this->width || from_y >= this->height) {
+        return;
+    }
+
+    // El dueño de la entidad es la celda: hay que sacarlo de una y meterlo en la otra.
+    std::unique_ptr<IEntity> moved;
+    auto& from_entities = this->grid[from_y][from_x].entities;
+    for (auto it = from_entities.begin(); it != from_entities.end(); ++it) {
+        if (it->get() == entity) {
+            moved = std::move(*it);
+            from_entities.erase(it);
+            break;
+        }
+    }
+    if (!moved) {
+        return;
+    }
+
+    entity->set_position(x, y);
+    this->grid[y][x].entities.push_back(std::move(moved));
+}
+
 void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
     this->players[player_id] = std::move(player);
 }

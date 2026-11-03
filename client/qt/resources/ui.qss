@@ -71,3 +71,34 @@ QSlider#pantsColorSlider::handle:horizontal {
     height: 14px;
     margin: -6px 0;
 }
+
+QWidget#saveList QScrollArea#saveScroll,
+QWidget#saveList QWidget#saveRowsHost {
+    background: transparent;
+    border: none;
+}
+
+QWidget#saveList QLabel {
+    color: #56160c;
+    font-family: "Pixel Operator";
+    font-size: 24px;
+}
+
+QWidget#saveList QLabel#saveIndex,
+QWidget#saveList QLabel#savePlayer {
+    color: #4a1808;
+    font-family: "StardewValley";
+    font-size: 28px;
+}
+
+QWidget#saveList QLabel#saveBadge {
+    color: #7a5230;
+    font-family: "Pixel Operator";
+    font-size: 20px;
+}
+
+QWidget#saveList QLabel#screenStatus {
+    color: #56160c;
+    font-family: "StardewValley";
+    font-size: 26px;
+}

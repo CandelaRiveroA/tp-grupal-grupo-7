@@ -49,10 +49,12 @@ target_sources(taller_client
     qt/widgets/CharacterAppearanceEditor.cpp
     qt/widgets/CharacterPreview.cpp
     qt/widgets/CycleRow.cpp
+    qt/widgets/SaveRowButton.cpp
     qt/theme/CharacterSprites.cpp
     qt/theme/JoinCodeSprites.cpp
     qt/theme/NineSlice.cpp
     qt/theme/SkinRecolorer.cpp
+    qt/theme/SaveListSprites.cpp
     qt/widgets/InputBox.cpp
     qt/widgets/SliderRow.cpp
     qt/widgets/ParchmentBanner.cpp
@@ -108,6 +110,8 @@ target_sources(taller_client
     qt/theme/JoinCodeRects.h
     qt/theme/CharacterSprites.h
     qt/theme/JoinCodeSprites.h
+    qt/theme/SaveListRects.h
+    qt/theme/SaveListSprites.h
     qt/theme/CharacterSheetRects.h
     qt/theme/CharacterSheets.h
     qt/theme/NineSlice.h
@@ -124,6 +128,7 @@ target_sources(taller_client
     qt/widgets/CharacterAppearanceEditor.h
     qt/widgets/CharacterPreview.h
     qt/widgets/CycleRow.h
+    qt/widgets/SaveRowButton.h
     qt/widgets/InputBox.h
     qt/widgets/SliderRow.h
     qt/widgets/ParchmentBanner.h

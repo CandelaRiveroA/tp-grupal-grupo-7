@@ -10,6 +10,12 @@
         <file alias="ui/join/scroll.png">ui/join_scroll.png</file>
         <file alias="ui/join/input_box.png">ui/join_input_box.png</file>
         <file alias="ui/join/ok.png">ui/join_ok.png</file>
+        <file alias="ui/save/arrow_up.png">ui/save_arrow_up.png</file>
+        <file alias="ui/save/arrow_down.png">ui/save_arrow_down.png</file>
+        <file alias="ui/save/clock.png">ui/save_clock.png</file>
+        <file alias="ui/save/coin.png">ui/save_coin.png</file>
+        <file alias="ui/save/coop_badge.png">ui/save_coop_badge.png</file>
+        <file alias="ui/save/delete.png">ui/save_delete.png</file>
         <file alias="ui/character/arrow_left.png">ui/char_arrow_left.png</file>
         <file alias="ui/character/arrow_right.png">ui/char_arrow_right.png</file>
         <file alias="ui/character/recessed_box.png">ui/char_recessed_box.png</file>

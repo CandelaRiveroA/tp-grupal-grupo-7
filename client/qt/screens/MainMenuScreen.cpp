@@ -23,7 +23,7 @@ MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
     auto* logo = new QLabel(this);
     logo->setObjectName("gameLogo");
     logo->setPixmap(sprites_.logo());
-    logo->setFixedSize(ATLAS_LOGO_W * 2, ATLAS_LOGO_H * 2);
+    logo->setFixedSize(TITLE_LOGO_W, TITLE_LOGO_H);
     logo->setAlignment(Qt::AlignCenter);
     layout->addWidget(logo, 0, Qt::AlignHCenter);
 
@@ -49,7 +49,7 @@ MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
 
     // placa del username arriba a la derecha fuera del layout.
     plate_ = new UsernamePlate(sprites_.nameplate(), this);
-    plate_->move(TITLE_SCREEN_W - TITLE_PLATE_W - TITLE_PLATE_MARGIN, TITLE_PLATE_MARGIN);
+    plate_->move(TITLE_SCREEN_W - TITLE_PLATE_W - TITLE_PLATE_MARGIN, TITLE_PLATE_TOP_Y);
 }
 
 TitleButton* MainMenuScreen::makeButton(int spriteIndex, const QString& accessibleText,

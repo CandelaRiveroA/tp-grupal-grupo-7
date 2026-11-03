@@ -38,3 +38,11 @@
 
 // Hueco entre la caja de texto y el estado ("Conectando...").
 #define JOIN_STATUS_ROW_GAP 8
+
+// Margenes de la pantalla (1280x720) y huecos del formulario.
+#define JOIN_MARGIN_LEFT 96
+#define JOIN_MARGIN_TOP 64
+#define JOIN_MARGIN_RIGHT 28
+#define JOIN_MARGIN_BOTTOM 12
+#define JOIN_CENTRAL_RIGHT_MARGIN 68
+#define JOIN_INPUT_OK_GAP 4

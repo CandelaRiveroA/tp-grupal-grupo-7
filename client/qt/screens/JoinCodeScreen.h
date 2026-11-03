@@ -8,7 +8,6 @@
 
 #include "qt/screens/Screen.h"
 #include "qt/services/ServiceError.h"
-#include "qt/theme/JoinCodeSprites.h"
 
 namespace core {
 class MusicControl;
@@ -56,6 +55,4 @@ private:
 	bool canJoin() const;
 
 	void paintEvent(QPaintEvent* event) override;
-
-	JoinCodeSprites joinSprites_;
 };

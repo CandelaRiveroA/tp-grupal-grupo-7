@@ -3,12 +3,12 @@
 #include <QColor>
 #include <QImage>
 #include <QPainter>
-#include <QPalette>
 
 #include <algorithm>
 #include <map>
 
 #include "qt/services/CharacterLayerSource.h"
+#include "qt/theme/CharacterSheetRects.h"
 
 CharacterPreview::CharacterPreview(const CharacterLayerSource* source,
 				   QWidget* parent)
@@ -36,9 +36,9 @@ void CharacterPreview::setBackground(const QPixmap& background) {
 
 QSize CharacterPreview::sizeHint() const {
 	if (source_ == nullptr) {
-		return QSize(192, 288);
+		return QSize(SHEET_CANVAS_W, SHEET_CANVAS_H) * SHEET_PREVIEW_HINT_SCALE;
 	}
-	return source_->canvasSize() * 6;
+	return source_->canvasSize() * SHEET_PREVIEW_HINT_SCALE;
 }
 
 void CharacterPreview::refresh() {
@@ -104,9 +104,9 @@ QPixmap CharacterPreview::tinted(const QPixmap& sprite,
 
 void CharacterPreview::paintEvent(QPaintEvent*) {
 	QPainter painter(this);
-	if (background_.isNull()) {
-		painter.fillRect(rect(), palette().color(QPalette::Base));
-	} else {
+	// Sin background el preview queda transparente: uso la casilla del
+	// contenedor en vez de pintar un relleno propio.
+	if (!background_.isNull()) {
 		painter.drawPixmap(rect(), background_);
 	}
 

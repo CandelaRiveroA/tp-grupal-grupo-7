@@ -2,6 +2,7 @@
 
 #include <QObject>
 
+#include <string>
 #include <vector>
 
 #include "common/model/draft/SaveSummary.h"
@@ -16,9 +17,12 @@ public:
 	explicit SaveService(QObject* parent = nullptr);
 	~SaveService() override;
 
-	virtual void requestSaves() = 0;
+	virtual void requestSaves(const std::string& username) = 0;
+	virtual void deleteSave(std::uint32_t saveId) = 0;
 
 signals:
 	void savesReady(std::vector<SaveSummary> saves);
 	void savesFailed(ServiceError error);
+	void saveDeleted(std::uint32_t saveId);
+	void deleteFailed(ServiceError error);
 };

@@ -7,6 +7,7 @@
 // Primer mensaje de cada conexion del lobby: crear o unirse a un match.
 enum class MatchRequestType : uint8_t { Create = 1, Join = 2 };
 
+// TODO con protocolo: agregar std::string username y serializarlo en sender/receiver.
 struct MatchRequest {
     MatchRequestType type;
     std::string name;

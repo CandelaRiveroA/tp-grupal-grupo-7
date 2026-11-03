@@ -29,7 +29,7 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.cpp
     qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
-    qt/screens/WorldSelectScreen.cpp
+    qt/screens/UsernameScreen.cpp
     qt/services/CharacterLayerSource.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
@@ -49,13 +49,20 @@ target_sources(taller_client
     qt/widgets/CharacterAppearanceEditor.cpp
     qt/widgets/CharacterPreview.cpp
     qt/widgets/CycleRow.cpp
+    qt/widgets/SaveRowButton.cpp
+    qt/widgets/WorldButton.cpp
+    qt/widgets/UsernamePlate.cpp
+    qt/widgets/WorldSelectorWidget.cpp
     qt/theme/CharacterSprites.cpp
     qt/theme/JoinCodeSprites.cpp
     qt/theme/NineSlice.cpp
     qt/theme/SkinRecolorer.cpp
+    qt/theme/SaveListSprites.cpp
+    qt/theme/WorldSprites.cpp
     qt/widgets/InputBox.cpp
     qt/widgets/SliderRow.cpp
     qt/widgets/ParchmentBanner.cpp
+    qt/widgets/PromptForm.cpp
     qt/widgets/TitleButton.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
@@ -91,7 +98,7 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.h
     qt/screens/SaveListScreen.h
     qt/screens/Screen.h
-    qt/screens/WorldSelectScreen.h
+    qt/screens/UsernameScreen.h
     qt/services/CharacterLayerSource.h
     qt/services/CharacterSpriteComposer.h
     qt/services/SaveService.h
@@ -108,6 +115,10 @@ target_sources(taller_client
     qt/theme/JoinCodeRects.h
     qt/theme/CharacterSprites.h
     qt/theme/JoinCodeSprites.h
+    qt/theme/SaveListRects.h
+    qt/theme/SaveListSprites.h
+    qt/theme/WorldSpriteRects.h
+    qt/theme/WorldSprites.h
     qt/theme/CharacterSheetRects.h
     qt/theme/CharacterSheets.h
     qt/theme/NineSlice.h
@@ -117,6 +128,7 @@ target_sources(taller_client
     qt/theme/TitleBackdrop.h
     qt/theme/TitleSpriteRects.h
     qt/theme/TitleSprites.h
+    qt/theme/UsernameRects.h
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
@@ -125,8 +137,13 @@ target_sources(taller_client
     qt/widgets/CharacterPreview.h
     qt/widgets/CycleRow.h
     qt/widgets/InputBox.h
+    qt/widgets/SaveRowButton.h
+    qt/widgets/WorldButton.h
+    qt/widgets/UsernamePlate.h
+    qt/widgets/WorldSelectorWidget.h
     qt/widgets/SliderRow.h
     qt/widgets/ParchmentBanner.h
+    qt/widgets/PromptForm.h
     qt/widgets/TitleButton.h
     client_sender.h
     client_receiver.h

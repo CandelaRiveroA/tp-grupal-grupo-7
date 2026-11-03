@@ -41,10 +41,12 @@ NetworkSessionService::~NetworkSessionService() {
 }
 
 void NetworkSessionService::createGame(const GameSelection& selection) {
+    // TODO con protocolo: mandar selection.username en el MatchRequest.
     sendRequest(MatchRequestType::Create, selection.gameName);
 }
 
-void NetworkSessionService::joinGame(const std::string& code) {
+void NetworkSessionService::joinGame(const std::string& code, const std::string&) {
+    // TODO con protocolo: enviar username en el MatchRequest (hoy se descarta).
     sendRequest(MatchRequestType::Join, code);
 }
 

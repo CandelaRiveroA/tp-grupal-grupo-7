@@ -10,6 +10,9 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <string>
+#include <vector>
+
 #include "common/model/draft/GameSelection.h"
 #include "core/MusicControl.h"
 #include "core/MusicTrack.h"
@@ -17,9 +20,11 @@
 #include "qt/services/SessionService.h"
 #include "qt/theme/CharacterRects.h"
 #include "qt/theme/TitleSprites.h"
+#include "qt/theme/WorldSpriteRects.h"
 #include "qt/widgets/CharacterAppearanceEditor.h"
 #include "qt/widgets/InputBox.h"
 #include "qt/widgets/TitleButton.h"
+#include "qt/widgets/WorldSelectorWidget.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,
 				 const CharacterLayerSource* source, QWidget* parent,
@@ -31,6 +36,7 @@ CharacterScreen::CharacterScreen(SessionService* session,
 	, editor_(nullptr)
 	, content_(nullptr)
 	, worldLabel_(nullptr)
+	, worldSelector_(nullptr)
 	, characterName_(nullptr)
 	, gameName_(nullptr)
 	, create_(nullptr)
@@ -51,10 +57,22 @@ CharacterScreen::CharacterScreen(SessionService* session,
 	resetDraft();
 }
 
-void CharacterScreen::startNewGame(const WorldSummary& world) {
+void CharacterScreen::startNewGame(
+	const std::vector<WorldSummary>& worlds) {
 	mode_ = Mode::NewGame;
-	world_ = world;
+	worldSelector_->setWorlds(worlds);
+	world_ = worldSelector_->selectedWorld();
 	resetDraft();
+}
+
+void CharacterScreen::onWorldSelected(WorldSummary world) {
+	if (mode_ != Mode::NewGame) {
+		return;
+	}
+	world_ = world;
+	worldLabel_->setText(
+		QString("Mundo: %1").arg(QString::fromStdString(world_->name)));
+	updateValidation();
 }
 
 void CharacterScreen::startJoinGame(const std::string& gameName) {
@@ -126,8 +144,18 @@ void CharacterScreen::buildUi() {
 	createRow->addWidget(create_);
 	window->addLayout(createRow);
 
+	worldSelector_ = new WorldSelectorWidget(this);
+	connect(worldSelector_, &WorldSelectorWidget::worldSelected, this,
+		&CharacterScreen::onWorldSelected);
+
+	auto* centerRow = new QHBoxLayout();
+	centerRow->setSpacing(WorldSpriteRects::kPanelGap);
+	centerRow->addStretch();
+	centerRow->addWidget(content_, 0, Qt::AlignTop);
+	centerRow->addWidget(worldSelector_, 0, Qt::AlignTop);
+	centerRow->addStretch();
 	root->addStretch();
-	root->addWidget(content_, 0, Qt::AlignHCenter);
+	root->addLayout(centerRow);
 	root->addStretch();
 
 	status_ = new QLabel(this);
@@ -147,7 +175,7 @@ void CharacterScreen::buildUi() {
 	connect(backButton_, &QAbstractButton::clicked, this, [this]() {
 		emit requestNavigate(mode_ == Mode::JoinGame
 					      ? ScreenId::JoinCode
-					      : ScreenId::WorldSelect);
+					      : ScreenId::MainMenu);
 	});
 	buttons->addStretch();
 	buttons->addWidget(backButton_);
@@ -240,6 +268,7 @@ void CharacterScreen::submit() {
 	selection_.appearance = editor_->appearance();
 
 	GameSelection game;
+	game.username = username();
 	game.gameName = selection_.gameName;
 	game.characterName = selection_.characterName;
 	game.worldId = world_->id;
@@ -283,6 +312,7 @@ void CharacterScreen::resetDraft() {
 	gameName_->style()->unpolish(gameName_);
 	gameName_->style()->polish(gameName_);
 	worldLabel_->setVisible(mode_ != Mode::JoinGame);
+	worldSelector_->setVisible(mode_ == Mode::NewGame);
 	if (mode_ == Mode::JoinGame) {
 		selection_.gameName = joinedName;
 		const QSignalBlocker blocker(gameName_);
@@ -308,6 +338,7 @@ void CharacterScreen::showState(ScreenState state, const QString& message) {
 	const bool busy = state == ScreenState::Loading;
 
 	content_->setEnabled(!busy);
+	worldSelector_->setEnabled(!busy);
 	backButton_->setEnabled(!busy);
 	create_->setEnabled(!busy && canSubmit());
 

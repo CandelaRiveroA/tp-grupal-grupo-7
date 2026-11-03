@@ -14,8 +14,7 @@
 #include "qt/services/SessionService.h"
 #include "qt/theme/JoinCodeRects.h"
 #include "qt/theme/TitleSprites.h"
-#include "qt/widgets/InputBox.h"
-#include "qt/widgets/ParchmentBanner.h"
+#include "qt/widgets/PromptForm.h"
 #include "qt/widgets/TitleButton.h"
 
 JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
@@ -31,44 +30,29 @@ JoinCodeScreen::JoinCodeScreen(SessionService* sessions, QWidget* parent,
 	setObjectName("joinCode");
 
 	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(96, 64, 28, 12);
+	layout->setContentsMargins(JOIN_MARGIN_LEFT, JOIN_MARGIN_TOP, JOIN_MARGIN_RIGHT,
+				  JOIN_MARGIN_BOTTOM);
 
 	
 	auto* central = new QWidget(this);
 	auto* centralLayout = new QVBoxLayout(central);
 	
 	centralLayout->setSpacing(0);
-	centralLayout->setContentsMargins(0, 0, 68, 0);
+	centralLayout->setContentsMargins(0, 0, JOIN_CENTRAL_RIGHT_MARGIN, 0);
 	layout->addWidget(central);
 
-	centralLayout->addSpacing(JOIN_SCROLL_TOP_Y - 64);
+	centralLayout->addSpacing(JOIN_SCROLL_TOP_Y - JOIN_MARGIN_TOP);
 
-	auto* prompt = new QLabel("Ingresá el código de invitación...");
-	prompt->setObjectName("codePrompt");
-	auto* banner = new ParchmentBanner(joinSprites_.scrollBanner(), prompt, central);
-	banner->setObjectName("scrollBanner");
-	centralLayout->addWidget(banner, 0, Qt::AlignHCenter);
-	centralLayout->addSpacing(JOIN_SCROLL_ROW_GAP);
-
-	auto* row = new QHBoxLayout();
-	row->setSpacing(4);
-	auto* box = new InputBox(
-		joinSprites_.inputBox(),
-		QMargins(JOIN_INPUT_PAD_LEFT, JOIN_INPUT_PAD_TOP,
-			 JOIN_INPUT_PAD_RIGHT, JOIN_INPUT_PAD_BOTTOM),
-		central);
-	box->setObjectName("codeBox");
-	code_ = box->edit();
+	auto* form = new PromptForm("Ingresá el código de invitación...", central);
+	form->prompt()->setObjectName("codePrompt");
+	form->banner()->setObjectName("scrollBanner");
+	form->inputBox()->setObjectName("codeBox");
+	code_ = form->edit();
 	code_->setObjectName("codeInput");
-	ok_ = new TitleButton(joinSprites_.okButton(), joinSprites_.okButtonHover(), "OK",
-			      central);
+	ok_ = form->okButton();
 	ok_->setObjectName("okButton");
 	ok_->setEnabled(false);
-	row->addStretch();
-	row->addWidget(box);
-	row->addWidget(ok_, 0, Qt::AlignVCenter);
-	row->addStretch();
-	centralLayout->addLayout(row);
+	centralLayout->addWidget(form);
 
 	status_ = new QLabel(central);
 	status_->setObjectName("screenStatus");
@@ -139,7 +123,7 @@ void JoinCodeScreen::onJoin() {
 	}
 	joining_ = true;
 	showState(ScreenState::Loading);
-	sessionService_->joinGame(code_->text().trimmed().toStdString());
+	sessionService_->joinGame(code_->text().trimmed().toStdString(), username());
 }
 
 void JoinCodeScreen::onGameJoined(std::string gameName, std::uint32_t) {

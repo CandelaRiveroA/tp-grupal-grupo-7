@@ -3,11 +3,13 @@
 #include <QBasicTimer>
 #include <QWidget>
 
+#include <string>
+
 #include "qt/theme/TitleBackdrop.h"
 
 enum class ScreenId {
+	Username,
 	MainMenu,
-	WorldSelect,
 	Character,
 	SaveList,
 	JoinCode,
@@ -35,16 +37,22 @@ public:
 	virtual void onEnter();
 	virtual void onExit();
 
+	// Usuario confirmado en el lobby; lo empuja LobbyWindow antes de onEnter().
+	void setUsername(std::string username);
+
 signals:
 	// La pantalla pide ir a otra; no la muestra ella misma.
 	void requestNavigate(ScreenId id);
 
 protected:
+	const std::string& username() const;
+
 	// Pinta el cielo. Las subclases que pinten encima lo llaman primero.
 	void paintEvent(QPaintEvent* event) override;
 	void timerEvent(QTimerEvent* event) override;
 
 private:
+	std::string username_;
 	TitleBackdrop backdrop_;
 	QBasicTimer cloudTimer_;
 };

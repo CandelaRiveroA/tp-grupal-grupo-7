@@ -5,6 +5,8 @@
 
 #define SHEET_CANVAS_W 32
 #define SHEET_CANVAS_H 48
+// Escala del sizeHint de CharacterPreview (pantalla de personaje).
+#define SHEET_PREVIEW_HINT_SCALE 6
 #define SHEET_BODY_X 8
 // Sube el personaje para que los zapatos queden sobre la sombra del fondo.
 #define SHEET_BODY_Y 9

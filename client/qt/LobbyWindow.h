@@ -20,6 +20,7 @@ struct CharacterPalettes;
 }
 
 class CharacterScreen;
+class FakeWorldService;
 class NetworkSessionService;
 class QStackedWidget;
 struct CharacterSelection;
@@ -44,16 +45,19 @@ private:
     QStackedWidget* stack_;
     std::map<ScreenId, Screen*> screens_;
     Screen* current_;
-    // Se usa después de construirla: recibe el mundo antes de navegar.
+    // Se usa después de construirla: recibe los mundos antes de navegar.
     CharacterScreen* character_;
+    FakeWorldService* worldService_;
     NetworkSessionService* sessions_;
     std::optional<core::SessionConfig> selection_;
+    std::string username_;
 
     void registerScreen(ScreenId id, Screen* screen);
     void navigateTo(ScreenId id);
     void goBack();
     void acceptSelection(core::SessionConfig session);
-    void onWorldChosen(WorldSummary world);
+    void onUsernameConfirmed(std::string username);
+    void onNewGameRequested();
     void onCharacterConfirmed(CharacterSelection selection);
     void onSaveLoaded(SaveSummary save);
     void onJoinAccepted(std::string gameName);

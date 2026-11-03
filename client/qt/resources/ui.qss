@@ -7,13 +7,13 @@
  * Application en el arranque (recursos del qrc).
  */
 
-QLabel#codePrompt {
+QLabel#codePrompt, QLabel#usernamePrompt {
     color: #4a1808;
     font-family: "StardewValley";
     font-size: 26px;
 }
 
-QLineEdit#codeInput {
+QLineEdit#codeInput, QLineEdit#usernameInput {
     color: #3b170c;
     background: transparent;
     border: none;

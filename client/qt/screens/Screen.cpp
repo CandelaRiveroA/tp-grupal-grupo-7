@@ -3,6 +3,8 @@
 #include <QPainter>
 #include <QTimerEvent>
 
+#include <utility>
+
 #include "qt/theme/CloudRects.h"
 
 Screen::Screen(QWidget* parent) : QWidget(parent) {}
@@ -18,6 +20,12 @@ void Screen::onExit() {
 		cloudTimer_.stop();
 	}
 }
+
+void Screen::setUsername(std::string username) {
+	username_ = std::move(username);
+}
+
+const std::string& Screen::username() const { return username_; }
 
 void Screen::paintEvent(QPaintEvent* event) {
 	QPainter painter(this);

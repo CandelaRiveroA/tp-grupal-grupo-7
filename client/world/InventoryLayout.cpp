@@ -185,7 +185,13 @@ std::vector<PixelBox> InventoryLayout::countBoxes(const PixelBox& slot,
 		return boxes;
 	}
 
-	const int margin = scaled(digitMargin);
+	const int marginY = scaled(digitMargin);
+	// marginX: usa digitMarginX si fue configurado; si no, digitMargin.
+	const int marginX = scaled(digitMarginX >= 0 ? digitMarginX
+						      : digitMargin);
+	// gap entre dígitos (negativo = solapamiento para compensar padding
+	// interno del sprite).
+	const int gap = scaled(digitGap);
 
 	// Lado nominal de un dígito como fracción del lado del slot.
 	int digit = static_cast<int>(slot.width * digitScale + 0.5);
@@ -193,25 +199,37 @@ std::vector<PixelBox> InventoryLayout::countBoxes(const PixelBox& slot,
 		digit = 1;
 	}
 
-	// El número se apoya arriba-derecha. Si N dígitos pegados no entran
-	// en el ancho disponible (slot menos márgenes), se achican en
-	// conjunto para que quepan sin desbordar.
-	const int available = slot.width - 2 * margin;
-	if (available > 0 && digit * digitCount > available) {
-		digit = available / digitCount;
+	// stride: avance horizontal entre el origen de un dígito y el
+	// siguiente. Con gap=0 es igual al ancho del dígito (pegados).
+	const int stride = digit + gap;
+
+	// Ancho total del bloque: N dígitos + (N-1) gaps entre ellos.
+	// El número se apoya abajo-derecha. Si no entra, se achica.
+	const int totalWidthPx =
+		(digitCount > 0) ? digit + (digitCount - 1) * stride : 0;
+	const int available = slot.width - marginX;
+	if (available > 0 && totalWidthPx > available && digitCount > 0) {
+		// Resuelve digit tal que digit + (digitCount-1)*(digit+gap) <=
+		// available  =>  digit * digitCount + (digitCount-1)*gap <=
+		// available  =>  digit <= (available - (digitCount-1)*gap) /
+		// digitCount
+		const int num = available - (digitCount - 1) * gap;
+		digit = (num > 0) ? num / digitCount : 1;
 		if (digit < 1) {
 			digit = 1;
 		}
 	}
 
-	const int totalWidthPx = digit * digitCount;
-	const int startX = slot.x + slot.width - margin - totalWidthPx;
-	const int y = slot.y + margin;
+	const int strideAdj = digit + gap;
+	const int totalAdj =
+		(digitCount > 0) ? digit + (digitCount - 1) * strideAdj : 0;
+	const int startX = slot.x + slot.width - marginX - totalAdj;
+	const int y = slot.y + slot.height - marginY - digit;
 
 	boxes.reserve(static_cast<std::size_t>(digitCount));
 	for (int i = 0; i < digitCount; ++i) {
 		PixelBox box;
-		box.x = startX + i * digit;
+		box.x = startX + i * strideAdj;
 		box.y = y;
 		box.width = digit;
 		box.height = digit;

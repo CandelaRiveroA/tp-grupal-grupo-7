@@ -16,12 +16,17 @@ Renderer::Renderer(SdlContext& context,
 		   const world::CharacterCatalog& characters,
 		   const world::ToolOverlayCatalog& toolOverlay,
 		   const world::ResourceCatalog& resources,
-		   const world::ContentCatalog& content)
+		   const world::ContentCatalog& content,
+		   const world::GroundCatalog& ground,
+		   const world::CropCatalog& crops)
 	: context_(context)
 	, resources_(resources)
 	, content_(content)
+	, ground_(ground)
 	, sheetCache_(context)
-	, entityRenderer_(sheetCache_, characters, toolOverlay) {}
+	, entityRenderer_(sheetCache_, characters, toolOverlay, content)
+	, groundPainter_(sheetCache_, ground)
+	, cropPainter_(sheetCache_, crops) {}
 
 void Renderer::prepareScene(const world::SceneDescription& scene) {
 	const world::ScenePixelMapper mapper(scene.cellPixelSize);
@@ -62,6 +67,16 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	for (const std::uint32_t index : visibleElements_) {
 		drawElement(scene, scene.elements[index], mapper, viewport);
 	}
+
+	// El terreno con consecuencias (tierra tratada por la pala, regada
+	// por la regadera): cada celda dibuja la pieza que arma su zona
+	// (auto-tiling por vecinos). QUÉ hay en cada celda lo dice la
+	// vista; esto solo lo pinta.
+	groundPainter_.draw(view.groundEffects, mapper, viewport);
+
+	// Los cultivos plantados (el crecimiento que mandó la fuente):
+	// encima del terreno de su celda y debajo de las entidades.
+	cropPainter_.draw(view.plantedCrops, mapper, viewport);
 
 	// Recursos antes que las entidades: el personaje se dibuja encima.
 	for (const std::uint32_t index : visibleResources_) {

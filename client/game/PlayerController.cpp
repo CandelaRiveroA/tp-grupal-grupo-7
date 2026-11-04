@@ -1,8 +1,30 @@
 #include "game/PlayerController.h"
 
+#include <array>
+
 #include "game/GameClient.h"
+#include "game/GameConstants.h"
 
 namespace game {
+
+namespace {
+
+// Celda alrededor del jugador -> dirección que la enfrenta. Tabla, no
+// switch (convención §4): lo que no está acá está fuera de alcance.
+struct FacingOffset {
+    int dx;
+    int dy;
+    world::Direction direction;
+};
+
+constexpr std::array<FacingOffset, 4> kFacingOffsets = {{
+    {0, -1, world::Direction::Back},
+    {0, 1, world::Direction::Front},
+    {-1, 0, world::Direction::Left},
+    {1, 0, world::Direction::Right},
+}};
+
+}
 
 PlayerController::PlayerController(game::GameClient& client,
                                    const world::MoveCadence& cadence, int slotCount)
@@ -50,13 +72,49 @@ void PlayerController::interact() {
     client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection()));
 }
 
+void PlayerController::useToward(const world::GridCell& target,
+                                 const std::optional<world::Direction>& pressed) {
+    if (pressed.has_value()) {
+        // No se usa herramienta mientras se camina (como la acción de
+        // input "usar").
+        return;
+    }
+    const LocalWorldView& state = client_.worldState();
+    if (state.entities.empty()) {
+        return;
+    }
+    const ViewEntity& local = state.entities[kLocalPlayerIndex];
+    const int dx = target.column - local.cellX;
+    const int dy = target.row - local.cellY;
+    if (dx == 0 && dy == 0) {
+        // La celda propia: la herramienta apunta a donde mira.
+        useTool(walkPacer_.lastDirection());
+        return;
+    }
+    for (const FacingOffset& offset : kFacingOffsets) {
+        if (offset.dx == dx && offset.dy == dy) {
+            useTool(offset.direction);
+            return;
+        }
+    }
+    // Fuera de las celdas alrededor: el click no dispara nada (lo
+    // válido es apuntar donde se golpea; el servidor validará la celda
+    // exacta cuando el protocolo la lleve).
+}
+
 void PlayerController::stepWalk() {
     client_.sendCommand(moveCommand_.propose(walkPacer_.lastDirection()));
 }
 
+void PlayerController::useTool(const world::Direction direction) {
+    // El slot activo solo gobierna la selección local del inventario;
+    // con qué herramienta se usa y si se puede lo decide el servidor.
+    client_.sendCommand(moveCommand_.use(direction));
+}
+
 void PlayerController::handleUseTool(const std::optional<world::Direction>& pressed) {
     if (!pressed.has_value()) {
-        client_.sendCommand(moveCommand_.use(walkPacer_.lastDirection()));
+        useTool(walkPacer_.lastDirection());
     }
 }
 

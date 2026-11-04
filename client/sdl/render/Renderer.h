@@ -9,8 +9,12 @@
 #include "game/ViewMotion.h"
 #include "game/ViewSpatialIndex.h"
 #include "sdl/render/EntityRenderer.h"
+#include "sdl/render/CropPainter.h"
+#include "sdl/render/GroundEffectPainter.h"
 #include "sdl/render/SheetCache.h"
 #include "world/ContentCatalog.h"
+#include "world/CropCatalog.h"
+#include "world/GroundCatalog.h"
 #include "world/ResourceCatalog.h"
 #include "world/SceneDescription.h"
 #include "world/SceneElementIndex.h"
@@ -30,7 +34,9 @@ public:
 	Renderer(SdlContext& context, const world::CharacterCatalog& characters,
 		 const world::ToolOverlayCatalog& toolOverlay,
 		 const world::ResourceCatalog& resources,
-		 const world::ContentCatalog& content);
+		 const world::ContentCatalog& content,
+		 const world::GroundCatalog& ground,
+		 const world::CropCatalog& crops);
 
 	// Reconstruye el índice de elementos estáticos. Se llama cuando se
 	// entra a una escena o cuando cambia su contenido, no por frame.
@@ -60,9 +66,12 @@ private:
 
 	const world::ResourceCatalog& resources_;
 	const world::ContentCatalog& content_;
+	const world::GroundCatalog& ground_;
 
 	SheetCache sheetCache_;
 	EntityRenderer entityRenderer_;
+	GroundEffectPainter groundPainter_;
+	CropPainter cropPainter_;
 
 	world::SceneElementIndex sceneIndex_;
 	game::ViewSpatialIndex viewIndex_;

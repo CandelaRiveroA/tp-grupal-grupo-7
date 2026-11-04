@@ -6,7 +6,9 @@
 
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
+#include "world/CropCatalog.h"
 #include "world/Grid.h"
+#include "world/GroundCatalog.h"
 #include "world/Indication.h"
 #include "world/ItemKind.h"
 #include "world/ResourceCatalog.h"
@@ -22,8 +24,8 @@ struct ViewEntity {
     world::Direction facing;
     bool moving;
     world::ActionKind action = world::ActionKind::Idle;
-    // Herramienta activa durante UseTool (la decide la fuente). nullopt
-    // si no usa herramienta.
+    // Herramienta activa durante la ventana del golpe (UseTool, Water,
+    // ...; la decide la fuente). nullopt si no usa herramienta.
     std::optional<world::ItemKind> activeTool;
     // Identificador estable de la entidad entre frames (lo asigna la
     // fuente). Permite seguirla aunque se mueva y referenciarla desde
@@ -39,6 +41,15 @@ struct ViewEntity {
     // lista para ordeñar). Lo decide la FUENTE DE ESTADO; el cliente
     // solo lo anima y lo dibuja.
     std::optional<world::Indication> indication = std::nullopt;
+
+    // Contenido sostenido en las manos durante la ventana de recogida
+    // (el huevo, la cosecha; la decide la fuente): su contentId
+    // genérico, dibujado subiendo con el overlay común ([held.*]).
+    // nullopt si no se sostiene contenido. No confundir con
+    // ActionResolver::heldContentId(), que es el carry local de la
+    // selección del HUD (otra pose, otra fuente). Va al final del
+    // struct para no romper los aggregate-init posicionales.
+    std::optional<std::string> activeContent = std::nullopt;
 };
 
 // Recurso picable. La fuente decide tipo, celda y estado; al agotarse
@@ -98,6 +109,50 @@ struct ViewResourceHit {
     bool destroyed;
 };
 
+// Consecuencia aplicada al terreno de una celda (tierra tratada, mañana
+// regada): es estado PERSISTENTE del mundo, lo manda la fuente (el
+// servidor decidirá qué piso tiene consecuencia; hoy el "server
+// falso"). El cliente solo lo dibuja. El orden del vector es el de
+// aplicación = el de pintado: una consecuencia se dibuja encima de la
+// anterior sobre la misma celda.
+struct ViewGroundEffect {
+    int cellX;
+    int cellY;
+    world::GroundConsequence consequence;
+};
+
+// Cultivo plantado en una celda: es estado PERSISTENTE del mundo, lo
+// manda la fuente (el servidor decidirá qué está plantado, en qué
+// etapa, qué pide, con qué calidad se cosecha y si se puede levantar;
+// hoy el "server falso"). El cliente solo lo dibuja y lo levanta donde
+// la fuente lo permite (resolviendo cropId -> cultivo en
+// world::CropCatalog).
+struct ViewCrop {
+    int cellX;
+    int cellY;
+    // Identidad del cultivo: el contentId de su PRODUCTO cosechado (lo
+    // que se levanta es lo que entra al inventario).
+    std::string cropId;
+    // Etapa del ciclo de vida plantado: 0 = la semilla; 1..N =
+    // crecimiento (world::CropDefinition::spriteForStage); la etapa
+    // final (la cosecha) se dibuja con la calidad de abajo. La etapa la
+    // decide la fuente; hoy arranca en 0 (se planta la semilla).
+    int stage;
+    // Diálogo que el cultivo muestra sobre sí mismo (p. ej. pide
+    // agua). Lo decide la FUENTE DE ESTADO; el cliente solo lo anima y
+    // lo dibuja (el mismo mecanismo que las entidades).
+    std::optional<world::Indication> indication = std::nullopt;
+    // Calidad de la cosecha (hoy la fuente manda la base; mañana el
+    // servidor decidirá cuándo es increíble). Solo hace falta en la
+    // etapa final.
+    world::CropQuality quality = world::CropQuality::Base;
+    // ¿Se puede levantar (como el huevo)? Lo decide la FUENTE DE
+    // ESTADO (el servidor dirá si se puede; hoy la demo lo permite en
+    // la etapa final). El cliente solo lo usa para mostrar la
+    // interacción y mandar la intención de tomarlo.
+    bool interactive = false;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -106,6 +161,13 @@ struct LocalWorldView {
     std::vector<ViewInventorySlot> inventory;
     world::GridSpan grid{0, 0};
     std::vector<ViewResourceHit> resourceHits;
+    // El terreno con consecuencias aplicadas (persistente; ver
+    // ViewGroundEffect). Hoy lo llena el "server falso"; mañana el
+    // servidor.
+    std::vector<ViewGroundEffect> groundEffects;
+    // Los cultivos plantados (persistente; ver ViewCrop). Hoy los llena
+    // el "server falso"; mañana el servidor.
+    std::vector<ViewCrop> plantedCrops;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;

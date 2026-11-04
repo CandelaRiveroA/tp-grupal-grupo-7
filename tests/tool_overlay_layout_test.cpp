@@ -10,6 +10,7 @@ using world::FrameAnchor;
 using world::SheetCell;
 using world::Layer;
 using world::LayerFrame;
+using world::OverlayLayer;
 using world::PixelRect;
 using world::ToolOverlayAction;
 using world::ToolOverlayCatalog;
@@ -20,10 +21,16 @@ LayerFrame makeLayer(int cols, int rows) {
 	return LayerFrame{Layer::Body, SheetCell{0, 0}, cols, rows};
 }
 
+// Capa de un frame del overlay: la celda más su offset en celdas. Los
+// tests que no distribuyen gotas usan offset (0,0).
+OverlayLayer makeOverlayLayer(int cols, int rows) {
+	return OverlayLayer{makeLayer(cols, rows), 0, 0};
+}
+
 ToolOverlayFrame makeFrame(FrameAnchor anchor) {
 	ToolOverlayFrame frame;
 	frame.anchor = anchor;
-	frame.layers = {makeLayer(1, 2)};
+	frame.layers = {makeOverlayLayer(1, 2)};
 	return frame;
 }
 
@@ -99,7 +106,7 @@ TEST(ToolOverlayLayoutTest, OffsetsAndScaleAreApplied) {
 	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayFrame frame = makeFrame(FrameAnchor::Body);
-	frame.layers = {makeLayer(1, 1)};
+	frame.layers = {makeOverlayLayer(1, 1)};
 	frame.offsetX = 3;
 	frame.offsetY = 5;
 	frame.scale = 0.5;
@@ -119,7 +126,7 @@ TEST(ToolOverlayLayoutTest, InvalidLayerDoesNotDivideByZero) {
 	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayFrame frame = makeFrame(FrameAnchor::Top);
-	frame.layers = {makeLayer(0, 1)};
+	frame.layers = {makeOverlayLayer(0, 1)};
 
 	const PixelRect rect = layout.layerRect(frame, frame.layers[0]);
 	EXPECT_LE(rect.width, 0);
@@ -135,14 +142,14 @@ TEST(ToolOverlayLayoutTest, OneByOneLayerMeasuresOneBodyCell) {
 	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	const ToolOverlayFrame frame = makeFrame(FrameAnchor::Body);
-	const PixelRect rect = layout.layerRect(frame, makeLayer(1, 1));
+	const PixelRect rect = layout.layerRect(frame, makeOverlayLayer(1, 1));
 	EXPECT_EQ(rect.width, 32);
 	EXPECT_EQ(rect.height, 32);
 
 	// Con escala se achica proporcional (el huevo va a media celda).
 	ToolOverlayFrame scaled = makeFrame(FrameAnchor::Body);
 	scaled.scale = 0.5;
-	const PixelRect small = layout.layerRect(scaled, makeLayer(1, 1));
+	const PixelRect small = layout.layerRect(scaled, makeOverlayLayer(1, 1));
 	EXPECT_EQ(small.width, 16);
 	EXPECT_EQ(small.height, 16);
 }

@@ -1,12 +1,17 @@
 #include "InputManager.h"
 
+#include <algorithm>
+
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_mouse.h>
 
 namespace sdl {
 
 InputManager::InputManager(int slotCount)
-	: keymap_(defaultBindings()), slotCount_(slotCount) {
+	: keymap_(defaultBindings())
+	, slotKeys_{SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_5,
+		    SDLK_6, SDLK_7, SDLK_8, SDLK_9, SDLK_0}
+	, slotCount_(slotCount) {
 	commandBindings_ = defaultCommandBindings();
 	// Prioridad al leer varias teclas a la vez: left, right, up, down
 	// (el mismo orden que usaba la lectura original del input).
@@ -88,10 +93,13 @@ auto InputManager::defaultCommandBindings() const
 	using Kind = game::InputCommand::Kind;
 	std::unordered_map<SDL_Keycode, game::InputCommand> bindings;
 	// Orden = prioridad: ante colisiones de tecla, gana el primer comando.
-	bindings.insert({SDLK_SPACE, game::InputCommand{Kind::UseTool, 0}});
+	// "Usar herramienta" ya no se dispara con tecla: lo dispara el
+	// click sobre el mundo (PlayerController::useToward). Si algún día
+	// se rebindea a una tecla, vuelve a entrar acá.
 	bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-	for (int i = 0; i < slotCount_; ++i) {
-		bindings.insert({static_cast<SDL_Keycode>(SDLK_1 + i),
+	const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
+	for (int i = 0; i < bound; ++i) {
+		bindings.insert({slotKeys_[static_cast<std::size_t>(i)],
 				 game::InputCommand{Kind::SelectSlot, i}});
 	}
 	return bindings;

@@ -1,5 +1,7 @@
 #include "sdl/render/ElementPainter.h"
 
+#include <algorithm>
+
 #include "sdl/render/SpriteSheet.h"
 #include "sdl/render/TileLayout.h"
 
@@ -30,12 +32,7 @@ void ElementPainter::paintSingle(SpriteSheet& sheet,
 	if (box.width <= 0 || box.height <= 0) {
 		return;
 	}
-	const world::ElementPlacement& element = layout_.element();
-	sheet.drawBlock(element.region.origin.column,
-			element.region.origin.row,
-			element.region.size.columns,
-			element.region.size.rows,
-			SDL2pp::Rect(box.x, box.y, box.width, box.height));
+	blit(sheet, 0, 0, box.width, box.height);
 }
 
 void ElementPainter::paintTiled(SpriteSheet& sheet,
@@ -79,16 +76,40 @@ void ElementPainter::blit(SpriteSheet& sheet, const int offsetX,
 	if (width <= 0 || height <= 0) {
 		return;
 	}
+	// La pieza se dibuja celda por celda en su cuadrante del destino:
+	// sirve igual para el bloque contiguo (region) y para las
+	// composiciones explícitas (cells). La pieza cortada por el clip se
+	// dibuja con la fracción de fuente que se ve (la misma regla que
+	// tenía drawBlock con fracW/fracH).
 	const world::ElementPlacement& element = layout_.element();
-	sheet.drawBlock(element.region.origin.column,
-			element.region.origin.row,
-			element.region.size.columns,
-			element.region.size.rows,
-			SDL2pp::Rect(layout_.area().x + offsetX,
-				     layout_.area().y + offsetY, width, height),
-			Flip::None,
-			static_cast<double>(width) / layout_.pieceWidth(),
-			static_cast<double>(height) / layout_.pieceHeight());
+	const int cellW = layout_.pieceWidth() / element.pieceSize.columns;
+	const int cellH = layout_.pieceHeight() / element.pieceSize.rows;
+	for (int row = 0; row < element.pieceSize.rows; ++row) {
+		for (int column = 0; column < element.pieceSize.columns;
+		     ++column) {
+			const int visibleW =
+				std::min(cellW, width - column * cellW);
+			const int visibleH =
+				std::min(cellH, height - row * cellH);
+			if (visibleW <= 0 || visibleH <= 0) {
+				continue;
+			}
+			const world::GridCell cell =
+				element.pieceCells[static_cast<std::size_t>(
+					row * element.pieceSize.columns +
+					column)];
+			sheet.drawBlock(
+				cell.column, cell.row, 1, 1,
+				SDL2pp::Rect(layout_.area().x + offsetX +
+						     column * cellW,
+					     layout_.area().y + offsetY +
+						     row * cellH,
+					     visibleW, visibleH),
+				Flip::None,
+				static_cast<double>(visibleW) / cellW,
+				static_cast<double>(visibleH) / cellH);
+		}
+	}
 }
 
 }  // namespace sdl

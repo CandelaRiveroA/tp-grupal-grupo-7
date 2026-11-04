@@ -10,6 +10,7 @@
 #include "game/MoveCommand.h"
 #include "game/WalkPacer.h"
 #include "world/CreatureCatalog.h"
+#include "world/Grid.h"
 #include "world/ViewDirection.h"
 
 namespace game {
@@ -28,8 +29,8 @@ struct PlayerEvents {
 class PlayerController {
 public:
     // slotCount: cuántos slots tiene el inventario (para validar la
-    // selección). Debe coincidir con core::kInventorySlots; lo pasa
-    // quien construye.
+    // selección). Lo pasa quien construye desde los datos del layout
+    // (InventoryLayout::count).
     PlayerController(game::GameClient& client, const world::MoveCadence& cadence,
                      int slotCount);
 
@@ -42,6 +43,15 @@ public:
     // la fuente de estado, que decide (cercanía, validez, qué pasa).
     void interact();
 
+    // Intención de USAR la herramienta activa hacia la celda clickeada
+    // (el click en el piso es el disparador de la herramienta). Solo si
+    // la celda está alrededor del jugador (la propia o una adyacente en
+    // un eje): lo válido es apuntar donde se golpea. La dirección de la
+    // intención la resuelve acá; la fuente de estado decide si se puede
+    // (mañana el servidor validará la celda exacta).
+    void useToward(const world::GridCell& target,
+                   const std::optional<world::Direction>& pressed);
+
     int activeSlot() const;
 
 private:
@@ -49,6 +59,11 @@ private:
     void handleUseTool(const std::optional<world::Direction>& pressed);
     void handleCollect(const std::optional<world::Direction>& pressed);
     void handleSelectSlot(const game::InputCommand& command);
+
+    // Usa la herramienta activa (el slot seleccionado) hacia una
+    // dirección: el camino común del click y de la acción de input
+    // "usar" (rebindeable). La fuente decide el resto.
+    void useTool(world::Direction direction);
 
     using WalkHandler = std::function<void()>;
     using CommandHandler =

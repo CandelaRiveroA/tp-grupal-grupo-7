@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 
 #include "world/ItemKind.h"
@@ -19,6 +20,11 @@ public:
 	// nullptr si el concepto no tiene contentId.
 	const std::string* find(ItemKind kind) const;
 	const std::string* find(ResourceKind kind) const;
+
+	// Traducción inversa (contentId -> vocabulario) sobre las MISMAS
+	// tablas: nullopt si el contentId no pertenece a ese vocabulario.
+	std::optional<ItemKind> itemKindFor(const std::string& contentId) const;
+	std::optional<ResourceKind> resourceKindFor(const std::string& contentId) const;
 
 	// Todo el vocabulario (para recorrer las tablas de los TOML, cuyas
 	// claves son estos mismos strings).

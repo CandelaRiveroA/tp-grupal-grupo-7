@@ -30,8 +30,9 @@ TEST(DialogLayoutTest, ContentIsCenteredInsideTheDialog) {
     DialogData data;
     data.animation.sprite.drawnWidth = 64;
     data.animation.sprite.drawnHeight = 64;
-    data.content.drawnWidth = 32;
-    data.content.drawnHeight = 40;
+    data.content.emplace();
+    data.content->drawnWidth = 32;
+    data.content->drawnHeight = 40;
 
     const DialogLayout layout(data);
     const PixelRect dialog = layout.dialogRect(PixelRect{0, 0, 32, 32});

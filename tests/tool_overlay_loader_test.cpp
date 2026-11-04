@@ -93,10 +93,10 @@ TEST(ToolOverlayLoaderTest, LoadsFrameCells) {
 				  world::Direction::Back);
 	ASSERT_FALSE(action.frames.empty());
 	ASSERT_FALSE(action.frames[0].layers.empty());
-	EXPECT_EQ(action.frames[0].layers[0].frame.col, 3);
-	EXPECT_EQ(action.frames[0].layers[0].frame.row, 5);
-	EXPECT_EQ(action.frames[0].layers[0].cols, 1);
-	EXPECT_EQ(action.frames[0].layers[0].rows, 2);
+	EXPECT_EQ(action.frames[0].layers[0].layer.frame.col, 3);
+	EXPECT_EQ(action.frames[0].layers[0].layer.frame.row, 5);
+	EXPECT_EQ(action.frames[0].layers[0].layer.cols, 1);
+	EXPECT_EQ(action.frames[0].layers[0].layer.rows, 2);
 }
 
 TEST(ToolOverlayLoaderTest, MissingItemIsNotInCatalog) {
@@ -282,5 +282,73 @@ frames = [
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
 	}
 }
+
+#ifdef TALLER_TOOLS_OVERLAY_TOML
+TEST(ToolOverlayLoaderTest, LoadsRealToolsOverlayFile) {
+	// El archivo que usa el juego parsea y trae la pala completa: el
+	// contrato de datos de "agregar herramienta = solo datos".
+	world::ToolOverlayLoader loader;
+	const world::ToolOverlayCatalog catalog =
+		loader.loadFromFile(TALLER_TOOLS_OVERLAY_TOML);
+
+	// Front: frame 0 = animación 1 (1x2 en [0,1]); los CUERPOS
+	// RESTANTES llevan la animación 2 (1x1 en [1,2]), todos iguales.
+	const world::ToolOverlayAction* front = catalog.find(
+		world::ItemKind::Shovel, world::Direction::Front);
+	ASSERT_NE(front, nullptr);
+	EXPECT_EQ(front->frameTicks, 6);
+	ASSERT_EQ(front->frames.size(), 5u);
+	ASSERT_EQ(front->frames[0].layers.size(), 1u);
+	EXPECT_EQ(front->frames[0].layers[0].layer.frame.col, 0);
+	EXPECT_EQ(front->frames[0].layers[0].layer.frame.row, 1);
+	EXPECT_EQ(front->frames[0].layers[0].layer.cols, 1);
+	EXPECT_EQ(front->frames[0].layers[0].layer.rows, 2);
+	for (std::size_t i = 1; i < front->frames.size(); ++i) {
+		ASSERT_EQ(front->frames[i].layers.size(), 1u) << "frame " << i;
+		EXPECT_EQ(front->frames[i].layers[0].layer.frame.col, 1);
+		EXPECT_EQ(front->frames[i].layers[0].layer.frame.row, 2);
+		EXPECT_EQ(front->frames[i].layers[0].layer.cols, 1);
+		EXPECT_EQ(front->frames[i].layers[0].layer.rows, 1);
+	}
+
+	// Back: solo el primer cuerpo (brazos levantados) muestra la pala.
+	const world::ToolOverlayAction* back = catalog.find(
+		world::ItemKind::Shovel, world::Direction::Back);
+	ASSERT_NE(back, nullptr);
+	ASSERT_EQ(back->frames.size(), 5u);
+	ASSERT_EQ(back->frames[0].layers.size(), 1u);
+	EXPECT_EQ(back->frames[0].layers[0].layer.frame.col, 3);
+	EXPECT_EQ(back->frames[0].layers[0].layer.frame.row, 1);
+	EXPECT_EQ(back->frames[0].layers[0].layer.rows, 2);
+	for (std::size_t i = 1; i < back->frames.size(); ++i) {
+		EXPECT_TRUE(back->frames[i].layers.empty()) << "frame " << i;
+	}
+
+	// Right: el mismo sprite (1x2 en [2,1]) rotando con el movimiento.
+	const world::ToolOverlayAction* right = catalog.find(
+		world::ItemKind::Shovel, world::Direction::Right);
+	ASSERT_NE(right, nullptr);
+	ASSERT_EQ(right->frames.size(), 4u);
+	for (std::size_t i = 0; i < right->frames.size(); ++i) {
+		ASSERT_EQ(right->frames[i].layers.size(), 1u) << "frame " << i;
+		EXPECT_EQ(right->frames[i].layers[0].layer.frame.col, 2);
+		EXPECT_EQ(right->frames[i].layers[0].layer.frame.row, 1);
+		EXPECT_FALSE(right->frames[i].flip);
+	}
+	EXPECT_LT(right->frames[0].angle, right->frames[3].angle);
+
+	// Left: espejo exacto de right (flip, mismo sprite).
+	const world::ToolOverlayAction* left = catalog.find(
+		world::ItemKind::Shovel, world::Direction::Left);
+	ASSERT_NE(left, nullptr);
+	ASSERT_EQ(left->frames.size(), right->frames.size());
+	for (std::size_t i = 0; i < left->frames.size(); ++i) {
+		ASSERT_EQ(left->frames[i].layers.size(), 1u) << "frame " << i;
+		EXPECT_EQ(left->frames[i].layers[0].layer.frame.col, 2);
+		EXPECT_EQ(left->frames[i].layers[0].layer.frame.row, 1);
+		EXPECT_TRUE(left->frames[i].flip) << "frame " << i;
+	}
+}
+#endif
 
 }

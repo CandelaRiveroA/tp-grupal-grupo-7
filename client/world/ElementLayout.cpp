@@ -22,12 +22,12 @@ const ElementPlacement& ElementLayout::element() const { return element_; }
 DrawMode ElementLayout::mode() const { return element_.draw.mode; }
 
 int ElementLayout::pieceWidth() const {
-	return tileset_.cellWidth * element_.region.size.columns *
+	return tileset_.cellWidth * element_.pieceSize.columns *
 	       element_.draw.scaleX;
 }
 
 int ElementLayout::pieceHeight() const {
-	return tileset_.cellHeight * element_.region.size.rows *
+	return tileset_.cellHeight * element_.pieceSize.rows *
 	       element_.draw.scaleY;
 }
 

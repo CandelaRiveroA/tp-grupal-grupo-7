@@ -81,6 +81,9 @@ target_sources(taller_tests
     obtained_banner_queue_test.cpp
     obtained_banner_layout_test.cpp
     action_resolver_test.cpp
+    farm_catalogs_test.cpp
+    farm_selection_test.cpp
+    tool_use_sounds_test.cpp
     tool_overlay_loader_test.cpp
     tool_overlay_layout_test.cpp
     resource_config_loader_test.cpp

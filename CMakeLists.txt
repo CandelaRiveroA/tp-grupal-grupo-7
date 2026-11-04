@@ -218,6 +218,28 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
         client/game/InventorySelector.cpp
+        # SDL: cultivos, terreno, build-place y contenido en las manos.
+        client/world/ContentTraits.cpp
+        client/world/CropCatalog.cpp
+        client/world/CropTomlReader.cpp
+        client/world/CropConfigLoader.cpp
+        client/world/GroundCatalog.cpp
+        client/world/GroundTomlReader.cpp
+        client/world/GroundConfigLoader.cpp
+        client/world/CellPatch.cpp
+        client/world/BuildPlaceCatalog.cpp
+        client/world/BuildPlaceTomlReader.cpp
+        client/world/BuildPlaceConfigLoader.cpp
+        client/world/BuildPlaceLayout.cpp
+        client/world/HeldItemLayout.cpp
+        client/world/Grid.cpp
+        client/world/FarmCatalogs.cpp
+        client/game/CropSystem.cpp
+        client/game/FarmSelection.cpp
+        client/game/ToolUseCue.cpp
+        client/core/ToolUseSounds.cpp
+        client/game/CarrySelection.cpp
+        client/game/PlantingSelection.cpp
         client/core/StartupSequence.cpp
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp
@@ -424,5 +446,7 @@ if(TALLER_TESTS)
     target_compile_definitions(taller_tests PRIVATE
         TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
-        TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\")
+        TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
+        TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
+        TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\")
 endif()

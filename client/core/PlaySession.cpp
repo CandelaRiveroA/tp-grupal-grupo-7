@@ -15,6 +15,7 @@
 #include "world/Scenario.h"
 #include "world/ScenePixelMapper.h"
 #include "world/ViewDirection.h"
+#include "world/WorldConstants.h"
 
 namespace core {
 
@@ -157,6 +158,18 @@ void PlaySession::tick(int iteration) {
                 motion_.drawBoxFor(entity, i, iteration, scenario_.scene().cellPixelSize);
         dialogPainter_.draw(dialogCatalog_, *entity.indication, entityBox,
                             dialogAnimator_.animationTickFor(entity, iteration),
+                            camera_.viewport());
+    }
+    // Y los de los cultivos (p. ej. piden agua): mismo mecanismo, el
+    // dueño es la celda de tierra donde se dibuja la planta.
+    for (const game::ViewCrop& crop: state.plantedCrops) {
+        if (!crop.indication.has_value()) {
+            continue;
+        }
+        const world::PixelRect cropBox = cells.toPixels(
+                world::GridCell{crop.cellX, crop.cellY}, world::kUnitCellSpan);
+        dialogPainter_.draw(dialogCatalog_, *crop.indication, cropBox,
+                            dialogAnimator_.animationTickFor(crop, iteration),
                             camera_.viewport());
     }
 

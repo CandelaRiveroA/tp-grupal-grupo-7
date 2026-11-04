@@ -12,22 +12,23 @@ namespace game {
 // produce cada sistema del mundo cuando hay algo tocable cerca del
 // jugador.
 struct InteractionTarget {
-    world::ActionKind action;
-    // Vueltas completas de la animación que dura la interacción.
-    int cycles = 1;
-    // contentId que se obtiene al terminar.
-    std::string reward;
-    // Qué queda en las manos del jugador durante la acción (si algo).
-    std::optional<world::ItemKind> held;
-    // Contenido genérico sostenido durante la acción (contentId; ej. la
-    // cosecha o el huevo). La sesión lo pasa a ViewEntity::activeContent.
-    std::optional<std::string> heldContent;
-    // Identidad del objetivo para que SU sistema aplique los efectos
-    // (el id de la vaca, el índice del ítem, la parcela...).
-    int targetId = -1;
-    // Dónde está el objetivo: el jugador lo mira mientras interactúa.
-    int cellX = 0;
-    int cellY = 0;
+	world::ActionKind action;
+	// Vueltas completas de la animación que dura la interacción.
+	int cycles = 1;
+	// contentId que se obtiene al terminar.
+	std::string reward;
+	// Qué queda en las manos del jugador durante la acción (si algo).
+	std::optional<world::ItemKind> held;
+	// Contenido genérico sostenido durante la acción (contentId; ej. la
+	// cosecha). Lo usa CropSystem; InteractionSession::mergePlayer lo
+	// pasa a ViewEntity::activeContent y el overlay [held.*] lo dibuja.
+	std::optional<std::string> heldContent;
+	// Identidad del objetivo para que SU sistema aplique los efectos
+	// (el id de la vaca, el índice del ítem, la parcela...).
+	int targetId = -1;
+	// Dónde está el objetivo: el jugador lo mira mientras interactúa.
+	int cellX = 0;
+	int cellY = 0;
 };
 
 // Un sistema del mundo con cosas tocables: encuentra su objetivo más

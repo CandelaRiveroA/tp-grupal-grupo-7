@@ -34,22 +34,24 @@ bool InteractionSession::advance() {
 const InteractionTarget& InteractionSession::target() const { return target_; }
 
 void InteractionSession::mergePlayer(ViewEntity& player) {
-    if (!facingOverride_) {
-        return;
-    }
-    if (active()) {
-        player.action = target_.action;
-        player.facing = facing_;
-        player.activeTool = target_.held;
-        player.activeContent = target_.heldContent;
-        return;
-    }
-    if (player.action == world::ActionKind::Idle) {
-        player.facing = facing_;
-        return;
-    }
-    // El jugador hizo otra cosa: la fuente recupera el facing.
-    facingOverride_ = false;
+	if (!facingOverride_) {
+		return;
+	}
+	if (active()) {
+		player.action = target_.action;
+		player.facing = facing_;
+		player.activeTool = target_.held;
+		// Contenido genérico en las manos (la cosecha): lo dibuja el
+		// overlay [held.*] resolviendo el contentId.
+		player.activeContent = target_.heldContent;
+		return;
+	}
+	if (player.action == world::ActionKind::Idle) {
+		player.facing = facing_;
+		return;
+	}
+	// El jugador hizo otra cosa: la fuente recupera el facing.
+	facingOverride_ = false;
 }
 
 void InteractionSession::mergeRewards(LocalWorldView& view) {

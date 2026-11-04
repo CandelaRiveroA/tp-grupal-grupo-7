@@ -62,4 +62,21 @@ TEST(DialogAnimatorTest, EntitiesWithoutIndicationHaveNoTicks) {
     EXPECT_EQ(animator.animationTickFor(view.entities[0], 15), 0);
 }
 
+TEST(DialogAnimatorTest, CropsAnimateTheirDialogLikeEntities) {
+    LocalWorldView view;
+    game::ViewCrop thirsty{3, 4, "strawberry", 0};
+    thirsty.indication = world::Indication::ReadyToWater;
+    game::ViewCrop quiet{5, 4, "strawberry", 2};
+    view.plantedCrops.push_back(thirsty);
+    view.plantedCrops.push_back(quiet);
+
+    DialogAnimator animator;
+    animator.observe(view, 10);
+
+    EXPECT_EQ(animator.animationTickFor(view.plantedCrops[0], 10), 0);
+    EXPECT_EQ(animator.animationTickFor(view.plantedCrops[0], 14), 4);
+    // Sin indicación no hay animación.
+    EXPECT_EQ(animator.animationTickFor(view.plantedCrops[1], 14), 0);
+}
+
 }  // namespace

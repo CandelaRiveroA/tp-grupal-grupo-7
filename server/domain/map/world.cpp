@@ -70,6 +70,10 @@ void World::move_player(uint8_t player_id, Direction dir) {
             }
 
             for (IEntity* ent: iteratable_entities) {
+                // El huevo espera el Take (para poder animarlo): el imán lo saltea.
+                if (ent->pickup_on_take()) {
+                    continue;
+                }
                 ent->interact(p, ToolType::HAND, *this);
             }
         }
@@ -266,6 +270,21 @@ void World::take_item(uint8_t player_id) {
         const int dy = animal->get_y() - p.get_y();
         if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && animal->try_hand_action(p, *this)) {
             return;
+        }
+    }
+
+    // Huevos: se levantan desde las 8 vecinas, como la vaca (el cliente anima el primero).
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            // Coordenadas negativas se vuelven enormes y get_entity_at las descarta.
+            const auto x = static_cast<uint16_t>(p.get_x() + dx);
+            const auto y = static_cast<uint16_t>(p.get_y() + dy);
+            for (IEntity* ent: get_entity_at(x, y)) {
+                if (ent->pickup_on_take()) {
+                    ent->interact(p, ToolType::HAND, *this);
+                    return;
+                }
+            }
         }
     }
 

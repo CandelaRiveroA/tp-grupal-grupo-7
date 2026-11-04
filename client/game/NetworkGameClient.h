@@ -47,9 +47,13 @@ private:
 
     void apply(const ServerMessage& message);
 
-    // Un Take cerca de una vaca lista abre la animación de ordeñe. La
-    // leche la entrega el servidor: acá solo se anima.
+    // Un Take cerca de una vaca lista abre la animación de ordeñe; la leche la
+    // da el servidor.
     void startMilking();
+
+    // Un Take con un huevo en las 8 vecinas abre la animación de recogida, como
+    // un cultivo; el item lo entrega el servidor.
+    void startPickup();
 
     Socket socket_;
     ProtocolSender sender_;

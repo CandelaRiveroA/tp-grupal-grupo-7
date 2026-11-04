@@ -127,7 +127,11 @@ ServerMessage ProtocolReceiver::receive_dropped_message() {
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     std::string content_id = receive_string();
-    return ServerDropped{x, y, std::move(content_id)};
+    const uint8_t interactive = receive_uint8();
+    if (interactive > 1) {
+        throw std::invalid_argument("El indicador de interactividad no es valido.");
+    }
+    return ServerDropped{x, y, std::move(content_id), interactive == 1};
 }
 
 ServerMessage ProtocolReceiver::receive_inventory_slot_message() {

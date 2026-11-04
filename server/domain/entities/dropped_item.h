@@ -18,6 +18,7 @@ public:
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     std::optional<CellSnapshot> snapshot() const override;
+    bool pickup_on_take() const override;
 };
 
 #endif  // DROPPED_ITEM_H

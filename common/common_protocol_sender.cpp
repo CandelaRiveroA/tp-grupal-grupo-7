@@ -92,6 +92,7 @@ void ProtocolSender::send_message(const ServerDropped& dropped) {
     send_uint16(dropped.x);
     send_uint16(dropped.y);
     send_string(dropped.content_id);
+    send_uint8(dropped.interactive ? 1 : 0);
 }
 
 void ProtocolSender::send_message(const ServerInventorySlot& slot) {

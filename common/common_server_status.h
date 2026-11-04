@@ -49,10 +49,12 @@ struct ServerResource {
     ResourceDamage damage;
 };
 
+// true = se levanta con Take y anima (huevo); false = solo suma al inventario.
 struct ServerDropped {
     uint16_t x;
     uint16_t y;
     std::string content_id;
+    bool interactive;
 };
 
 // count 0 = slot vacío (content_id vacío).

@@ -98,6 +98,13 @@
 - Correr SIEMPRE la suite entera tras cambios transversales (no solo el
   subsistema tocado): un cambio de datos puede romper un test de integración
   de otro lado.
+- **Excepción acordada: no sumar tests nuevos sobre infraestructura
+  temporal** (mocks/bloques demo que van a desaparecer, ej.
+  `MockGameClient`, los demos del "server falso"): son deuda que muere
+  con el código. La verificación de eso es la suite EXISTENTE (sin
+  regresiones) + la prueba visual. Si algo falla, recién ahí se escribe
+  el test que lo reproduce. Cuando exista el servidor real, los tests se
+  escriben contra las vistas reales.
 
 ## 8. Herramienta de inspección (provisoria)
 
@@ -189,6 +196,33 @@
   caminata es cambiar un dato. La duración de la ventana del golpe
   (`game/ToolUse`) se construye desde los MISMOS datos (`ActionData`) que usa
   el avance de cuadros, así ventana y animación no pueden desfasarse.
+- **Efecto de herramienta genérico (dato, no código).** Una herramienta
+  puede declarar, de forma OPCIONAL, un `effect`: otro overlay animado con su
+  propia hoja, que larga mientras hace su acción (el chorro de la regadera al
+  regar). Es el MISMO dato de animación que el overlay de la herramienta
+  (`world::AnimatedOverlay`): hoja + celda + `frame_ticks` + `action` +
+  `frames`. Se declara como subtabla `[tool.dir.effect]` en
+  `tools_overlay.toml` y lo dibuja `sdl::ToolOverlayPainter` con el mismo
+  `world::ToolOverlayLayout` que la herramienta (método `drawOverlayFrames`,
+  compartido). Agregar un efecto a otra herramienta = solo datos, sin tocar
+  el dibujo. El efecto es puramente visual (cae, impacta y desaparece); la
+  consecuencia persistente en el terreno —si la hay— es otra cosa
+  (`ViewGroundEffect`), que la decide la fuente de estado.
+- **Capas con offset en celdas.** Una capa de un frame del overlay puede
+  llevar un desplazamiento EN CELDAS respecto del ancla del frame:
+  `[col, row, cols, rows, dx, dy]` (sin `dx, dy` = `0, 0`, el caso de una
+  herramienta de una sola celda). Así un frame con VARIAS capas las
+  distribuye en 2D (las gotas del chorro) en vez de apilarlas en el mismo
+  punto. La geometría la resuelve `world::ToolOverlayLayout::layerRect`; el
+  render no reimplementa la aritmética.
+- **Tamaño normalizado a una celda (`cell_span`).** Un frame puede declarar
+  `cell_span = [cols, rows]`: la caja del patrón en celdas. Si está, el frame
+  entero se dibuja metido en UNA celda lógica (cada capa mide
+  `celda / cell_span`), así un grupo de pocas gotas y uno lleno ocupan el
+  MISMO tamaño en pantalla (el chorro crece en densidad, no en tamaño, y
+  queda del tamaño de la celda de tierra). Sin la clave, cada capa mide una
+  celda entera (el caso de la herramienta). Vive en `OverlayFrame`; lo aplica
+  `ToolOverlayLayout::layerRect`.
 
 ## 11. Cámara del mundo
 
@@ -240,3 +274,32 @@
   `SheetCache`, precarga, atlas/batching, animales, ids, protocolo, sesiones y
   concurrencia. El próximo refactor de assets debe entrar sin cambiar cámara,
   viewport, culling ni índices.
+
+## 12. Contrato con la fuente de estado (campo, inventario y herramientas)
+
+Lo que SDL ya provee para cuando la fuente de estado (el servidor) lo
+mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
+
+- **Ids de contenido = los de `crops.toml`.** Los sacos (`sack_id`, ej.
+  `strawberry_seeds`) y las cosechas (la clave del cultivo, ej.
+  `strawberry`) viajan por `content_id` en el inventario y en los ítems del
+  piso. `world::FarmCatalogs::withCropContents` los registra en el catálogo
+  del inventario al arrancar la sesión, así el HUD, el picker y el carry
+  los dibujan sin tocar la red. Un id nuevo = una entrada en `crops.toml`.
+- **La herramienta usada viaja en `ViewEntity::activeTool`.** La fuente
+  llena la herramienta REAL (pico, pala, regadera), no una fija. SDL deriva
+  de ahí la animación (`game::ActionResolver`, tabla herramienta ->
+  acción: regadera -> `Water`; sin fila = `UseTool`) y el sonido
+  (`core::ToolUseSounds`, tabla herramienta -> sonido). Si la fuente manda
+  directamente una acción concreta (`Water`, `Milk`, ...), se respeta tal
+  cual.
+- **El slot es selección LOCAL.** Seleccionar un casillero del inventario
+  (teclas 1..N, N = `InventoryLayout::count`) no viaja al servidor. Qué
+  herramienta se usa y si se puede lo decide la fuente.
+- **Presentación local del campo** (`game::FarmSelection`): lo que se
+  sostiene sobre la cabeza (contenido `droppable` del slot activo) y el
+  marcador de plantado bajo el puntero salen de la selección del HUD; el
+  estado (`plantedCrops`, `groundEffects`) lo manda la fuente.
+- **Sumar un sistema del campo** = una fila en la tabla que corresponda
+  (`toolActions_`, `ToolUseSounds`) + sus datos en TOML; `PlaySession` solo
+  compone y llama, no decide.

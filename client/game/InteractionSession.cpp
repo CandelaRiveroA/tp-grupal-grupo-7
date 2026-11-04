@@ -46,6 +46,9 @@ void InteractionSession::mergePlayer(ViewEntity& player) {
 		player.action = target_.action;
 		player.facing = facing_;
 		player.activeTool = target_.held;
+		// Contenido genérico en las manos (la cosecha): lo dibuja el
+		// overlay [held.*] resolviendo el contentId.
+		player.activeContent = target_.heldContent;
 		return;
 	}
 	if (player.action == world::ActionKind::Idle) {

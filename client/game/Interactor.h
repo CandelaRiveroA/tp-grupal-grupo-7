@@ -20,7 +20,8 @@ struct InteractionTarget {
 	// Qué queda en las manos del jugador durante la acción (si algo).
 	std::optional<world::ItemKind> held;
 	// Contenido genérico sostenido durante la acción (contentId; ej. la
-	// cosecha). Lo usa CropSystem; la sesión todavía no lo dibuja.
+	// cosecha). Lo usa CropSystem; InteractionSession::mergePlayer lo
+	// pasa a ViewEntity::activeContent y el overlay [held.*] lo dibuja.
 	std::optional<std::string> heldContent;
 	// Identidad del objetivo para que SU sistema aplique los efectos
 	// (el id de la vaca, el índice del ítem, la parcela...).

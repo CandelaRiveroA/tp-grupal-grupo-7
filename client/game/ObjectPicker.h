@@ -16,19 +16,21 @@ struct PickTarget {
 		None,
 		Entity,
 		DroppedItem,
+		Crop,
 	};
 
 	Kind kind = Kind::None;
 
-	// Índice en la lista de la vista (entities / droppedItems).
+	// Índice en la lista de la vista (entities / droppedItems /
+	// plantedCrops).
 	std::size_t index = 0;
 };
 
 // Geometría pura del pick: qué hay bajo un punto del mundo, sean
-// entidades o ítems del piso. Usa las MISMAS cajas dibujadas que el
-// renderer (ViewMotion::drawBoxFor y DroppedItemLayout), así lo que se
-// puede tocar coincide siempre con lo que se ve. No conoce SDL ni
-// dibuja.
+// entidades, ítems del piso o cultivos plantados. Usa las MISMAS cajas
+// dibujadas que el renderer (ViewMotion::drawBoxFor, DroppedItemLayout
+// y la celda plantada), así lo que se puede tocar coincide siempre con
+// lo que se ve. No conoce SDL ni dibuja.
 class ObjectPicker {
 public:
 	// El catálogo define cómo se dibuja cada ítem del piso (por
@@ -38,8 +40,8 @@ public:
 
 	// Objetivo bajo el punto de mundo (Kind::None si no hay ninguno).
 	// Si varios se superponen, gana el de más arriba en el orden de
-	// dibujo (entidades sobre ítems; dentro de cada lista, la última
-	// dibujada primero).
+	// dibujo (entidades sobre ítems y cultivos; ítems sobre cultivos;
+	// dentro de cada lista, la última dibujada primero).
 	PickTarget pick(const world::PixelPoint& worldPoint,
 			const LocalWorldView& view, const ViewMotion& motion,
 			int iteration, int cellPixelSize) const;

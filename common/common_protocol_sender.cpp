@@ -46,6 +46,20 @@ void ProtocolSender::send_message(const protocol::MoveMessage& message) {
     send_uint8(static_cast<uint8_t>(message.direction));
 }
 
+void ProtocolSender::send_message(const protocol::PickMessage& message) {
+    validate_direction(message.direction);
+
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Pick));
+    send_uint8(static_cast<uint8_t>(message.direction));
+}
+
+void ProtocolSender::send_message(const protocol::TakeMessage& message) {
+    validate_direction(message.direction);
+
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Take));
+    send_uint8(static_cast<uint8_t>(message.direction));
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -65,6 +79,61 @@ void ProtocolSender::send_message(const ServerLeave& leave) {
     send_uint8(leave.player_id);
 }
 
+void ProtocolSender::send_message(const ServerResource& resource) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Resource));
+    send_uint16(resource.x);
+    send_uint16(resource.y);
+    send_string(resource.content_id);
+    send_uint8(static_cast<uint8_t>(resource.damage));
+}
+
+void ProtocolSender::send_message(const ServerDropped& dropped) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Dropped));
+    send_uint16(dropped.x);
+    send_uint16(dropped.y);
+    send_string(dropped.content_id);
+}
+
+void ProtocolSender::send_message(const ServerInventorySlot& slot) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::InventorySlot));
+    send_uint8(slot.slot);
+    send_uint8(slot.count);
+    send_string(slot.content_id);
+}
+
+void ProtocolSender::send_message(const ServerObtained& obtained) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Obtained));
+    send_string(obtained.content_id);
+}
+
+void ProtocolSender::send_message(const ServerToolUsed& used) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ToolUsed));
+    send_uint8(used.player_id);
+}
+
+void ProtocolSender::send_message(const ServerResourceHit& hit) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ResourceHit));
+    send_uint16(hit.x);
+    send_uint16(hit.y);
+    send_uint8(hit.destroyed ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerReset& /*reset*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Reset));
+}
+
+void ProtocolSender::send_message(const ServerAnimal& animal) {
+    validate_direction(animal.direction);
+
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Animal));
+    send_uint8(animal.id);
+    send_string(animal.kind);
+    send_uint16(animal.x);
+    send_uint16(animal.y);
+    send_uint8(static_cast<uint8_t>(animal.direction));
+    send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -72,4 +141,16 @@ void ProtocolSender::send_server_message(const ServerMessage& message) {
 void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Welcome));
     send_uint8(welcome.player_id);
+}
+
+void ProtocolSender::send_match_request(const MatchRequest& request) {
+    send_uint8(static_cast<uint8_t>(request.type));
+    send_string(request.codeMatch);
+    send_string(request.nameMatch);
+    send_string(request.username);
+    send_string(request.characterName);
+}
+
+void ProtocolSender::send_lobby_status(LobbyStatus status) {
+    send_uint8(static_cast<uint8_t>(status));
 }

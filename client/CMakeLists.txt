@@ -18,6 +18,7 @@ target_sources(taller_client
     client_receiver.cpp
     game/NetworkGameClient.cpp
     core/Application.cpp
+    core/PlaySession.cpp
     core/Constants.cpp
     core/StartupScreens.cpp
     core/WindowConfig.cpp
@@ -28,35 +29,66 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.cpp
     qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
-    qt/screens/WorldSelectScreen.cpp
-    qt/services/AssetCatalog.cpp
+    qt/screens/UsernameScreen.cpp
+    qt/services/CharacterLayerSource.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
+    qt/services/CharacterSpriteComposer.cpp
+    qt/services/NetworkSessionService.cpp
     qt/services/WorldService.cpp
-    qt/services/fakes/FakeAssetCatalog.cpp
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/theme/CharacterSheets.cpp
+    qt/theme/GameCursor.cpp
+    qt/theme/TitleBackdrop.cpp
+    qt/theme/TitleSprites.cpp
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
+    qt/widgets/CharacterAppearanceEditor.cpp
     qt/widgets/CharacterPreview.cpp
+    qt/widgets/CycleRow.cpp
+    qt/widgets/SaveRowButton.cpp
+    qt/widgets/WorldButton.cpp
+    qt/widgets/UsernamePlate.cpp
+    qt/widgets/WorldSelectorWidget.cpp
+    qt/theme/CharacterSprites.cpp
+    qt/theme/JoinCodeSprites.cpp
+    qt/theme/NineSlice.cpp
+    qt/theme/SkinRecolorer.cpp
+    qt/theme/SaveListSprites.cpp
+    qt/theme/WorldSprites.cpp
+    qt/widgets/InputBox.cpp
+    qt/widgets/SliderRow.cpp
+    qt/widgets/ParchmentBanner.cpp
+    qt/widgets/PromptForm.cpp
+    qt/widgets/TitleButton.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/ToolOverlayPainter.cpp
     sdl/render/InventoryHud.cpp
+    sdl/render/ObtainedBannerHud.cpp
+    sdl/render/CursorPainter.cpp
+    sdl/render/DialogPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
+    sdl/audio/MusicPlayer.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
     core/Application.h
     core/Constants.h
+    core/MusicControl.h
+    core/MusicTrack.h
     core/SessionConfig.h
+    core/PlaySession.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -66,39 +98,88 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.h
     qt/screens/SaveListScreen.h
     qt/screens/Screen.h
-    qt/screens/WorldSelectScreen.h
-    qt/services/AssetCatalog.h
+    qt/screens/UsernameScreen.h
+    qt/services/CharacterLayerSource.h
+    qt/services/CharacterSpriteComposer.h
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h
+    qt/services/NetworkSessionService.h
     qt/services/WorldService.h
-    qt/services/fakes/FakeAssetCatalog.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/theme/CharacterRects.h
+    qt/theme/CloudRects.h
+    qt/theme/JoinCodeRects.h
+    qt/theme/CharacterSprites.h
+    qt/theme/JoinCodeSprites.h
+    qt/theme/SaveListRects.h
+    qt/theme/SaveListSprites.h
+    qt/theme/WorldSpriteRects.h
+    qt/theme/WorldSprites.h
+    qt/theme/CharacterSheetRects.h
+    qt/theme/CharacterSheets.h
+    qt/theme/NineSlice.h
+    qt/theme/SkinRecolorer.h
+    qt/theme/CursorRects.h
+    qt/theme/GameCursor.h
+    qt/theme/TitleBackdrop.h
+    qt/theme/TitleSpriteRects.h
+    qt/theme/TitleSprites.h
+    qt/theme/UsernameRects.h
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
+    qt/widgets/CharacterAppearanceEditor.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/CycleRow.h
+    qt/widgets/InputBox.h
+    qt/widgets/SaveRowButton.h
+    qt/widgets/WorldButton.h
+    qt/widgets/UsernamePlate.h
+    qt/widgets/WorldSelectorWidget.h
+    qt/widgets/SliderRow.h
+    qt/widgets/ParchmentBanner.h
+    qt/widgets/PromptForm.h
+    qt/widgets/TitleButton.h
     client_sender.h
     client_receiver.h
     game/FootstepCue.h
+    game/ResourceAudioCue.h
+    game/ObtainedBannerQueue.h
     game/GameClient.h
+    game/GameConstants.h
+    game/InputCommand.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
     game/MoveCommand.h
+    game/Interactor.h
+    game/FloorItems.h
+    game/InteractionSession.h
+    game/AnimalSystem.h
+    game/MockWorldClient.h
+    game/DialogAnimator.h
+    game/PlayerController.h
+    game/PointerClick.h
+    game/ObjectPicker.h
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
-    game/ToolUse.h
+    game/InventorySelector.h
+    world/ActionNames.h
     world/CharacterAppearance.h
     world/CharacterCatalog.h
     world/CharacterCatalogLoader.h
+    world/CharacterLayout.h
+    world/WorldConstants.h
+    world/CharacterTomlReader.h
     world/Color.h
     world/ConfigError.h
+    world/ContentIds.h
     world/CreatureCatalog.h
     world/EntityAppearance.h
     world/Grid.h
@@ -106,12 +187,37 @@ target_sources(taller_client
     world/InventoryLayout.h
     world/InventoryTomlReader.h
     world/InventoryConfigLoader.h
-    world/ItemCatalog.h
+    world/ItemKind.h
+    world/SpriteVisual.h
+    world/CursorCatalog.h
+    world/CursorConfigLoader.h
+    world/CursorTomlReader.h
+    world/Indication.h
+    world/DialogCatalog.h
+    world/DialogConfigLoader.h
+    world/DialogTomlReader.h
+    world/DialogLayout.h
+    world/DroppedItemLayout.h
+    world/ToolOverlay.h
+    world/ToolOverlayLayout.h
+    world/ToolOverlayLoader.h
+    world/ToolOverlayTomlReader.h
+    world/ResourceCatalog.h
+    world/ResourceConfigLoader.h
+    world/ResourceTomlReader.h
+    world/ObtainedBannerCatalog.h
+    world/ObtainedBannerConfigLoader.h
+    world/ObtainedBannerTomlReader.h
+    world/ObtainedBannerLayout.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
     world/ScenePixelMapper.h
     world/SceneTomlReader.h
+    world/ElementLayout.h
+    world/ChunkGrid.h
+    world/SceneElementIndex.h
+    game/ViewSpatialIndex.h
     toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
@@ -119,14 +225,24 @@ target_sources(taller_client
     sdl/loop/GameLoop.h
     sdl/render/Renderer.h
     sdl/render/ElementPainter.h
+    sdl/render/EntityRenderer.h
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/Viewport.h
+    sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/RenderConstants.h
+    sdl/render/ToolOverlayPainter.h
     sdl/render/InventoryHud.h
+    sdl/render/ObtainedBannerHud.h
+    sdl/render/CursorPainter.h
+    sdl/render/DialogPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
+    sdl/audio/AudioConfig.h
     sdl/audio/AudioPlayer.h
+    sdl/audio/MusicPlayer.h
     sdl/log/Logger.h
     )
 

@@ -3,10 +3,9 @@
 #include <iostream>
 #include <string>
 
-Server::Server(const char* service): match(events, output), acceptor(service, events, output) {}
+Server::Server(const char* service): matches(output), acceptor(service, matches, output) {}
 
 void Server::run() {
-    match.start();
     acceptor.start();
 
     std::string line;
@@ -19,6 +18,5 @@ void Server::run() {
     acceptor.stop();
     acceptor.join();
 
-    events.close();
-    match.join();
+    matches.closeAll();
 }

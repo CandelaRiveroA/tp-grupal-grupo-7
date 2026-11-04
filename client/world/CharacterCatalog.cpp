@@ -9,28 +9,21 @@ std::size_t CharacterCatalog::indexOf(CreatureKind kind) const {
 	return static_cast<std::size_t>(kind);
 }
 
-void CharacterCatalog::relink(CreatureEntry& entry) const {
-	for (std::size_t i = 0; i < entry.directionData.size(); ++i) {
-		entry.appearance[i].actions = &entry.directionData[i].actions;
-		entry.appearance[i].mirrored = entry.directionData[i].mirrored;
-	}
-	entry.data.directions = &entry.appearance;
-	entry.data.cadence = entry.cadence;
-}
-
 void CharacterCatalog::setEntry(CreatureKind kind, CreatureEntry entry) {
 	const std::size_t index = indexOf(kind);
 	if (index >= entries_.size()) {
 		entries_.resize(index + 1);
 	}
-	auto owned = std::make_unique<CreatureEntry>(std::move(entry));
-	relink(*owned);
-	entries_[index] = std::move(owned);
+	entries_[index] =
+		std::make_unique<CreatureEntry>(std::move(entry));
 }
 
-bool CharacterCatalog::has(CreatureKind kind) const {
+const CreatureData* CharacterCatalog::find(CreatureKind kind) const {
 	const std::size_t index = indexOf(kind);
-	return index < entries_.size() && entries_[index] != nullptr;
+	if (index >= entries_.size() || entries_[index] == nullptr) {
+		return nullptr;
+	}
+	return &entries_[index]->data;
 }
 
 const CharacterCatalog::CreatureEntry& CharacterCatalog::entryFor(

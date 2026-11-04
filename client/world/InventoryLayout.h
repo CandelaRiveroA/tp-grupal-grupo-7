@@ -1,10 +1,12 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <string>
 #include <vector>
 
-#include "world/ItemCatalog.h"
+#include "world/ContentCatalog.h"
+#include "world/SpriteVisual.h"
 
 namespace world {
 
@@ -19,9 +21,9 @@ struct PixelBox {
 	int height = 0;
 };
 
-struct SheetCell {
-	int col = 0;
-	int row = 0;
+struct PixelSize {
+	int width = 0;
+	int height = 0;
 };
 
 struct FrameCells {
@@ -70,11 +72,26 @@ struct InventoryLayout {
 
 	int itemPad = -1;
 
+	// Número de cantidad dibujado arriba-derecha del slot (count>1).
+	// digitScale: lado de cada dígito como fracción del lado del slot.
+	// digitMargin: margen interior (px, a uiScale) desde el borde del
+	//              slot hasta el número. Defaults si no están en el TOML.
+	double digitScale = 0.22;
+	int digitMargin = 3;
+
 	FrameCells frame;
 
 	FrameCells slotFrame;
 
-	ItemCatalog items;
+	FrameCells activeSlotFrame;
+
+	ContentCatalog content;
+
+	// Tamaño de cada ítem dibujado en la celda del inventario (clave
+	// `slot_drawn` en inventory.toml, opcional). Es presentación del
+	// BAR: el `drawn` del sprite es el tamaño en el mapa y puede ser
+	// distinto. Sin entrada, el HUD usa el `drawn` del sprite.
+	std::map<std::string, PixelSize> slotDrawn;
 
 
 	int scaled(int basePx) const;
@@ -109,7 +126,16 @@ struct InventoryLayout {
 
 	FrameLayout slotFrameLayout(const PixelBox& slot) const;
 
+	FrameLayout activeSlotFrameLayout(const PixelBox& slot) const;
+
 	PixelBox iconBox(const PixelBox& slot) const;
+
+	// Rects de cada dígito del número de cantidad, alineados ARRIBA y a
+	// la DERECHA dentro del slot, en orden izquierda->derecha. Los
+	// dígitos van pegados; el ancho total se limita al slot para que un
+	// número de 2+ dígitos no desborde. digitCount<=0 devuelve vacío.
+	std::vector<PixelBox> countBoxes(const PixelBox& slot,
+					 int digitCount) const;
 
 private:
 	FrameLayout nineSliceInside(const PixelBox& box, int t, int cells,

@@ -1,0 +1,32 @@
+#ifndef COMMON_MATCH_REQUEST_H
+#define COMMON_MATCH_REQUEST_H
+
+#include <cstdint>
+#include <string>
+
+// Primer mensaje de cada conexion del lobby: crear o unirse a un match.
+enum class MatchRequestType : uint8_t { Create = 1, Join = 2 };
+
+#define kMaxUsernameLength 32
+#define kMaxCharacterNameLength 24
+
+struct MatchRequest {
+    MatchRequestType type;
+    std::string codeMatch;
+    std::string nameMatch;
+    std::string username;
+    std::string characterName;
+};
+
+// Respuesta al pedido del lobby. Si es Ok, la conexion queda como jugador del match.
+enum class LobbyStatus : uint8_t {
+    Ok = 0,
+    NameTaken = 1,
+    NotFound = 2,
+    Full = 3,
+    Invalid = 4,
+    UsernameTaken = 5,
+    CharacterNameTaken = 6
+};
+
+#endif

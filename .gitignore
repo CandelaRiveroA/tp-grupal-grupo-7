@@ -1,3 +1,6 @@
 build/
 build-tests/
+build-harness/
 tags.*
+harness-out/
+client/qt/harness/

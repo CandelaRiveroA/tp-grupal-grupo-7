@@ -13,6 +13,7 @@
 #include "common_server_status.h"
 #include "common_worker.h"
 #include "server_output_monitor.h"
+#include "world_view.h"
 
 struct PlayerMessage {
     uint8_t player_id;
@@ -28,7 +29,24 @@ struct PlayerLeft {
     uint8_t player_id;
 };
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft>;
+struct DayPassed {};
+
+// Dispara el paso de movimiento de los animales (un paso por segundo).
+struct AnimalTick {};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, AnimalTick>;
+
+// Empuja un DayPassed cada día de juego mientras la partida corre.
+class DayClock: public Worker {
+private:
+    Queue<MatchEvent>& events;
+
+public:
+    explicit DayClock(Queue<MatchEvent>& events);
+
+protected:
+    void execute() override;
+};
 
 class Match: public Worker {
 private:
@@ -36,12 +54,18 @@ private:
     ServerOutputMonitor& output;
     World world;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
+    WorldView views;
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
-    void publish(uint8_t player_id);
+    void handle(const DayPassed& day);
+    void handle(const AnimalTick& tick);
+    void sync_all();
+    void place_minerals();
+    void place_animals();
     void broadcast(const ServerMessage& message);
+    void send_to(uint8_t player_id, const ServerMessage& message);
     void closeOutputs();
 
 public:

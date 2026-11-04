@@ -16,7 +16,7 @@ public:
 	CharacterSprite(SpriteSheet& sheet, int drawnWidth, int drawnHeight);
 
 	void draw(const world::Pose& pose, const SDL2pp::Rect& logicalBox,
-		  Flip flip = Flip::None);
+		  Flip flip = Flip::None) const;
 
 private:
 	SpriteSheet& sheet_;

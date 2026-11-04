@@ -1,24 +1,15 @@
 #include "Scenario.h"
 
+#include <utility>
+
 #include "core/WindowConfig.h"
-#include "world/SceneConfigLoader.h"
 
 namespace world {
 
-namespace {
-SceneDescription loadScene(const std::string& scenesPath,
-			   const std::string& roomName) {
-	SceneConfigLoader loader;
-	return loader.loadFromFile(scenesPath, roomName);
-}
-}
-
-Scenario::Scenario(const core::WindowConfig& config,
-		   const std::string& scenesPath,
-		   const std::string& roomName)
+Scenario::Scenario(const core::WindowConfig& config, SceneDescription scene)
 	: width_(config.width())
 	, height_(config.height())
-	, scene_(loadScene(scenesPath, roomName)) {}
+	, scene_(std::move(scene)) {}
 
 int Scenario::width() const { return width_; }
 

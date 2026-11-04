@@ -1,11 +1,16 @@
 #pragma once
 
 #include <array>
+#include <deque>
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
 #include <SDL2/SDL_events.h>
+
+#include "game/InputCommand.h"
+#include "game/PointerClick.h"
+#include "world/ViewDirection.h"
 
 namespace sdl {
 
@@ -14,39 +19,68 @@ public:
 
 	enum class Action { Up, Down, Left, Right, Count };
 
-	InputManager();
+	// slotCount: cuántas teclas numéricas (1..slotCount) seleccionan slots.
+	// Debe coincidir con core::kInventorySlots; lo pasa quien construye.
+	explicit InputManager(int slotCount);
 
 	void handleEvent(const SDL_Event& event);
-	void setKey(SDL_Keycode key, bool pressed);
-
-	void clearAll();
 
 	bool up() const;
 	bool down() const;
 	bool left() const;
 	bool right() const;
 
-	bool takeUseTool();
+	// Saca las intenciones one-shot pendientes (una por pulsación), en
+	// orden de pulsación, y vacía la cola. Pueden salir varias juntas si
+	// se pulsaron varias teclas en el mismo frame.
+	std::vector<game::InputCommand> takeCommands();
 
-	const std::unordered_map<SDL_Keycode, Action>& bindings() const;
-	bool isBound(SDL_Keycode key) const;
-	std::optional<Action> actionFor(SDL_Keycode key) const;
-	std::vector<SDL_Keycode> keysFor(Action action) const;
+	// Movimiento sostenido como dirección del juego: la primera dirección
+	// de la tabla de prioridad que esté pulsada, o vacío si no hay
+	// movimiento.
+	std::optional<world::Direction> pressedDirection() const;
 
-	void rebind(SDL_Keycode oldKey, SDL_Keycode newKey);
+	// Saca los clicks del puntero pendientes (uno por pulsación de
+	// botón), en orden, y vacía la cola. Varios clicks pueden salir
+	// juntos si hubo varios en el mismo frame.
+	std::vector<game::PointerClick> takeClicks();
 
-	void rebindUseTool(SDL_Keycode newKey);
+	// Posición actual del puntero (px de pantalla), actualizada por el
+	// movimiento del mouse.
+	const game::PointerPosition& mousePosition() const;
 
 private:
 
 	std::unordered_map<SDL_Keycode, Action> defaultBindings() const;
 
+	// Despacho de comandos por diccionario: tecla -> comando one-shot.
+	std::unordered_map<SDL_Keycode, game::InputCommand> defaultCommandBindings() const;
+
+	const game::InputCommand* commandFor(SDL_Keycode key) const;
+
+	void fire(const game::InputCommand& command);
+
+	void setKey(SDL_Keycode key, bool pressed);
+
+	// Tabla de prioridad para leer el movimiento como dirección del juego.
+	struct DirectionBinding {
+		Action action;
+		world::Direction direction;
+	};
+
 	std::unordered_map<SDL_Keycode, Action> keymap_;
+
+	std::unordered_map<SDL_Keycode, game::InputCommand> commandBindings_;
 
 	std::array<bool, static_cast<std::size_t>(Action::Count)> flags_{};
 
-	SDL_Keycode useToolKey_;
-	bool useToolTriggered_ = false;
+	std::array<DirectionBinding, static_cast<std::size_t>(Action::Count)>
+		directionBindings_;
+
+	int slotCount_ = 0;
+	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame
+	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
+	game::PointerPosition pointerPosition_{};
 };
 
 }

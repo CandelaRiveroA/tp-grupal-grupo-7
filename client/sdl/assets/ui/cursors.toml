@@ -1,0 +1,22 @@
+# Cursores del puntero. Cada variante es un sprite completo (sheet/cell/
+# at[/drawn]) leído con el parser compartido: sumar un cursor es sumar una
+# entrada acá + su valor en CursorKind, sin tocar el dibujo.
+#
+# La variante que se dibuja la decide el estado de juego (si hay algo
+# interactivo bajo el cursor), no este archivo.
+
+[cursor]
+# Punto del sprite que se alinea con la posición del puntero.
+hotspot = [0, 0]
+
+[normal]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+at    = [0, 0]
+drawn = [32, 32]
+
+[interactive]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+at    = [2, 0]
+drawn = [32, 32]

@@ -1,6 +1,7 @@
 #include "CharacterSprite.h"
 
 #include "sdl/render/SpriteSheet.h"
+#include "world/CharacterLayout.h"
 
 namespace sdl {
 
@@ -11,25 +12,24 @@ CharacterSprite::CharacterSprite(SpriteSheet& sheet, int drawnWidth,
 	, drawnHeight_(drawnHeight) {}
 
 void CharacterSprite::draw(const world::Pose& pose,
-			   const SDL2pp::Rect& logicalBox, Flip flip) {
+			   const SDL2pp::Rect& logicalBox, Flip flip) const {
 	if (pose.empty()) {
 		return;
 	}
 
-	const world::LayerFrame& base = pose.front();
-	const int pxPerCellX = drawnWidth_ / base.cols;
-	const int pxPerCellY = drawnHeight_ / base.rows;
+	const world::CharacterLayout layout(
+		world::PixelRect{logicalBox.x, logicalBox.y, logicalBox.w,
+				 logicalBox.h},
+		drawnWidth_, drawnHeight_);
 
-	const int bodyX = logicalBox.x + (logicalBox.w - drawnWidth_) / 2;
-	const int bodyBottom = logicalBox.y + logicalBox.h;
-
+	const world::LayerFrame& baseLayer = pose.front();
 	for (const world::LayerFrame& layer : pose) {
-		const int w = layer.cols * pxPerCellX;
-		const int h = layer.rows * pxPerCellY;
-		const int x = bodyX;
-		const int y = bodyBottom - h;
+		const world::PixelRect rect = layout.layerRect(layer, baseLayer);
 		sheet_.drawBlock(layer.frame.col, layer.frame.row, layer.cols,
-				 layer.rows, SDL2pp::Rect(x, y, w, h), flip);
+				 layer.rows,
+				 SDL2pp::Rect(rect.x, rect.y, rect.width,
+					      rect.height),
+				 flip);
 	}
 }
 

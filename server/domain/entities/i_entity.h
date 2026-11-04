@@ -2,10 +2,33 @@
 #define IENTITY_H
 
 #include <cstdint>
+#include <optional>
+#include <string>
+
 #include "../../../common/common_constants.h"
+#include "../inventory/item_types.h"
 
 class World;
 class Player;
+
+// Descripción neutral de cómo se ve una celda, para que el mundo la muestre
+// sin conocer el tipo concreto de la entidad.
+struct CellSnapshot {
+    enum class Kind { Resource, Dropped };
+
+    Kind kind;
+    ItemID item;
+    uint8_t hits_taken;
+    uint8_t hits_to_destroy;
+};
+
+// Estado visible de un animal, para que el mundo lo envíe sin conocer su tipo.
+struct AnimalSnapshot {
+    uint8_t id;
+    std::string kind;
+    bool ready_to_milk;
+    Direction facing;
+};
 
 class IEntity {
 protected:
@@ -18,7 +41,7 @@ public:
 
     uint16_t get_x() const;
     uint16_t get_y() const;
-    
+
     void set_position(uint16_t x, uint16_t y);
 
     // Determina si otra entidad (como el jugador o enemigos) puede caminar SOBRE esta entidad.
@@ -28,9 +51,17 @@ public:
     virtual bool is_walkable() const = 0;
 
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
-    
+
+    // Nullopt si la entidad no se muestra como contenido de celda.
+    virtual std::optional<CellSnapshot> snapshot() const;
+
+    // Nullopt si la entidad no es un animal.
+    virtual std::optional<AnimalSnapshot> animal_snapshot() const;
+
     // Método para que las entidades se actualicen en cada frame del GameLoop.
-    virtual void update();
+    // Por defecto no hace nada (útil para minerales).
+    // Los NPC o cultivos lo sobreescribirán.
+    virtual void update(World& w);
 };
 
-#endif // IENTITY_H
+#endif  // IENTITY_H

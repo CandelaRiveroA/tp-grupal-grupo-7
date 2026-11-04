@@ -47,7 +47,11 @@ gap      = 0
 anchor   = "bottom_center"
 margin   = 16
 ui_scale = 0.7
-item_pad = 8
+item_pad = 11
+# Tamaño del número de cantidad como fracción del lado del slot (más chico
+# = número más discreto). Margen interior del número al borde del slot.
+digit_scale = 0.22
+digit_margin = 3
 
 # --- Marco decorado (9-slice) ------------------------------------------
 # Envuelve la fila de slots con el borde de esquinas redondeadas de la
@@ -108,6 +112,24 @@ bottom       = [10, 11]
 left         = [8, 10]
 right        = [11, 10]
 
+# --- Marco del slot activo (9-slice completo) --------------------------
+# Se dibuja ENCIMA del borde interno del slot seleccionado con el teclado
+# numérico (1-4). Misma hoja que el resto (MenuTiles.png). Celdas
+# relevadas con la herramienta de inspección.
+# thickness igual al slot_frame para que no desborde el slot.
+[active_slot_frame]
+border_cells = 1
+thickness    = 20
+corners_only = false
+top_left     = [0, 56]
+top_right    = [3, 56]
+bottom_left  = [0, 59]
+bottom_right = [3, 59]
+top          = [2, 56]
+bottom       = [2, 59]
+left         = [0, 58]
+right        = [3, 58]
+
 # --- Catálogo visual de ítems ------------------------------------------
 # Mapea cada ítem LÓGICO (lo que el servidor pone en el inventario) a su
 # APARIENCIA: de qué hoja sale y qué celda lo dibuja. El servidor manda
@@ -138,3 +160,56 @@ at    = [3, 14]
 sheet = "Players/main/tools/Weapons.png"
 cell  = [16, 16]
 at    = [0, 0]
+
+# --- Minerales (contenido recogible) -----------------------------------
+# El inventario es GENÉRICO: además de herramientas, guarda minerales (y
+# mañana otros contenidos). Cada mineral usa las MISMAS celdas de
+# Cavern/ore.png que el icono del panel (obtained_banner.toml), para que
+# se vea igual en el panel y en el slot. contentId = nombre de la subtabla
+# (silver/coal/lapis/gold), el mismo vocabulario que resources.toml.
+[items.silver]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 1]
+
+[items.coal]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 3]
+
+[items.lapis]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 5]
+
+[items.gold]
+sheet = "Cavern/ore.png"
+cell  = [16, 16]
+at    = [6, 7]
+
+[items.egg]           # huevo: sprite ÚNICO (Farm/egg.png mide 10x11 px,
+                      # no es una grilla), así que la hoja es una sola
+                      # celda de 10x11 y el ítem es la celda [0, 0].
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+# drawn: tamaño del ítem dibujado EN EL MAPA (ítems en el suelo, ej. el
+# huevo que pone la gallina). 16x16 = EXACTAMENTE lo que mide el huevo
+# en las manos durante el recogido (la celda de 32 del personaje a
+# media escala): el mismo tamaño se ve en el piso y al levantarlo.
+drawn = [16, 16]
+# offset_y (opcional, default 0 — el huevo no lo necesita): ajuste
+# vertical al apoyarlo en el piso. 0 = pegado a los pies; los sprites
+# con aire transparente abajo lo bajan (los de ore.png usan 8, como en
+# resources.toml).
+# slot_drawn (opcional): tamaño en la celda del inventario, que puede
+# ser distinto del del mapa. El del slot se ve bien a 23x25.
+slot_drawn = [23, 25]
+
+[items.milk]          # leche: mismo sprite que el diálogo de la vaca
+                      # (Farm/large_milk.png, celda única 53x64).
+sheet = "Farm/large_milk.png"
+cell  = [53, 64]
+at    = [0, 0]
+# drawn: tamaño de la leche en la celda del slot (afinado a ojo).
+drawn = [23, 27]

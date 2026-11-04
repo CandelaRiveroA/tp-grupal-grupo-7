@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+#include "common/common_socket.h"
 #include "core/SessionConfig.h"
 #include "core/WindowConfig.h"
 
@@ -14,10 +15,8 @@ class GameClient;
 }
 
 namespace world {
-class Scenario;
-struct GridSpan;
 class CharacterCatalog;
-struct InventoryLayout;
+struct GridSpan;
 }  // namespace world
 
 namespace core {
@@ -31,18 +30,19 @@ public:
 private:
     // Carga el QSS embebido en el .qrc. Se llama al construir, cuando
     // QApplication ya existe.
+    void loadFonts();
     void loadStyleSheet();
 
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();
 
-    int runGame(const SessionConfig& session);
+    // Carga los datos de la partida y corre la sesión de juego. Validar
+    // que el lobby haya dado una sesión le corresponde a run().
+    int runGame(SessionConfig session);
 
-    std::unique_ptr<game::GameClient> createGameClient() const;
-
-    int runGameLoop(const SessionConfig& session, const world::Scenario& scenario,
-                    game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                    const world::InventoryLayout& inventory);
+    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket,
+                                                       const world::CharacterCatalog& characters,
+                                                       int toolUseDurationTicks) const;
 
     WindowConfig config_;
     QApplication app_;

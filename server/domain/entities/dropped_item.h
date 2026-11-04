@@ -2,10 +2,12 @@
 #define DROPPED_ITEM_H
 
 #include <memory>
-#include "i_entity.h"
+
 #include "../inventory/item.h"
 
-class DroppedItem : public IEntity {
+#include "i_entity.h"
+
+class DroppedItem: public IEntity {
 private:
     std::unique_ptr<Item> payload;
 
@@ -15,6 +17,7 @@ public:
 
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
+    std::optional<CellSnapshot> snapshot() const override;
 };
 
-#endif // DROPPED_ITEM_H
+#endif  // DROPPED_ITEM_H

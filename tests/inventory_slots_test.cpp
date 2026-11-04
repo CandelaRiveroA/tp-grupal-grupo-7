@@ -240,4 +240,60 @@ TEST(InventorySlotFrameTest, IconBoxWithoutSlotFrameUsesPadding) {
 	EXPECT_EQ(icon.width, 80);
 }
 
+TEST(InventoryCountTest, EmptyWhenNoDigits) {
+	const world::InventoryLayout bar = makeBar();
+	const world::PixelBox slot{100, 100, 64, 64};
+	EXPECT_TRUE(bar.countBoxes(slot, 0).empty());
+}
+
+TEST(InventoryCountTest, SingleDigitTopRightInsideSlot) {
+	world::InventoryLayout bar = makeBar();
+	bar.digitScale = 0.33;
+	bar.digitMargin = 2;
+	const world::PixelBox slot{100, 100, 64, 64};
+	const std::vector<world::PixelBox> boxes = bar.countBoxes(slot, 1);
+	ASSERT_EQ(boxes.size(), 1u);
+	const int digit = 21;  // round(64*0.33)
+	// Pegado arriba-derecha: x = slot derecha - margin - digit.
+	EXPECT_EQ(boxes[0].width, digit);
+	EXPECT_EQ(boxes[0].height, digit);
+	EXPECT_EQ(boxes[0].x, 100 + 64 - 2 - digit);
+	EXPECT_EQ(boxes[0].y, 102);
+	// Contenido dentro del slot.
+	EXPECT_GE(boxes[0].x, slot.x);
+	EXPECT_LE(boxes[0].x + boxes[0].width, slot.x + slot.width);
+	EXPECT_GE(boxes[0].y, slot.y);
+}
+
+TEST(InventoryCountTest, TwoDigitsAlignedRightNoOverlap) {
+	world::InventoryLayout bar = makeBar();
+	bar.digitScale = 0.33;
+	bar.digitMargin = 2;
+	const world::PixelBox slot{100, 100, 64, 64};
+	const std::vector<world::PixelBox> boxes = bar.countBoxes(slot, 2);
+	ASSERT_EQ(boxes.size(), 2u);
+	const int digit = 21;
+	// Van pegados izquierda->derecha.
+	EXPECT_EQ(boxes[1].x - boxes[0].x, digit);
+	// No se solapan.
+	EXPECT_LE(boxes[0].x + boxes[0].width, boxes[1].x);
+	// El último termina a margin del borde derecho del slot.
+	EXPECT_EQ(boxes[1].x + boxes[1].width, slot.x + slot.width - 2);
+	// Todo contenido dentro del slot.
+	EXPECT_GE(boxes[0].x, slot.x);
+	EXPECT_LE(boxes[1].x + boxes[1].width, slot.x + slot.width);
+}
+
+TEST(InventoryCountTest, ManyDigitsShrinkToFitInsideSlot) {
+	world::InventoryLayout bar = makeBar();
+	bar.digitScale = 0.33;
+	bar.digitMargin = 2;
+	const world::PixelBox slot{0, 0, 64, 64};
+	// 5 dígitos a 21px no entran (105>60): deben achicarse para caber.
+	const std::vector<world::PixelBox> boxes = bar.countBoxes(slot, 5);
+	ASSERT_EQ(boxes.size(), 5u);
+	EXPECT_LE(boxes.back().x + boxes.back().width, slot.x + slot.width);
+	EXPECT_GE(boxes.front().x, slot.x);
+}
+
 }

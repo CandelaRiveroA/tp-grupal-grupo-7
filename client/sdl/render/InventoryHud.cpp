@@ -8,12 +8,16 @@
 namespace sdl {
 
 InventoryHud::InventoryHud(SdlContext& context,
-			   const world::InventoryLayout& layout)
+			   const world::InventoryLayout& layout,
+			   const world::DigitCatalog& digits)
 	: context_(context)
 	, layout_(layout)
+	, digits_(digits)
 	, sheet_(context, core::assetPath(layout.sheetImage),
 		 layout.cellWidth, layout.cellHeight)
-	, itemSheets_(context) {}
+	, itemSheets_(context)
+	, digitSheet_(context, core::assetPath(digits.sheetImage),
+		      digits.cellWidth, digits.cellHeight) {}
 
 void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 	auto drawPiece = [&](const world::FrameLayout::Piece& p) {
@@ -33,7 +37,7 @@ void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 }
 
 void InventoryHud::draw(
-	const std::vector<game::ViewInventorySlot>& inventory) {
+	const std::vector<game::ViewInventorySlot>& inventory, int activeSlot) {
 	const std::vector<world::PixelBox> boxes =
 		layout_.slotBoxes(context_.width(), context_.height());
 
@@ -54,26 +58,72 @@ void InventoryHud::draw(
 		}
 	}
 
+	if (layout_.activeSlotFrame.enabled) {
+		const int clampedSlot =
+			(activeSlot >= 0 && activeSlot < static_cast<int>(boxes.size()))
+				? activeSlot
+				: 0;
+		const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
+		drawFrame(layout_.activeSlotFrameLayout(
+				  boxes[static_cast<std::size_t>(clampedSlot)]),
+			  drawEdges);
+	}
+
 	const int slots = static_cast<int>(boxes.size());
 	for (const game::ViewInventorySlot& entry : inventory) {
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
 		}
-		if (!layout_.items.has(entry.item)) {
+		const world::SpriteVisual* visual =
+			layout_.content.find(entry.contentId);
+		if (visual == nullptr) {
 			continue;
 		}
-		const world::ItemVisual& visual =
-			layout_.items.visualFor(entry.item);
 		SpriteSheet& itemSheet = itemSheets_.sheet(
-			visual.sheetImage, core::assetPath(visual.sheetImage),
-			visual.cellWidth, visual.cellHeight);
-		const world::PixelBox icon =
-			layout_.iconBox(boxes[static_cast<std::size_t>(
-				entry.slotIndex)]);
-		itemSheet.draw(visual.col, visual.row,
-			       SDL2pp::Rect(icon.x, icon.y, icon.width,
-					    icon.height));
+			visual->sheetImage,
+			core::assetPath(visual->sheetImage),
+			visual->cellWidth, visual->cellHeight);
+		const world::PixelBox& slotBox =
+			boxes[static_cast<std::size_t>(entry.slotIndex)];
+		const world::PixelBox icon = layout_.iconBox(slotBox);
+		// Tamaño en la celda: el `slot_drawn` del ítem si lo declara,
+		// si no el `drawn` del sprite (centrado), si no la caja
+		// entera (los de celda 16x16, por ejemplo).
+		int drawW = icon.width;
+		int drawH = icon.height;
+		const auto slotIt = layout_.slotDrawn.find(entry.contentId);
+		if (slotIt != layout_.slotDrawn.end()) {
+			drawW = slotIt->second.width;
+			drawH = slotIt->second.height;
+		} else if (visual->drawnWidth > 0 && visual->drawnHeight > 0) {
+			drawW = visual->displayWidth();
+			drawH = visual->displayHeight();
+		}
+		itemSheet.draw(visual->col, visual->row,
+			       SDL2pp::Rect(icon.x + (icon.width - drawW) / 2,
+					    icon.y + (icon.height - drawH) / 2,
+					    drawW, drawH));
+		// Cantidad: solo se dibuja si hay más de 1.
+		if (entry.count > 1) {
+			drawCount(slotBox, entry.count);
+		}
 	}
+}
+
+void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
+	const std::vector<int> digits = world::digitsOf(count);
+	const std::vector<world::PixelBox> boxes =
+		layout_.countBoxes(slot, static_cast<int>(digits.size()));
+	// Los dígitos de la hoja son claros; se tiñen de negro al dibujarlos.
+	digitSheet_.setColorMod(0, 0, 0);
+	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
+		const world::SheetCell& cell = digits_.cellFor(digits[i]);
+		const world::PixelBox& box = boxes[i];
+		digitSheet_.draw(cell.col, cell.row,
+				 SDL2pp::Rect(box.x, box.y, box.width,
+					      box.height));
+	}
+	digitSheet_.clearColorMod();
 }
 
 }

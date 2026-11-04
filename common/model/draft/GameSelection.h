@@ -6,8 +6,9 @@
 #include "common/model/draft/CharacterAppearance.h"
 
 
-// Lo que el lobby entrega a SDL al confirmar.
+// Datos que la pantalla de personaje manda al crear la partida.
 struct GameSelection {
+	std::string username;
 	std::string gameName;
 	std::string characterName;
 	std::uint32_t worldId = 0;

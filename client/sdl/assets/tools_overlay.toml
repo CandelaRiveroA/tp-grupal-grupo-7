@@ -1,0 +1,178 @@
+# ============================================================
+# Overlay visual de herramientas sobre el personaje.
+#
+# Define la APARIENCIA de la herramienta que se dibuja encima del
+# personaje durante la acción UseTool. Cada herramienta tiene una
+# subtabla por dirección con la hoja, tamaño de celda, ticks por
+# cuadro y los frames de la animación. El número de frames y los
+# frame_ticks deben coincidir con los del use_tool del personaje
+# en characters.toml para que la animación quede sincronizada.
+#
+# Lo carga world::ToolOverlayLoader hacia un world::ToolOverlayCatalog
+# (datos puros, sin SDL). El Renderer lo consume: lee entity.activeTool
+# + entity.facing y dibuja el frame correspondiente encima del personaje
+# usando el mismo bodyX/bodyBottom. El servidor decide qué herramienta
+# está activa (entity.activeTool); este archivo decide cómo se ve.
+#
+# Celdas relevadas de Tools.png con la herramienta de inspección.
+# ============================================================
+
+# --- Ajuste vertical por anclaje ---------------------------------------
+# [offset]: píxeles que BAJAN la herramienta según su anclaje, para
+# compensar el espacio transparente de la hoja. Cada anclaje se afina por
+# separado porque el gap es distinto según dónde se apoya el sprite.
+# Claves: top / body / bottom (las mismas del anchor de cada frame).
+# Opcional: un anclaje sin entrada usa 0. Subir el valor baja más.
+[offset]
+top    = 14
+body   = 0
+bottom = 0
+
+# --- Pico (pickaxe) ----------------------------------------------------
+# Cada frame es una tabla uniforme:
+#   anchor: dónde se apoya respecto al cuerpo — "top" (encima de la
+#           cabeza), "body" (bloque del cuerpo) o "bottom" (a los pies).
+#           Opcional, default "top".
+#   layers: lista de capas [col, row, cols, rows]. Vacía ([]) = sin
+#           herramienta en ese cuadro.
+# El número de frames y frame_ticks coinciden con los del use_tool del
+# personaje en characters.toml para que la animación quede sincronizada.
+
+# Dirección back: el pico se ve arriba de la cabeza en el primer cuadro
+# y desaparece el resto (brazos bajando).
+[pickaxe.back]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top", offset_y = -4, layers = [ [3, 5, 1, 2] ] },
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+]
+
+# Dirección front: el pico recorre 3 alturas mientras baja el golpe.
+#   frame 0: arriba de la cabeza (anchor top).
+#   frame 1: "bajando", a nivel del cuerpo/torso (anchor body).
+#   frame 2: "picando", a los pies (anchor bottom).
+#   frames 3-4: sin herramienta.
+[pickaxe.front]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top",    offset_x = -8,  offset_y = 6, layers = [ [0, 5, 1, 2] ] },
+  { anchor = "body",   layers = [ [3, 5, 1, 2] ] },
+  { anchor = "bottom", offset_y = 24, layers = [ [1, 5, 1, 2] ] },
+  { layers = [] },
+  { layers = [] },
+]
+
+# Dirección right: UN solo sprite del pico (derecho) que ROTA siguiendo
+# el brazo a lo largo del golpe. angle = grados en sentido horario.
+#   frame 0: pico levantado hacia atrás/arriba (ángulo negativo).
+#   frame 1: empieza a bajar.
+#   frame 2: a nivel del cuerpo.
+#   frame 3: golpe abajo-adelante (ángulo positivo).
+#   frame 4: sin herramienta.
+# Ajustá angle / offset_x / offset_y mirando cómo sigue el brazo.
+[pickaxe.right]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+# pivot por frame = [x, y] en fracción del sprite (puede exceder 1 para
+# agrandar el radio de giro). Cada frame tiene su propio radio: bajá el
+# segundo número en los frames de abajo si el arco se va muy lejos.
+frames = [
+  { anchor = "top",    angle = -25,  offset_x = -8, offset_y = 8, scale = 0.85, pivot = [0.5, 1.25], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "top",    angle = 20,  offset_x = -2, offset_y = 6, scale = 0.85, pivot = [0.5, 1.15], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   angle = 50, offset_x = 34, offset_y = -8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   angle = 96, offset_x = 40, offset_y = 8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+]
+
+# Dirección left: ESPEJO de right. Mismas celdas y pivotes/offset_y, pero
+# flip = true (espeja el sprite), y angle + offset_x con signo INVERTIDO
+# (el espejo invierte el sentido de giro y el lado hacia donde corre).
+[pickaxe.left]
+sheet       = "Players/main/tools/Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top",    flip = true, angle = 25,   offset_x = 8,   offset_y = 8, scale = 0.85, pivot = [0.5, 1.25], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "top",    flip = true, angle = -20,  offset_x = 2,   offset_y = 6, scale = 0.85, pivot = [0.5, 1.15], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   flip = true, angle = -50, offset_x = -34, offset_y = -8, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+  { anchor = "body",   flip = true, angle = -100, offset_x = -34, offset_y = 10, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 5, 1, 2] ] },
+]
+
+# --- Huevo en las manos (acción pickup) --------------------------------
+# El overlay no es solo de herramientas: cada entrada declara con qué
+# ACCIÓN se sincroniza (action; default use_tool). El huevo se dibuja
+# durante el pickup, subiendo POR DELANTE del personaje (según mire
+# izq o der) desde las manos hasta la altura de la cabeza. El sprite es
+# el MISMO que el huevo del piso (Farm/egg.png) a media celda (scale),
+# y los offsets se afinan a ojo como los del pico.
+# 4 frames = 4 cuadros del pickup en characters.toml; frame_ticks igual
+# que los de esa acción (sin `frame` = cadence.frame = 12) para que la
+# animación y el overlay no se desfasen.
+[egg.right]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 16, offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = 18, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 20, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 20, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección left: espejo EXACTO de right. El offset_x se mide desde el
+# borde izquierdo del cuerpo, así que espejar no es negar: la fórmula es
+# izquierda = anchoCuerpo - anchoCapa - derecha (32 - 16 - der, con el
+# huevo a media celda). Con el cuerpo de 32 px y la capa de 16 px eso da
+# 16 - der. (Negar sirve solo cuando la capa ocupa todo el ancho, como
+# las del pico.) Afinar a ojo como siempre.
+[egg.left]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 0,  offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = -2, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = -4, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = -4, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección front (mirando a cámara): el mismo recorrido vertical que el
+# de costado pero centrado al frente del cuerpo (el huevo de 16 px en el
+# cuerpo de 32 px => offset_x = 8). Sin flip ni espejo: se mira de
+# frente.
+[egg.front]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { anchor = "bottom", offset_x = 8, offset_y = -6,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "bottom", offset_x = 8, offset_y = -26, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, offset_y = 18,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   offset_x = 8, offset_y = -8,  scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección back (de espaldas): el huevo solo se ve en el último cuadro,
+# con los brazos arriba (los frames sin layers = [] no dibujan nada, el
+# mismo truco que el pico de espaldas). Centrado a la altura de la
+# cabeza, como el frame final de costado.
+[egg.back]
+sheet       = "Farm/egg.png"
+cell        = [10, 11]
+action      = "pickup"
+frame_ticks = 12
+frames = [
+  { layers = [] },
+  { layers = [] },
+  { layers = [] },
+  { anchor = "body", offset_x = 8, offset_y = -8, scale = 0.5, layers = [ [0, 0, 1, 1] ] },
+]

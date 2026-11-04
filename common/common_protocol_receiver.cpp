@@ -1,16 +1,30 @@
 #include "common_protocol_receiver.h"
 
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <arpa/inet.h>
 
 ProtocolReceiver::ProtocolReceiver(Socket& socket):
         socket(socket),
-        handlers{{protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message}},
+        handlers{
+                {protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message},
+                {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
+                {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
+        },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
                 {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
+                {ServerMessageType::Resource, &ProtocolReceiver::receive_resource_message},
+                {ServerMessageType::Dropped, &ProtocolReceiver::receive_dropped_message},
+                {ServerMessageType::InventorySlot,
+                 &ProtocolReceiver::receive_inventory_slot_message},
+                {ServerMessageType::Obtained, &ProtocolReceiver::receive_obtained_message},
+                {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
+                {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
+                {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
+                {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -54,9 +68,26 @@ Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
     return static_cast<Direction>(value);
 }
 
+ResourceDamage ProtocolReceiver::damage_from_byte(uint8_t value) {
+    if (value > static_cast<uint8_t>(ResourceDamage::Broken)) {
+        throw std::invalid_argument("El estado de daño recibido no es valido.");
+    }
+    return static_cast<ResourceDamage>(value);
+}
+
 protocol::ClientMessage ProtocolReceiver::receive_move_message() {
     const Direction direction = direction_from_byte(receive_uint8());
     return protocol::MoveMessage{direction};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
+    const Direction direction = direction_from_byte(receive_uint8());
+    return protocol::PickMessage{direction};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_take_message() {
+    const Direction direction = direction_from_byte(receive_uint8());
+    return protocol::TakeMessage{direction};
 }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
@@ -84,6 +115,61 @@ ServerMessage ProtocolReceiver::receive_status_message() {
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
 
+ServerMessage ProtocolReceiver::receive_resource_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string content_id = receive_string();
+    const ResourceDamage damage = damage_from_byte(receive_uint8());
+    return ServerResource{x, y, std::move(content_id), damage};
+}
+
+ServerMessage ProtocolReceiver::receive_dropped_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string content_id = receive_string();
+    return ServerDropped{x, y, std::move(content_id)};
+}
+
+ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
+    const uint8_t slot = receive_uint8();
+    const uint8_t count = receive_uint8();
+    std::string content_id = receive_string();
+    return ServerInventorySlot{slot, count, std::move(content_id)};
+}
+
+ServerMessage ProtocolReceiver::receive_obtained_message() {
+    return ServerObtained{receive_string()};
+}
+
+ServerMessage ProtocolReceiver::receive_resource_hit_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const uint8_t destroyed = receive_uint8();
+    if (destroyed > 1) {
+        throw std::invalid_argument("El indicador de destruccion no es valido.");
+    }
+    return ServerResourceHit{x, y, destroyed == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_tool_used_message() {
+    return ServerToolUsed{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
+
+ServerMessage ProtocolReceiver::receive_animal_message() {
+    const uint8_t id = receive_uint8();
+    std::string kind = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const Direction direction = direction_from_byte(receive_uint8());
+    const uint8_t ready = receive_uint8();
+    if (ready > 1) {
+        throw std::invalid_argument("El indicador de ordeñe no es valido.");
+    }
+    return ServerAnimal{id, std::move(kind), x, y, direction, ready == 1};
+}
+
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
     const auto handler = server_handlers.find(type);
@@ -101,4 +187,26 @@ ServerWelcome ProtocolReceiver::receive_welcome() {
     }
 
     return ServerWelcome{receive_uint8()};
+}
+
+MatchRequest ProtocolReceiver::receive_match_request() {
+    const uint8_t type = receive_uint8();
+    if (type != static_cast<uint8_t>(MatchRequestType::Create) &&
+        type != static_cast<uint8_t>(MatchRequestType::Join)) {
+        throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
+    }
+    std::string codeMatch = receive_string();
+    std::string nameMatch = receive_string();
+    std::string username = receive_string();
+    std::string characterName = receive_string();
+    return MatchRequest{static_cast<MatchRequestType>(type), std::move(codeMatch),
+                        std::move(nameMatch), std::move(username), std::move(characterName)};
+}
+
+LobbyStatus ProtocolReceiver::receive_lobby_status() {
+    const uint8_t status = receive_uint8();
+    if (status > static_cast<uint8_t>(LobbyStatus::CharacterNameTaken)) {
+        throw std::invalid_argument("El estado del lobby no es valido.");
+    }
+    return static_cast<LobbyStatus>(status);
 }

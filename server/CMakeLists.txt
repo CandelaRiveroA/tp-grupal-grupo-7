@@ -5,29 +5,43 @@ target_sources(taller_server
     server.cpp
     acceptor.cpp
     client_handler.cpp
+    matches_monitor.cpp
     server_sender.cpp
     server_receiver.cpp
     match.cpp
+    world_view.cpp
     commands/move_command.cpp
+    commands/pick_command.cpp
+    commands/take_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
     domain/entities/i_entity.cpp
     domain/entities/player.cpp
+    domain/entities/dropped_item.cpp
+    domain/animals/animal.cpp
+    domain/animals/chicken.cpp
+    domain/animals/cow.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp
     domain/inventory/slot.cpp
+    domain/minerals/mineral.cpp
+    domain/minerals/coal_rock.cpp
+    domain/minerals/lapis_rock.cpp
+    domain/minerals/silver_rock.cpp
+    domain/minerals/gold_rock.cpp
     PUBLIC
     # .h files
     server.h
     acceptor.h
     client_handler.h
+    matches_monitor.h
     server_sender.h
     server_receiver.h
     match.h
+    world_view.h
     commands/commands.h
-    commands/pick_command.h
     server_output_monitor.h
     )
 

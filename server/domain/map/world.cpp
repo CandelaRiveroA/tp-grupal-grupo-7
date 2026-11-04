@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "../animals/animal.h"
-#include "../animals/cow.h"
 
 World::World(uint16_t w, uint16_t h): width(w), height(h) {
     this->grid.resize(this->height);
@@ -160,13 +159,6 @@ void World::add_animal(std::unique_ptr<Animal> animal) {
     animals.push_back(static_cast<Animal*>(this->grid[y][x].entities.back().get()));
 }
 
-void World::add_cow(std::unique_ptr<Cow> cow) {
-    const uint16_t x = cow->get_x();
-    const uint16_t y = cow->get_y();
-    add_animal(std::move(cow));
-    cows.push_back(static_cast<Cow*>(this->grid[y][x].entities.back().get()));
-}
-
 void World::tick_day() {
     // Se copian los punteros: update puede poner huevos y cambiar las listas de celdas.
     const std::vector<Animal*> today = animals;
@@ -267,13 +259,12 @@ void World::set_player_facing(uint8_t player_id, Direction dir) {
 void World::take_item(uint8_t player_id) {
     Player& p = *this->players.at(player_id);
 
-    // Ordeñar: una vaca lista a una celda de distancia (las 8 vecinas) tiene
-    // prioridad sobre lo que hay en el piso.
-    for (Cow* cow: cows) {
-        const int dx = cow->get_x() - p.get_x();
-        const int dy = cow->get_y() - p.get_y();
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && cow->ready_to_milk()) {
-            cow->interact(p, ToolType::HAND, *this);
+    // Ordeñar: un animal que responde a la mano a una celda de distancia (las 8
+    // vecinas) tiene prioridad sobre lo que hay en el piso.
+    for (Animal* animal: animals) {
+        const int dx = animal->get_x() - p.get_x();
+        const int dy = animal->get_y() - p.get_y();
+        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && animal->try_hand_action(p, *this)) {
             return;
         }
     }

@@ -78,8 +78,8 @@ void Match::place_animals() {
     // Animales de prueba, igual que las piedras: hasta que haya generación de mundo.
     world.add_animal(std::make_unique<Chicken>(3, 3));
     world.add_animal(std::make_unique<Chicken>(26, 4));
-    world.add_cow(std::make_unique<Cow>(4, 4));
-    world.add_cow(std::make_unique<Cow>(25, 5));
+    world.add_animal(std::make_unique<Cow>(4, 4));
+    world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):

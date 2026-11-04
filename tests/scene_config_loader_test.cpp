@@ -36,10 +36,14 @@ TEST(SceneConfigLoaderTest, LoadsElementsInOrder) {
 
 	const world::ElementPlacement& floor = scene.elements[0];
 	EXPECT_EQ(floor.tileset, "farm");
-	EXPECT_EQ(floor.region.origin.column, 0);
-	EXPECT_EQ(floor.region.origin.row, 27);
-	EXPECT_EQ(floor.region.size.columns, 2);
-	EXPECT_EQ(floor.region.size.rows, 2);
+	EXPECT_EQ(floor.pieceSize.columns, 2);
+	EXPECT_EQ(floor.pieceSize.rows, 2);
+	// region = [0, 27, 2, 2] se normaliza a la pieza celda por celda.
+	ASSERT_EQ(floor.pieceCells.size(), 4u);
+	EXPECT_EQ(floor.pieceCells[0].column, 0);
+	EXPECT_EQ(floor.pieceCells[0].row, 27);
+	EXPECT_EQ(floor.pieceCells[3].column, 1);
+	EXPECT_EQ(floor.pieceCells[3].row, 28);
 	EXPECT_EQ(floor.at.column, 0);
 	EXPECT_EQ(floor.at.row, 2);
 	EXPECT_EQ(floor.span.columns, 15);
@@ -131,17 +135,20 @@ TEST(SceneConfigLoaderTest, LoadsRealBedroomFile) {
 	world::SceneConfigLoader loader;
 	const world::SceneDescription scene =
 		loader.loadFromFile(TALLER_SCENES_TOML, "bedroom");
-	ASSERT_EQ(scene.tilesets.count("farm"), 1u);
-	ASSERT_EQ(scene.elements.size(), 2u);
-	EXPECT_EQ(scene.elements[0].draw.mode, world::DrawMode::Tile);
-	EXPECT_EQ(scene.elements[1].draw.mode,
-		  world::DrawMode::HorizontalStrip);
-	EXPECT_EQ(scene.elements[1].draw.scaleY, 3);
-	// La sala inicial declara sus cues audibles (los animales están
-	// acá hoy; el granero declarará los suyos mañana).
-	ASSERT_EQ(scene.soundCues.size(), 2u);
-	EXPECT_EQ(scene.soundCues[0], "chicken_cluck");
-	EXPECT_EQ(scene.soundCues[1], "cow_moo");
+	// Fondo + 6 decoraciones: ventana, sconcelight, chimenea,
+	// cama (composición única), planta, alfombra.
+	ASSERT_EQ(scene.tilesets.count("bedroom"), 1u);
+	ASSERT_EQ(scene.tilesets.count("decoration"), 1u);
+	ASSERT_EQ(scene.tilesets.count("sconcelight"), 1u);
+	ASSERT_EQ(scene.elements.size(), 7u);
+	EXPECT_EQ(scene.elements[0].tileset, "bedroom");
+	EXPECT_EQ(scene.elements[0].draw.mode, world::DrawMode::Single);
+	// El dormitorio NO puebla ni suena a animales: sus cues y sus
+	// animales viven en el jardín (la sala a la que se sale de la
+	// casa). Sin la key de sonidos, la sala es muda.
+	EXPECT_TRUE(scene.soundCues.empty());
+	EXPECT_FALSE(scene.spawns.animals);
+	EXPECT_FALSE(scene.spawns.minerals);
 }
 #endif
 

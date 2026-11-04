@@ -21,6 +21,24 @@ TEST(ContentIdsTest, FindsResourceContentIds) {
     EXPECT_EQ(*ids.find(ResourceKind::Silver), "silver");
 }
 
+TEST(ContentIdsTest, ReverseLookupFindsItemKinds) {
+    // La traducción inversa es sobre las MISMAS tablas: es la que usan
+    // las fuentes de estado para equipar lo que hay en un slot.
+    const ContentIds ids;
+    EXPECT_EQ(ids.itemKindFor("shovel"), ItemKind::Shovel);
+    EXPECT_EQ(ids.itemKindFor("milk"), ItemKind::Milk);
+    // Un recurso no es un ítem equipable; un desconocido tampoco.
+    EXPECT_EQ(ids.itemKindFor("silver"), std::nullopt);
+    EXPECT_EQ(ids.itemKindFor("nope"), std::nullopt);
+}
+
+TEST(ContentIdsTest, ReverseLookupFindsResourceKinds) {
+    const ContentIds ids;
+    EXPECT_EQ(ids.resourceKindFor("coal"), ResourceKind::Coal);
+    EXPECT_EQ(ids.resourceKindFor("pickaxe"), std::nullopt);
+    EXPECT_EQ(ids.resourceKindFor("nope"), std::nullopt);
+}
+
 TEST(ContentIdsTest, CoversEveryItemKind) {
     // El vocabulario es total: ningún ítem queda sin contentId (las
     // tablas de los TOML se recorren con este vocabulario).

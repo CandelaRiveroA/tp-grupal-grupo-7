@@ -139,6 +139,26 @@ margin = 16
 	}
 }
 
+TEST(InventoryConfigLoaderTest, CountHasNoHardcodedCap) {
+	// La cantidad de slots es dato: mañana puede existir un slot 10 sin
+	// tocar código. El loader no valida ningún tope.
+	const std::string toml = R"(
+[sheet]
+image = "x.png"
+cell  = [16, 16]
+[slot]
+cell = [4, 8]
+[bar]
+count = 10
+scale = 3
+gap = 0
+anchor = "bottom_center"
+margin = 16
+)";
+	const world::InventoryLayout bar = loadString(toml);
+	EXPECT_EQ(bar.count, 10);
+}
+
 TEST(InventoryConfigLoaderTest, UnknownAnchorIsInvalidValue) {
 	const std::string toml = R"(
 [sheet]

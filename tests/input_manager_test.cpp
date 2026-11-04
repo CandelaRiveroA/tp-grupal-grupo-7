@@ -1,3 +1,4 @@
+#include <array>
 #include <optional>
 #include <vector>
 
@@ -60,7 +61,7 @@ TEST(InputManagerTest, RepeatKeyEventsAreIgnored) {
     input.handleEvent(keyDown(SDLK_UP, 1));
     EXPECT_FALSE(input.up());
 
-    input.handleEvent(keyDown(SDLK_SPACE, 1));
+    input.handleEvent(keyDown(SDLK_RETURN, 1));
     EXPECT_TRUE(input.takeCommands().empty());
 }
 
@@ -84,16 +85,15 @@ TEST(InputManagerTest, MovementFlagsFollowKeyState) {
     EXPECT_FALSE(input.right());
 }
 
-TEST(InputManagerTest, UseToolIsOneShotPerPress) {
+// "Usar herramienta" ya no se dispara con tecla: lo dispara el click
+// sobre el mundo (PlayerController::useToward). Espacio no manda nada.
+TEST(InputManagerTest, SpaceFiresNoCommands) {
     InputManager input(4);
 
     input.handleEvent(keyDown(SDLK_SPACE));
-    const std::vector<Command> commands = input.takeCommands();
-    ASSERT_EQ(commands.size(), 1u);
-    EXPECT_EQ(commands[0].kind, CommandKind::UseTool);
     EXPECT_TRUE(input.takeCommands().empty());
 
-    // Soltar la tecla no dispara de nuevo.
+    // Soltar la tecla tampoco.
     input.handleEvent(keyUp(SDLK_SPACE));
     EXPECT_TRUE(input.takeCommands().empty());
 }
@@ -136,20 +136,54 @@ TEST(InputManagerTest, ZeroSlotCountDisablesSlotKeys) {
     EXPECT_TRUE(input.takeCommands().empty());
 }
 
+TEST(InputManagerTest, SlotKeysFollowTheKeyTable) {
+    InputManager input(10);
+
+    // La tabla de teclas: un dígito por slot (1..9 y luego el 0).
+    const std::array<SDL_Keycode, 10> slotKeys = {
+        SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_5,
+        SDLK_6, SDLK_7, SDLK_8, SDLK_9, SDLK_0,
+    };
+    for (int i = 0; i < 10; ++i) {
+        input.handleEvent(keyDown(slotKeys[static_cast<std::size_t>(i)]));
+        const std::vector<Command> commands = input.takeCommands();
+        ASSERT_EQ(commands.size(), 1u);
+        EXPECT_EQ(commands[0].kind, CommandKind::SelectSlot);
+        EXPECT_EQ(commands[0].slot, i);
+    }
+}
+
+TEST(InputManagerTest, SlotKeysStopAtTheTableSize) {
+    // Más slots que teclas: los slots sin tecla quedan sin binding (la
+    // selección de esos slots vendrá por otro input), no se inventan
+    // teclas con aritmética fuera de rango.
+    InputManager input(12);
+
+    input.handleEvent(keyDown(static_cast<SDL_Keycode>(SDLK_1 + 9)));
+    EXPECT_TRUE(input.takeCommands().empty());
+}
+
+TEST(InputManagerTest, ZeroKeyIsSlotNineOnlyWhenThereAreTenSlots) {
+    InputManager input(9);
+    input.handleEvent(keyDown(SDLK_0));
+    EXPECT_TRUE(input.takeCommands().empty());
+}
+
 TEST(InputManagerTest, SimultaneousOneShotsAllPending) {
     InputManager input(4);
 
-    input.handleEvent(keyDown(SDLK_SPACE));
     input.handleEvent(keyDown(SDLK_RETURN));
     input.handleEvent(keyDown(SDLK_1));
+    input.handleEvent(keyDown(SDLK_2));
 
     // Salen juntos y en orden de pulsación.
     const std::vector<Command> commands = input.takeCommands();
     ASSERT_EQ(commands.size(), 3u);
-    EXPECT_EQ(commands[0].kind, CommandKind::UseTool);
-    EXPECT_EQ(commands[1].kind, CommandKind::Collect);
+    EXPECT_EQ(commands[0].kind, CommandKind::Collect);
+    EXPECT_EQ(commands[1].kind, CommandKind::SelectSlot);
+    EXPECT_EQ(commands[1].slot, 0);
     EXPECT_EQ(commands[2].kind, CommandKind::SelectSlot);
-    EXPECT_EQ(commands[2].slot, 0);
+    EXPECT_EQ(commands[2].slot, 1);
     EXPECT_TRUE(input.takeCommands().empty());
 }
 

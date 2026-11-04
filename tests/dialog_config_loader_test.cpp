@@ -32,9 +32,25 @@ anchor_offset = [0, -64]
   at    = [0, 0]
 )";
 
+// El reader exige la tabla de cada indicación (como el dialogs.toml
+// real): la carga válida trae la de cada una. El contenido adentro es
+// opcional: el agua ya trae la gota en su último frame.
+constexpr const char* kWaterToml = R"(
+[ready_to_water]
+anchor_offset = [0, -40]
+
+  [ready_to_water.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  frames      = [ [0, 0], [1, 0], [2, 0], [2, 7] ]
+)";
+
 TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
-	const DialogCatalog catalog =
-			DialogConfigLoader().loadFromString(kDialogsToml);
+	const DialogCatalog catalog = DialogConfigLoader().loadFromString(
+		std::string(kDialogsToml) + kWaterToml);
 
 	const world::DialogData* dialog =
 			catalog.find(Indication::ReadyToMilk);
@@ -52,9 +68,10 @@ TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
 	EXPECT_FALSE(animation.loops);
 
 	// Contenido centrado adentro (la leche).
-	EXPECT_EQ(dialog->content.sheetImage, "Farm/large_milk.png");
-	EXPECT_EQ(dialog->content.displayWidth(), 53);
-	EXPECT_EQ(dialog->content.displayHeight(), 64);
+	ASSERT_TRUE(dialog->content.has_value());
+	EXPECT_EQ(dialog->content->sheetImage, "Farm/large_milk.png");
+	EXPECT_EQ(dialog->content->displayWidth(), 53);
+	EXPECT_EQ(dialog->content->displayHeight(), 64);
 
 	// Ancla sobre la entidad.
 	EXPECT_EQ(dialog->anchorOffset.x, 0);
@@ -62,8 +79,8 @@ TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
 }
 
 TEST(DialogConfigLoaderTest, AnimationIsOneShotByDefault) {
-	const DialogCatalog catalog =
-			DialogConfigLoader().loadFromString(kDialogsToml);
+	const DialogCatalog catalog = DialogConfigLoader().loadFromString(
+		std::string(kDialogsToml) + kWaterToml);
 	const world::DialogData* dialog =
 			catalog.find(Indication::ReadyToMilk);
 	ASSERT_NE(dialog, nullptr);

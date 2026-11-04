@@ -7,8 +7,11 @@ ActionNames::ActionNames()
 		  {"idle", ActionKind::Idle},
 		  {"walk", ActionKind::Walk},
 		  {"use_tool", ActionKind::UseTool},
+		  {"water", ActionKind::Water},
 		  {"milk", ActionKind::Milk},
 		  {"pickup", ActionKind::Pickup},
+		  {"carry", ActionKind::Carry},
+		  {"carry_walk", ActionKind::CarryWalk},
 	  } {}
 
 const ActionKind* ActionNames::find(const std::string& name) const {

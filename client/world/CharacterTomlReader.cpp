@@ -21,6 +21,9 @@ constexpr const char* kDrawn = "drawn";
 constexpr const char* kCadence = "cadence";
 constexpr const char* kStep = "step";
 constexpr const char* kMirrored = "mirrored";
+constexpr const char* kHold = "hold";
+constexpr const char* kOffsetY = "offset_y";
+constexpr const char* kScale = "scale";
 
 // Criatura lógica -> tabla del TOML que la describe.
 struct CreatureBinding {
@@ -158,8 +161,33 @@ CharacterCatalog::CreatureEntry CharacterTomlReader::readCreature(
 	entry.drawnHeight = drawn[1];
 
 	entry.data.cadence = readCadence(base);
+	entry.data.hold = readHold(base);
 	entry.data.directions = readDirections(base, entry.data.cadence);
 	return entry;
+}
+
+HoldPresentation CharacterTomlReader::readHold(const std::string& base) const {
+	HoldPresentation hold;
+	const std::string holdBase = join(base, kHold);
+	if (!doc_.hasKey(holdBase)) {
+		return hold;
+	}
+	const std::string offsetPath = join(holdBase, kOffsetY);
+	if (doc_.hasKey(offsetPath)) {
+		// Con signo (como los offsets de tools_overlay.toml):
+		// positivo separa el ítem sobre la cabeza; negativo lo baja
+		// y pisa la cabeza. Es puro ajuste visual.
+		hold.offsetY = doc_.getInt(offsetPath);
+	}
+	const std::string scalePath = join(holdBase, kScale);
+	if (doc_.hasKey(scalePath)) {
+		const double scale = doc_.getDouble(scalePath);
+		if (scale <= 0.0) {
+			throw ConfigError(Kind::InvalidValue, scalePath);
+		}
+		hold.scale = scale;
+	}
+	return hold;
 }
 
 MoveCadence CharacterTomlReader::readCadence(const std::string& base) const {

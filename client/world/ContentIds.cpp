@@ -37,4 +37,24 @@ const std::map<ResourceKind, std::string>& ContentIds::resourceEntries()
 	return resources_;
 }
 
+std::optional<ItemKind> ContentIds::itemKindFor(
+	const std::string& contentId) const {
+	for (const auto& [kind, id] : items_) {
+		if (id == contentId) {
+			return kind;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<ResourceKind> ContentIds::resourceKindFor(
+	const std::string& contentId) const {
+	for (const auto& [kind, id] : resources_) {
+		if (id == contentId) {
+			return kind;
+		}
+	}
+	return std::nullopt;
+}
+
 }  // namespace world

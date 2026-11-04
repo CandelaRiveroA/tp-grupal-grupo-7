@@ -19,8 +19,17 @@ inline constexpr const char* kKeyScale = "scale";
 inline constexpr const char* kKeyElements = "elements";
 inline constexpr const char* kKeySounds = "sounds";
 
+// Poblaciones de la sala (OPCIONAL): qué puebla la fuente de estado.
+inline constexpr const char* kKeySpawns = "spawns";
+inline constexpr const char* kKeySpawnAnimals = "animals";
+inline constexpr const char* kKeySpawnMinerals = "minerals";
+
 inline constexpr const char* kKeyTileset = "tileset";
+// La pieza del elemento: `region` (bloque contiguo de la hoja) o
+// `piece` + `cells` (composición explícita, celda por celda).
 inline constexpr const char* kKeyRegion = "region";
+inline constexpr const char* kKeyPiece = "piece";
+inline constexpr const char* kKeyCells = "cells";
 inline constexpr const char* kKeyAt = "at";
 inline constexpr const char* kKeySpan = "span";
 inline constexpr const char* kKeyDraw = "draw";

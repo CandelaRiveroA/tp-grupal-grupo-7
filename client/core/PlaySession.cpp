@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "core/Constants.h"
+#include "core/FarmConstants.h"
 #include "core/StartupSequence.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
@@ -28,21 +29,27 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         scenario_(scenario),
         gameClient_(gameClient),
         characters_(characters),
+        farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
+              core::assetPath(core::kBuildPlaceFile)),
+        inventory_(farm_.withCropContents(inventory)),
         sdlContext_(config),
         camera_(world::ScenePixelMapper(scenario.scene().cellPixelSize)
                         .worldBounds(scenario.scene().grid),
                 sdlContext_.width(), sdlContext_.height()),
-        renderer_(sdlContext_, characters, toolOverlay, resources, inventory.content),
-        inventoryHud_(sdlContext_, inventory, digits),
-        bannerHud_(sdlContext_, banner, inventory.slotDrawWidth()),
+        renderer_(sdlContext_, characters, toolOverlay, resources, inventory_.content,
+                  farm_.ground(), farm_.crops()),
+        inventoryHud_(sdlContext_, inventory_, digits),
+        bannerHud_(sdlContext_, banner, inventory_.slotDrawWidth()),
         bannerQueue_(banner.durationTicks, banner.maxVisible),
-        input_(core::kInventorySlots),
+        input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
         motion_(characters),
-        actionResolver_(motion_),
+        farmSelection_(inventory_.traits),
+        actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
-                core::kInventorySlots),
-        picker_(inventory.content),
+                inventory_.count),
+        picker_(inventory_.content),
+        markerPainter_(sdlContext_),
         cursorCatalog_(cursors),
         cursorPainter_(sdlContext_),
         dialogCatalog_(dialogs),
@@ -86,6 +93,14 @@ void PlaySession::tick(int iteration) {
         audio_.play(sdl::SoundId::ToolSwitch);
     }
 
+    // Presentación local del campo (saco en la cabeza y lugar de
+    // plantado): sobre la selección fresca de este tick, y la celda que
+    // apunta el puntero (el Viewport traduce a mundo).
+    const world::ScenePixelMapper cells(scenario_.scene().cellPixelSize);
+    const world::PixelPoint worldCursor = camera_.viewport().toWorld(
+            world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
+    farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
+
     if (!state.entities.empty()) {
         const game::ViewEntity& local = state.entities[game::kLocalPlayerIndex];
         const world::CreatureData& creature = characters_.dataFor(local.kind);
@@ -96,6 +111,9 @@ void PlaySession::tick(int iteration) {
         const bool walking = motion_.isWalking(game::kLocalPlayerIndex, iteration, local.moving);
         if (footstepCue_.update(walking, walkFrame)) {
             audio_.play(sdl::SoundId::Step);
+        }
+        if (const std::optional<sdl::SoundId> sound = toolUseSounds_.update(local.activeTool)) {
+            audio_.play(*sound);
         }
     }
 
@@ -124,6 +142,7 @@ void PlaySession::tick(int iteration) {
 
     renderer_.drawWorld(scenario_.scene(), state, motion_, actionResolver_, iteration,
                         camera_.viewport());
+    drawPlantingMarker(cells);
 
     // Diálogos de las entidades (lo que "dicen"): la indicación viene en
     // el estado y el catálogo dice cómo se ve. Sobre el mundo, después
@@ -145,24 +164,23 @@ void PlaySession::tick(int iteration) {
     bannerHud_.draw(bannerQueue_.active());
 
     // El puntero: la variante la decide el estado de juego (si hay algo
-    // interactivo bajo el cursor); el painter solo dibuja. La posición
-    // del click se traduce a mundo con el Viewport, dueño de esa
-    // conversión.
-    const world::PixelPoint worldCursor = camera_.viewport().toWorld(
-            world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
+    // interactivo bajo el cursor); el painter solo dibuja.
     const game::PickTarget target =
             picker_.pick(worldCursor, state, motion_, iteration, scenario_.scene().cellPixelSize);
 
-    // El click sobre algo del mundo manda la intención de tomarlo: la
-    // fuente decide qué pasa (el ordeñe, por ejemplo, valida cercanía).
+    // El click sobre algo interactivo manda la intención de tomarlo; el
+    // resto (piso, rocas, nada) cae al uso de herramienta hacia esa
+    // celda. La fuente decide qué pasa en ambos casos.
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
         const game::PickTarget clicked = picker_.pick(worldClick, state, motion_, iteration,
                                                       scenario_.scene().cellPixelSize);
-        if (clicked.kind != game::PickTarget::Kind::None) {
+        if (clicked.kind != game::PickTarget::Kind::None && isInteractive(clicked, state)) {
             player_.interact();
+            continue;
         }
+        player_.useToward(cells.toCell(worldClick), pressed);
     }
 
     cursorPainter_.draw(cursorCatalog_,
@@ -170,6 +188,15 @@ void PlaySession::tick(int iteration) {
                                                        world::CursorKind::Normal,
                         input_.mousePosition());
     sdlContext_.present();
+}
+
+void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {
+    // QUÉ celda y en qué estado la marca lo resolvió FarmSelection; esto
+    // solo la pinta, sobre el mundo y como una selección más del HUD.
+    if (const std::optional<game::PlantingSpot>& spot = farmSelection_.spot()) {
+        markerPainter_.draw(farm_.buildPlaces(), spot->state, spot->cell, cells,
+                            camera_.viewport());
+    }
 }
 
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,
@@ -190,6 +217,9 @@ bool PlaySession::isInteractive(const game::PickTarget& target,
     }
     if (target.kind == game::PickTarget::Kind::DroppedItem) {
         return view.droppedItems[target.index].interactive;
+    }
+    if (target.kind == game::PickTarget::Kind::Crop) {
+        return view.plantedCrops[target.index].interactive;
     }
     return false;
 }

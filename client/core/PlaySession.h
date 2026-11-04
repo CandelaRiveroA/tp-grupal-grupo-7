@@ -3,9 +3,11 @@
 #include <map>
 
 #include "core/StartupScreens.h"
+#include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
 #include "game/DialogAnimator.h"
+#include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
@@ -17,6 +19,7 @@
 #include "sdl/context/SdlContext.h"
 #include "sdl/input/InputManager.h"
 #include "sdl/render/Camera.h"
+#include "sdl/render/BuildPlacePainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
@@ -24,6 +27,8 @@
 #include "sdl/render/Renderer.h"
 #include "world/CursorCatalog.h"
 #include "world/DialogCatalog.h"
+#include "world/FarmCatalogs.h"
+#include "world/InventoryLayout.h"
 
 namespace game {
 class GameClient;
@@ -32,6 +37,7 @@ struct LocalWorldView;
 
 namespace world {
 class Scenario;
+class ScenePixelMapper;
 class CharacterCatalog;
 struct DigitCatalog;
 struct InventoryLayout;
@@ -65,6 +71,9 @@ public:
 private:
     void tick(int iteration);
 
+    // Marcador del lugar de plantado sobre la celda que apunta el puntero.
+    void drawPlantingMarker(const world::ScenePixelMapper& cells);
+
     // La cámara sigue el rectángulo dibujado del jugador local, no su
     // celda lógica: así también se centra durante la interpolación del paso.
     void updateCamera(const game::LocalWorldView& view,
@@ -79,6 +88,12 @@ private:
     game::GameClient& gameClient_;
     const world::CharacterCatalog& characters_;
 
+    // El campo (cultivos, terreno, lugar de plantado) y el inventario
+    // con los sacos y la cosecha ya registrados. Van ANTES de todo lo
+    // que los consume: el HUD y el renderer guardan lo que reciben.
+    world::FarmCatalogs farm_;
+    world::InventoryLayout inventory_;
+
     sdl::SdlContext sdlContext_;
     sdl::Camera camera_;
     sdl::Renderer renderer_;
@@ -91,10 +106,13 @@ private:
     StartupScreens screens_;
     game::ViewMotion motion_;
     game::FootstepCue footstepCue_;
+    ToolUseSounds toolUseSounds_;
     game::ResourceAudioCue resourceAudioCue_;
+    game::FarmSelection farmSelection_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
+    sdl::BuildPlacePainter markerPainter_;
     world::CursorCatalog cursorCatalog_;
     sdl::CursorPainter cursorPainter_;
     game::DialogAnimator dialogAnimator_;

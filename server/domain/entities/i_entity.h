@@ -52,6 +52,9 @@ public:
 
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
 
+    // true = se levanta con Take y eso dispara la animación de recogida.
+    virtual bool pickup_on_take() const;
+
     // Nullopt si la entidad no se muestra como contenido de celda.
     virtual std::optional<CellSnapshot> snapshot() const;
 

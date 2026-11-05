@@ -64,7 +64,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                             ServerResource{x, y, content_id_for(snap->item),
                                            damage_for(snap->hits_taken, snap->hits_to_destroy)});
                 } else {
-                    out.push_back(ServerDropped{x, y, content_id_for(snap->item)});
+                    const bool interactive = entity->pickup_on_take();
+                    out.push_back(ServerDropped{x, y, content_id_for(snap->item), interactive});
                 }
             }
         }

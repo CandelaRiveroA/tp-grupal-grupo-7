@@ -29,6 +29,10 @@ public:
 
     virtual void produce(World& w) = 0;
 
+    // Acción de la mano del jugador sobre este animal. Devuelve true si consumió
+    // la acción (el mundo deja de buscar); por defecto la mano no hace nada.
+    virtual bool try_hand_action(Player& p, World& w);
+
     // Un paso del reloj de animales: avanza en la dirección actual o elige una
     // nueva cuando se agota el tiempo en esa dirección.
     void wander(World& w);

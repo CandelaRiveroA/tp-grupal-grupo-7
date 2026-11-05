@@ -1,5 +1,6 @@
 #include "game/PlayerController.h"
 
+#include <algorithm>
 #include <array>
 
 #include "game/GameClient.h"
@@ -18,17 +19,17 @@ struct FacingOffset {
 };
 
 constexpr std::array<FacingOffset, 4> kFacingOffsets = {{
-    {0, -1, world::Direction::Back},
-    {0, 1, world::Direction::Front},
-    {-1, 0, world::Direction::Left},
-    {1, 0, world::Direction::Right},
+        {0, -1, world::Direction::Back},
+        {0, 1, world::Direction::Front},
+        {-1, 0, world::Direction::Left},
+        {1, 0, world::Direction::Right},
 }};
 
-}
+}  // namespace
 
-PlayerController::PlayerController(game::GameClient& client,
-                                   const world::MoveCadence& cadence, int slotCount)
-        : client_(client), walkPacer_(cadence), slotCount_(slotCount) {
+PlayerController::PlayerController(game::GameClient& client, const world::MoveCadence& cadence,
+                                   int slotCount):
+        client_(client), walkPacer_(cadence), slotCount_(slotCount) {
     walkHandlers_ = {
             {game::WalkIntent::None, []() {}},
             {game::WalkIntent::Step, [this]() { stepWalk(); }},
@@ -36,37 +37,31 @@ PlayerController::PlayerController(game::GameClient& client,
     };
     commandHandlers_ = {
             {game::InputCommand::Kind::UseTool,
-             [this](const game::InputCommand&,
-                    const std::optional<world::Direction>& pressed) {
+             [this](const game::InputCommand&, const std::optional<world::Direction>& pressed) {
                  handleUseTool(pressed);
              }},
             {game::InputCommand::Kind::Collect,
-             [this](const game::InputCommand&,
-                    const std::optional<world::Direction>& pressed) {
+             [this](const game::InputCommand&, const std::optional<world::Direction>& pressed) {
                  handleCollect(pressed);
              }},
             {game::InputCommand::Kind::SelectSlot,
-             [this](const game::InputCommand& command,
-                    const std::optional<world::Direction>&) {
+             [this](const game::InputCommand& command, const std::optional<world::Direction>&) {
                  handleSelectSlot(command);
              }},
     };
 }
 
-PlayerEvents PlayerController::tick(
-        int iteration, const std::optional<world::Direction>& pressed,
-        const std::vector<game::InputCommand>& commands) {
+PlayerEvents PlayerController::tick(int iteration, const std::optional<world::Direction>& pressed,
+                                    const std::vector<game::InputCommand>& commands) {
     events_ = PlayerEvents{};
     walkHandlers_.at(walkPacer_.intentFor(iteration, pressed))();
-    for (const game::InputCommand& command : commands) {
+    for (const game::InputCommand& command: commands) {
         commandHandlers_.at(command.kind)(command, pressed);
     }
     return events_;
 }
 
-int PlayerController::activeSlot() const {
-    return inventorySelector_.active();
-}
+int PlayerController::activeSlot() const { return inventorySelector_.active(); }
 
 void PlayerController::interact() {
     client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection()));
@@ -87,11 +82,19 @@ void PlayerController::useToward(const world::GridCell& target,
     const int dx = target.column - local.cellX;
     const int dy = target.row - local.cellY;
     if (dx == 0 && dy == 0) {
+        // El huevo bajo el jugador queda tapado por su sprite: el click va como Take.
+        const auto onOwnCell = [&](const ViewDroppedItem& item) {
+            return item.interactive && item.cellX == local.cellX && item.cellY == local.cellY;
+        };
+        if (std::any_of(state.droppedItems.begin(), state.droppedItems.end(), onOwnCell)) {
+            interact();
+            return;
+        }
         // La celda propia: la herramienta apunta a donde mira.
         useTool(walkPacer_.lastDirection());
         return;
     }
-    for (const FacingOffset& offset : kFacingOffsets) {
+    for (const FacingOffset& offset: kFacingOffsets) {
         if (offset.dx == dx && offset.dy == dy) {
             useTool(offset.direction);
             return;

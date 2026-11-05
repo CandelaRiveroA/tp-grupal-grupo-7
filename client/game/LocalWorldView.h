@@ -96,9 +96,9 @@ struct ViewDroppedItem {
     std::string contentId;
     int cellX;
     int cellY;
-    // ¿Es "apretable"/seleccionable? Lo decide la FUENTE DE ESTADO (el
-    // servidor lo mandará; hoy el mock lo simula), igual que en las
-    // entidades.
+    // ¿Es "apretable"/seleccionable? Lo decide la FUENTE DE ESTADO: el
+    // servidor lo manda en ServerDropped.interactive y el mock lo simula,
+    // igual que en las entidades.
     bool interactive = false;
 };
 
@@ -181,8 +181,7 @@ struct LocalWorldView {
     // Coloca un contenido en un slot concreto con su conteo: para que el
     // que ya tenía slot lo mantenga merge tras merge (el inventario no
     // se reordena).
-    void placeInventoryContent(int slotIndex, const std::string& contentId,
-                               int count);
+    void placeInventoryContent(int slotIndex, const std::string& contentId, int count);
 
     // ¿Está libre el slot en esta vista?
     bool inventorySlotFree(int slotIndex) const;

@@ -39,18 +39,17 @@ struct InteractionTarget {
 // abierto/cerrado).
 class Interactor {
 public:
-	virtual ~Interactor() = default;
+    virtual ~Interactor() = default;
 
-	// El objetivo válido más cerca de la celda, si lo hay. Cada
-	// sistema define su propia regla de cercanía y validez.
-	virtual std::optional<InteractionTarget> findTargetNear(
-		int cellX, int cellY) const = 0;
+    // El objetivo válido más cerca de la celda, si lo hay. Cada
+    // sistema define su propia regla de cercanía y validez.
+    virtual std::optional<InteractionTarget> findTargetNear(int cellX, int cellY) const = 0;
 
-	// La interacción arrancó (ej: el huevo sale del piso).
-	virtual void onInteractionStarted(const InteractionTarget& target) = 0;
+    // La interacción arrancó (ej: el huevo sale del piso).
+    virtual void onInteractionStarted(const InteractionTarget& target) = 0;
 
-	// La interacción terminó (ej: la vaca deja de estar lista).
-	virtual void onInteractionFinished(const InteractionTarget& target) = 0;
+    // La interacción terminó (ej: la vaca deja de estar lista).
+    virtual void onInteractionFinished(const InteractionTarget& target) = 0;
 };
 
 }  // namespace game

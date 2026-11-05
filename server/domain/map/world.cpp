@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "../animals/animal.h"
-#include "../animals/cow.h"
 
 World::World(uint16_t w, uint16_t h): width(w), height(h) {
     this->grid.resize(this->height);
@@ -71,6 +70,10 @@ void World::move_player(uint8_t player_id, Direction dir) {
             }
 
             for (IEntity* ent: iteratable_entities) {
+                // El huevo espera el Take (para poder animarlo): el imán lo saltea.
+                if (ent->pickup_on_take()) {
+                    continue;
+                }
                 ent->interact(p, ToolType::HAND, *this);
             }
         }
@@ -158,13 +161,6 @@ void World::add_animal(std::unique_ptr<Animal> animal) {
     set_entity_at(x, y, std::move(animal));
     // set_entity_at agrega al final de la celda: el puntero es el de la celda, no el del parámetro.
     animals.push_back(static_cast<Animal*>(this->grid[y][x].entities.back().get()));
-}
-
-void World::add_cow(std::unique_ptr<Cow> cow) {
-    const uint16_t x = cow->get_x();
-    const uint16_t y = cow->get_y();
-    add_animal(std::move(cow));
-    cows.push_back(static_cast<Cow*>(this->grid[y][x].entities.back().get()));
 }
 
 void World::tick_day() {
@@ -267,14 +263,28 @@ void World::set_player_facing(uint8_t player_id, Direction dir) {
 void World::take_item(uint8_t player_id) {
     Player& p = *this->players.at(player_id);
 
-    // Ordeñar: una vaca lista a una celda de distancia (las 8 vecinas) tiene
-    // prioridad sobre lo que hay en el piso.
-    for (Cow* cow: cows) {
-        const int dx = cow->get_x() - p.get_x();
-        const int dy = cow->get_y() - p.get_y();
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && cow->ready_to_milk()) {
-            cow->interact(p, ToolType::HAND, *this);
+    // Ordeñar: un animal que responde a la mano a una celda de distancia (las 8
+    // vecinas) tiene prioridad sobre lo que hay en el piso.
+    for (Animal* animal: animals) {
+        const int dx = animal->get_x() - p.get_x();
+        const int dy = animal->get_y() - p.get_y();
+        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && animal->try_hand_action(p, *this)) {
             return;
+        }
+    }
+
+    // Huevos: se levantan desde las 8 vecinas, como la vaca (el cliente anima el primero).
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            // Coordenadas negativas se vuelven enormes y get_entity_at las descarta.
+            const auto x = static_cast<uint16_t>(p.get_x() + dx);
+            const auto y = static_cast<uint16_t>(p.get_y() + dy);
+            for (IEntity* ent: get_entity_at(x, y)) {
+                if (ent->pickup_on_take()) {
+                    ent->interact(p, ToolType::HAND, *this);
+                    return;
+                }
+            }
         }
     }
 

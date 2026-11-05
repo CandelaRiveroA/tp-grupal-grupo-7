@@ -70,6 +70,8 @@ std::optional<AnimalSnapshot> Animal::animal_snapshot() const {
     return AnimalSnapshot{id, kind_name(), false, wander_dir};
 }
 
+bool Animal::try_hand_action(Player& /*p*/, World& /*w*/) { return false; }
+
 void Animal::wander(World& w) {
     // Todavía no le toca moverse: se queda quieto unos ticks.
     if (this->ticks_to_pause > 0) {

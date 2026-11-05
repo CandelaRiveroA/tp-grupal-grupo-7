@@ -118,6 +118,22 @@ void InventoryHud::draw(
 	}
 }
 
+void InventoryHud::drawPanel(const world::PixelBox& box, const int columns,
+			     const int rows) {
+	// La figura del inventario "vacía": los cuadros de los slots (el
+	// fondo del panel, en grilla columns×rows) y, encima, el marco.
+	// Sin el borde interior de cada slot (la profundidad) y sin ítems.
+	for (const world::PixelBox& slot : layout_.slotBoxes(box, columns,
+								rows)) {
+		sheet_.draw(layout_.slotCol, layout_.slotRow,
+			    SDL2pp::Rect(slot.x, slot.y, slot.width,
+					 slot.height));
+	}
+	if (layout_.frame.enabled) {
+		drawFrame(layout_.frameLayout(box));
+	}
+}
+
 void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 	const std::vector<int> digits = world::digitsOf(count);
 	const std::vector<world::PixelBox> boxes =

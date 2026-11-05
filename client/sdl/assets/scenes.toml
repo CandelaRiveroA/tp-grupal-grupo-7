@@ -99,6 +99,10 @@ scale       = 2
   #   Fila  2:   mitad-bottom (6,12)(7,12)
   #   Fila  3:   pie          (0,10)(1,10)
   # scale=3 → 96×192px = 3×6 celdas lógicas. Mover: cambiar `at`.
+  # `enter`: el jugador puede meterse (click del cursor). Las filas 2-3
+  # (mitad + pie) se dibujan ENCIMA y lo tapan; la cabecera queda
+  # detrás (la cabeza se ve sobre la almohada). `lie` es la celda donde
+  # queda acostado.
   [[rooms.bedroom.elements]]
   tileset = "decoration"
   piece   = [2, 4]
@@ -109,6 +113,7 @@ scale       = 2
   draw    = { mode = "single", scale = 3 }
   at      = [19, 10]
   span    = [3, 6]
+  enter   = { rows = [2, 3], lie = [20, 13], facing = "right" }
 
   # Planta: col=17, rows 11-12 (1×2).
   [[rooms.bedroom.elements]]

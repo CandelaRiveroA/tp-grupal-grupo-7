@@ -27,11 +27,13 @@
 #include "world/DialogConfigLoader.h"
 #include "world/DigitCatalog.h"
 #include "world/DigitConfigLoader.h"
+#include "world/FontCatalog.h"
 #include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
 #include "world/ObtainedBannerCatalog.h"
 #include "world/ObtainedBannerConfigLoader.h"
+#include "world/PromptLayout.h"
 #include "world/ResourceCatalog.h"
 #include "world/ResourceConfigLoader.h"
 #include "world/Scenario.h"
@@ -127,12 +129,17 @@ int Application::runGame(SessionConfig session) {
                 world::CursorConfigLoader().loadFromFile(core::assetPath(core::kCursorsFile));
         const world::DialogCatalog dialogs =
                 world::DialogConfigLoader().loadFromFile(core::assetPath(core::kDialogsFile));
+        // La fuente de texto y el prompt del popup: datos puros cuya
+        // traducción vive en su constructor (mismo ConfigError del
+        // catch único de este borde).
+        const world::FontCatalog font(core::assetPath(core::kTextFile));
+        const world::PromptLayout prompt(core::assetPath(core::kTextFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs);
+                                resources, banner, digits, cursors, dialogs, font, prompt);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

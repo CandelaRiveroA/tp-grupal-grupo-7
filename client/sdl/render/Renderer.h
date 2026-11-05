@@ -48,6 +48,16 @@ public:
 		       const game::ActionResolver& actionResolver,
 		       int animationTick, const Viewport& viewport);
 
+	// Capa frontal de un elemento: solo el rango de filas de su pieza,
+	// ya sobre las entidades (lo que "tapa" al jugador metido adentro).
+	// QUÉ y CUÁNDO dibujar lo decide la capa de presentación; esto
+	// solo pinta, con el mismo culling por bounds que todo elemento.
+	void drawElementFront(const world::SceneDescription& scene,
+			      const world::ElementPlacement& element,
+			      const world::ScenePixelMapper& mapper,
+			      const Viewport& viewport, int firstRow,
+			      int lastRow);
+
 private:
 	void drawResource(const game::ViewResource& resource,
 			  const world::ScenePixelMapper& mapper,
@@ -61,6 +71,14 @@ private:
 			 const world::ElementPlacement& element,
 			 const world::ScenePixelMapper& mapper,
 			 const Viewport& viewport);
+
+	// Setup común de un dibujo de elemento: hoja cacheada, painter en
+	// coordenadas de pantalla y solo las filas del rango pedido.
+	void drawElementRange(const world::SceneDescription& scene,
+			      const world::ElementPlacement& element,
+			      const world::ScenePixelMapper& mapper,
+			      const Viewport& viewport, int firstRow,
+			      int lastRow);
 
 	SdlContext& context_;
 

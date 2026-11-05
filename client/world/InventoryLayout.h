@@ -134,10 +134,31 @@ struct InventoryLayout {
 	std::vector<PixelBox> slotBoxes(int windowWidth,
 					int windowHeight) const;
 
+	// Los slots en grilla columns×rows dentro de cualquier caja (el
+	// caso de la barra es una fila de `count`): un panel con la figura
+	// del inventario los pide acá.
+	std::vector<PixelBox> slotBoxes(const PixelBox& outer, int columns,
+					int rows) const;
+
+	// La caja que ocupa una grilla columns×rows de slots (slots +
+	// separaciones + el inset del marco).
+	PixelBox gridBox(int columns, int rows) const;
+
 	std::vector<PixelBox> slotBoxesNatural(int windowWidth,
 					       int windowHeight) const;
 
 	FrameLayout frameLayout(int windowWidth, int windowHeight) const;
+
+	// El MISMO marco del inventario dibujado dentro de cualquier caja
+	// (el caso de la barra es la caja de outerBox). Genérico: cualquier
+	// panel que quiera la figura del inventario la pide acá.
+	FrameLayout frameLayout(const PixelBox& box) const;
+
+	// La caja de una grilla columns×rows de slots centrada en la
+	// ventana (el popup). La barra es otro caso: outerBox (una fila de
+	// `count` anclada abajo).
+	PixelBox centeredBox(int windowWidth, int windowHeight, int columns,
+			     int rows) const;
 
 	FrameLayout slotFrameLayout(const PixelBox& slot) const;
 

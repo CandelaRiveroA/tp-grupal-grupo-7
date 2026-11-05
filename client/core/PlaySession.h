@@ -7,12 +7,15 @@
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
 #include "game/DialogAnimator.h"
+#include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
+#include "game/PopupState.h"
 #include "game/ResourceAudioCue.h"
+#include "game/SceneTransition.h"
 #include "game/ViewMotion.h"
 #include "sdl/audio/AudioCatalog.h"
 #include "sdl/audio/AudioPlayer.h"
@@ -24,11 +27,15 @@
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
+#include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
+#include "sdl/render/TextRenderer.h"
 #include "world/CursorCatalog.h"
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
 #include "world/InventoryLayout.h"
+#include "world/PromptLayout.h"
+#include "world/SceneDescription.h"
 
 namespace game {
 class GameClient;
@@ -63,7 +70,9 @@ public:
                 const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits,
                 const world::CursorCatalog& cursors,
-                const world::DialogCatalog& dialogs);
+                const world::DialogCatalog& dialogs,
+                const world::FontCatalog& font,
+                const world::PromptLayout& prompt);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -73,6 +82,23 @@ private:
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
+
+    // Capa frontal del elemento donde está metido el jugador (lo que lo
+    // tapa). QUÉ dibujar lo decidió EnterSelection; esto solo lo pinta,
+    // sobre las entidades y bajo el HUD.
+    void drawEnteredFront(const game::LocalWorldView& view,
+                          const world::ScenePixelMapper& cells);
+
+    // El popup del HUD con la figura vacía del inventario y su
+    // contenido (la pregunta o el avance). El cuándo lo dice
+    // PopupState, el dónde InventoryLayout y el cómo los painters;
+    // esto solo compone la llamada.
+    void drawPopup(const world::PixelBox& panel);
+
+    // Cambia la escena actual (en el negro de la transición): carga la
+    // sala pedida, reconstruye el índice del renderer y la cámara. El
+    // dibujo no cambia: solo QUÉ escena se pinta.
+    void changeScene(const std::string& room);
 
     // La cámara sigue el rectángulo dibujado del jugador local, no su
     // celda lógica: así también se centra durante la interpolación del paso.
@@ -84,7 +110,9 @@ private:
     bool isInteractive(const game::PickTarget& target,
                        const game::LocalWorldView& view) const;
 
-    const world::Scenario& scenario_;
+    // La escena actual: intercambiable al cambiar de escenario (la
+    // ventana la sigue dando el Scenario).
+    world::SceneDescription scene_;
     game::GameClient& gameClient_;
     const world::CharacterCatalog& characters_;
 
@@ -109,6 +137,9 @@ private:
     ToolUseSounds toolUseSounds_;
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
+    game::EnterSelection enterSelection_;
+    game::PopupState popupState_;
+    game::SceneTransition sceneTransition_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
@@ -118,6 +149,9 @@ private:
     game::DialogAnimator dialogAnimator_;
     world::DialogCatalog dialogCatalog_;
     sdl::DialogPainter dialogPainter_;
+    world::PromptLayout promptLayout_;
+    sdl::TextRenderer textRenderer_;
+    sdl::PromptPainter promptPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

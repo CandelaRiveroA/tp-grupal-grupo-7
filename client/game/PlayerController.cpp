@@ -1,6 +1,7 @@
 #include "game/PlayerController.h"
 
 #include <array>
+#include <cstdlib>
 
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
@@ -57,7 +58,11 @@ PlayerEvents PlayerController::tick(
         int iteration, const std::optional<world::Direction>& pressed,
         const std::vector<game::InputCommand>& commands) {
     events_ = PlayerEvents{};
-    walkHandlers_.at(walkPacer_.intentFor(iteration, pressed))();
+    if (pressed.has_value()) {
+        // El movimiento manual manda: cancela la auto-caminata.
+        walkTarget_.reset();
+    }
+    walkHandlers_.at(walkPacer_.intentFor(iteration, walkingDirection(pressed)))();
     for (const game::InputCommand& command : commands) {
         commandHandlers_.at(command.kind)(command, pressed);
     }
@@ -104,6 +109,36 @@ void PlayerController::useToward(const world::GridCell& target,
 
 void PlayerController::stepWalk() {
     client_.sendCommand(moveCommand_.propose(walkPacer_.lastDirection()));
+}
+
+void PlayerController::walkTo(const world::GridCell& target) {
+    walkTarget_ = target;
+}
+
+std::optional<world::Direction> PlayerController::walkingDirection(
+        const std::optional<world::Direction>& pressed) {
+    if (pressed.has_value() || !walkTarget_.has_value()) {
+        return pressed;
+    }
+    const LocalWorldView& state = client_.worldState();
+    if (state.entities.empty()) {
+        walkTarget_.reset();
+        return std::nullopt;
+    }
+    const ViewEntity& local = state.entities[kLocalPlayerIndex];
+    const int dx = walkTarget_->column - local.cellX;
+    const int dy = walkTarget_->row - local.cellY;
+    if (dx == 0 && dy == 0) {
+        // Llegó: se terminó la auto-caminata.
+        walkTarget_.reset();
+        return std::nullopt;
+    }
+    // Un paso por eje, priorizando el que más falta (el ritmo lo sigue
+    // poniendo el pacer; esto solo elige hacia dónde).
+    if (dx != 0 && (dy == 0 || std::abs(dx) >= std::abs(dy))) {
+        return dx > 0 ? world::Direction::Right : world::Direction::Left;
+    }
+    return dy > 0 ? world::Direction::Front : world::Direction::Back;
 }
 
 void PlayerController::useTool(const world::Direction direction) {

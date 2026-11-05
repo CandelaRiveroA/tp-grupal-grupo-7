@@ -95,6 +95,7 @@ orden de dibujo**: lo que está más abajo se pinta encima.
 | `draw`    | tabla inline         | sí          | Modo de dibujo y escala (ver abajo)                  |
 | `at`      | `[int, int]`         | sí          | Celda lógica donde arranca `[columna, fila]`         |
 | `span`    | `[int, int]`         | sí          | Área lógica que cubre `[columnas, filas]`            |
+| `enter`   | tabla inline         | no          | Hace "entrable" al elemento (ver abajo)              |
 
 - `region` describe un rectángulo dentro de la imagen, en celdas: empieza
   en `(col, row)` y abarca `cols × rows` celdas.
@@ -125,6 +126,29 @@ la habitación. Si declara `scale`, lo usa en ambos ejes. `scale_x`/
 - `horizontal_strip`: repite la región **solo a lo ancho** del `span`;
   el alto es el de la pieza dibujada (su `scale_y`). Recorta la última
   pieza en ancho para cubrir exacto.
+
+### `enter` (opcional)
+
+```toml
+enter = { rows = [2, 3], lie = [20, 13], facing = "back" }
+```
+
+Hace **entrable** al elemento: el jugador puede meterse con el click
+del cursor (presentación local del cliente; la fuente de estado no
+participa). Al meterse, el jugador se ubica en `lie` mirando `facing` y
+las filas `rows` de la pieza se dibujan **encima de las entidades** (lo
+"tapan"). En la cama: la cabecera queda detrás —la cabeza se ve sobre
+la almohada— y las frazadas (mitad + pie) quedan delante del cuerpo.
+Sale con otro click sobre el elemento, con un click afuera o al moverse.
+
+| Campo    | Tipo         | Obligatorio | Descripción                                            |
+|----------|--------------|-------------|--------------------------------------------------------|
+| `rows`   | `[int, int]` | sí          | Filas de la pieza (inclusive, desde 0) que van adelante |
+| `lie`    | `[int, int]` | sí          | Celda lógica donde queda el jugador `[col, fila]` (dentro de `at`/`span`) |
+| `facing` | string       | sí          | Pose del jugador: `front`, `back`, `left`, `right`      |
+
+Otra cama (o cualquier mueble donde meterse) = otra entrada de elemento
+con su `enter`: sin código nuevo.
 
 ---
 

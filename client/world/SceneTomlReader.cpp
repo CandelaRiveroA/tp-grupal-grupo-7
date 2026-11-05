@@ -12,7 +12,13 @@
 namespace world {
 
 SceneTomlReader::SceneTomlReader(const tomlcfg::TomlDocument& doc)
-	: doc_(doc) {}
+	: directionsByName_{
+		  {"front", Direction::Front},
+		  {"back", Direction::Back},
+		  {"left", Direction::Left},
+		  {"right", Direction::Right},
+	  }
+	, doc_(doc) {}
 
 SceneDescription SceneTomlReader::readRoom(
 	const std::string& roomName) const {
@@ -135,6 +141,8 @@ void SceneTomlReader::readElements(const std::string& roomBase,
 		placement.draw = readDrawSpec(element.getSubtable(kKeyDraw),
 					      defaultScale, context);
 
+		readEnter(element, context, placement);
+
 		scene.elements.push_back(std::move(placement));
 		++elementIndex;
 	}
@@ -224,6 +232,56 @@ DrawMode SceneTomlReader::parseDrawMode(
 	}
 	throw ConfigError(ConfigErrorKind::InvalidValue,
 			  join(context, kKeyMode));
+}
+
+void SceneTomlReader::readEnter(const tomlcfg::TomlDocument& element,
+				const std::string& context,
+				ElementPlacement& placement) const {
+	// "Entrar" al elemento (OPCIONAL): sin la subtabla el elemento es
+	// decoración pura. Con ella, el jugador puede meterse: las filas
+	// `rows` de la pieza se dibujan encima de las entidades y él queda
+	// en `lie`, mirando `facing` (presentación local, ver
+	// ElementEnter).
+	if (!element.hasKey(kKeyEnter)) {
+		return;
+	}
+	const std::string enterPath = join(context, kKeyEnter);
+	const tomlcfg::TomlDocument enter = element.getSubtable(kKeyEnter);
+
+	const std::array<int, 2> rows =
+		enter.getIntArray<2>(kKeyEnterRows);
+	if (rows[0] < 0 || rows[1] < rows[0] ||
+	    rows[1] >= placement.pieceSize.rows) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(enterPath, kKeyEnterRows));
+	}
+
+	// La celda donde se mete el jugador está dentro del área que
+	// ocupa el elemento en la grilla lógica.
+	const std::array<int, 2> lie = enter.getIntArray<2>(kKeyEnterLie);
+	if (lie[0] < placement.at.column ||
+	    lie[0] >= placement.at.column + placement.span.columns ||
+	    lie[1] < placement.at.row ||
+	    lie[1] >= placement.at.row + placement.span.rows) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(enterPath, kKeyEnterLie));
+	}
+
+	placement.enter =
+		ElementEnter{rows[0], rows[1], {lie[0], lie[1]},
+			     parseFacing(enter.getString(kKeyEnterFacing),
+					 enterPath)};
+}
+
+Direction SceneTomlReader::parseFacing(const std::string& name,
+				       const std::string& context) const {
+	const std::map<std::string, Direction>::const_iterator found =
+		directionsByName_.find(name);
+	if (found == directionsByName_.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(context, kKeyEnterFacing));
+	}
+	return found->second;
 }
 
 std::string SceneTomlReader::join(const std::string& base,

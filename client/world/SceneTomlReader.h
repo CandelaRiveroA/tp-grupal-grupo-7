@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 
 #include "toml/TomlDocument.h"
@@ -37,10 +38,25 @@ private:
 	DrawMode parseDrawMode(const std::string& mode,
 			       const std::string& context) const;
 
+	// "Entrar" al elemento (OPCIONAL, subtabla `enter`): traduce y
+	// valida; sin la subtabla no hace nada.
+	void readEnter(const tomlcfg::TomlDocument& element,
+		       const std::string& context,
+		       ElementPlacement& placement) const;
+
+	// Nombre de dirección del TOML -> vocabulario. Lanza
+	// ConfigError(InvalidValue, path) si el nombre no existe.
+	Direction parseFacing(const std::string& name,
+			      const std::string& context) const;
+
 	std::string join(const std::string& base,
 			 const std::string& key) const;
 
 	std::string idx(const std::string& base, std::size_t i) const;
+
+	// Nombres de dirección del TOML -> Direction (diccionario, no
+	// switch): se consulta con find, nunca con .at() sobre dato crudo.
+	std::map<std::string, Direction> directionsByName_;
 
 	const tomlcfg::TomlDocument& doc_;
 };

@@ -82,6 +82,8 @@ target_sources(taller_client
     sdl/render/ObtainedBannerHud.cpp
     sdl/render/CursorPainter.cpp
     sdl/render/DialogPainter.cpp
+    sdl/render/TextRenderer.cpp
+    sdl/render/PromptPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     sdl/audio/MusicPlayer.cpp
@@ -249,6 +251,8 @@ target_sources(taller_client
     sdl/render/ObtainedBannerHud.h
     sdl/render/CursorPainter.h
     sdl/render/DialogPainter.h
+    sdl/render/TextRenderer.h
+    sdl/render/PromptPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h

@@ -97,6 +97,13 @@ auto InputManager::defaultCommandBindings() const
 	// click sobre el mundo (PlayerController::useToward). Si algún día
 	// se rebindea a una tecla, vuelve a entrar acá.
 	bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
+	// Atajo de prueba (borrar cuando el server mande esto): la tecla Y
+	// simula la info de avance de "dormir" del server.
+	bindings.insert({SDLK_y, game::InputCommand{Kind::TestWaiting, 0}});
+	// Atajo de prueba (borrar cuando el server mande esto): la tecla B
+	// simula el "cambio de escenario" del server.
+	bindings.insert({SDLK_b,
+			 game::InputCommand{Kind::TestSceneChange, 0}});
 	const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
 	for (int i = 0; i < bound; ++i) {
 		bindings.insert({slotKeys_[static_cast<std::size_t>(i)],

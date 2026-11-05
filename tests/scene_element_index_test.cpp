@@ -27,6 +27,7 @@ ElementPlacement tileElement(int column, int row) {
 		DrawSpec{DrawMode::Tile, 1, 1},
 		GridCell{column, row},
 		GridSpan{2, 2},
+		std::nullopt,
 	};
 }
 

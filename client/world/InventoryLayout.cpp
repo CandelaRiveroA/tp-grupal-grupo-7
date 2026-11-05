@@ -59,25 +59,34 @@ PixelBox InventoryLayout::outerBox(int windowWidth, int windowHeight) const {
 
 std::vector<PixelBox> InventoryLayout::slotBoxes(int windowWidth,
 						 int windowHeight) const {
+	// El caso de la barra: una fila de `count` slots en su caja.
+	return slotBoxes(outerBox(windowWidth, windowHeight), count, 1);
+}
+
+std::vector<PixelBox> InventoryLayout::slotBoxes(const PixelBox& outer,
+						 const int columns,
+						 const int rows) const {
+	// La grilla general: slots fila por fila, con su separación,
+	// dentro del inset del marco. La barra es (count, 1); un panel 2x9
+	// o 3x4 es la misma cuenta con otras dimensiones.
 	std::vector<PixelBox> boxes;
-	if (count <= 0) {
+	if (columns <= 0 || rows <= 0) {
 		return boxes;
 	}
-	const PixelBox outer = outerBox(windowWidth, windowHeight);
 	const int off = slotInset();
 	const int w = slotDrawWidth();
 	const int h = slotDrawHeight();
 	const int g = gapPx();
-	const int startX = outer.x + off;
-	const int y = outer.y + off;
-	boxes.reserve(static_cast<std::size_t>(count));
-	for (int i = 0; i < count; ++i) {
-		PixelBox box;
-		box.x = startX + i * (w + g);
-		box.y = y;
-		box.width = w;
-		box.height = h;
-		boxes.push_back(box);
+	boxes.reserve(static_cast<std::size_t>(columns * rows));
+	for (int row = 0; row < rows; ++row) {
+		for (int column = 0; column < columns; ++column) {
+			PixelBox box;
+			box.x = outer.x + off + column * (w + g);
+			box.y = outer.y + off + row * (h + g);
+			box.width = w;
+			box.height = h;
+			boxes.push_back(box);
+		}
 	}
 	return boxes;
 }
@@ -89,12 +98,41 @@ std::vector<PixelBox> InventoryLayout::slotBoxesNatural(
 
 FrameLayout InventoryLayout::frameLayout(int windowWidth,
 					 int windowHeight) const {
+	// El caso de la barra: el marco sobre la caja que ocupa el
+	// inventario. El cálculo vive en frameLayout(box).
+	return frameLayout(outerBox(windowWidth, windowHeight));
+}
+
+PixelBox InventoryLayout::centeredBox(const int windowWidth,
+				      const int windowHeight,
+				      const int columns, const int rows) const {
+	// La caja de la grilla pedida, centrada en la ventana.
+	const PixelBox grid = gridBox(columns, rows);
+	PixelBox box;
+	box.width = grid.width;
+	box.height = grid.height;
+	box.x = (windowWidth - box.width) / 2;
+	box.y = (windowHeight - box.height) / 2;
+	return box;
+}
+
+PixelBox InventoryLayout::gridBox(const int columns, const int rows) const {
+	// Lo que ocupa una grilla columns×rows: los slots, sus
+	// separaciones y el inset del marco.
+	PixelBox box;
+	box.width = columns * slotDrawWidth() + (columns - 1) * gapPx() +
+		    2 * slotInset();
+	box.height = rows * slotDrawHeight() + (rows - 1) * gapPx() +
+		     2 * slotInset();
+	return box;
+}
+
+FrameLayout InventoryLayout::frameLayout(const PixelBox& box) const {
 	FrameLayout fl{};
-	const PixelBox outer = outerBox(windowWidth, windowHeight);
 	const int t = borderThickness();
 	const int n = frame.borderCells;
 
-	const PixelBox fb{outer.x, outer.y, outer.width, outer.height};
+	const PixelBox fb{box.x, box.y, box.width, box.height};
 	const int tb = t + overlapPx();
 
 	fl.corners[0] = {frame.topLeft, n, n, {fb.x, fb.y, tb, tb}, false};

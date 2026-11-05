@@ -1,11 +1,13 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "world/Color.h"
 #include "world/Grid.h"
+#include "world/ViewDirection.h"
 
 namespace world {
 
@@ -28,6 +30,20 @@ struct DrawSpec {
 	int scaleY;
 };
 
+// Entrada "entrable" de un elemento (presentación local): el jugador
+// puede meterse con el click del cursor. Al hacerlo se ubica en `lie`
+// mirando `facing`, y las filas indicadas de la pieza se dibujan ENCIMA
+// de las entidades (lo "tapan": en la cama, las frazadas). Es un
+// efecto visual del cliente: la fuente de estado no participa.
+struct ElementEnter {
+	// Filas de la pieza (desde 0, inclusive) que van adelante.
+	int firstFrontRow;
+	int lastFrontRow;
+	// Celda lógica donde se ubica el jugador al meterse, y su pose.
+	GridCell lie;
+	Direction facing;
+};
+
 struct ElementPlacement {
 	std::string tileset;
 	// La pieza que se repite: su tamaño en celdas de hoja y la celda de
@@ -41,6 +57,9 @@ struct ElementPlacement {
 	DrawSpec draw;
 	GridCell at;
 	GridSpan span;
+	// "Entrar" al elemento (OPCIONAL, subtabla `enter` del TOML). Sin
+	// esto el elemento es decoración pura y nada cambia.
+	std::optional<ElementEnter> enter = std::nullopt;
 };
 
 // Poblaciones que admite una sala: DATOS puros (sin SDL ni lógica). La

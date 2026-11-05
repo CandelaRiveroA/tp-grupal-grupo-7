@@ -6,7 +6,7 @@ namespace core {
 
 
 constexpr int kWindowWidth = 960;
-constexpr int kWindowHeight = 640;
+constexpr int kWindowHeight = 700;
 constexpr const char* kWindowTitle = "TP Final — Grupo 7";
 
 constexpr int kTargetFps = 60;
@@ -49,6 +49,8 @@ constexpr const char* kDigitsFile = "ui/digits.toml";
 constexpr const char* kCursorsFile = "ui/cursors.toml";
 
 constexpr const char* kDialogsFile = "ui/dialogs.toml";
+
+constexpr const char* kTextFile = "ui/text.toml";
 
 // Cantidad de slots del inventario ocupados por el mock (pico, pala,
 // regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.

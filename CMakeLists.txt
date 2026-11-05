@@ -77,7 +77,10 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
     # que setearlas. SDL2PP_WITH_IMAGE habilita los constructores
     # Texture(renderer, path) / Surface(path) para cargar sprites desde
     # un archivo (PNG) sin recortar nada por frame en disco.
+    # SDL2PP_WITH_TTF habilita SDL2pp::Font (texto con fuente .ttf,
+    # sdl::TextRenderer).
     set(SDL2PP_WITH_IMAGE ON)
+    set(SDL2PP_WITH_TTF ON)
 
     FetchContent_Declare(
         SDL2
@@ -236,6 +239,11 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/FarmCatalogs.cpp
         client/game/CropSystem.cpp
         client/game/FarmSelection.cpp
+        client/game/EnterSelection.cpp
+        client/game/PopupState.cpp
+        client/game/SceneTransition.cpp
+        client/world/FontCatalog.cpp
+        client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp
         client/core/ToolUseSounds.cpp
         client/game/CarrySelection.cpp
@@ -280,6 +288,9 @@ if(TALLER_CLIENT)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/sdl/assets
                 ${CMAKE_BINARY_DIR}/assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/qt/resources/fonts
+                ${CMAKE_BINARY_DIR}/assets/fonts
         COMMENT "Copiando assets del cliente al directorio del build")
 
     add_custom_target(client_sounds ALL

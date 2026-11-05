@@ -1,0 +1,56 @@
+# Texto del HUD: la fuente que usa todo el cliente para dibujar letras
+# y el copy/apariencia del prompt de "terminar el día".
+#
+# Cambiar lo que dice un texto o sus colores = datos. Otro texto u otra
+# fuente futuro = otra entrada, sin tocar el dibujo (sdl::TextRenderer).
+
+# --- La fuente de texto -------------------------------------------------
+# file: ruta RELATIVA al directorio de assets (desacoplada de dónde vive
+#       el .ttf en el árbol de fuentes).
+# size: tamaño por defecto, en puntos.
+[font]
+file = "fonts/StardewValley.ttf"
+size = 26
+
+# --- El prompt del popup ("¿Terminamos el día?") ------------------------
+# question/options/waiting: el copy. {0}/{1} en `waiting` se reemplazan
+# por los números del avance (los manda la fuente de estado).
+# text_color/hover_color: RGBA. hover es el marrón de las opciones bajo
+# el mouse.
+# text_size/line_gap: layout del prompt, en px.
+# grid: la forma del panel en slots [columnas, filas] (hoy 9x2; un
+# panel 9x1 o 3x4 es solo otro dato — bordes y relleno se adaptan
+# solos).
+[prompt]
+question    = "¿Terminamos el día?"
+options     = ["Sí", "No"]
+waiting     = "Esperando al resto de jugadores... ({0}/{1})"
+text_color  = [62, 39, 17, 255]
+hover_color = [195, 160, 100, 255]
+text_size   = 18
+line_gap    = 6
+grid        = [9, 2]
+
+# --- El botón de cancelar del popup "Esperando..." ---------------------
+# Un 9-slice de cursors.png: las 9 piezas [col, row, cols, rows] (las
+# del "Botón de cancelar"), más cómo se dibuja: border = px de cada
+# esquina, size = tamaño del botón, margin = desde el borde inferior
+# derecho del panel. Con size 64x64 y border 16 cada pieza se dibuja a
+# escala 1:1 (el bloque 4x4 de la hoja): sin achatarse. Para achicarlo
+# sin distorsión, escala border y size juntos (48/12 = 0.75; 32/8 =
+# media escala exacta; 64/16 = 1:1).
+[prompt.cancel]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+top_left     = [12, 16, 1, 1]
+top          = [13, 16, 2, 1]
+top_right    = [15, 16, 1, 1]
+left         = [12, 17, 1, 2]
+fill         = [13, 17, 2, 2]
+right        = [15, 17, 1, 2]
+bottom_left  = [12, 19, 1, 1]
+bottom       = [13, 19, 2, 1]
+bottom_right = [15, 19, 1, 1]
+border = 8
+size   = [32, 32]
+margin = [8, 8]

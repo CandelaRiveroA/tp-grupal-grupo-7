@@ -34,6 +34,13 @@ inline constexpr const char* kKeyAt = "at";
 inline constexpr const char* kKeySpan = "span";
 inline constexpr const char* kKeyDraw = "draw";
 
+// Elemento "entrable" (OPCIONAL, subtabla): el jugador puede meterse y
+// las filas indicadas de la pieza se dibujan encima de las entidades.
+inline constexpr const char* kKeyEnter = "enter";
+inline constexpr const char* kKeyEnterRows = "rows";
+inline constexpr const char* kKeyEnterLie = "lie";
+inline constexpr const char* kKeyEnterFacing = "facing";
+
 inline constexpr const char* kKeyMode = "mode";
 inline constexpr const char* kKeyScaleX = "scale_x";
 inline constexpr const char* kKeyScaleY = "scale_y";

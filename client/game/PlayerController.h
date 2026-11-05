@@ -52,6 +52,12 @@ public:
     void useToward(const world::GridCell& target,
                    const std::optional<world::Direction>& pressed);
 
+    // Auto-caminata: camina hasta la celda destino con los MISMOS pasos
+    // que la caminata manual (un comando de movimiento por cadencia).
+    // Es intención del jugador: la fuente decide si se puede. Se
+    // termina al llegar o al primer movimiento manual (el jugador manda).
+    void walkTo(const world::GridCell& target);
+
     int activeSlot() const;
 
 private:
@@ -64,6 +70,12 @@ private:
     // dirección: el camino común del click y de la acción de input
     // "usar" (rebindeable). La fuente decide el resto.
     void useTool(world::Direction direction);
+
+    // Dirección de caminata del tick: la manual si la hay; si no, la de
+    // la auto-caminata hacia walkTarget_ (un paso por eje, priorizando
+    // el que más falta; al llegar se termina). La manual manda siempre.
+    std::optional<world::Direction> walkingDirection(
+            const std::optional<world::Direction>& pressed);
 
     using WalkHandler = std::function<void()>;
     using CommandHandler =
@@ -82,6 +94,9 @@ private:
     InventorySelector inventorySelector_;
     int slotCount_;
     PlayerEvents events_;
+
+    // Destino de la auto-caminata (walkTo); vacío = caminata manual.
+    std::optional<world::GridCell> walkTarget_;
 };
 
 }  // namespace game

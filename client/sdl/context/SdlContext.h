@@ -25,6 +25,10 @@ public:
 
 	SDL2pp::Texture createTexture(const std::string& path);
 
+	// Dibuja una superficie ya renderizada (p. ej. texto de una
+	// fuente): la convierte en textura y la pega en dest.
+	void drawSurface(SDL2pp::Surface& surface, const SDL2pp::Rect& dest);
+
 	void drawTexture(SDL2pp::Texture& texture, const SDL2pp::Rect& src,
 			 const SDL2pp::Rect& dest, Flip flip = Flip::None,
 			 double angle = 0.0,
@@ -38,6 +42,7 @@ public:
 
 private:
 	SDL2pp::SDL sdl_;
+	SDL2pp::SDLTTF sdlTtf_;
 	SDL2pp::Window window_;
 	SDL2pp::Renderer renderer_;
 };

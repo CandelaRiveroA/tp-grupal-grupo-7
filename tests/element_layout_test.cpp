@@ -21,6 +21,7 @@ ElementPlacement makeElement(DrawMode mode, int scaleX, int scaleY) {
 		DrawSpec{mode, scaleX, scaleY},
 		GridCell{1, 2},
 		GridSpan{3, 4},
+		std::nullopt,
 	};
 }
 

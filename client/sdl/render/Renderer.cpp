@@ -99,6 +99,25 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 			   const world::ElementPlacement& element,
 			   const world::ScenePixelMapper& mapper,
 			   const Viewport& viewport) {
+	// El pase normal: la pieza entera del elemento.
+	drawElementRange(scene, element, mapper, viewport, 0,
+			 element.pieceSize.rows - 1);
+}
+
+void Renderer::drawElementFront(const world::SceneDescription& scene,
+				const world::ElementPlacement& element,
+				const world::ScenePixelMapper& mapper,
+				const Viewport& viewport, const int firstRow,
+				const int lastRow) {
+	drawElementRange(scene, element, mapper, viewport, firstRow,
+			 lastRow);
+}
+
+void Renderer::drawElementRange(const world::SceneDescription& scene,
+				const world::ElementPlacement& element,
+				const world::ScenePixelMapper& mapper,
+				const Viewport& viewport, const int firstRow,
+				const int lastRow) {
 	const world::TileSetDef& tileset =
 		scene.tilesets.at(element.tileset);
 
@@ -113,7 +132,7 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 	if (!viewport.intersects(painter.bounds())) {
 		return;
 	}
-	painter.paint(sheet, viewport.screenRect());
+	painter.paint(sheet, viewport.screenRect(), firstRow, lastRow);
 }
 
 void Renderer::drawResource(const game::ViewResource& resource,

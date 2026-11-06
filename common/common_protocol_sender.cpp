@@ -153,6 +153,23 @@ void ProtocolSender::send_message(const ServerFurniture& furniture) {
     send_string(furniture.content_id);
 }
 
+void ProtocolSender::send_message(const ServerDay& /*day*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Day));
+}
+
+void ProtocolSender::send_message(const ServerSleepingPlayers& sleepers) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SleepingPlayers));
+    send_uint8(static_cast<uint8_t>(sleepers.players.size()));
+    for (const uint8_t id: sleepers.players) {
+        send_uint8(id);
+    }
+}
+
+void ProtocolSender::send_message(const ServerClock& clock) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Clock));
+    send_uint16(clock.minutes);
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }

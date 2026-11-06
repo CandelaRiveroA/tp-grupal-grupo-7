@@ -39,6 +39,9 @@ private:
     ServerMessage receive_animal_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();
+    ServerMessage receive_day_message();
+    ServerMessage receive_sleeping_players_message();
+    ServerMessage receive_clock_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);

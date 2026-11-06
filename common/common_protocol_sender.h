@@ -36,6 +36,9 @@ private:
     void send_message(const ServerAnimal& animal);
     void send_message(const ServerSleep& sleep);
     void send_message(const ServerFurniture& furniture);
+    void send_message(const ServerDay& day);
+    void send_message(const ServerSleepingPlayers& sleepers);
+    void send_message(const ServerClock& clock);
 
 public:
     explicit ProtocolSender(Socket& socket);

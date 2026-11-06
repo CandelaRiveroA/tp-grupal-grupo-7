@@ -87,7 +87,7 @@ public:
     // El jugador pisa la cama: entra en la votación y queda sin movimiento.
     void record_sleep_request(uint8_t player_id);
     // Responde al aviso: accept = confirma dormir, false = cancelar (sale
-    // de la cama, le devuelve el movimiento y limpia los OK de todos).
+    // de la cama, le devuelve el movimiento y borra solo su OK).
     void answer_sleep(uint8_t player_id, bool accept);
     // true una sola vez cuando el sueño avanzó el día. Lo consume Match.
     bool take_sleep_advanced();

@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <thread>
 #include <variant>
-#include <vector>
 
 #include "commands/commands.h"
 #include "domain/animals/chicken.h"
@@ -23,24 +22,42 @@
 #define kSpawnX 15
 #define kSpawnY 10
 
-// shortcut: un día fijo de 30s.
+// Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
+// compartida: los durmientes no colisionan, así todos caben en ella.
+#define kBedX 20
+#define kBedY 13
+
+// shortcut: un día de juego de 30s para probar; en la versión final son 15 min
+// (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
 #define kDayDurationSeconds 30
+// Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
+#define kDayClockMinutes 1200
+#define kClockStepMinutes 10
 #define kClockStepMs 100
 // Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
 #define kAnimalTickSteps 40
 
-DayClock::DayClock(Queue<MatchEvent>& events): events(events), restart_requested(false) {}
+DayClock::DayClock(Queue<MatchEvent>& events):
+        events(events), restart_requested(false), day_generation(0) {}
 
-void DayClock::restart() { this->restart_requested.store(true); }
+void DayClock::restart() {
+    // Primero la generación: los pasos del día viejo ya no valen.
+    this->day_generation.fetch_add(1);
+    this->restart_requested.store(true);
+}
+
+uint32_t DayClock::generation() const { return this->day_generation.load(); }
 
 void DayClock::execute() {
     while (true) {
         // Un reinicio que llega justo al terminar el día ya no hace falta:
         // el día siguiente arranca igual.
         this->restart_requested.store(false);
+        const uint32_t current_generation = this->day_generation.load();
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
         uint8_t animal_steps = 0;
+        uint16_t clock_minutes = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
                std::chrono::seconds(kDayDurationSeconds)) {
@@ -53,6 +70,19 @@ void DayClock::execute() {
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
+            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            std::chrono::steady_clock::now() - day_start)
+                                            .count();
+            const auto minutes = elapsed_ms * kDayClockMinutes / (kDayDurationSeconds * 1000) /
+                                 kClockStepMinutes * kClockStepMinutes;
+            if (minutes != clock_minutes) {
+                clock_minutes = static_cast<uint16_t>(minutes);
+                try {
+                    events.push(MatchEvent(ClockStep{clock_minutes, current_generation}));
+                } catch (const ClosedQueue&) {
+                    return;
+                }
+            }
             // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
             if (++animal_steps >= kAnimalTickSteps) {
                 animal_steps = 0;
@@ -98,29 +128,30 @@ void Match::place_animals() {
     world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
-// Cama propia de cada jugador: fila de arriba del spawn, una por ID.
-static uint16_t bed_x_for(uint8_t player_id) { return kSpawnX - 3 + (player_id - 1); }
-
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         events(events),
         output(output),
         world(kWidth, kHeight),
         clock(events),
         sleeping_sent(0),
-        total_sent(0) {
+        total_sent(0),
+        clock_minutes_sent(0) {
     place_minerals();
     place_animals();
+    world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
 }
 
 // Pasaron los 30 s sin que nadie durmiera: todos duermen donde están y
-// amanecen en su cama. Se cancela la votación abierta.
+// amanecen en la cama. Se cancela la votación abierta.
 void Match::handle(const DayPassed& /*day*/) {
     world.clear_sleep();
     world.tick_day();
     for (const uint8_t id: world.get_player_ids()) {
-        world.set_player_position(id, bed_x_for(id), kSpawnY - 1);
+        world.set_player_position(id, kBedX, kBedY);
     }
     push_sleep_state();
+    broadcast(ServerDay{});
+    broadcast_clock(0);
     sync_all();
 }
 
@@ -129,15 +160,27 @@ void Match::handle(const AnimalTick& /*tick*/) {
     sync_all();
 }
 
+void Match::handle(const ClockStep& step) {
+    // Un paso de un día reiniciado llega tarde: se descarta.
+    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent) {
+        return;
+    }
+    broadcast_clock(step.minutes);
+}
+
+void Match::broadcast_clock(uint16_t minutes) {
+    this->clock_minutes_sent = minutes;
+    broadcast(ServerClock{minutes});
+}
+
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
-    world.set_entity_at(bed_x_for(joined.player_id), kSpawnY - 1,
-                        std::make_unique<Bed>(bed_x_for(joined.player_id), kSpawnY - 1));
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
     // Sube el total de la votación: mientras no vaya a la cama, el sueño
     // no puede completarse.
     push_sleep_state();
+    send_to(joined.player_id, ServerClock{clock_minutes_sent});
     sync_all();
 }
 
@@ -160,6 +203,8 @@ void Match::handle(const PlayerMessage& event) {
     // produjeron), solo queda reiniciar el reloj.
     if (world.take_sleep_advanced()) {
         clock.restart();
+        broadcast(ServerDay{});
+        broadcast_clock(0);
     }
     push_sleep_state();
     sync_all();
@@ -176,6 +221,8 @@ void Match::handle(const PlayerLeft& left) {
     world.remove_player(left.player_id);
     if (world.take_sleep_advanced()) {
         clock.restart();
+        broadcast(ServerDay{});
+        broadcast_clock(0);
     }
     push_sleep_state();
     broadcast(ServerLeave{left.player_id});
@@ -232,14 +279,23 @@ void Match::push_sleep_state() {
     const uint8_t sleeping = world.sleeping_count();
     const std::vector<uint8_t> players = world.get_player_ids();
     const uint8_t total = static_cast<uint8_t>(players.size());
-    if (sleeping == this->sleeping_sent && total == this->total_sent) {
+    std::vector<uint8_t> sleepers;
+    for (const uint8_t id: players) {
+        if (world.is_sleeping(id)) {
+            sleepers.push_back(id);
+        }
+    }
+    if (sleeping == this->sleeping_sent && total == this->total_sent &&
+        sleepers == this->sleepers_sent) {
         return;
     }
     this->sleeping_sent = sleeping;
     this->total_sent = total;
+    this->sleepers_sent = sleepers;
     for (const uint8_t id: players) {
         send_to(id, ServerSleep{world.is_sleeping(id) ? sleeping : uint8_t{0}, total});
     }
+    broadcast(ServerSleepingPlayers{sleepers});
 }
 
 void Match::execute() {

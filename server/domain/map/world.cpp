@@ -34,17 +34,6 @@ bool World::can_walk_to(uint16_t x, uint16_t y) const {
         }
     }
 
-    for (const auto& [id, player]: this->players) {
-        // Un jugador durmiendo no ocupa su celda: así todos pueden
-        // superponerse en la misma cama.
-        if (this->sleepers.count(id) > 0) {
-            continue;
-        }
-        if (player->get_x() == x && player->get_y() == y) {
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -298,6 +287,7 @@ void World::take_item(uint8_t player_id) {
             // Coordenadas negativas se vuelven enormes y get_entity_at las descarta.
             const auto x = static_cast<uint16_t>(p.get_x() + dx);
             const auto y = static_cast<uint16_t>(p.get_y() + dy);
+
             for (IEntity* ent: get_entity_at(x, y)) {
                 if (ent->pickup_on_take()) {
                     ent->interact(p, ToolType::HAND, *this);
@@ -335,14 +325,15 @@ void World::set_player_position(uint8_t player_id, uint16_t x, uint16_t y) {
     this->players.at(player_id)->set_position(x, y);
 }
 
+
+// ---------------------------------------------------------
+// SUEÑO
+// ---------------------------------------------------------
 void World::clear_sleep() {
     this->sleepers.clear();
     this->accepted.clear();
 }
 
-// ---------------------------------------------------------
-// SUEÑO
-// ---------------------------------------------------------
 void World::record_sleep_request(uint8_t player_id) {
     // Idempotente: pisar la cama o usar la mano encima vuelve a llamar acá.
     if (this->sleepers.count(player_id) > 0) {
@@ -358,10 +349,10 @@ void World::answer_sleep(uint8_t player_id, bool accept) {
     }
 
     if (!accept) {
-        // Cancelar: sale de la cama y los OK se limpian. Los demás siguen
-        // esperando y pueden cancelar también (nadie queda bloqueado).
+        // Cancelar: sale de la cama y se borra solo su OK. Los OK de los demás
+        // siguen valiendo (así nadie que ya votó queda esperando en vano).
         this->sleepers.erase(player_id);
-        this->accepted.clear();
+        this->accepted.erase(player_id);
         return;
     }
 

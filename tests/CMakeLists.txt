@@ -55,6 +55,7 @@ target_sources(taller_tests
     camera_test.cpp
     viewport_test.cpp
     element_layout_test.cpp
+    enter_selection_test.cpp
     character_layout_test.cpp
     chunk_grid_test.cpp
     scene_element_index_test.cpp

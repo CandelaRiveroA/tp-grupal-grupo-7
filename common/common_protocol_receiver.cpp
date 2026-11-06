@@ -28,6 +28,10 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
                 {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
                 {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
+                {ServerMessageType::Day, &ProtocolReceiver::receive_day_message},
+                {ServerMessageType::SleepingPlayers,
+                 &ProtocolReceiver::receive_sleeping_players_message},
+                {ServerMessageType::Clock, &ProtocolReceiver::receive_clock_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -197,6 +201,19 @@ ServerMessage ProtocolReceiver::receive_furniture_message() {
     std::string content_id = receive_string();
     return ServerFurniture{x, y, std::move(content_id)};
 }
+
+ServerMessage ProtocolReceiver::receive_day_message() { return ServerDay{}; }
+
+ServerMessage ProtocolReceiver::receive_sleeping_players_message() {
+    const uint8_t count = receive_uint8();
+    std::vector<uint8_t> players(count);
+    for (uint8_t& id: players) {
+        id = receive_uint8();
+    }
+    return ServerSleepingPlayers{std::move(players)};
+}
+
+ServerMessage ProtocolReceiver::receive_clock_message() { return ServerClock{receive_uint16()}; }
 
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());

@@ -1,5 +1,6 @@
 #include "game/NetworkGameClient.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -185,6 +186,22 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         player.facing = world::viewDirectionFrom(status->direction);
         return;
     }
+    if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
+        view_.sleep = ViewSleep{sleep->sleeping, sleep->total};
+        return;
+    }
+    if (std::holds_alternative<ServerDay>(message)) {
+        view_.dayChanged = true;
+        return;
+    }
+    if (const auto* sleepers = std::get_if<ServerSleepingPlayers>(&message)) {
+        sleepers_ = sleepers->players;
+        return;
+    }
+    if (const auto* clock = std::get_if<ServerClock>(&message)) {
+        view_.clockMinutes = clock->minutes;
+        return;
+    }
     if (const auto* hit = std::get_if<ServerResourceHit>(&message)) {
         view_.resourceHits.push_back(ViewResourceHit{hit->x, hit->y, hit->destroyed});
         return;
@@ -226,6 +243,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 
 void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
+    view_.dayChanged = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -249,6 +267,7 @@ void NetworkGameClient::update(int) {
                           player.moving,
                           player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
                           std::nullopt};
+        entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = world::ItemKind::Pickaxe;

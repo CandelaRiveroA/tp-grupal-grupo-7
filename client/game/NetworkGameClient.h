@@ -68,6 +68,8 @@ private:
     const world::CharacterCatalog* characters_;
 
     std::map<uint8_t, RemotePlayer> players_;
+    // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).
+    std::vector<uint8_t> sleepers_;
     std::map<uint8_t, ViewEntity> animals_;
     std::map<std::pair<int, int>, ViewResource> resources_;
     // Lista (no mapa por celda): varios huevos pueden estar apilados.

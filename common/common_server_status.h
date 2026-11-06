@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "common_constants.h"
 
@@ -21,6 +22,9 @@ enum class ServerMessageType : uint8_t {
     Animal = 11,
     Sleep = 12,
     Furniture = 13,
+    Day = 14,
+    SleepingPlayers = 15,
+    Clock = 16,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -105,6 +109,21 @@ struct ServerSleep {
     uint8_t total;
 };
 
+// Amaneció: el día terminó por sueño o por timeout. Sin payload.
+struct ServerDay {};
+
+// Quiénes están en la cama (sus IDs). Va a todos: el aviso ServerSleep solo
+// le dice al durmiente cuántos son, no quién duerme.
+struct ServerSleepingPlayers {
+    std::vector<uint8_t> players;
+};
+
+// Hora de juego: minutos desde las 6:00 (0 a 1200, las 2:00 del día
+// siguiente). Cambia de a 10 minutos de juego.
+struct ServerClock {
+    uint16_t minutes;
+};
+
 // Mueble colocado en el mundo (cama, mesa, silla). Va aparte de
 // ServerDropped para que el cliente no lo trate como un ítem del piso.
 struct ServerFurniture {
@@ -116,6 +135,6 @@ struct ServerFurniture {
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
-                     ServerSleep, ServerFurniture>;
+                     ServerSleep, ServerFurniture, ServerDay, ServerSleepingPlayers, ServerClock>;
 
 #endif

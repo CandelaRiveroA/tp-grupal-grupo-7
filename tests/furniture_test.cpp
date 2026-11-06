@@ -188,9 +188,9 @@ TEST(FurnitureTest, TodosLosJugadoresDebenAceptarParaDormir) {
 }
 
 // ---------------------------------------------------------
-// Cancelar limpia los OK de todos: hay que aceptar de nuevo.
+// Cancelar solo borra el OK del que cancela: los demás no tienen que repetir.
 // ---------------------------------------------------------
-TEST(FurnitureTest, CancelarLimpiaLosOKDeTodos) {
+TEST(FurnitureTest, CancelarSoloBorraSuOK) {
     World world(6, 6);
     world.add_player(1, std::make_unique<Player>(1, 3, 2));
     world.add_player(2, std::make_unique<Player>(2, 3, 4));
@@ -207,21 +207,17 @@ TEST(FurnitureTest, CancelarLimpiaLosOKDeTodos) {
     world.answer_sleep(2, true);
     EXPECT_FALSE(world.take_sleep_advanced());
 
-    // El tercero cancela: sale de la cama y los OK se limpian.
+    // El tercero cancela: sale de la cama, pero los OK de los otros se mantienen.
     world.answer_sleep(3, false);
     EXPECT_EQ(world.sleeping_count(), 2);
 
-    // El segundo vuelve a aceptar y el tercero reentra (está parado en la
-    // cama: con la mano se vuelve a pedir dormir).
-    world.answer_sleep(2, true);
+    // El tercero reentra (está parado en la cama: con la mano se vuelve a
+    // pedir dormir) y acepta: con los OK de 1 y 2 intactos, el día avanza.
     world.take_item(3);
     ASSERT_EQ(world.sleeping_count(), 3);
-    world.answer_sleep(3, true);
-
-    // El OK del primero se perdió al cancelar: todavía no avanzan.
     EXPECT_FALSE(world.take_sleep_advanced());
 
-    world.answer_sleep(1, true);
+    world.answer_sleep(3, true);
     EXPECT_TRUE(world.take_sleep_advanced());
 }
 

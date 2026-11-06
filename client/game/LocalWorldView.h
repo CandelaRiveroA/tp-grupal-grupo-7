@@ -32,6 +32,10 @@ struct ViewEntity {
     // eventos (p. ej. los cues de sonido).
     int id = 0;
 
+    // Está en la cama (durmiendo), según el server (ServerSleepingPlayers).
+    // No se deduce de la posición: parado en la cama no es durmiendo.
+    bool sleeping = false;
+
     // ¿Es "apretable"/seleccionable? Lo decide la FUENTE DE ESTADO (el
     // servidor la mandará; hoy el mock lo simula). El cliente solo lo
     // usa para mostrar la interacción, no para decidir qué pasa.
@@ -153,6 +157,15 @@ struct ViewCrop {
     bool interactive = false;
 };
 
+// Estado del sueño del jugador local (ServerSleep). Persiste entre lotes:
+// el server solo lo manda cuando cambia. sleeping > 0 = estoy en la cama.
+// Presentación (fase pendiente): sleeping > 0 y sin votar → showQuestion();
+// sleeping > 0 y votado → showWaiting(sleeping, total); sleeping == 0 → hide().
+struct ViewSleep {
+    int sleeping = 0;
+    int total = 0;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -171,6 +184,14 @@ struct LocalWorldView {
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
+    ViewSleep sleep;
+    // Día de juego (1 a 28) y hora: minutos desde las 6:00 (0 a 1200).
+    // La hora cambia de a 10 min.
+    int dayNumber = 1;
+    int clockMinutes = 0;
+    // Amaneció (ServerDay). Evento: vale solo en el tick en que llega.
+    // Presentación (fase pendiente): changeTo(kInitialRoom) + gallo.
+    bool dayChanged = false;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve

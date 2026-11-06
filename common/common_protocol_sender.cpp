@@ -60,6 +60,11 @@ void ProtocolSender::send_message(const protocol::TakeMessage& message) {
     send_uint8(static_cast<uint8_t>(message.direction));
 }
 
+void ProtocolSender::send_message(const protocol::SleepMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Sleep));
+    send_uint8(message.accept ? 1 : 0);
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -133,6 +138,37 @@ void ProtocolSender::send_message(const ServerAnimal& animal) {
     send_uint16(animal.y);
     send_uint8(static_cast<uint8_t>(animal.direction));
     send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerSleep& sleep) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Sleep));
+    send_uint8(sleep.sleeping);
+    send_uint8(sleep.total);
+}
+
+void ProtocolSender::send_message(const ServerFurniture& furniture) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Furniture));
+    send_uint16(furniture.x);
+    send_uint16(furniture.y);
+    send_string(furniture.content_id);
+}
+
+void ProtocolSender::send_message(const ServerDay& /*day*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Day));
+}
+
+void ProtocolSender::send_message(const ServerSleepingPlayers& sleepers) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SleepingPlayers));
+    send_uint8(static_cast<uint8_t>(sleepers.players.size()));
+    for (const uint8_t id: sleepers.players) {
+        send_uint8(id);
+    }
+}
+
+void ProtocolSender::send_message(const ServerClock& clock) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Clock));
+    send_uint8(clock.day);
+    send_uint16(clock.minutes);
 }
 
 void ProtocolSender::send_server_message(const ServerMessage& message) {

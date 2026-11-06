@@ -13,6 +13,7 @@ target_sources(taller_server
     commands/move_command.cpp
     commands/pick_command.cpp
     commands/take_command.cpp
+    commands/sleep_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
@@ -22,9 +23,12 @@ target_sources(taller_server
     domain/animals/animal.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp
+    domain/furniture/furniture.cpp
+    domain/furniture/bed.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp
+    domain/inventory/decoration_item.cpp
     domain/inventory/slot.cpp
     domain/minerals/mineral.cpp
     domain/minerals/coal_rock.cpp

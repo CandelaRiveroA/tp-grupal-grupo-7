@@ -11,49 +11,48 @@ namespace game {
 // cambio de escenario, siempre en la misma ventana.
 //
 // Punto de ENTRADA de la fuente de estado: `changeTo(...)` — "cambio de
-// escenario". Hoy lo llama el atajo de prueba (tecla B); mañana lo llama
-// el GameClient de red cuando el server lo decida. No conoce input ni
-// red: borrar el atajo no toca esta clase.
+// escenario". Lo llama PlaySession cuando llega ServerDay. No conoce
+// input ni red.
 class SceneTransition {
 public:
-	// fadeTicks: los ticks de cada mitad del fade (los del arranque).
-	explicit SceneTransition(int fadeTicks);
+    // fadeTicks: los ticks de cada mitad del fade (los del arranque).
+    explicit SceneTransition(int fadeTicks);
 
-	// Pide el cambio a la escena destino. Se ignora si ya hay una
-	// transición en curso (una a la vez).
-	void changeTo(const std::string& scene);
+    // Pide el cambio a la escena destino. Se ignora si ya hay una
+    // transición en curso (una a la vez).
+    void changeTo(const std::string& scene);
 
-	// Avanza el reloj de la transición (una vez por tick).
-	void tick(int iteration);
+    // Avanza el reloj de la transición (una vez por tick).
+    void tick(int iteration);
 
-	bool active() const;
+    bool active() const;
 
-	// El negro a dibujar sobre todo lo demás: 0 = nada, 255 = negro
-	// total (el instante en que cambian los datos).
-	int alpha() const;
+    // El negro a dibujar sobre todo lo demás: 0 = nada, 255 = negro
+    // total (el instante en que cambian los datos).
+    int alpha() const;
 
-	// ¿Llegó el instante del negro (el momento de cambiar los datos)?
-	bool swapDue() const;
+    // ¿Llegó el instante del negro (el momento de cambiar los datos)?
+    bool swapDue() const;
 
-	// Da por hecho el cambio de datos (una sola vez por transición).
-	void consumeSwap();
+    // Da por hecho el cambio de datos (una sola vez por transición).
+    void consumeSwap();
 
-	// La escena destino del cambio en curso.
-	const std::string& scene() const;
+    // La escena destino del cambio en curso.
+    const std::string& scene() const;
 
 private:
-	enum class Phase {
-		Idle,
-		FadingOut,
-		FadingIn,
-	};
+    enum class Phase {
+        Idle,
+        FadingOut,
+        FadingIn,
+    };
 
-	int fadeTicks_;
-	Phase phase_ = Phase::Idle;
-	std::string scene_;
-	int startIteration_ = -1;
-	int alpha_ = 0;
-	bool swapPending_ = false;
+    int fadeTicks_;
+    Phase phase_ = Phase::Idle;
+    std::string scene_;
+    int startIteration_ = -1;
+    int alpha_ = 0;
+    bool swapPending_ = false;
 };
 
 }  // namespace game

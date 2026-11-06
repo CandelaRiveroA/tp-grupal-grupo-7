@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 #include "core/StartupScreens.h"
 #include "core/ToolUseSounds.h"
@@ -21,8 +22,8 @@
 #include "sdl/audio/AudioPlayer.h"
 #include "sdl/context/SdlContext.h"
 #include "sdl/input/InputManager.h"
-#include "sdl/render/Camera.h"
 #include "sdl/render/BuildPlacePainter.h"
+#include "sdl/render/Camera.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
@@ -40,7 +41,7 @@
 namespace game {
 class GameClient;
 struct LocalWorldView;
-}
+}  // namespace game
 
 namespace world {
 class Scenario;
@@ -51,7 +52,7 @@ struct InventoryLayout;
 struct ObtainedBannerCatalog;
 struct ResourceCatalog;
 struct ToolOverlayCatalog;
-}
+}  // namespace world
 
 namespace core {
 
@@ -62,16 +63,12 @@ namespace core {
 class PlaySession {
 public:
     PlaySession(const WindowConfig& config, const world::Scenario& scenario,
-                game::GameClient& gameClient,
-                const world::CharacterCatalog& characters,
+                game::GameClient& gameClient, const world::CharacterCatalog& characters,
                 const world::InventoryLayout& inventory,
                 const world::ToolOverlayCatalog& toolOverlay,
-                const world::ResourceCatalog& resources,
-                const world::ObtainedBannerCatalog& banner,
-                const world::DigitCatalog& digits,
-                const world::CursorCatalog& cursors,
-                const world::DialogCatalog& dialogs,
-                const world::FontCatalog& font,
+                const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
+                const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
+                const world::DialogCatalog& dialogs, const world::FontCatalog& font,
                 const world::PromptLayout& prompt);
 
     // Corre el game loop hasta que se pida salir.
@@ -86,8 +83,7 @@ private:
     // Capa frontal del elemento donde está metido el jugador (lo que lo
     // tapa). QUÉ dibujar lo decidió EnterSelection; esto solo lo pinta,
     // sobre las entidades y bajo el HUD.
-    void drawEnteredFront(const game::LocalWorldView& view,
-                          const world::ScenePixelMapper& cells);
+    void drawEnteredFront(const game::LocalWorldView& view, const world::ScenePixelMapper& cells);
 
     // El popup del HUD con la figura vacía del inventario y su
     // contenido (la pregunta o el avance). El cuándo lo dice
@@ -102,13 +98,12 @@ private:
 
     // La cámara sigue el rectángulo dibujado del jugador local, no su
     // celda lógica: así también se centra durante la interpolación del paso.
-    void updateCamera(const game::LocalWorldView& view,
-                      const game::ViewMotion& motion, int iteration);
+    void updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,
+                      int iteration);
 
     // ¿El objetivo del pick es interactivo? Lo dice el estado (la fuente
     // decide); esto solo lo lee para elegir la variante del cursor.
-    bool isInteractive(const game::PickTarget& target,
-                       const game::LocalWorldView& view) const;
+    bool isInteractive(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario).
@@ -139,6 +134,10 @@ private:
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
     game::PopupState popupState_;
+    // Sueño: último aviso recibido y si el jugador ya votó Sí en esta noche.
+    int lastSleeping_ = 0;
+    int lastTotal_ = 0;
+    bool voted_ = false;
     game::SceneTransition sceneTransition_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;

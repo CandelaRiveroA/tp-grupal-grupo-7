@@ -14,7 +14,7 @@ class Player;
 // Descripción neutral de cómo se ve una celda, para que el mundo la muestre
 // sin conocer el tipo concreto de la entidad.
 struct CellSnapshot {
-    enum class Kind { Resource, Dropped };
+    enum class Kind { Resource, Dropped, Furniture };
 
     Kind kind;
     ItemID item;

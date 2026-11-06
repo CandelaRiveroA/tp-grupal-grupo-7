@@ -10,6 +10,7 @@
 #include "commands/commands.h"
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
+#include "domain/enemies/skeleton.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/coal_rock.h"
 #include "domain/minerals/gold_rock.h"
@@ -34,8 +35,8 @@
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
 #define kClockStepMs 100
-// Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
-#define kAnimalTickSteps 40
+// Pasos de kClockStepMs entre movimiento de animales y enemigos (10 = 1 s). Ajustable.
+#define kCreatureTickSteps 40
 
 DayClock::DayClock(Queue<MatchEvent>& events):
         events(events), restart_requested(false), day_generation(0) {}
@@ -56,7 +57,7 @@ void DayClock::execute() {
         const uint32_t current_generation = this->day_generation.load();
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
-        uint8_t animal_steps = 0;
+        uint8_t creature_steps = 0;
         uint16_t clock_minutes = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
@@ -84,10 +85,10 @@ void DayClock::execute() {
                 }
             }
             // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
-            if (++animal_steps >= kAnimalTickSteps) {
-                animal_steps = 0;
+            if (++creature_steps >= kCreatureTickSteps) {
+                creature_steps = 0;
                 try {
-                    events.push(MatchEvent(AnimalTick{}));
+                    events.push(MatchEvent(CreatureTick{}));
                 } catch (const ClosedQueue&) {
                     return;
                 }
@@ -128,6 +129,13 @@ void Match::place_animals() {
     world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
+void Match::place_enemies() {
+    // Enemigos de prueba, igual que los animales: hasta que haya generación
+    // de mundo. Lejos del spawn para que no ataque nada al entrar.
+    world.add_enemy(std::make_unique<Skeleton>(2, 16));
+    world.add_enemy(std::make_unique<Skeleton>(27, 17));
+}
+
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         events(events),
         output(output),
@@ -138,6 +146,7 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         clock_minutes_sent(0) {
     place_minerals();
     place_animals();
+    place_enemies();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
 }
 
@@ -155,8 +164,9 @@ void Match::handle(const DayPassed& /*day*/) {
     sync_all();
 }
 
-void Match::handle(const AnimalTick& /*tick*/) {
+void Match::handle(const CreatureTick& /*tick*/) {
     world.tick_animals();
+    world.tick_enemies();
     sync_all();
 }
 
@@ -282,6 +292,8 @@ void Match::push_sleep_state() {
     std::vector<uint8_t> sleepers;
     for (const uint8_t id: players) {
         if (world.is_sleeping(id)) {
+            // cppcheck-suppress useStlAlgorithm; el filtro no es un copy_if: depende de
+            // is_sleeping.
             sleepers.push_back(id);
         }
     }

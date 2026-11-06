@@ -9,14 +9,16 @@
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
 
+#include "i_attackable.h"
 #include "i_entity.h"
 
-class Player: public IEntity {
+class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
     Direction facing;
     uint8_t selected_slot;
     Inventory backpack;
+    uint8_t health;
 
 public:
     Player(uint8_t id, uint16_t x, uint16_t y);
@@ -32,6 +34,10 @@ public:
     uint8_t get_id() const;
     Direction get_facing() const;
     const Inventory& get_inventory() const;
+    uint8_t get_health() const;
+
+    // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
+    bool take_damage(uint8_t incoming) override;
 
     // Movimiento y orientación
     void set_facing(Direction dir);

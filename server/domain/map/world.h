@@ -13,6 +13,7 @@
 #include "resource_hit.h"
 
 class Animal;
+class Enemy;
 
 class World {
 private:
@@ -22,6 +23,10 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
+    // No poseen: los dueños son las celdas. Se mantienen para tick_enemies.
+    // shortcut: el puntero queda colgado si algún on_death llama a
+    // remove_entity; si eso pasa hay que sacarlo de acá también.
+    std::vector<Enemy*> enemies;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
 
@@ -63,6 +68,7 @@ public:
     void remove_entity_at(uint16_t x, uint16_t y);
 
     void add_animal(std::unique_ptr<Animal> animal);
+    void add_enemy(std::unique_ptr<Enemy> enemy);
 
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
@@ -70,6 +76,13 @@ public:
     // Un paso del reloj de animales: cada uno se mueve en su dirección actual
     // o elige una nueva si expiró el tiempo.
     void tick_animals();
+
+    // Un paso del reloj de enemigos: revive a los muertos y ejecuta la IA
+    // (perseguir / atacar) de los vivos.
+    void tick_enemies();
+
+    // Golpe de un enemigo al jugador. Devuelve true si quedó sin vida.
+    bool damage_player(uint8_t player_id, uint8_t damage);
 
     // Mueve una entidad a otra celda; no hace nada si el destino está bloqueado.
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);

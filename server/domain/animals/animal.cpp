@@ -9,7 +9,7 @@
 // upgrade: creo que se tenia que manejar por nombre y no id(?).
 static uint8_t next_animal_id = 1;
 
-// Velocidad del deambular (en ticks de AnimalTick = 1 s): mantiene un rumbo
+// Velocidad del deambular (en ticks de CreatureTick = 1 s): mantiene un rumbo
 // entre kWanderTurnMin y kWanderTurnMax, y se queda quieto entre
 // kWanderPauseMin y kWanderPauseMax antes de arrancar el próximo tramo.
 // Ajustable según la velocidad que se quiera.

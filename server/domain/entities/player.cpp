@@ -1,7 +1,15 @@
 #include "player.h"
 
+// Vida máxima del jugador (placeholder; la baja enemiga es 1 por golpe).
+#define kMaxHealth 20
+
 Player::Player(uint8_t id, uint16_t x, uint16_t y):
-        IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9) {
+        IEntity(x, y),
+        player_id(id),
+        facing(Direction::DOWN),
+        selected_slot(0),
+        backpack(9),
+        health(kMaxHealth) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
@@ -13,6 +21,19 @@ uint8_t Player::get_id() const { return this->player_id; }
 Direction Player::get_facing() const { return this->facing; }
 
 const Inventory& Player::get_inventory() const { return this->backpack; }
+
+uint8_t Player::get_health() const { return this->health; }
+
+bool Player::take_damage(uint8_t incoming) {
+    // shortcut: llegar a 0 vida no tiene consecuencia todavía (el jugador
+    // sigue jugando); la muerte y el respawn quedan para cuando exista ese
+    // sistema.
+    if (this->health == 0) {
+        return false;  // ya estaba sin vida: este golpe no fue el que lo mató
+    }
+    this->health = incoming >= this->health ? 0 : this->health - incoming;
+    return this->health == 0;
+}
 
 void Player::set_facing(Direction dir) { this->facing = dir; }
 

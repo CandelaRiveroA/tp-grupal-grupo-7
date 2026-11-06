@@ -11,6 +11,7 @@ target_sources(taller_tests
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    enemy_test.cpp
     furniture_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
@@ -28,6 +29,8 @@ target_sources(taller_tests
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
     ../server/domain/entities/dropped_item.cpp
+    ../server/domain/enemies/enemy.cpp
+    ../server/domain/enemies/skeleton.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp

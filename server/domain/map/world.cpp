@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "../animals/animal.h"
+#include "../enemies/enemy.h"
 
 World::World(uint16_t w, uint16_t h): width(w), height(h), sleep_advanced(false) {
     this->grid.resize(this->height);
@@ -177,6 +178,29 @@ void World::tick_animals() {
     }
 }
 
+void World::add_enemy(std::unique_ptr<Enemy> enemy) {
+    const uint16_t x = enemy->get_x();
+    const uint16_t y = enemy->get_y();
+    if (x >= this->width || y >= this->height) {
+        return;
+    }
+    set_entity_at(x, y, std::move(enemy));
+    // set_entity_at agrega al final de la celda: el puntero es el de la celda, no el del parámetro.
+    enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
+}
+
+void World::tick_enemies() {
+    // Se copian los punteros: update puede agregar enemigos (spawn) y rearmar el vector.
+    const std::vector<Enemy*> today = enemies;
+    for (Enemy* enemy: today) {
+        enemy->update(*this);
+    }
+}
+
+bool World::damage_player(uint8_t player_id, uint8_t damage) {
+    return this->players.at(player_id)->take_damage(damage);
+}
+
 void World::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
     if (!entity || (x == entity->get_x() && y == entity->get_y())) {
         return;
@@ -289,6 +313,7 @@ void World::take_item(uint8_t player_id) {
             const auto y = static_cast<uint16_t>(p.get_y() + dy);
 
             for (IEntity* ent: get_entity_at(x, y)) {
+                // cppcheck-suppress useStlAlgorithm; interact consume la acción y corta el loop.
                 if (ent->pickup_on_take()) {
                     ent->interact(p, ToolType::HAND, *this);
                     return;

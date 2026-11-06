@@ -22,6 +22,13 @@ struct InputCommand {
         // que mandará el server (ver SceneTransition::changeTo). Borra
         // cuando exista la conexión.
         TestSceneChange,
+        // Atajos de PRUEBA (teclas T, C y N): simulan el momento del día
+        // (atardecer 6 pm, anochecer 8 pm, noche 10 pm) que mañana
+        // mandará el server (ver DayPhase::setPhase). Borrar cuando
+        // exista la conexión.
+        TestDusk,
+        TestEvening,
+        TestNight,
     };
 
     Kind kind;

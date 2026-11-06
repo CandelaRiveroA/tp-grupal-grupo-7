@@ -104,6 +104,11 @@ auto InputManager::defaultCommandBindings() const
 	// simula el "cambio de escenario" del server.
 	bindings.insert({SDLK_b,
 			 game::InputCommand{Kind::TestSceneChange, 0}});
+	// Atajos de prueba (borrar cuando el server mande esto): T, C y N
+	// fijan el momento del día (atardecer, anochecer, noche).
+	bindings.insert({SDLK_t, game::InputCommand{Kind::TestDusk, 0}});
+	bindings.insert({SDLK_c, game::InputCommand{Kind::TestEvening, 0}});
+	bindings.insert({SDLK_n, game::InputCommand{Kind::TestNight, 0}});
 	const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
 	for (int i = 0; i < bound; ++i) {
 		bindings.insert({slotKeys_[static_cast<std::size_t>(i)],

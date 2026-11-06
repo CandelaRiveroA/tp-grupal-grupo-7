@@ -247,6 +247,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/EnterSelection.cpp
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
+        client/game/DayPhase.cpp
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp

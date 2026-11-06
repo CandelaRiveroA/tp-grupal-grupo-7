@@ -12,6 +12,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message},
                 {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
                 {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
+                {protocol::ClientMessageType::Sleep, &ProtocolReceiver::receive_sleep_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -25,6 +26,12 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
                 {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
+                {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
+                {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
+                {ServerMessageType::Day, &ProtocolReceiver::receive_day_message},
+                {ServerMessageType::SleepingPlayers,
+                 &ProtocolReceiver::receive_sleeping_players_message},
+                {ServerMessageType::Clock, &ProtocolReceiver::receive_clock_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -88,6 +95,14 @@ protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
 protocol::ClientMessage ProtocolReceiver::receive_take_message() {
     const Direction direction = direction_from_byte(receive_uint8());
     return protocol::TakeMessage{direction};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_sleep_message() {
+    const uint8_t accept = receive_uint8();
+    if (accept > 1) {
+        throw std::invalid_argument("El indicador de aceptacion del sueno no es valido.");
+    }
+    return protocol::SleepMessage{accept == 1};
 }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
@@ -172,6 +187,36 @@ ServerMessage ProtocolReceiver::receive_animal_message() {
         throw std::invalid_argument("El indicador de ordeñe no es valido.");
     }
     return ServerAnimal{id, std::move(kind), x, y, direction, ready == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_server_sleep_message() {
+    const uint8_t sleeping = receive_uint8();
+    const uint8_t total = receive_uint8();
+    return ServerSleep{sleeping, total};
+}
+
+ServerMessage ProtocolReceiver::receive_furniture_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string content_id = receive_string();
+    return ServerFurniture{x, y, std::move(content_id)};
+}
+
+ServerMessage ProtocolReceiver::receive_day_message() { return ServerDay{}; }
+
+ServerMessage ProtocolReceiver::receive_sleeping_players_message() {
+    const uint8_t count = receive_uint8();
+    std::vector<uint8_t> players(count);
+    for (uint8_t& id: players) {
+        id = receive_uint8();
+    }
+    return ServerSleepingPlayers{std::move(players)};
+}
+
+ServerMessage ProtocolReceiver::receive_clock_message() {
+    const uint8_t day = receive_uint8();
+    const uint16_t minutes = receive_uint16();
+    return ServerClock{day, minutes};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {

@@ -1,6 +1,9 @@
 #include "game/DayPhase.h"
 
 #include <algorithm>
+#include <iterator>
+
+#include "game/GameConstants.h"
 
 namespace game {
 
@@ -19,7 +22,35 @@ DayPhase::DayPhase(const int transitionTicks)
 		  {world::TimeOfDay::Dusk, world::TimeOfDay::Day},
 		  {world::TimeOfDay::Evening, world::TimeOfDay::Night},
 		  {world::TimeOfDay::Night, world::TimeOfDay::Night},
+	  }
+	, stageFromHour_{
+		  {kClockStartHour, world::TimeOfDay::Day},
+		  {18, world::TimeOfDay::Dusk},
+		  {20, world::TimeOfDay::Evening},
+		  {22, world::TimeOfDay::Night},
+	  }
+	, clockStage_(std::nullopt)
+	, clockValues_{
+		  {kClockWeekdayKey, 0},
+		  {kClockDayKey, kFirstDayNumber},
+		  {kClockHourKey, kClockStartHour},
+		  {kClockMinuteKey, 0},
 	  } {}
+
+void DayPhase::setClock(const int dayNumber, const int minutesSinceStart) {
+	const int hour = kClockStartHour + minutesSinceStart / kMinutesPerHour;
+	clockValues_[kClockWeekdayKey] =
+		(dayNumber - kFirstDayNumber) % kDaysPerWeek;
+	clockValues_[kClockDayKey] = dayNumber;
+	clockValues_[kClockHourKey] = hour;
+	clockValues_[kClockMinuteKey] = minutesSinceStart % kMinutesPerHour;
+
+	const world::TimeOfDay stage = stageForHour(hour);
+	if (clockStage_ != stage) {
+		clockStage_ = stage;
+		setPhase(stage);
+	}
+}
 
 void DayPhase::setPhase(const world::TimeOfDay phase) {
 	phase_ = phase;
@@ -36,6 +67,20 @@ world::TimeOfDay DayPhase::phase() const {
 
 double DayPhase::nightFactor() const {
 	return level_;
+}
+
+const std::map<std::string, int>& DayPhase::clockValues() const {
+	return clockValues_;
+}
+
+world::TimeOfDay DayPhase::stageForHour(const int hour) const {
+	// La última etapa cuyo umbral ya pasó; antes del primero (no debería
+	// pasar: el reloj arranca a las 6) rige el día.
+	const auto after = stageFromHour_.upper_bound(hour);
+	if (after == stageFromHour_.begin()) {
+		return world::TimeOfDay::Day;
+	}
+	return std::prev(after)->second;
 }
 
 }  // namespace game

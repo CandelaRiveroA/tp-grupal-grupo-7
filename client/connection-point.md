@@ -25,18 +25,20 @@ Archivo: `common/common_command.h`. El cliente envía **intenciones** por
 dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 
 ```cpp
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4 };
 
 struct MoveMessage { Direction direction; };  // caminar; fija el facing
 struct PickMessage { Direction direction; };  // picar la celda enfrentada
 struct TakeMessage { Direction direction; };  // recoger en la celda propia
+struct SleepMessage { bool accept; };         // voto del aviso de la cama
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage>;
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage>;
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
 - Quedarse parado **no envía nada**.
-- Serialización: `type (u8) | direction (u8)`.
+- Serialización: `type (u8) | direction (u8)`. `Sleep`: `type (u8) | accept (u8)`
+  (1 = confirma dormir, 0 = cancela y sale de la cama).
 
 ---
 
@@ -59,6 +61,12 @@ inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe
 | 8 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |
 | 9 | `ResourceHit` | `x u16, y u16, destroyed u8` | Evento puntual: un golpe a un mineral |
 | 10 | `Reset` | (sin payload) | Primer mensaje de cada lote de estado: borra mapa e inventario del cliente |
+| 11 | `Animal` | `id u8, kind str, x u16, y u16, direction u8, ready_to_milk u8` | Animal del mundo |
+| 12 | `Sleep` | `sleeping u8, total u8` | Aviso de sueño dirigido a cada jugador. `sleeping > 0` = estoy en la cama (cantidad de durmientes); `total` = jugadores en la partida. Se manda solo al cambiar |
+| 13 | `Furniture` | `x u16, y u16, content_id str` | Mueble del mundo (hoy la cama). El cliente todavía no lo dibuja |
+| 14 | `Day` | (sin payload) | Amaneció: el día terminó por sueño o por timeout de 30 s |
+| 15 | `SleepingPlayers` | `count u8, ids u8 × count` | Quiénes están en la cama (IDs). Va a todos los jugadores; se manda solo al cambiar |
+| 16 | `Clock` | `day u8, minutes u16` | Día de juego (1 a 28, vuelve al 1) y hora: minutos desde las 6:00 (0 a 1200). La hora salta de a 10 min; se manda al cambiar, al amanecer (día nuevo, 0) y al entrar un jugador |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

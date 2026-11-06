@@ -14,18 +14,10 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
-        // Atajo de PRUEBA (tecla Y): simula la información de avance de
-        // "dormir" que mandará el server (ver PopupState::showWaiting).
-        // Borra cuando exista la conexión.
-        TestWaiting,
-        // Atajo de PRUEBA (tecla B): simula el "cambio de escenario"
-        // que mandará el server (ver SceneTransition::changeTo). Borra
-        // cuando exista la conexión.
-        TestSceneChange,
-        // Atajos de PRUEBA (teclas T, C y N): simulan el momento del día
-        // (atardecer 6 pm, anochecer 8 pm, noche 10 pm) que mañana
-        // mandará el server (ver DayPhase::setPhase). Borrar cuando
-        // exista la conexión.
+        // Atajos de PRUEBA (teclas T, C y N): fuerzan el momento del día
+        // (atardecer, anochecer, noche) sin esperar la hora del server.
+        // Lo normal es que lo decida el reloj del server (ver
+        // DayPhase::setClock); el atajo dura hasta la próxima etapa.
         TestDusk,
         TestEvening,
         TestNight,

@@ -1,20 +1,21 @@
 #pragma once
 
 #include <map>
+#include <optional>
+#include <string>
 
 #include "world/SceneDescription.h"
 
 namespace game {
 
 // Dueño del momento del día del cliente (día, atardecer, anochecer,
-// noche). Es el punto de ENTRADA de esa información: hoy lo setean los
-// atajos de prueba (teclas T, C y N, ver PlaySession::tick); mañana lo
-// llama la conexión en vez de la tecla, con lo que el server mande (ver
-// PopupState::showWaiting para el mismo patrón).
+// noche) y del reloj de juego que lo decide.
 //
-// Escalabilidad: cuando el server mande la hora, se suma ACÁ un setter
-// que la traduzca a una etapa (tabla de umbrales). El render no cambia:
-// sigue pidiendo phase() y los elementos siguen filtrando con `when`.
+// Entrada normal: el reloj del server (ServerClock -> LocalWorldView ->
+// setClock). De la hora se deriva la etapa con una tabla de umbrales, y
+// de día + minutos los valores crudos que muestran las etiquetas del HUD.
+// Entrada de prueba: setPhase (teclas T, C y N) fuerza una etapa; dura
+// hasta que el reloj cruce a la etapa siguiente.
 //
 // La luz no salta entre etapas: nightFactor() persigue, un paso por tick
 // (advance()), el valor de la etapa actual.
@@ -23,7 +24,12 @@ public:
 	// `transitionTicks`: ticks que tarda la luz en recorrer de 0.0 a 1.0.
 	explicit DayPhase(int transitionTicks);
 
-	// Punto de ENTRADA de la fuente de estado: el momento del día.
+	// Entrada del server: día de juego (1 = lunes) y minutos desde las
+	// 6:00. Actualiza los valores del HUD y, si la hora cruzó a otra
+	// etapa, la aplica.
+	void setClock(int dayNumber, int minutesSinceStart);
+
+	// Fuerza una etapa (atajos de prueba).
 	void setPhase(world::TimeOfDay phase);
 
 	// Se llama una vez por tick: acerca la luz al valor de la etapa.
@@ -37,7 +43,15 @@ public:
 	// que modula la intensidad de la luz nocturna. Es gradual.
 	double nightFactor() const;
 
+	// Valores crudos del reloj para las etiquetas del HUD (clave = token
+	// de ui/hud.toml): día de la semana (0 = lunes), día, hora (24 h, puede
+	// pasar de 23 después de medianoche) y minuto.
+	const std::map<std::string, int>& clockValues() const;
+
 private:
+	// Etapa que corresponde a una hora del reloj (tabla de umbrales).
+	world::TimeOfDay stageForHour(int hour) const;
+
 	world::TimeOfDay phase_;
 	// Intensidad mostrada ahora; se mueve hacia la de la etapa.
 	double level_;
@@ -47,6 +61,12 @@ private:
 	std::map<world::TimeOfDay, double> nightFactors_;
 	// Arte (Day o Night) que se dibuja en cada etapa.
 	std::map<world::TimeOfDay, world::TimeOfDay> lookPhases_;
+	// Hora (24 h) desde la que rige cada etapa.
+	std::map<int, world::TimeOfDay> stageFromHour_;
+	// Última etapa que dictó el reloj: solo se aplica al cambiar, así un
+	// atajo de prueba no se pisa en cada tick.
+	std::optional<world::TimeOfDay> clockStage_;
+	std::map<std::string, int> clockValues_;
 };
 
 }  // namespace game

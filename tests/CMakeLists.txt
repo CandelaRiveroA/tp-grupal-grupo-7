@@ -11,6 +11,7 @@ target_sources(taller_tests
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    furniture_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
     ../server/match.cpp
@@ -18,8 +19,10 @@ target_sources(taller_tests
     ../server/commands/move_command.cpp
     ../server/commands/pick_command.cpp
     ../server/commands/take_command.cpp
+    ../server/commands/sleep_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
+    ../server/domain/inventory/decoration_item.cpp
     ../server/domain/inventory/slot.cpp
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
@@ -28,6 +31,8 @@ target_sources(taller_tests
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp
+    ../server/domain/furniture/furniture.cpp
+    ../server/domain/furniture/bed.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
     ../server/domain/minerals/mineral.cpp
@@ -50,6 +55,7 @@ target_sources(taller_tests
     camera_test.cpp
     viewport_test.cpp
     element_layout_test.cpp
+    enter_selection_test.cpp
     character_layout_test.cpp
     chunk_grid_test.cpp
     scene_element_index_test.cpp

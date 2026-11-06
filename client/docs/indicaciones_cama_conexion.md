@@ -31,6 +31,12 @@ Viven en objetos que instancia `core::PlaySession` (`popupState_`,
 `sceneTransition_`); para llamarlos desde la conexión se enganchan igual
 que el flujo actual de la vista.
 
+> **Estado de la conexión:** conectado. `NetworkGameClient` deja
+> `ServerSleep` y `ServerDay` en la vista (`LocalWorldView::sleep` y
+> `LocalWorldView::dayChanged`), y `PlaySession` los traduce a los métodos
+> de arriba. Los votos (Sí/No) y la cancelación salen como `SleepMessage`.
+> Los stand-ins de prueba ya se borraron (§4).
+
 ## 3. El flujo del "dormir" (lo que se espera del server)
 
 1. El jugador apreta la cama → **intención de dormir** (mañana: un comando
@@ -57,18 +63,14 @@ por la vista, como siempre.
 
 ## 4. Lo que hay que BORRAR cuando el server tome el control
 
-Los stand-ins son temporales y están marcados en el código. Al conectar:
+Hecho: se borraron los stand-ins.
 
-1. `client/game/InputCommand.h` — borrar `Kind::TestWaiting` y
-   `Kind::TestSceneChange`.
-2. `client/sdl/input/InputManager.cpp` — borrar los bindings `SDLK_y` y
-   `SDLK_b`.
-3. `client/core/PlaySession.cpp` — borrar los bloques de esos comandos
-   (Y = `showWaiting(1, 3)`; B = `changeTo(kInitialRoom)` + `RoosterCrow`)
-   y el disparador local del click en la cama (`showQuestion()`).
+1. `client/game/InputCommand.h` — sin `Kind::TestWaiting` ni `Kind::TestSceneChange`.
+2. `client/sdl/input/InputManager.cpp` — sin los bindings `SDLK_y` ni `SDLK_b`.
+3. `client/core/PlaySession.cpp` — sin los bloques de prueba ni el
+   `showQuestion()` local del click en la cama. El popup lo abre `ServerSleep`.
 
-Eso es todo: el mecanismo (popups, transición, fades, re-indexado) **no se
-toca**. El server pasa a llamar los mismos métodos de §2.
+El mecanismo (popups, transición, fades, re-indexado) no se tocó.
 
 ## 5. Reglas del lado SDL que conviene saber
 

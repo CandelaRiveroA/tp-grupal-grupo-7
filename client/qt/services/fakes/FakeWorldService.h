@@ -17,8 +17,10 @@ public:
 
 	void requestWorlds() override;
 
-private:
-	static std::vector<WorldSummary> fixedWorlds();
+	// Mundos fijos, de forma sincronica: el shell los necesita antes de
+	// mostrar la pantalla de personaje.
+	std::vector<WorldSummary> worlds() const;
 
+private:
 	std::optional<ServiceError> failure_;
 };

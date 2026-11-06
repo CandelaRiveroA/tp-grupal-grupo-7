@@ -34,13 +34,15 @@ void ClientHandler::run() {
 }
 
 void ClientHandler::serve() {
-    std::string name;
+    std::string codeMatch;
     MatchSeat seat{LobbyStatus::Invalid, 0, nullptr};
     try {
         const MatchRequest request = protocol_receiver.receive_match_request();
-        name = request.name;
-        seat = request.type == MatchRequestType::Create ? matches.create(name, statuses) :
-                                                          matches.join(name, statuses);
+        codeMatch = request.codeMatch;
+        seat = request.type == MatchRequestType::Create ?
+                       matches.create(codeMatch, request.username, request.characterName,
+                                      statuses) :
+                       matches.join(codeMatch, request.username, request.characterName, statuses);
         protocol_sender.send_lobby_status(seat.status);
         if (seat.status != LobbyStatus::Ok) {
             return;
@@ -48,7 +50,7 @@ void ClientHandler::serve() {
         protocol_sender.send_welcome(ServerWelcome{seat.player_id});
     } catch (const std::exception& error) {
         if (seat.status == LobbyStatus::Ok) {
-            matches.leave(name, seat.player_id);
+            matches.leave(codeMatch, seat.player_id);
         }
         if (should_keep_running()) {
             output.printError("Error iniciando cliente: ", error.what());
@@ -61,7 +63,7 @@ void ClientHandler::serve() {
     receiver.start();
     receiver.join();
 
-    matches.leave(name, seat.player_id);
+    matches.leave(codeMatch, seat.player_id);
 
     sender.join();
 

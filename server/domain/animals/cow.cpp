@@ -13,10 +13,8 @@ bool Cow::is_walkable() const { return false; }
 
 std::string Cow::kind_name() const { return "cow"; }
 
-bool Cow::ready_to_milk() const { return is_ready_to_milk; }
-
 std::optional<AnimalSnapshot> Cow::animal_snapshot() const {
-    return AnimalSnapshot{get_id(), kind_name(), is_ready_to_milk};
+    return AnimalSnapshot{get_id(), kind_name(), is_ready_to_milk, wander_dir};
 }
 
 void Cow::update(World& /*w*/) {
@@ -48,4 +46,12 @@ void Cow::interact(Player& p, ToolType tool, World& w) {
         // Si no hubo éxito (inventario lleno), la leche se destruye sola
         // y la vaca sigue lista para la próxima vez que interactúen con ella.
     }
+}
+
+bool Cow::try_hand_action(Player& p, World& w) {
+    if (!this->is_ready_to_milk) {
+        return false;
+    }
+    this->interact(p, ToolType::HAND, w);
+    return true;
 }

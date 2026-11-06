@@ -33,16 +33,32 @@ private:
 
 	std::map<FrameAnchor, int> readAnchorOffsets() const;
 
-	LayerFrame readLayer(const tomlcfg::TomlDocument& layerDoc,
-			     const std::string& layerPath) const;
+	OverlayLayer readLayer(const tomlcfg::TomlDocument& layerDoc,
+			       const std::string& layerPath) const;
 
 	FrameAnchor readAnchor(const tomlcfg::TomlDocument& frameDoc) const;
 
+	// Ajustes por frame compartidos por herramientas y contenido en
+	// manos (ancla, offsets, ángulo, pivote, espejado, escala).
+	void readPlacement(const tomlcfg::TomlDocument& frameDoc,
+			   OverlayFrame& frame) const;
+
 	ToolOverlayFrame readFrame(const tomlcfg::TomlDocument& frameDoc) const;
+
+	// Campos de animación comunes (hoja, celda, ritmo, acción, frames)
+	// que comparten la herramienta y su efecto (el chorro). Lee en
+	// `overlay` desde la tabla `base`.
+	void readAnimated(const std::string& base,
+			  AnimatedOverlay& overlay) const;
 
 	ToolOverlayAction readAction(const std::string& base) const;
 
 	ToolOverlayAppearance readAppearance(const std::string& itemKey) const;
+
+	HeldOverlayFrame readHeldFrame(
+		const tomlcfg::TomlDocument& frameDoc) const;
+
+	HeldContentOverlay readHeldContent(const std::string& base) const;
 
 	const tomlcfg::TomlDocument& doc_;
 	// Vocabulario compartido de nombres de acción (ver ActionNames).

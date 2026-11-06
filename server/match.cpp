@@ -26,6 +26,8 @@
 // shortcut: un día fijo de 30s.
 #define kDayDurationSeconds 30
 #define kClockStepMs 100
+// Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
+#define kAnimalTickSteps 40
 
 DayClock::DayClock(Queue<MatchEvent>& events): events(events), restart_requested(false) {}
 
@@ -38,6 +40,7 @@ void DayClock::execute() {
         this->restart_requested.store(false);
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
+        uint8_t animal_steps = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
                std::chrono::seconds(kDayDurationSeconds)) {
@@ -50,6 +53,15 @@ void DayClock::execute() {
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
+            // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
+            if (++animal_steps >= kAnimalTickSteps) {
+                animal_steps = 0;
+                try {
+                    events.push(MatchEvent(AnimalTick{}));
+                } catch (const ClosedQueue&) {
+                    return;
+                }
+            }
         }
         if (interrupted) {
             continue;
@@ -82,8 +94,8 @@ void Match::place_animals() {
     // Animales de prueba, igual que las piedras: hasta que haya generación de mundo.
     world.add_animal(std::make_unique<Chicken>(3, 3));
     world.add_animal(std::make_unique<Chicken>(26, 4));
-    world.add_cow(std::make_unique<Cow>(4, 4));
-    world.add_cow(std::make_unique<Cow>(25, 5));
+    world.add_animal(std::make_unique<Cow>(4, 4));
+    world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
 // Cama propia de cada jugador: fila de arriba del spawn, una por ID.
@@ -109,6 +121,11 @@ void Match::handle(const DayPassed& /*day*/) {
         world.set_player_position(id, bed_x_for(id), kSpawnY - 1);
     }
     push_sleep_state();
+    sync_all();
+}
+
+void Match::handle(const AnimalTick& /*tick*/) {
+    world.tick_animals();
     sync_all();
 }
 

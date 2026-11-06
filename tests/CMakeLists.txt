@@ -47,6 +47,7 @@ target_sources(taller_tests
     sound_gate_test.cpp
     sound_cue_catalog_test.cpp
     character_catalog_loader_test.cpp
+    character_palette_loader_test.cpp
     creature_data_test.cpp
     inventory_config_loader_test.cpp
     inventory_slots_test.cpp
@@ -85,6 +86,9 @@ target_sources(taller_tests
     obtained_banner_queue_test.cpp
     obtained_banner_layout_test.cpp
     action_resolver_test.cpp
+    farm_catalogs_test.cpp
+    farm_selection_test.cpp
+    tool_use_sounds_test.cpp
     tool_overlay_loader_test.cpp
     tool_overlay_layout_test.cpp
     resource_config_loader_test.cpp

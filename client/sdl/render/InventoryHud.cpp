@@ -1,5 +1,6 @@
 #include "sdl/render/InventoryHud.h"
 
+#include <algorithm>
 #include <vector>
 
 #include "core/Constants.h"
@@ -58,18 +59,25 @@ void InventoryHud::draw(
 		}
 	}
 
-	if (layout_.activeSlotFrame.enabled) {
-		const int clampedSlot =
-			(activeSlot >= 0 && activeSlot < static_cast<int>(boxes.size()))
-				? activeSlot
-				: 0;
-		const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
-		drawFrame(layout_.activeSlotFrameLayout(
-				  boxes[static_cast<std::size_t>(clampedSlot)]),
-			  drawEdges);
-	}
-
 	const int slots = static_cast<int>(boxes.size());
+
+	if (layout_.activeSlotFrame.enabled && activeSlot >= 0 &&
+	    activeSlot < slots) {
+		// El marco marca un slot CON contenido: la selección nunca
+		// se dibuja sobre un cuadro vacío. Qué hay es estado (la
+		// vista); esto solo dibuja lo que la vista indica.
+		const bool occupied = std::any_of(
+			inventory.begin(), inventory.end(),
+			[&](const game::ViewInventorySlot& entry) {
+				return entry.slotIndex == activeSlot;
+			});
+		if (occupied) {
+			const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
+			drawFrame(layout_.activeSlotFrameLayout(
+					  boxes[static_cast<std::size_t>(activeSlot)]),
+				  drawEdges);
+		}
+	}
 	for (const game::ViewInventorySlot& entry : inventory) {
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
@@ -110,12 +118,26 @@ void InventoryHud::draw(
 	}
 }
 
+void InventoryHud::drawPanel(const world::PixelBox& box, const int columns,
+			     const int rows) {
+	// La figura del inventario "vacía": los cuadros de los slots (el
+	// fondo del panel, en grilla columns×rows) y, encima, el marco.
+	// Sin el borde interior de cada slot (la profundidad) y sin ítems.
+	for (const world::PixelBox& slot : layout_.slotBoxes(box, columns,
+								rows)) {
+		sheet_.draw(layout_.slotCol, layout_.slotRow,
+			    SDL2pp::Rect(slot.x, slot.y, slot.width,
+					 slot.height));
+	}
+	if (layout_.frame.enabled) {
+		drawFrame(layout_.frameLayout(box));
+	}
+}
+
 void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 	const std::vector<int> digits = world::digitsOf(count);
 	const std::vector<world::PixelBox> boxes =
 		layout_.countBoxes(slot, static_cast<int>(digits.size()));
-	// Los dígitos de la hoja son claros; se tiñen de negro al dibujarlos.
-	digitSheet_.setColorMod(0, 0, 0);
 	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
 		const world::SheetCell& cell = digits_.cellFor(digits[i]);
 		const world::PixelBox& box = boxes[i];
@@ -123,7 +145,6 @@ void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 				 SDL2pp::Rect(box.x, box.y, box.width,
 					      box.height));
 	}
-	digitSheet_.clearColorMod();
 }
 
 }

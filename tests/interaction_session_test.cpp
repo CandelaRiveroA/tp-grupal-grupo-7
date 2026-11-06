@@ -91,6 +91,35 @@ TEST(InteractionSessionTest, PlayerAnimatesTheActionTowardTheTarget) {
     EXPECT_EQ(player.facing, Direction::Right);  // hacia el objetivo
     ASSERT_TRUE(player.activeTool.has_value());
     EXPECT_EQ(*player.activeTool, ItemKind::Egg);
+    // El huevo va por `held`: no llena el contenido genérico.
+    EXPECT_FALSE(player.activeContent.has_value());
+}
+
+TEST(InteractionSessionTest, PlayerHoldsTheGenericContentWhileActive) {
+    const CreatureData creature = creatureWith(ActionKind::Pickup, 4, 12);
+    InteractionTarget target = milkTarget();
+    target.action = ActionKind::Pickup;
+    target.reward = "strawberry";
+    target.heldContent = "strawberry";
+    InteractionSession session;
+    session.start(target, 5, 5, creature);
+
+    ViewEntity player;
+    player.action = ActionKind::Idle;
+    session.mergePlayer(player);
+    EXPECT_EQ(player.action, ActionKind::Pickup);
+    ASSERT_TRUE(player.activeContent.has_value());
+    EXPECT_EQ(*player.activeContent, "strawberry");
+    EXPECT_FALSE(player.activeTool.has_value());
+
+    // Al cerrar la ventana ya no sostiene nada.
+    while (session.active()) {
+        session.advance();
+    }
+    ViewEntity after;
+    after.action = ActionKind::Idle;
+    session.mergePlayer(after);
+    EXPECT_FALSE(after.activeContent.has_value());
 }
 
 TEST(InteractionSessionTest, FacingStaysAfterClosingUntilSomethingElse) {

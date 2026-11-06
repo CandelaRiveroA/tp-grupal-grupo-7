@@ -12,6 +12,12 @@ const ToolOverlayAction* ToolOverlayCatalog::find(ItemKind kind,
 	return it == toolIt->second.end() ? nullptr : &it->second;
 }
 
+const HeldContentOverlay* ToolOverlayCatalog::findHeldContent(
+	const Direction dir) const {
+	const auto it = heldContent.find(dir);
+	return it == heldContent.end() ? nullptr : &it->second;
+}
+
 int ToolOverlayCatalog::offsetFor(FrameAnchor anchor) const {
 	const auto it = anchorOffsets.find(anchor);
 	return it != anchorOffsets.end() ? it->second : 0;

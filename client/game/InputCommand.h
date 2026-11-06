@@ -14,6 +14,14 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Atajo de PRUEBA (tecla Y): simula la información de avance de
+        // "dormir" que mandará el server (ver PopupState::showWaiting).
+        // Borra cuando exista la conexión.
+        TestWaiting,
+        // Atajo de PRUEBA (tecla B): simula el "cambio de escenario"
+        // que mandará el server (ver SceneTransition::changeTo). Borra
+        // cuando exista la conexión.
+        TestSceneChange,
     };
 
     Kind kind;

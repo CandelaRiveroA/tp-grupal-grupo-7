@@ -33,6 +33,8 @@ option(TALLER_EDITOR "Enable / disable editor program." ON)
 # el build normal del cliente/servidor/editor. Encenderla con
 # -DTALLER_TILE_INSPECTOR=ON compila el ejecutable taller_tile_inspector.
 option(TALLER_TILE_INSPECTOR "Enable / disable provisional tile inspector." OFF)
+# -DTALLER_QT_HARNESS=ON compila los harness de UI de Qt (offscreen).
+option(TALLER_QT_HARNESS "Enable / disable the Qt UI harnesses (offscreen)." OFF)
 option(TALLER_MAKE_WARNINGS_AS_ERRORS "Enable / disable warnings as errors." ON)
 
 message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}")
@@ -75,7 +77,10 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
     # que setearlas. SDL2PP_WITH_IMAGE habilita los constructores
     # Texture(renderer, path) / Surface(path) para cargar sprites desde
     # un archivo (PNG) sin recortar nada por frame en disco.
+    # SDL2PP_WITH_TTF habilita SDL2pp::Font (texto con fuente .ttf,
+    # sdl::TextRenderer).
     set(SDL2PP_WITH_IMAGE ON)
+    set(SDL2PP_WITH_TTF ON)
 
     FetchContent_Declare(
         SDL2
@@ -128,7 +133,7 @@ endif()
 # pinned (no rango abierto) para builds reproducibles. Lo necesitan el
 # cliente (lo dibuja) y los tests (prueban el loader), así que se trae
 # siempre que alguno de los dos esté habilitado.
-if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS)
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS OR TALLER_QT_HARNESS)
     include(FetchContent)
     FetchContent_Declare(
         tomlplusplus
@@ -149,7 +154,7 @@ endif()
 # pueden linkear y probar esta lógica sin levantar una ventana. El
 # cliente también la linkea. Se crea acá (raíz) porque la necesitan
 # client y tests.
-if(TALLER_CLIENT OR TALLER_TESTS)
+if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
     add_library(taller_client_world STATIC
         client/toml/TomlDocument.cpp
         client/world/ConfigError.cpp
@@ -157,6 +162,7 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/world/SceneTomlReader.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
+        client/world/CharacterPaletteLoader.cpp
         client/world/CreatureCatalog.cpp
         client/world/CharacterTomlReader.cpp
         client/world/ActionNames.cpp
@@ -215,6 +221,33 @@ if(TALLER_CLIENT OR TALLER_TESTS)
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
         client/game/InventorySelector.cpp
+        # SDL: cultivos, terreno, build-place y contenido en las manos.
+        client/world/ContentTraits.cpp
+        client/world/CropCatalog.cpp
+        client/world/CropTomlReader.cpp
+        client/world/CropConfigLoader.cpp
+        client/world/GroundCatalog.cpp
+        client/world/GroundTomlReader.cpp
+        client/world/GroundConfigLoader.cpp
+        client/world/CellPatch.cpp
+        client/world/BuildPlaceCatalog.cpp
+        client/world/BuildPlaceTomlReader.cpp
+        client/world/BuildPlaceConfigLoader.cpp
+        client/world/BuildPlaceLayout.cpp
+        client/world/HeldItemLayout.cpp
+        client/world/Grid.cpp
+        client/world/FarmCatalogs.cpp
+        client/game/CropSystem.cpp
+        client/game/FarmSelection.cpp
+        client/game/EnterSelection.cpp
+        client/game/PopupState.cpp
+        client/game/SceneTransition.cpp
+        client/world/FontCatalog.cpp
+        client/world/PromptLayout.cpp
+        client/game/ToolUseCue.cpp
+        client/core/ToolUseSounds.cpp
+        client/game/CarrySelection.cpp
+        client/game/PlantingSelection.cpp
         client/core/StartupSequence.cpp
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp
@@ -255,6 +288,9 @@ if(TALLER_CLIENT)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/sdl/assets
                 ${CMAKE_BINARY_DIR}/assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/qt/resources/fonts
+                ${CMAKE_BINARY_DIR}/assets/fonts
         COMMENT "Copiando assets del cliente al directorio del build")
 
     add_custom_target(client_sounds ALL
@@ -278,6 +314,10 @@ endif()
 # necesita (contexto, spritesheet, config de ventana) y nada de Qt.
 # Borrar este bloque y client/sdl/dev/ lo elimina del proyecto.
 # ------------------------------------------------------------
+if(TALLER_QT_HARNESS)
+    add_subdirectory(client/qt/harness)
+endif()
+
 if(TALLER_TILE_INSPECTOR)
     add_executable(taller_tile_inspector
         client/sdl/dev/tile_inspector_main.cpp
@@ -313,6 +353,13 @@ if(TALLER_TILE_INSPECTOR)
                     ${CMAKE_BINARY_DIR}/assets
             COMMENT "Copiando assets para el tile inspector")
     endif()
+
+    # El inspector también abre hojas de Qt; se copian junto a los assets.
+    add_custom_command(TARGET taller_tile_inspector POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/client/qt/resources
+                ${CMAKE_BINARY_DIR}/assets/qt/resources
+        COMMENT "Copiando recursos Qt para el tile inspector")
 endif()
 
 if(TALLER_SERVER)
@@ -410,5 +457,7 @@ if(TALLER_TESTS)
     target_compile_definitions(taller_tests PRIVATE
         TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
-        TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\")
+        TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
+        TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
+        TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\")
 endif()

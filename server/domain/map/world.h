@@ -13,7 +13,6 @@
 #include "resource_hit.h"
 
 class Animal;
-class Cow;
 
 class World {
 private:
@@ -23,7 +22,6 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
-    std::vector<Cow*> cows;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
 
@@ -65,10 +63,16 @@ public:
     void remove_entity_at(uint16_t x, uint16_t y);
 
     void add_animal(std::unique_ptr<Animal> animal);
-    void add_cow(std::unique_ptr<Cow> cow);
 
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
+
+    // Un paso del reloj de animales: cada uno se mueve en su dirección actual
+    // o elige una nueva si expiró el tiempo.
+    void tick_animals();
+
+    // Mueve una entidad a otra celda; no hace nada si el destino está bloqueado.
+    void move_entity(IEntity* entity, uint16_t x, uint16_t y);
 
     // ---
     void use_tool(uint8_t player_id);

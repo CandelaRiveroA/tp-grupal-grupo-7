@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include "domain/animals/chicken.h"
 #include "domain/entities/player.h"
 #include "domain/map/world.h"
 #include "domain/minerals/coal_rock.h"
@@ -87,6 +88,8 @@ TEST(WorldViewTest, MiningRemovesRockAndShowsTheDropInItsPlace) {
     EXPECT_EQ(dropped[0].content_id, "coal");
     EXPECT_EQ(dropped[0].x, 2);
     EXPECT_EQ(dropped[0].y, 1);
+    // El orbe de mineral no se levanta con Take: el cliente no lo anima.
+    EXPECT_FALSE(dropped[0].interactive);
 }
 
 TEST(WorldViewTest, WalkingOntoTheDropFreesTheCellAndFillsTheSlot) {
@@ -147,6 +150,64 @@ TEST(WorldViewTest, HitsAdvanceTheDamageInTheSentState) {
     // Al cuarto golpe deja de ser un recurso: la celda pasa a ser el drop.
     world.use_tool(1);
     EXPECT_TRUE(only<ServerResource>(view.sync(world, 1)).empty());
+}
+
+TEST(WorldViewTest, DroppedEggIsSentInteractive) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_animal(std::make_unique<Chicken>(3, 3));
+    WorldView view;
+
+    world.tick_day();  // la gallina pone un huevo en su celda
+
+    const auto dropped = only<ServerDropped>(view.sync(world, 1));
+    ASSERT_EQ(dropped.size(), 1u);
+    EXPECT_EQ(dropped[0].content_id, "egg");
+    EXPECT_EQ(dropped[0].x, 3);
+    EXPECT_EQ(dropped[0].y, 3);
+    // El huevo sí se levanta con Take: el cliente con eso anima la recogida.
+    EXPECT_TRUE(dropped[0].interactive);
+}
+
+TEST(WorldViewTest, TheEggWaitsForTakeInsteadOfPickingItselfUp) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_animal(std::make_unique<Chicken>(2, 1));
+    WorldView view;
+    world.tick_day();
+
+    world.move_player(1, Direction::RIGHT);
+
+    // Sigue en la celda, junto a la gallina: caminar no lo levanta.
+    EXPECT_EQ(world.get_entity_at(2, 1).size(), 2u);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 4u);
+
+    world.take_item(1);
+
+    // El Take de la celda propia sí lo levanta y sale del estado.
+    const auto own = only<ServerInventorySlot>(view.sync(world, 1));
+    ASSERT_EQ(own.size(), 5u);
+    EXPECT_EQ(own[4].slot, 4);
+    EXPECT_EQ(own[4].content_id, "egg");
+    EXPECT_TRUE(only<ServerDropped>(view.sync(world, 1)).empty());
+}
+
+TEST(WorldViewTest, TakeReachesAnEggInAnAdjacentCellButNotFartherOne) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_animal(std::make_unique<Chicken>(3, 1));
+    WorldView view;
+    world.tick_day();
+
+    // El huevo está a dos celdas: el Take no lo alcanza.
+    world.take_item(1);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 4u);
+
+    // Desde la celda de al lado sí.
+    world.move_player(1, Direction::RIGHT);
+    world.take_item(1);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 5u);
+    EXPECT_TRUE(only<ServerDropped>(view.sync(world, 1)).empty());
 }
 
 }  // namespace

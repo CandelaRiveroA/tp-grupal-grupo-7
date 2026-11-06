@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <vector>
 
 #include "world/Indication.h"
@@ -31,7 +32,9 @@ struct DialogData {
 	DialogAnimation animation;
 
 	// Lo que aparece dentro del diálogo (ej. la leche), centrado.
-	SpriteVisual content;
+	// OPCIONAL: hay diálogos cuyo elemento ya viene en el último frame
+	// de su animación (ej. el agua del aviso de regar).
+	std::optional<SpriteVisual> content;
 
 	// Corrección del contenido respecto de su centro (px; Y negativa =
 	// más arriba). Óptica: los sprites con padding transparente se ven
@@ -39,7 +42,8 @@ struct DialogData {
 	PixelPoint contentOffset;
 
 	// Offset en px desde la esquina superior izquierda de la caja
-	// dibujada de la entidad (negativo en Y = sobre ella).
+	// dibujada del dueño (entidad o cultivo; negativo en Y = sobre
+	// ella).
 	PixelPoint anchorOffset;
 };
 

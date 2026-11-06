@@ -18,6 +18,34 @@
 image = "Farm/walls&floors.png"
 cell  = [16, 16]
 
+[tilesets.outdoors]
+image = "Farm/spring_outdoors.png"
+cell  = [16, 16]
+
+[tilesets.bedroom]
+image = "Ambience/Bedroom/BedroomDay.png"
+cell  = [16, 16]
+
+[tilesets.decoration]
+image = "Decorations/Towninterior.png"
+cell  = [16, 16]
+
+[tilesets.sconcelight]
+image = "Decorations/SconceLigth.png"
+cell  = [16, 16]
+
+[tilesets.furniture]
+image = "Decorations/Furniture.png"
+cell  = [16, 16]
+
+[tilesets.springoutdoors]
+image = "Ambience/SpringOutdoors.png"
+cell  = [16, 16]
+
+[tilesets.houses]
+image = "Ambience/Houses.png"
+cell  = [16, 16]
+
 # --- Dormitorio --------------------------------------------------------
 # floor_color: fondo (lo que no cubre ningún tile).
 # grid: tamaño de la habitación en celdas lógicas (de cellW*scale px).
@@ -26,24 +54,145 @@ cell  = [16, 16]
 floor_color = [0, 0, 0, 255]
 grid        = [30, 20]
 scale       = 2
-# Cues audibles mientras esta sala se renderiza: los animales están
-# acá HOY; cuando exista el granero, esta lista pasa a su sala.
+
+  # Fondo: BedroomDay.png (12×12 celdas de 16px) dibujada una sola vez,
+  # centrada en la habitación. scale=3 → 576×576px = 18×18 celdas lógicas
+  # (cellPixelSize=32). at=[6,1] centra en la grilla de 30×20.
+  [[rooms.bedroom.elements]]
+  tileset = "bedroom"
+  region  = [0, 0, 12, 12]
+  draw    = { mode = "single", scale = 3 }
+  at      = [6, 1]
+  span    = [18, 18]
+
+  # Ventana: col=1 row=7 (1×2 celdas) → pared superior izquierda.
+  # scale=3 → 48×96px = 2×3 celdas lógicas (más grande).
+  [[rooms.bedroom.elements]]
+  tileset = "decoration"
+  region  = [1, 7, 1, 2]
+  draw    = { mode = "single", scale = 3 }
+  at      = [9, 3]
+  span    = [2, 3]
+
+  # SconceLigth: ilusión de luz entrando por la ventana (single, pequeño).
+  [[rooms.bedroom.elements]]
+  tileset = "sconcelight"
+  region  = [0, 0, 2, 2]
+  draw    = { mode = "single" }
+  at      = [9, 2]
+  span    = [2, 2]
+
+  # Chimenea: cols 26-27, rows 20-24 (2×5 celdas) → pared derecha.
+  # scale=3 → 96×240px = 3×8 celdas lógicas. Mover: cambiar `at`.
+  [[rooms.bedroom.elements]]
+  tileset = "decoration"
+  region  = [26, 20, 2, 5]
+  draw    = { mode = "single", scale = 3 }
+  at      = [18, 1]
+  span    = [3, 8]
+
+  # Cama completa (vertical): un ÚNICO elemento de 2×4 celdas, fila
+  # por fila. Se omite la fila (6,11)(7,11) del mitad porque su aire
+  # transparente superior abría un gap; la base de la cabecera
+  # (4,11)(5,11) empalma directo con (6,12)(7,12).
+  #   Filas 0-1: cabecera     (4,10)(5,10) / (4,11)(5,11)
+  #   Fila  2:   mitad-bottom (6,12)(7,12)
+  #   Fila  3:   pie          (0,10)(1,10)
+  # scale=3 → 96×192px = 3×6 celdas lógicas. Mover: cambiar `at`.
+  # `enter`: el jugador puede meterse (click del cursor). Las filas 2-3
+  # (mitad + pie) se dibujan ENCIMA y lo tapan; la cabecera queda
+  # detrás (la cabeza se ve sobre la almohada). `lie` es la celda donde
+  # queda acostado.
+  [[rooms.bedroom.elements]]
+  tileset = "decoration"
+  piece   = [2, 4]
+  cells   = [ [4,10],[5,10],
+              [4,11],[5,11],
+              [6,12],[7,12],
+              [0,10],[1,10] ]
+  draw    = { mode = "single", scale = 3 }
+  at      = [19, 10]
+  span    = [3, 6]
+  enter   = { rows = [2, 3], lie = [20, 13], facing = "right" }
+
+  # Planta: col=17, rows 11-12 (1×2).
+  [[rooms.bedroom.elements]]
+  tileset = "decoration"
+  region  = [17, 11, 1, 2]
+  draw    = { mode = "single" }
+  at      = [8, 13]
+  span    = [1, 2]
+
+  # Alfombra: bloque contiguo 3×2 de Furniture.png (cols 18-20,
+  # rows 50-51), dibujada UNA sola vez. scale=4 → 192×128px = 6×4
+  # celdas lógicas.
+  [[rooms.bedroom.elements]]
+  tileset = "furniture"
+  region  = [18, 50, 3, 2]
+  draw    = { mode = "single", scale = 4 }
+  at      = [13, 12]
+  span    = [6, 4]
+
+# --- Jardín (segunda escena: al salir de la casa) ----------------------
+# Fondo de pasto (SpringOutdoors.png) + la casa compuesta (Houses.png).
+# Las POBLACIONES de la sala (qué se puebla acá) son dato: ver
+# [rooms.garden.spawns]. La sala activa (hoy la elige quien arma la
+# partida; mañana el servidor) es la que decide qué se dibuja y qué se
+# puebla, sin acoplar el dibujo a la fuente de estado.
+[rooms.garden]
+floor_color = [0, 0, 0, 255]
+# El mundo es MÁS GRANDE que la ventana (40×60 celdas): la ventana no
+# cambia (sale de WindowConfig), la CÁMARA revela el resto al caminar.
+# El clamp de sdl::Camera a worldBounds(grid) hace el resto: §11. El
+# clamp del movimiento al tamaño de la grilla lo simula el "server
+# falso" (MockGameClient); mañana la dimensión y el límite los da el
+# servidor.
+grid        = [40, 60]
+scale       = 2
+# Cues audibles en el jardín: los animales viven ACÁ (no en el
+# dormitorio). Si mañana aparece el granero, estos cues pasan a su sala.
 sounds      = ["chicken_cluck", "cow_moo"]
 
-  # Piso: bloque lógico de 2x2 celdas desde (col 0, fila 27), repetido en
-  # mosaico para cubrir el área bajo la pared. Hereda scale = 2.
-  [[rooms.bedroom.elements]]
-  tileset = "farm"
-  region  = [0, 27, 2, 2]
-  draw    = { mode = "tile" }
-  at      = [0, 2]
-  span    = [30, 18]
+  # Qué puebla la sala la fuente de estado (datos puros, sin SDL): el
+  # mock —y mañana el servidor— lee esto de la escena activa y solo
+  # siembra lo que la sala permite. El dormitorio NO declara spawns, así
+  # que queda sin animales ni minerales.
+  [rooms.garden.spawns]
+  animals  = true
+  minerals = true
 
-  # Pared superior: columna de 3 celdas (filas 0,1,2) repetida a lo ancho.
-  # scale_x = 2 la alinea con el piso; scale_y = 3 la hace más alta.
-  [[rooms.bedroom.elements]]
-  tileset = "farm"
-  region  = [0, 0, 1, 3]
-  draw    = { mode = "horizontal_strip", scale_x = 2, scale_y = 3 }
+  # Piso de tierra: baldosa COMPUESTA 2×2 de SpringOutdoors.png (cuatro
+  # celdas NO contiguas de la hoja, fila por fila: arriba-izq, arriba-der,
+  # abajo-izq, abajo-der), tileada por TODO el jardín (40×60).
+  # Mismo mecanismo genérico que cualquier piso: piece+cells en modo tile
+  # (ElementPainter::paintTiled repite el bloque 2×2). La cámara revela
+  # el resto al caminar; el render emite solo lo visible.
+  [[rooms.garden.elements]]
+  tileset = "springoutdoors"
+  piece   = [2, 2]
+  cells   = [ [1,7],[3,6],
+              [1,9],[2,9] ]
+  draw    = { mode = "tile" }
   at      = [0, 0]
-  span    = [30, 2]
+  span    = [40, 60]
+
+  # La casa: un ÚNICO elemento de 9×9 celdas de Houses.png (cols 1-9,
+  # filas 0-8). El techo es triangular, así que las posiciones vacías
+  # del rectángulo apuntan a la celda transparente (0,0) de la hoja.
+  # scale=2 → 288×288px = 9×9 celdas lógicas. Mover: cambiar `at`.
+  [[rooms.garden.elements]]
+  tileset = "houses"
+  piece   = [9, 9]
+  cells   = [
+              [0,0],[0,0],[0,0],[0,0],[5,0],[6,0],[7,0],[8,0],[0,0],
+              [0,0],[0,0],[0,0],[4,1],[5,1],[6,1],[7,1],[8,1],[0,0],
+              [1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[9,2],
+              [1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],
+              [1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4],[9,4],
+              [1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],
+              [1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[7,6],[8,6],[9,6],
+              [1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],
+              [1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8] ]
+  draw    = { mode = "single", scale = 2 }
+  at      = [10, 0]
+  span    = [9, 9]

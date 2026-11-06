@@ -18,10 +18,12 @@ namespace sdl {
 
 EntityRenderer::EntityRenderer(
 	SheetCache& sheets, const world::CharacterCatalog& characters,
-	const world::ToolOverlayCatalog& toolOverlay)
+	const world::ToolOverlayCatalog& toolOverlay,
+	const world::ContentCatalog& content)
 	: sheets_(sheets)
 	, characters_(characters)
-	, toolOverlay_(sheets, toolOverlay, characters) {}
+	, toolOverlay_(sheets, toolOverlay, characters, content)
+	, heldItem_(sheets, content, characters) {}
 
 void EntityRenderer::draw(const game::ViewEntity& entity,
 			  const std::size_t entityIndex,
@@ -69,6 +71,15 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const SDL2pp::Rect drawBox(box.x, box.y, box.width, box.height);
 	sprite.draw(*appearance.pose, drawBox, flip);
 	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose);
+
+	// El contenido sostenido (poses "sosteniendo", una por variante de
+	// carry) va sobre la cabeza: el MISMO sprite que el del inventario.
+	// Qué se sostiene y en qué pose lo resolvió game::ActionResolver;
+	// esto solo lo dibuja.
+	if (actions.isHoldingPose(action) &&
+	    actions.heldContentId().has_value()) {
+		heldItem_.draw(*actions.heldContentId(), entity.kind, drawBox);
+	}
 }
 
 }  // namespace sdl

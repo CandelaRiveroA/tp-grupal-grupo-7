@@ -29,23 +29,40 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.cpp
     qt/screens/SaveListScreen.cpp
     qt/screens/Screen.cpp
-    qt/screens/WorldSelectScreen.cpp
-    qt/services/AssetCatalog.cpp
+    qt/screens/UsernameScreen.cpp
+    qt/services/CharacterLayerSource.cpp
     qt/services/SaveService.cpp
     qt/services/SessionService.cpp
+    qt/services/CharacterSpriteComposer.cpp
     qt/services/NetworkSessionService.cpp
     qt/services/WorldService.cpp
-    qt/services/fakes/FakeAssetCatalog.cpp
     qt/services/fakes/FakeSaveService.cpp
     qt/services/fakes/FakeSessionService.cpp
     qt/services/fakes/FakeWorldService.cpp
+    qt/theme/CharacterSheets.cpp
     qt/theme/GameCursor.cpp
     qt/theme/TitleBackdrop.cpp
     qt/theme/TitleSprites.cpp
     qt/util/CharacterLayers.cpp
     qt/util/IndexCycle.cpp
     qt/widgets/AsyncStateView.cpp
+    qt/widgets/CharacterAppearanceEditor.cpp
     qt/widgets/CharacterPreview.cpp
+    qt/widgets/CycleRow.cpp
+    qt/widgets/SaveRowButton.cpp
+    qt/widgets/WorldButton.cpp
+    qt/widgets/UsernamePlate.cpp
+    qt/widgets/WorldSelectorWidget.cpp
+    qt/theme/CharacterSprites.cpp
+    qt/theme/JoinCodeSprites.cpp
+    qt/theme/NineSlice.cpp
+    qt/theme/SkinRecolorer.cpp
+    qt/theme/SaveListSprites.cpp
+    qt/theme/WorldSprites.cpp
+    qt/widgets/InputBox.cpp
+    qt/widgets/SliderRow.cpp
+    qt/widgets/ParchmentBanner.cpp
+    qt/widgets/PromptForm.cpp
     qt/widgets/TitleButton.cpp
     world/Scenario.cpp
     sdl/context/SdlContext.cpp
@@ -57,10 +74,16 @@ target_sources(taller_client
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
     sdl/render/ToolOverlayPainter.cpp
+    sdl/render/HeldItemPainter.cpp
+    sdl/render/GroundEffectPainter.cpp
+    sdl/render/CropPainter.cpp
+    sdl/render/BuildPlacePainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
     sdl/render/CursorPainter.cpp
     sdl/render/DialogPainter.cpp
+    sdl/render/TextRenderer.cpp
+    sdl/render/PromptPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     sdl/audio/MusicPlayer.cpp
@@ -72,6 +95,8 @@ target_sources(taller_client
     core/MusicTrack.h
     core/SessionConfig.h
     core/PlaySession.h
+    core/FarmConstants.h
+    core/ToolUseSounds.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -81,29 +106,52 @@ target_sources(taller_client
     qt/screens/MainMenuScreen.h
     qt/screens/SaveListScreen.h
     qt/screens/Screen.h
-    qt/screens/WorldSelectScreen.h
-    qt/services/AssetCatalog.h
+    qt/screens/UsernameScreen.h
+    qt/services/CharacterLayerSource.h
+    qt/services/CharacterSpriteComposer.h
     qt/services/SaveService.h
     qt/services/ServiceError.h
     qt/services/SessionService.h
     qt/services/NetworkSessionService.h
     qt/services/WorldService.h
-    qt/services/fakes/FakeAssetCatalog.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
     qt/services/fakes/FakeSessionService.h
     qt/services/fakes/FakeWorldService.h
+    qt/theme/CharacterRects.h
     qt/theme/CloudRects.h
+    qt/theme/JoinCodeRects.h
+    qt/theme/CharacterSprites.h
+    qt/theme/JoinCodeSprites.h
+    qt/theme/SaveListRects.h
+    qt/theme/SaveListSprites.h
+    qt/theme/WorldSpriteRects.h
+    qt/theme/WorldSprites.h
+    qt/theme/CharacterSheetRects.h
+    qt/theme/CharacterSheets.h
+    qt/theme/NineSlice.h
+    qt/theme/SkinRecolorer.h
     qt/theme/CursorRects.h
     qt/theme/GameCursor.h
     qt/theme/TitleBackdrop.h
     qt/theme/TitleSpriteRects.h
     qt/theme/TitleSprites.h
+    qt/theme/UsernameRects.h
     qt/util/CharacterLayer.h
     qt/util/CharacterLayers.h
     qt/util/IndexCycle.h
     qt/widgets/AsyncStateView.h
+    qt/widgets/CharacterAppearanceEditor.h
     qt/widgets/CharacterPreview.h
+    qt/widgets/CycleRow.h
+    qt/widgets/InputBox.h
+    qt/widgets/SaveRowButton.h
+    qt/widgets/WorldButton.h
+    qt/widgets/UsernamePlate.h
+    qt/widgets/WorldSelectorWidget.h
+    qt/widgets/SliderRow.h
+    qt/widgets/ParchmentBanner.h
+    qt/widgets/PromptForm.h
     qt/widgets/TitleButton.h
     client_sender.h
     client_receiver.h
@@ -121,6 +169,7 @@ target_sources(taller_client
     game/FloorItems.h
     game/InteractionSession.h
     game/AnimalSystem.h
+    game/CropSystem.h
     game/MockWorldClient.h
     game/DialogAnimator.h
     game/PlayerController.h
@@ -194,10 +243,16 @@ target_sources(taller_client
     sdl/render/CharacterSprite.h
     sdl/render/RenderConstants.h
     sdl/render/ToolOverlayPainter.h
+    sdl/render/HeldItemPainter.h
+    sdl/render/GroundEffectPainter.h
+    sdl/render/CropPainter.h
+    sdl/render/BuildPlacePainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
     sdl/render/CursorPainter.h
     sdl/render/DialogPainter.h
+    sdl/render/TextRenderer.h
+    sdl/render/PromptPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h

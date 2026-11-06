@@ -17,22 +17,23 @@ using world::PixelRect;
 using world::SceneDescription;
 using world::SceneElementIndex;
 using world::ScenePixelMapper;
-using world::SpriteRegion;
 using world::TileSetDef;
 
 ElementPlacement tileElement(int column, int row) {
 	return ElementPlacement{
 		"tiles",
-		SpriteRegion{GridCell{0, 0}, GridSpan{1, 1}},
+		GridSpan{1, 1},
+		{{0, 0}},
 		DrawSpec{DrawMode::Tile, 1, 1},
 		GridCell{column, row},
 		GridSpan{2, 2},
+		std::nullopt,
 	};
 }
 
 TEST(SceneElementIndexTest, QueryReturnsOnlyVisibleElementsInSceneOrder) {
 	SceneDescription scene{Color{0, 0, 0, 255}, GridSpan{100, 100}, 32,
-			       {}, {}, {}};
+			       {}, {}, {}, {}};
 	scene.tilesets["tiles"] = TileSetDef{"sheet.png", 16, 16};
 	scene.elements.push_back(tileElement(0, 0));
 	scene.elements.push_back(tileElement(50, 50));
@@ -49,7 +50,7 @@ TEST(SceneElementIndexTest, QueryReturnsOnlyVisibleElementsInSceneOrder) {
 
 TEST(SceneElementIndexTest, RebuildReplacesThePreviousIndex) {
 	SceneDescription scene{Color{0, 0, 0, 255}, GridSpan{100, 100}, 32,
-			       {}, {}, {}};
+			       {}, {}, {}, {}};
 	scene.tilesets["tiles"] = TileSetDef{"sheet.png", 16, 16};
 	scene.elements.push_back(tileElement(50, 50));
 

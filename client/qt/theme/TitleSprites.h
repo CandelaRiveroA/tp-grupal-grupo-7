@@ -13,11 +13,17 @@ public:
     const QPixmap& logo() const;
     const QPixmap& button(int index) const;
     const QPixmap& buttonHover(int index) const;
+    const QPixmap& backButton() const;
+    const QPixmap& backButtonHover() const;
+    const QPixmap& nameplate() const;
 
 private:
     QPixmap scaledTimesTwo(const QPixmap& sprite) const;
     QPixmap nullPixmap_;
     QPixmap logo_;
+    QPixmap nameplate_;
     QPixmap buttons_[ATLAS_BUTTON_COUNT];
     QPixmap buttonsHover_[ATLAS_BUTTON_COUNT];
+    QPixmap back_;
+    QPixmap backHover_;
 };

@@ -53,7 +53,7 @@ inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe
 | 1 | `Status` | `player_id u8, x u16, y u16, direction u8` | Pose de un jugador |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
-| 5 | `Dropped` | `x u16, y u16, content_id str` | Item caído en el piso |
+| 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |
 | 6 | `InventorySlot` | `slot u8, count u8, content_id str` | Slot ocupado del inventario propio |
 | 7 | `Obtained` | `content_id str` | Evento puntual: el jugador obtuvo un contenido |
 | 8 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |

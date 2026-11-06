@@ -3,7 +3,10 @@
 #include <SDL2pp/SDL2pp.hh>
 
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <string>
+#include <utility>
 
 #include "sdl/context/SdlConstants.h"
 
@@ -29,6 +32,15 @@ public:
 	void draw(int col, int row, const SDL2pp::Rect& dest,
 		  Flip flip = Flip::None);
 
+	// Dibuja el CONTENIDO de la celda (sin su aire transparente) a la
+	// MISMA escala que tendría la celda entera (multiplicada por
+	// `scale`) y centrado en dest: el sprite conserva su proporción y
+	// el aire se reparte parejo alrededor. Sirve para sprites con
+	// margen variable dentro de su celda (las plantas de crops.toml,
+	// cada una dibujada donde le cabe en la hoja).
+	void drawContentCentered(int col, int row, const SDL2pp::Rect& dest,
+				 double scale = 1.0);
+
 	// Tiñe la hoja al dibujar (color modulation): cada píxel se multiplica
 	// por (r,g,b). Útil para recolorear sprites claros (ej. dígitos
 	// blancos -> negro con (0,0,0)). clearColorMod() vuelve a (255,255,255).
@@ -43,10 +55,20 @@ public:
 			       SDL2pp::NullOpt);
 
 private:
+	// Rectángulo del contenido con alfa dentro de la celda (en píxeles
+	// de la hoja). La hoja se escanea una sola vez por celda pedida y
+	// el resultado se cachea; una celda vacía o sin alfa consultable
+	// devuelve la celda entera.
+	SDL2pp::Rect contentRect(int col, int row);
+	SDL2pp::Rect scanContentRect(int col, int row);
+
 	SdlContext& context_;
+	std::string path_;
 	SDL2pp::Texture texture_;
 	int frameWidth_;
 	int frameHeight_;
+	std::optional<SDL2pp::Surface> surface_;
+	std::map<std::pair<int, int>, SDL2pp::Rect> contentRects_;
 };
 
 }

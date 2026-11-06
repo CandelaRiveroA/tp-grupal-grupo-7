@@ -97,6 +97,7 @@ void ProtocolSender::send_message(const ServerDropped& dropped) {
     send_uint16(dropped.x);
     send_uint16(dropped.y);
     send_string(dropped.content_id);
+    send_uint8(dropped.interactive ? 1 : 0);
 }
 
 void ProtocolSender::send_message(const ServerInventorySlot& slot) {
@@ -128,11 +129,14 @@ void ProtocolSender::send_message(const ServerReset& /*reset*/) {
 }
 
 void ProtocolSender::send_message(const ServerAnimal& animal) {
+    validate_direction(animal.direction);
+
     send_uint8(static_cast<uint8_t>(ServerMessageType::Animal));
     send_uint8(animal.id);
     send_string(animal.kind);
     send_uint16(animal.x);
     send_uint16(animal.y);
+    send_uint8(static_cast<uint8_t>(animal.direction));
     send_uint8(animal.ready_to_milk ? 1 : 0);
 }
 
@@ -160,7 +164,10 @@ void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
 
 void ProtocolSender::send_match_request(const MatchRequest& request) {
     send_uint8(static_cast<uint8_t>(request.type));
-    send_string(request.name);
+    send_string(request.codeMatch);
+    send_string(request.nameMatch);
+    send_string(request.username);
+    send_string(request.characterName);
 }
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {

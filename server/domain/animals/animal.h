@@ -29,7 +29,20 @@ public:
 
     virtual void produce(World& w) = 0;
 
+    // Acción de la mano del jugador sobre este animal. Devuelve true si consumió
+    // la acción (el mundo deja de buscar); por defecto la mano no hace nada.
+    virtual bool try_hand_action(Player& p, World& w);
+
+    // Un paso del reloj de animales: avanza en la dirección actual o elige una
+    // nueva cuando se agota el tiempo en esa dirección.
+    void wander(World& w);
+
     std::optional<AnimalSnapshot> animal_snapshot() const override;
+
+protected:
+    Direction wander_dir;
+    uint8_t ticks_to_turn;
+    uint8_t ticks_to_pause;
 };
 
 #endif  // ANIMAL_H

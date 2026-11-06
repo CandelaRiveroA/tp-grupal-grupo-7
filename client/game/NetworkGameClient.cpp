@@ -1,5 +1,6 @@
 #include "game/NetworkGameClient.h"
 
+#include <cstddef>
 #include <cstdlib>
 #include <exception>
 #include <map>
@@ -81,7 +82,9 @@ NetworkGameClient::~NetworkGameClient() {
 
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
     if (std::holds_alternative<protocol::TakeMessage>(message)) {
+        // Orden del mock: primero los animales (ordeño), después el piso (recogida).
         startMilking();
+        startPickup();
     }
     commands_.push(message);
 }
@@ -110,6 +113,39 @@ void NetworkGameClient::startMilking() {
     }
 }
 
+void NetworkGameClient::startPickup() {
+    if (session_.active()) {
+        return;  // ya hay una interacción abierta (el ordeño va primero)
+    }
+    const auto player = players_.find(localPlayerId_);
+    if (player == players_.end()) {
+        return;
+    }
+    const RemotePlayer& self = player->second;
+    for (std::size_t i = 0; i < dropped_.size(); ++i) {
+        const ViewDroppedItem& item = dropped_[i];
+        // Mismo alcance que el servidor: World::take_item levanta el huevo de las
+        // 8 vecinas.
+        if (!item.interactive || std::abs(item.cellX - self.cellX) > 1 ||
+            std::abs(item.cellY - self.cellY) > 1) {
+            continue;
+        }
+        InteractionTarget target;
+        target.action = world::ActionKind::Pickup;
+        target.cycles = kPickupCycles;
+        // La recompensa la entrega el servidor (ServerObtained + el slot), por
+        // eso esta sesión no llama mergeRewards: acá solo se anima.
+        target.reward = item.contentId;
+        target.heldContent = item.contentId;
+        target.targetId = static_cast<int>(i);
+        target.cellX = item.cellX;
+        target.cellY = item.cellY;
+        session_.start(target, self.cellX, self.cellY,
+                       characters_->dataFor(world::CreatureKind::Player));
+        return;
+    }
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
     if (std::holds_alternative<ServerReset>(message)) {
         // Cada lote describe el estado completo: lo que no vuelve ya no existe.
@@ -125,7 +161,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         const std::optional<world::CreatureKind> kind = creatureKindFor(animal->kind);
         if (kind.has_value()) {
             ViewEntity entity{kind.value(), animal->x,
-                              animal->y,    world::Direction::Front,
+                              animal->y,    world::viewDirectionFrom(animal->direction),
                               false,        world::ActionKind::Idle,
                               std::nullopt};
             entity.id = animal->id;
@@ -162,7 +198,8 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         return;
     }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
-        dropped_.push_back(ViewDroppedItem{dropped->content_id, dropped->x, dropped->y});
+        const ServerDropped& drop = *dropped;
+        dropped_.push_back(ViewDroppedItem{drop.content_id, drop.x, drop.y, drop.interactive});
         return;
     }
     if (const auto* slot = std::get_if<ServerInventorySlot>(&message)) {

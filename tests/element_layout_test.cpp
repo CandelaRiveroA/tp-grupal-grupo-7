@@ -11,16 +11,17 @@ using world::ElementPlacement;
 using world::GridCell;
 using world::GridSpan;
 using world::PixelRect;
-using world::SpriteRegion;
 using world::TileSetDef;
 
 ElementPlacement makeElement(DrawMode mode, int scaleX, int scaleY) {
 	return ElementPlacement{
 		"tiles",
-		SpriteRegion{GridCell{0, 0}, GridSpan{2, 2}},
+		GridSpan{2, 2},
+		{{0, 0}, {1, 0}, {0, 1}, {1, 1}},
 		DrawSpec{mode, scaleX, scaleY},
 		GridCell{1, 2},
 		GridSpan{3, 4},
+		std::nullopt,
 	};
 }
 

@@ -2,15 +2,12 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPainter>
-#include <QTimerEvent>
 #include <QVBoxLayout>
 
 #include "core/MusicControl.h"
-#include "qt/theme/CloudRects.h"
-#include "qt/theme/TitleBackdrop.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/widgets/TitleButton.h"
+#include "qt/widgets/UsernamePlate.h"
 
 MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
         Screen(parent), music_(music) {
@@ -26,7 +23,7 @@ MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
     auto* logo = new QLabel(this);
     logo->setObjectName("gameLogo");
     logo->setPixmap(sprites_.logo());
-    logo->setFixedSize(ATLAS_LOGO_W * 2, ATLAS_LOGO_H * 2);
+    logo->setFixedSize(TITLE_LOGO_W, TITLE_LOGO_H);
     logo->setAlignment(Qt::AlignCenter);
     layout->addWidget(logo, 0, Qt::AlignHCenter);
 
@@ -38,7 +35,10 @@ MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
     auto* row = new QHBoxLayout(buttons);
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(TITLE_BUTTON_SPACING);
-    row->addWidget(makeNavButton(0, "Nueva partida", "newButton", ScreenId::WorldSelect));
+    auto* newGame = makeButton(0, "Nueva partida", "newButton");
+    connect(newGame, &QAbstractButton::clicked, this,
+            &MainMenuScreen::newGameRequested);
+    row->addWidget(newGame);
     row->addWidget(makeNavButton(1, "Reanudar partida", "loadButton", ScreenId::SaveList));
     row->addWidget(makeNavButton(2, "Unirse a partida", "coopButton", ScreenId::JoinCode));
 
@@ -46,6 +46,10 @@ MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
     connect(exit, &QAbstractButton::clicked, this, &MainMenuScreen::exitRequested);
     row->addWidget(exit);
     layout->addWidget(buttons, 0, Qt::AlignHCenter);
+
+    // placa del username arriba a la derecha fuera del layout.
+    plate_ = new UsernamePlate(sprites_.nameplate(), this);
+    plate_->move(TITLE_SCREEN_W - TITLE_PLATE_W - TITLE_PLATE_MARGIN, TITLE_PLATE_TOP_Y);
 }
 
 TitleButton* MainMenuScreen::makeButton(int spriteIndex, const QString& accessibleText,
@@ -64,39 +68,14 @@ TitleButton* MainMenuScreen::makeNavButton(int spriteIndex, const QString& acces
     return button;
 }
 
-void MainMenuScreen::paintEvent(QPaintEvent* event) {
-    QPainter painter(this);
-    backdrop_.paint(painter);
-    QWidget::paintEvent(event);
-}
-
 void MainMenuScreen::onEnter() {
     // Al volver devuelve el foco a la pantalla para no dejar ningun boton marcado.
     setFocus(Qt::OtherFocusReason);
-    if (!cloudTimer_.isActive()) {
-        cloudTimer_.start(CLOUD_ANIMATION_TICK_MS, this);
-    }
+    plate_->setUsername(username());
+    Screen::onEnter();
     if (music_ != nullptr) {
         music_->play(core::MusicTrack::MenuTheme);
     }
 }
 
-void MainMenuScreen::onExit() {
-    if (cloudTimer_.isActive()) {
-        cloudTimer_.stop();
-    }
-    if (music_ != nullptr) {
-        music_->stop();
-    }
-}
-
-bool MainMenuScreen::isAnimating() const { return cloudTimer_.isActive(); }
-
-void MainMenuScreen::timerEvent(QTimerEvent* event) {
-    if (event->timerId() == cloudTimer_.timerId()) {
-        backdrop_.step(float(CLOUD_ANIMATION_TICK_MS) / 1000.0f);
-        update();
-        return;
-    }
-    QWidget::timerEvent(event);
-}
+void MainMenuScreen::onExit() { Screen::onExit(); }

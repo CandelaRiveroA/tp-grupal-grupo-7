@@ -1,0 +1,79 @@
+# ============================================================
+# Cultivos del juego, descritos como DATOS.
+#
+# Cada cultivo es un ciclo de vida completo: el SACO de semillas (el
+# contentId que siembra, sack_id), la semilla plantada, los
+# crecimientos y las calidades de la cosecha. El nombre de la subtabla
+# (el cropId) es el contentId del PRODUCTO cosechado: lo que levantás
+# es lo que aparece en el inventario, dibujado como la cosecha.
+# Agregar un cultivo = otra subtabla [crops.<id>]; no hace falta
+# recompilar el cliente.
+#
+# Los ids son vocabulario compartido con el servidor (los ItemID de
+# server/domain/inventory/item_types.h: STRAWBERRY, ONION, POTATO,
+# PUMPKIN). Hoy la demo siembra los sacos; mañana los decidirá el
+# servidor.
+#
+# Lo carga world::CropConfigLoader hacia un world::CropCatalog (datos
+# puros, sin SDL). Ver client/world/crops-format.md para el detalle de
+# cada campo.
+# ============================================================
+
+# --- Hoja de sprites ---------------------------------------------------
+# image: ruta de la hoja (relativa al directorio de assets).
+# cell:  tamaño de celda de ESA hoja [ancho, alto] en píxeles.
+[sheet]
+image = "Farm/springcrops.png"
+cell  = [16, 16]
+
+# --- Dibujo de la planta plantada --------------------------------------
+# scale:         a qué escala se dibuja la planta sobre la celda de
+#                tierra (1.0 = su tamaño de diseño; un poco más = menos
+#                aire alrededor).
+# harvest_scale: la cosecha (la etapa final) va una dimensión menos:
+#                su fruto ya llena su celda.
+[plant]
+scale         = 1.2
+harvest_scale = 1.0
+
+# --- Cada cultivo -----------------------------------------------------
+# sack_id:  contentId del saco de semillas en el inventario.
+# sack:     celda [col, row] del saco de semillas.
+# seed:     celda de la semilla recién plantada.
+# growth:   5 celdas, crecimiento 1..5 en orden.
+# qualities: 5 celdas, cosecha en orden base, bueno, excelente,
+#            increíble, perfecta (alineado con Quality del servidor).
+# droppable: el saco y el producto son contenidos SOLTABLES del
+#            inventario (rasgo del contenido; mañana la regla real la
+#            valida el servidor).
+[crops.strawberry]  # frutilla
+droppable = true
+sack_id   = "strawberry_seeds"
+sack      = [7, 1]
+seed      = [0, 1]
+growth    = [ [1, 1], [2, 1], [3, 1], [4, 1], [5, 1] ]
+qualities = [ [8, 1], [9, 1], [10, 1], [11, 1], [12, 1] ]
+
+[crops.onion]       # verdeo
+droppable = true
+sack_id   = "onion_seeds"
+sack      = [7, 3]
+seed      = [0, 3]
+growth    = [ [1, 3], [2, 3], [3, 3], [4, 3], [5, 3] ]
+qualities = [ [8, 3], [9, 3], [10, 3], [11, 3], [12, 3] ]
+
+[crops.potato]      # papa
+droppable = true
+sack_id   = "potato_seeds"
+sack      = [7, 5]
+seed      = [0, 5]
+growth    = [ [2, 5], [3, 5], [4, 5], [5, 5], [6, 5] ]
+qualities = [ [8, 5], [9, 5], [10, 5], [11, 5], [12, 5] ]
+
+[crops.pumpkin]     # calabaza
+droppable = true
+sack_id   = "pumpkin_seeds"
+sack      = [7, 7]
+seed      = [0, 7]
+growth    = [ [1, 7], [2, 7], [3, 7], [4, 7], [5, 7] ]
+qualities = [ [8, 7], [9, 7], [10, 7], [11, 7], [12, 7] ]

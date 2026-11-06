@@ -5,30 +5,40 @@
 namespace game {
 
 void DialogAnimator::observe(const LocalWorldView& view, const int iteration) {
-	std::map<int, int> updated;
+	// Entidades y cultivos comparten el mismo mecanismo; cada tick se
+	// reconstruye la lista de dueños que muestran diálogo (lo que no
+	// muestra se olvida).
+	std::map<int, int> entities;
 	for (const ViewEntity& entity : view.entities) {
 		if (!entity.indication.has_value()) {
 			continue;
 		}
-		const auto it = startByEntityId_.find(entity.id);
-		// Ya estaba mostrando: conserva su tick de aparición. Si es
-		// nueva (o reaparece), arranca la animación de cero.
-		updated[entity.id] =
-			it != startByEntityId_.end() ? it->second : iteration;
+		carryStart(entities, startByEntityId_, entity.id, iteration);
 	}
-	startByEntityId_ = std::move(updated);
+	startByEntityId_ = std::move(entities);
+
+	std::map<world::GridCell, int> crops;
+	for (const ViewCrop& crop : view.plantedCrops) {
+		if (!crop.indication.has_value()) {
+			continue;
+		}
+		carryStart(crops, startByCropCell_,
+			   world::GridCell{crop.cellX, crop.cellY}, iteration);
+	}
+	startByCropCell_ = std::move(crops);
 }
 
 int DialogAnimator::animationTickFor(const ViewEntity& entity,
 				     const int iteration) const {
-	if (!entity.indication.has_value()) {
-		return 0;
-	}
-	const auto it = startByEntityId_.find(entity.id);
-	if (it == startByEntityId_.end()) {
-		return 0;
-	}
-	return iteration - it->second;
+	return tickFor(startByEntityId_, entity.id,
+		       entity.indication.has_value(), iteration);
 }
 
-}  // namespace game
+int DialogAnimator::animationTickFor(const ViewCrop& crop,
+				     const int iteration) const {
+	return tickFor(startByCropCell_,
+		       world::GridCell{crop.cellX, crop.cellY},
+		       crop.indication.has_value(), iteration);
+}
+
+}

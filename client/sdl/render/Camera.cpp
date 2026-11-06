@@ -12,6 +12,10 @@ Camera::Camera(const world::PixelRect& worldBounds, const int viewportWidth,
 	, viewport_(worldBounds.x, worldBounds.y, viewportWidth,
 		    viewportHeight) {}
 
+void Camera::setWorldBounds(const world::PixelRect& worldBounds) {
+	worldBounds_ = worldBounds;
+}
+
 void Camera::follow(const world::PixelRect& target) {
 	const int targetCenterX =
 		target.x + target.width / render::kAxisCenterDivisor;

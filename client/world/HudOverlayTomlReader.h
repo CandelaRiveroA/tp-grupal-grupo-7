@@ -41,10 +41,7 @@ private:
 	std::map<std::string, BlendMode> blendNames() const;
 	BlendMode readBlend(const tomlcfg::TomlDocument& overlayDoc) const;
 
-	// Vocabulario anchor (string TOML) -> Anchor. Tabla miembro (§4:
-	// diccionario sobre switch).
-	std::map<std::string, Anchor> anchorNames() const;
-
+	// Anchor nombrado en el TOML (vocabulario de AnchorLayout::fromName).
 	Anchor readAnchor(const tomlcfg::TomlDocument& overlayDoc) const;
 
 	const tomlcfg::TomlDocument& doc_;

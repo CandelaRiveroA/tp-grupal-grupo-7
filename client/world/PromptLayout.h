@@ -1,8 +1,10 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
+#include "world/AnchorLayout.h"
 #include "world/Color.h"
 #include "world/Grid.h"
 #include "world/InventoryLayout.h"
@@ -23,8 +25,8 @@ struct ButtonPiece {
 };
 
 // El marco 9-slice de un botón: su hoja, las 9 piezas (esquinas, bordes
-// y relleno) y cómo se dibuja en el panel. Datos de [prompt.cancel] en
-// ui/text.toml.
+// y relleno) y cómo se dibuja en el panel. Datos de [prompt.<botón>] en
+// ui/text.toml (hoy cancel y ok): un botón nuevo es otra sección.
 struct ButtonFrame {
 	std::string sheet;
 	int cellWidth = 0;
@@ -35,6 +37,8 @@ struct ButtonFrame {
 	int border = 0;
 	PixelSize size;
 	PixelSize margin;
+	// Dónde cae dentro del panel (margin se cuenta desde ese borde).
+	Anchor anchor = Anchor::BottomRight;
 };
 
 // El prompt del popup ("¿Terminamos el día?"): copy, colores y layout
@@ -47,6 +51,8 @@ struct PromptLayout {
 	std::string question;
 	std::vector<std::string> options;
 	std::string waiting;
+	// La pregunta del cambio de día ("¿Avanzamos al siguiente día?").
+	std::string nextDay;
 	Color textColor;
 	Color hoverColor;
 	int textSize = 0;
@@ -56,7 +62,9 @@ struct PromptLayout {
 	// 9x1; un panel 2x9 o 3x4 es solo otro dato).
 	GridSpan grid{0, 0};
 
-	ButtonFrame cancel;
+	// Los botones del popup por nombre (kPromptCancelButton,
+	// kPromptOkButton): mismo 9-slice, distinto dato.
+	std::map<std::string, ButtonFrame> buttons;
 
 	explicit PromptLayout(const std::string& path);
 
@@ -73,16 +81,21 @@ struct PromptLayout {
 	// El avance ("Esperando al resto..."), centrado en el panel.
 	PixelBox waitingBox(const PixelBox& panel) const;
 
+	// La pregunta del cambio de día: arriba del botón, con el ancho del
+	// panel (el texto se centra adentro).
+	PixelBox nextDayBox(const PixelBox& panel) const;
+
 	// Índice de la opción bajo el punto (-1 si no hay ninguna): las
 	// MISMAS cajas que se dibujan, así lo que se toca es lo que se ve.
 	int optionAt(const PixelBox& panel, const PixelPoint& point) const;
 
-	// El botón de cancelar: su caja abajo a la derecha del panel, si el
+	// Un botón (por nombre): su caja en el panel según su anchor, si el
 	// punto la pega, y sus piezas 9-slice estiradas a esa caja.
-	PixelBox cancelBox(const PixelBox& panel) const;
-	bool cancelAt(const PixelBox& panel, const PixelPoint& point) const;
-	std::vector<FrameLayout::Piece> cancelPieces(
-		const PixelBox& button) const;
+	PixelBox buttonBox(const std::string& name, const PixelBox& panel) const;
+	bool buttonAt(const std::string& name, const PixelBox& panel,
+		      const PixelPoint& point) const;
+	std::vector<FrameLayout::Piece> buttonPieces(
+		const std::string& name, const PixelBox& button) const;
 
 private:
 	// Traduce y valida una pieza del 9-slice (`[col, row, cols, rows]`);
@@ -90,8 +103,9 @@ private:
 	ButtonPiece readPiece(const tomlcfg::TomlDocument& doc,
 			      const std::string& path) const;
 
-	// Traduce y valida la sección [prompt.cancel].
-	void readCancel(const tomlcfg::TomlDocument& doc);
+	// Traduce y valida la sección [prompt.<name>] de un botón.
+	void readButton(const tomlcfg::TomlDocument& doc,
+			const std::string& name);
 
 	bool contains(const PixelBox& box, const PixelPoint& point) const;
 };

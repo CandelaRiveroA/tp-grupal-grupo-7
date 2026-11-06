@@ -1,6 +1,8 @@
 #pragma once
 
 #include <map>
+#include <optional>
+#include <string>
 
 #include "world/PixelBox.h"
 
@@ -37,6 +39,11 @@ public:
 	PixelBox box(Anchor anchor, int marginX, int marginY, int width,
 		     int height, int windowWidth, int windowHeight) const;
 
+	// El anchor que nombra un dato TOML ("top_right", "bottom_center",
+	// ...); vacío si el nombre no existe. El vocabulario vive acá, uno
+	// solo para todos los lectores (HUD, popup).
+	std::optional<Anchor> fromName(const std::string& name) const;
+
 private:
 	// Posición en un eje: desde el inicio (leading), desde el centro
 	// (centered) o desde el final (trailing). leading == top en el eje
@@ -54,6 +61,8 @@ private:
 		AxisPos y;
 	};
 	std::map<Anchor, AxisOps> ops_;
+	// Nombre TOML -> Anchor (§4: diccionario sobre switch).
+	std::map<std::string, Anchor> names_;
 };
 
 }

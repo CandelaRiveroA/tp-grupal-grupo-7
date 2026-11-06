@@ -21,4 +21,8 @@ constexpr std::uint8_t kNeighborEast = 2;
 constexpr std::uint8_t kNeighborSouth = 4;
 constexpr std::uint8_t kNeighborWest = 8;
 
+// Nombres de los botones del popup ([prompt.<nombre>] en ui/text.toml).
+constexpr const char* kPromptCancelButton = "cancel";
+constexpr const char* kPromptOkButton = "ok";
+
 }

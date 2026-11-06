@@ -13,7 +13,26 @@ AnchorLayout::AnchorLayout()
 		  {Anchor::BottomLeft, {&AnchorLayout::leading, &AnchorLayout::trailing}},
 		  {Anchor::BottomCenter, {&AnchorLayout::centered, &AnchorLayout::trailing}},
 		  {Anchor::BottomRight, {&AnchorLayout::trailing, &AnchorLayout::trailing}},
+	  }
+	, names_{
+		  {"top_left", Anchor::TopLeft},
+		  {"top_center", Anchor::TopCenter},
+		  {"top_right", Anchor::TopRight},
+		  {"center_left", Anchor::CenterLeft},
+		  {"center", Anchor::Center},
+		  {"center_right", Anchor::CenterRight},
+		  {"bottom_left", Anchor::BottomLeft},
+		  {"bottom_center", Anchor::BottomCenter},
+		  {"bottom_right", Anchor::BottomRight},
 	  } {}
+
+std::optional<Anchor> AnchorLayout::fromName(const std::string& name) const {
+	const auto it = names_.find(name);
+	if (it == names_.end()) {
+		return std::nullopt;
+	}
+	return it->second;
+}
 
 int AnchorLayout::leading(int /*windowLen*/, int /*boxLen*/,
 			  int margin) const {

@@ -2,10 +2,12 @@
 
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <utility>
 
 #include "toml/TomlDocument.h"
 #include "world/ConfigError.h"
+#include "world/WorldConstants.h"
 
 namespace world {
 
@@ -17,6 +19,7 @@ PromptLayout::PromptLayout(const std::string& path) {
 		question = prompt.getString("question");
 		options = prompt.getStringArray("options");
 		waiting = prompt.getString("waiting");
+		nextDay = prompt.getString("next_day");
 		const std::array<int, 4> text = prompt.getIntArray<4>("text_color");
 		textColor = {text[0], text[1], text[2], text[3]};
 		const std::array<int, 4> hover = prompt.getIntArray<4>("hover_color");
@@ -25,7 +28,8 @@ PromptLayout::PromptLayout(const std::string& path) {
 		lineGap = prompt.getInt("line_gap");
 		const std::array<int, 2> gridData = prompt.getIntArray<2>("grid");
 		grid = {gridData[0], gridData[1]};
-		readCancel(doc);
+		readButton(doc, kPromptCancelButton);
+		readButton(doc, kPromptOkButton);
 	} catch (const tomlcfg::TomlError& error) {
 		throw ConfigError(error);
 	}
@@ -72,6 +76,12 @@ PixelBox PromptLayout::waitingBox(const PixelBox& panel) const {
 			panel.width, textSize};
 }
 
+PixelBox PromptLayout::nextDayBox(const PixelBox& panel) const {
+	// Centrada en la mitad de arriba del panel, sobre el botón.
+	return PixelBox{panel.x, panel.y + (panel.height / 2 - textSize) / 2,
+			panel.width, textSize};
+}
+
 int PromptLayout::optionAt(const PixelBox& panel,
 			   const PixelPoint& point) const {
 	const std::vector<PixelBox> boxes = optionBoxes(panel);
@@ -83,46 +93,52 @@ int PromptLayout::optionAt(const PixelBox& panel,
 	return -1;
 }
 
-PixelBox PromptLayout::cancelBox(const PixelBox& panel) const {
-	// Abajo a la derecha del panel, con el margen de los datos.
-	return PixelBox{panel.x + panel.width - cancel.margin.width -
-				cancel.size.width,
-			panel.y + panel.height - cancel.margin.height -
-				cancel.size.height,
-			cancel.size.width, cancel.size.height};
+PixelBox PromptLayout::buttonBox(const std::string& name,
+				 const PixelBox& panel) const {
+	// Según el anchor y el margen de los datos del botón, dentro del
+	// panel (AnchorLayout es la cuenta única de "alinear contra un borde").
+	const ButtonFrame& button = buttons.at(name);
+	PixelBox box = AnchorLayout().box(
+		button.anchor, button.margin.width, button.margin.height,
+		button.size.width, button.size.height, panel.width,
+		panel.height);
+	box.x += panel.x;
+	box.y += panel.y;
+	return box;
 }
 
-bool PromptLayout::cancelAt(const PixelBox& panel,
+bool PromptLayout::buttonAt(const std::string& name, const PixelBox& panel,
 			    const PixelPoint& point) const {
-	return contains(cancelBox(panel), point);
+	return contains(buttonBox(name, panel), point);
 }
 
-std::vector<FrameLayout::Piece> PromptLayout::cancelPieces(
-	const PixelBox& button) const {
+std::vector<FrameLayout::Piece> PromptLayout::buttonPieces(
+	const std::string& name, const PixelBox& button) const {
 	// El 9-slice estirado a la caja del botón: esquinas de
 	// border×border, bordes entre ellas y relleno al centro.
-	const int border = cancel.border;
+	const ButtonFrame& frame = buttons.at(name);
+	const int border = frame.border;
 	const int innerW = button.width - 2 * border;
 	const int innerH = button.height - 2 * border;
 	const std::array<std::pair<const ButtonPiece*, PixelBox>, 9> pieces = {{
-		{&cancel.topLeft, {button.x, button.y, border, border}},
-		{&cancel.top,
+		{&frame.topLeft, {button.x, button.y, border, border}},
+		{&frame.top,
 		 {button.x + border, button.y, innerW, border}},
-		{&cancel.topRight,
+		{&frame.topRight,
 		 {button.x + button.width - border, button.y, border, border}},
-		{&cancel.left,
+		{&frame.left,
 		 {button.x, button.y + border, border, innerH}},
-		{&cancel.fill, {button.x + border, button.y + border, innerW,
-				innerH}},
-		{&cancel.right, {button.x + button.width - border,
-				 button.y + border, border, innerH}},
-		{&cancel.bottomLeft,
+		{&frame.fill, {button.x + border, button.y + border, innerW,
+			       innerH}},
+		{&frame.right, {button.x + button.width - border,
+				button.y + border, border, innerH}},
+		{&frame.bottomLeft,
 		 {button.x, button.y + button.height - border, border,
 		  border}},
-		{&cancel.bottom,
+		{&frame.bottom,
 		 {button.x + border, button.y + button.height - border,
 		  innerW, border}},
-		{&cancel.bottomRight,
+		{&frame.bottomRight,
 		 {button.x + button.width - border,
 		  button.y + button.height - border, border, border}},
 	}};
@@ -146,50 +162,61 @@ ButtonPiece PromptLayout::readPiece(const tomlcfg::TomlDocument& doc,
 	return ButtonPiece{SheetCell{piece[0], piece[1]}, piece[2], piece[3]};
 }
 
-void PromptLayout::readCancel(const tomlcfg::TomlDocument& doc) {
-	cancel.sheet = doc.getString("prompt.cancel.sheet");
-	const std::array<int, 2> cell =
-		doc.getIntArray<2>("prompt.cancel.cell");
-	cancel.cellWidth = cell[0];
-	cancel.cellHeight = cell[1];
-	cancel.topLeft = readPiece(doc, "prompt.cancel.top_left");
-	cancel.top = readPiece(doc, "prompt.cancel.top");
-	cancel.topRight = readPiece(doc, "prompt.cancel.top_right");
-	cancel.left = readPiece(doc, "prompt.cancel.left");
-	cancel.fill = readPiece(doc, "prompt.cancel.fill");
-	cancel.right = readPiece(doc, "prompt.cancel.right");
-	cancel.bottomLeft = readPiece(doc, "prompt.cancel.bottom_left");
-	cancel.bottom = readPiece(doc, "prompt.cancel.bottom");
-	cancel.bottomRight = readPiece(doc, "prompt.cancel.bottom_right");
-	cancel.border = doc.getInt("prompt.cancel.border");
-	const std::array<int, 2> size =
-		doc.getIntArray<2>("prompt.cancel.size");
-	cancel.size = {size[0], size[1]};
-	const std::array<int, 2> margin =
-		doc.getIntArray<2>("prompt.cancel.margin");
-	cancel.margin = {margin[0], margin[1]};
+void PromptLayout::readButton(const tomlcfg::TomlDocument& doc,
+			      const std::string& name) {
+	const std::string base = "prompt." + name + ".";
+	ButtonFrame frame;
+	frame.sheet = doc.getString(base + "sheet");
+	const std::array<int, 2> cell = doc.getIntArray<2>(base + "cell");
+	frame.cellWidth = cell[0];
+	frame.cellHeight = cell[1];
+	frame.topLeft = readPiece(doc, base + "top_left");
+	frame.top = readPiece(doc, base + "top");
+	frame.topRight = readPiece(doc, base + "top_right");
+	frame.left = readPiece(doc, base + "left");
+	frame.fill = readPiece(doc, base + "fill");
+	frame.right = readPiece(doc, base + "right");
+	frame.bottomLeft = readPiece(doc, base + "bottom_left");
+	frame.bottom = readPiece(doc, base + "bottom");
+	frame.bottomRight = readPiece(doc, base + "bottom_right");
+	frame.border = doc.getInt(base + "border");
+	const std::array<int, 2> size = doc.getIntArray<2>(base + "size");
+	frame.size = {size[0], size[1]};
+	const std::array<int, 2> margin = doc.getIntArray<2>(base + "margin");
+	frame.margin = {margin[0], margin[1]};
+	// Sin `anchor`, el botón va abajo a la derecha (el caso del cancelar).
+	if (doc.hasKey(base + "anchor")) {
+		const std::optional<Anchor> anchor =
+			AnchorLayout().fromName(doc.getString(base + "anchor"));
+		if (!anchor.has_value()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  base + "anchor");
+		}
+		frame.anchor = *anchor;
+	}
 
-	if (cancel.sheet.empty()) {
+	if (frame.sheet.empty()) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  "prompt.cancel.sheet");
+				  base + "sheet");
 	}
-	if (cancel.cellWidth <= 0 || cancel.cellHeight <= 0) {
+	if (frame.cellWidth <= 0 || frame.cellHeight <= 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  "prompt.cancel.cell");
+				  base + "cell");
 	}
-	if (cancel.border <= 0) {
+	if (frame.border <= 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  "prompt.cancel.border");
+				  base + "border");
 	}
-	if (cancel.size.width <= 2 * cancel.border ||
-	    cancel.size.height <= 2 * cancel.border) {
+	if (frame.size.width <= 2 * frame.border ||
+	    frame.size.height <= 2 * frame.border) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  "prompt.cancel.size");
+				  base + "size");
 	}
-	if (cancel.margin.width < 0 || cancel.margin.height < 0) {
+	if (frame.margin.width < 0 || frame.margin.height < 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  "prompt.cancel.margin");
+				  base + "margin");
 	}
+	buttons.emplace(name, frame);
 }
 
 bool PromptLayout::contains(const PixelBox& box,

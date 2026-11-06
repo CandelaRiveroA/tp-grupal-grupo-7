@@ -12,6 +12,19 @@ void PopupState::showWaiting(const int ready, const int total) {
 
 void PopupState::hide() { view_ = PopupView::Hidden; }
 
+void PopupState::showNextDay() { view_ = PopupView::NextDay; }
+
+void PopupState::confirmNextDay() {
+	nextDayConfirmed_ = true;
+	hide();
+}
+
+bool PopupState::takeNextDayConfirmed() {
+	const bool confirmed = nextDayConfirmed_;
+	nextDayConfirmed_ = false;
+	return confirmed;
+}
+
 bool PopupState::modal() const { return view_ != PopupView::Hidden; }
 
 PopupView PopupState::view() const { return view_; }

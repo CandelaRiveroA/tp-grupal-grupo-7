@@ -36,16 +36,6 @@ constexpr const char* kBlend = "blend";
 constexpr const char* kBlendAlpha = "alpha";
 constexpr const char* kBlendMultiply = "multiply";
 
-constexpr const char* kAnchorTopLeft = "top_left";
-constexpr const char* kAnchorTopCenter = "top_center";
-constexpr const char* kAnchorTopRight = "top_right";
-constexpr const char* kAnchorCenterLeft = "center_left";
-constexpr const char* kAnchorCenter = "center";
-constexpr const char* kAnchorCenterRight = "center_right";
-constexpr const char* kAnchorBottomLeft = "bottom_left";
-constexpr const char* kAnchorBottomCenter = "bottom_center";
-constexpr const char* kAnchorBottomRight = "bottom_right";
-
 constexpr int kDefaultScale = 1;
 constexpr int kMaxAlpha = 255;
 
@@ -234,33 +224,18 @@ SheetRegion HudOverlayTomlReader::readRegion(
 	return SheetRegion(SheetCell(region[0], region[1]), cols, rows);
 }
 
-std::map<std::string, Anchor> HudOverlayTomlReader::anchorNames() const {
-	return {
-		{kAnchorTopLeft, Anchor::TopLeft},
-		{kAnchorTopCenter, Anchor::TopCenter},
-		{kAnchorTopRight, Anchor::TopRight},
-		{kAnchorCenterLeft, Anchor::CenterLeft},
-		{kAnchorCenter, Anchor::Center},
-		{kAnchorCenterRight, Anchor::CenterRight},
-		{kAnchorBottomLeft, Anchor::BottomLeft},
-		{kAnchorBottomCenter, Anchor::BottomCenter},
-		{kAnchorBottomRight, Anchor::BottomRight},
-	};
-}
-
 Anchor HudOverlayTomlReader::readAnchor(
 	const tomlcfg::TomlDocument& overlayDoc) const {
 	// Sin clave, el default es top_right (el caso del HUD de tiempo).
 	if (!overlayDoc.hasKey(kAnchor)) {
 		return Anchor::TopRight;
 	}
-	const std::string value = overlayDoc.getString(kAnchor);
-	const std::map<std::string, Anchor> names = anchorNames();
-	const auto it = names.find(value);
-	if (it == names.end()) {
+	const std::optional<Anchor> anchor =
+		AnchorLayout().fromName(overlayDoc.getString(kAnchor));
+	if (!anchor.has_value()) {
 		throw ConfigError(Kind::InvalidValue, kAnchor);
 	}
-	return it->second;
+	return *anchor;
 }
 
 std::map<std::string, BlendMode> HudOverlayTomlReader::blendNames() const {

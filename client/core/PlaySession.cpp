@@ -115,14 +115,52 @@ void PlaySession::tick(int iteration) {
         changeScene(sceneTransition_.scene());
         sceneTransition_.consumeSwap();
     }
+    // La caja del popup (figura del inventario centrada, en la grilla
+    // que digan sus datos): donde se dibuja y donde se tocan sus cosas.
+    const world::PixelBox popupBox =
+            inventory_.centeredBox(sdlContext_.width(), sdlContext_.height(),
+                                   promptLayout_.grid.columns, promptLayout_.grid.rows);
     if (sceneTransition_.active()) {
         input_.takeCommands();
-        input_.takeClicks();
-        renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_, actionResolver_,
-                            iteration, camera_.viewport(), dayPhase_.phase());
-        lightingPainter_.draw(dayPhase_.nightFactor());
+        const std::vector<game::PointerClick> clicks = input_.takeClicks();
+        const bool holding = sceneTransition_.holding();
+        if (holding) {
+            // Sostenida en negro: el popup del nuevo día es lo único que
+            // se puede tocar (como el de la cama, es modal).
+            popupState_.showNextDay();
+            for (const game::PointerClick& click: clicks) {
+                if (!promptLayout_.buttonAt(world::kPromptOkButton, popupBox,
+                                            world::PixelPoint{click.x, click.y})) {
+                    continue;
+                }
+                // OK: el pulso queda para el server y se suelta el negro
+                // (cambia la escena y vuelve el fade).
+                // PUNTO DE CONEXIÓN CON EL SERVER: quien conecte
+                // cliente y servidor lee acá `popupState_.takeNextDayConfirmed()`
+                // (true una sola vez) y manda el aviso para reiniciar
+                // el reloj con gameClient_.sendCommand(...).
+                popupState_.confirmNextDay();
+                sceneTransition_.release();
+                audio_.play(sdl::SoundId::RoosterCrow);
+                break;
+            }
+        } else {
+            renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_,
+                                actionResolver_, iteration, camera_.viewport(),
+                                dayPhase_.phase());
+            lightingPainter_.draw(dayPhase_.nightFactor());
+        }
         sdlContext_.fillRect(SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
                              SDL2pp::Color(0, 0, 0, static_cast<Uint8>(sceneTransition_.alpha())));
+        if (holding) {
+            drawPopup(popupBox);
+            const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
+            cursorPainter_.draw(cursorCatalog_,
+                                promptLayout_.buttonAt(world::kPromptOkButton, popupBox, mouse)
+                                        ? world::CursorKind::Interactive
+                                        : world::CursorKind::Normal,
+                                input_.mousePosition());
+        }
         sdlContext_.present();
         return;
     }
@@ -134,13 +172,14 @@ void PlaySession::tick(int iteration) {
     // INTENCIONES (cliente dummy): la fuente decide si hay algo y, si lo
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
-    // que se reacciona a la transición y no a cada tick. Amaneció: se
-    // cierra todo, se cambia la escena y suena el gallo.
+    // que se reacciona a la transición y no a cada tick.
+    // Amaneció: se cierra todo y la pantalla se funde a negro y SE QUEDA
+    // ahí con el popup del nuevo día; al apretar OK cambia la escena
+    // (dormitorio), vuelve el fade y suena el gallo.
     if (state.dayChanged) {
         voted_ = false;
         popupState_.hide();
-        sceneTransition_.changeTo(core::kInitialRoom);
-        audio_.play(sdl::SoundId::RoosterCrow);
+        sceneTransition_.changeTo(core::kInitialRoom, true);
     }
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
@@ -187,11 +226,6 @@ void PlaySession::tick(int iteration) {
     const world::ScenePixelMapper cells(scene_.cellPixelSize);
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
-    // La caja del popup (figura del inventario centrada, en la grilla
-    // que digan sus datos): donde se dibuja y donde se tocan sus cosas.
-    const world::PixelBox popupBox =
-            inventory_.centeredBox(sdlContext_.width(), sdlContext_.height(),
-                                   promptLayout_.grid.columns, promptLayout_.grid.rows);
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
 
     if (!state.entities.empty()) {
@@ -295,7 +329,8 @@ void PlaySession::tick(int iteration) {
         // El botón de cancelar del popup "Esperando..." sale de la cama
         // (el server borra el OK de este jugador).
         if (popupState_.view() == game::PopupView::Waiting &&
-            promptLayout_.cancelAt(popupBox, world::PixelPoint{click.x, click.y})) {
+            promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
+                                   world::PixelPoint{click.x, click.y})) {
             gameClient_.sendCommand(protocol::SleepMessage{false});
             voted_ = false;
             popupState_.hide();
@@ -355,7 +390,7 @@ void PlaySession::tick(int iteration) {
         interactive = (popupState_.view() == game::PopupView::Question &&
                        promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
                       (popupState_.view() == game::PopupView::Waiting &&
-                       promptLayout_.cancelAt(popupBox, mousePoint));
+                       promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
     }
     cursorPainter_.draw(cursorCatalog_,
                         interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,

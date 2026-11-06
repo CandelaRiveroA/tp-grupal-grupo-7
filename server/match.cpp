@@ -145,7 +145,7 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
 // amanecen en la cama. Se cancela la votación abierta.
 void Match::handle(const DayPassed& /*day*/) {
     world.clear_sleep();
-    world.tick_day();
+    world.advance_day();
     for (const uint8_t id: world.get_player_ids()) {
         world.set_player_position(id, kBedX, kBedY);
     }
@@ -170,7 +170,7 @@ void Match::handle(const ClockStep& step) {
 
 void Match::broadcast_clock(uint16_t minutes) {
     this->clock_minutes_sent = minutes;
-    broadcast(ServerClock{minutes});
+    broadcast(ServerClock{world.get_day(), minutes});
 }
 
 void Match::handle(const PlayerJoined& joined) {
@@ -180,7 +180,7 @@ void Match::handle(const PlayerJoined& joined) {
     // Sube el total de la votación: mientras no vaya a la cama, el sueño
     // no puede completarse.
     push_sleep_state();
-    send_to(joined.player_id, ServerClock{clock_minutes_sent});
+    send_to(joined.player_id, ServerClock{world.get_day(), clock_minutes_sent});
     sync_all();
 }
 

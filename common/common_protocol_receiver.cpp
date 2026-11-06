@@ -213,7 +213,11 @@ ServerMessage ProtocolReceiver::receive_sleeping_players_message() {
     return ServerSleepingPlayers{std::move(players)};
 }
 
-ServerMessage ProtocolReceiver::receive_clock_message() { return ServerClock{receive_uint16()}; }
+ServerMessage ProtocolReceiver::receive_clock_message() {
+    const uint8_t day = receive_uint8();
+    const uint16_t minutes = receive_uint16();
+    return ServerClock{day, minutes};
+}
 
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());

@@ -199,6 +199,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         return;
     }
     if (const auto* clock = std::get_if<ServerClock>(&message)) {
+        view_.dayNumber = clock->day;
         view_.clockMinutes = clock->minutes;
         return;
     }

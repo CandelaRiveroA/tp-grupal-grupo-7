@@ -118,9 +118,10 @@ struct ServerSleepingPlayers {
     std::vector<uint8_t> players;
 };
 
-// Hora de juego: minutos desde las 6:00 (0 a 1200, las 2:00 del día
-// siguiente). Cambia de a 10 minutos de juego.
+// Día y hora de juego: día de 1 a 28, y minutos desde las 6:00 (0 a 1200,
+// las 2:00 del día siguiente). La hora cambia de a 10 minutos de juego.
 struct ServerClock {
+    uint8_t day;
     uint16_t minutes;
 };
 

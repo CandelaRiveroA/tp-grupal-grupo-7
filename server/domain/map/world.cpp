@@ -6,7 +6,10 @@
 
 #include "../animals/animal.h"
 
-World::World(uint16_t w, uint16_t h): width(w), height(h), sleep_advanced(false) {
+// ciclo fijo de 28 días que vuelve al día 1.
+#define kDaysPerCycle 28
+
+World::World(uint16_t w, uint16_t h): width(w), height(h), sleep_advanced(false), day(1) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -170,6 +173,13 @@ void World::tick_day() {
         animal->update(*this);
     }
 }
+
+void World::advance_day() {
+    this->day = static_cast<uint8_t>(this->day % kDaysPerCycle + 1);
+    this->tick_day();
+}
+
+uint8_t World::get_day() const { return this->day; }
 
 void World::tick_animals() {
     for (Animal* animal: animals) {
@@ -368,7 +378,7 @@ void World::try_advance_sleep() {
     }
 
     this->clear_sleep();
-    this->tick_day();
+    this->advance_day();
     this->sleep_advanced = true;
 }
 

@@ -14,13 +14,6 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
-        // Atajos de PRUEBA (teclas T, C y N): fuerzan el momento del día
-        // (atardecer, anochecer, noche) sin esperar la hora del server.
-        // Lo normal es que lo decida el reloj del server (ver
-        // DayPhase::setClock); el atajo dura hasta la próxima etapa.
-        TestDusk,
-        TestEvening,
-        TestNight,
     };
 
     Kind kind;

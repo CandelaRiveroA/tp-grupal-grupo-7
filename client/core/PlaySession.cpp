@@ -58,11 +58,6 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
-        testStages_{
-                {game::InputCommand::Kind::TestDusk, world::TimeOfDay::Dusk},
-                {game::InputCommand::Kind::TestEvening, world::TimeOfDay::Evening},
-                {game::InputCommand::Kind::TestNight, world::TimeOfDay::Night},
-        },
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -197,13 +192,6 @@ void PlaySession::tick(int iteration) {
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     for (const game::InputCommand& command: commands) {
-        if (const auto stage = testStages_.find(command.kind); stage != testStages_.end()) {
-            // Atajo de prueba: fuerza el momento del día sin esperar el
-            // reloj del server; dura hasta que el reloj cruce a otra
-            // etapa (ver DayPhase::setClock).
-            dayPhase_.setPhase(stage->second);
-            continue;
-        }
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).

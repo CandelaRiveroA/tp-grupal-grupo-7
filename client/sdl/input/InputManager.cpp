@@ -89,11 +89,6 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-    // Atajos de prueba: T, C y N fuerzan el momento del día (atardecer,
-    // anochecer, noche) sin esperar el reloj del server.
-    bindings.insert({SDLK_t, game::InputCommand{Kind::TestDusk, 0}});
-    bindings.insert({SDLK_c, game::InputCommand{Kind::TestEvening, 0}});
-    bindings.insert({SDLK_n, game::InputCommand{Kind::TestNight, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

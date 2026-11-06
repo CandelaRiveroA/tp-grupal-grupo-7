@@ -152,10 +152,8 @@ private:
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
-    // tick); las teclas T, C y N (testStages_) lo fuerzan para probar.
+    // tick).
     game::DayPhase dayPhase_;
-    // Etapa del día que fuerza cada atajo de prueba.
-    std::map<game::InputCommand::Kind, world::TimeOfDay> testStages_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

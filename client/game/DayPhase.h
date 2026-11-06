@@ -14,8 +14,6 @@ namespace game {
 // Entrada normal: el reloj del server (ServerClock -> LocalWorldView ->
 // setClock). De la hora se deriva la etapa con una tabla de umbrales, y
 // de día + minutos los valores crudos que muestran las etiquetas del HUD.
-// Entrada de prueba: setPhase (teclas T, C y N) fuerza una etapa; dura
-// hasta que el reloj cruce a la etapa siguiente.
 //
 // La luz no salta entre etapas: nightFactor() persigue, un paso por tick
 // (advance()), el valor de la etapa actual.
@@ -28,9 +26,6 @@ public:
 	// 6:00. Actualiza los valores del HUD y, si la hora cruzó a otra
 	// etapa, la aplica.
 	void setClock(int dayNumber, int minutesSinceStart);
-
-	// Fuerza una etapa (atajos de prueba).
-	void setPhase(world::TimeOfDay phase);
 
 	// Se llama una vez por tick: acerca la luz al valor de la etapa.
 	void advance();
@@ -49,6 +44,9 @@ public:
 	const std::map<std::string, int>& clockValues() const;
 
 private:
+	// Aplica una etapa (la dicta setClock).
+	void setPhase(world::TimeOfDay phase);
+
 	// Etapa que corresponde a una hora del reloj (tabla de umbrales).
 	world::TimeOfDay stageForHour(int hour) const;
 
@@ -63,8 +61,7 @@ private:
 	std::map<world::TimeOfDay, world::TimeOfDay> lookPhases_;
 	// Hora (24 h) desde la que rige cada etapa.
 	std::map<int, world::TimeOfDay> stageFromHour_;
-	// Última etapa que dictó el reloj: solo se aplica al cambiar, así un
-	// atajo de prueba no se pisa en cada tick.
+	// Última etapa que dictó el reloj: solo se aplica al cambiar.
 	std::optional<world::TimeOfDay> clockStage_;
 	std::map<std::string, int> clockValues_;
 };

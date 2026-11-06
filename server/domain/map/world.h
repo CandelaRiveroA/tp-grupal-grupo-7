@@ -37,6 +37,8 @@ private:
     std::unordered_set<uint8_t> accepted;
     // Consumido por take_sleep_advanced: una sola vez por día dormido.
     bool sleep_advanced;
+    // Día de juego: de 1 a 28, después del 28 vuelve al 1.
+    uint8_t day;
     // TODO: Persistencia del inventario del jugador.
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
@@ -72,6 +74,10 @@ public:
 
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
+    // Pasa al día siguiente (contador de día) y corre tick_day. Lo llaman el
+    // timeout y el sueño.
+    void advance_day();
+    uint8_t get_day() const;
 
     // Un paso del reloj de animales: cada uno se mueve en su dirección actual
     // o elige una nueva si expiró el tiempo.

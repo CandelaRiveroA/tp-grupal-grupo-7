@@ -66,7 +66,7 @@ inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe
 | 13 | `Furniture` | `x u16, y u16, content_id str` | Mueble del mundo (hoy la cama). El cliente todavía no lo dibuja |
 | 14 | `Day` | (sin payload) | Amaneció: el día terminó por sueño o por timeout de 30 s |
 | 15 | `SleepingPlayers` | `count u8, ids u8 × count` | Quiénes están en la cama (IDs). Va a todos los jugadores; se manda solo al cambiar |
-| 16 | `Clock` | `minutes u16` | Hora de juego: minutos desde las 6:00 (0 a 1200). Salta de a 10 min; se manda al cambiar, al amanecer (0) y al entrar un jugador |
+| 16 | `Clock` | `day u8, minutes u16` | Día de juego (1 a 28, vuelve al 1) y hora: minutos desde las 6:00 (0 a 1200). La hora salta de a 10 min; se manda al cambiar, al amanecer (día nuevo, 0) y al entrar un jugador |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

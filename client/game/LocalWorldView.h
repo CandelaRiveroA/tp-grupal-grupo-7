@@ -185,7 +185,9 @@ struct LocalWorldView {
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
     ViewSleep sleep;
-    // Hora de juego: minutos desde las 6:00 (0 a 1200). Cambia de a 10 min.
+    // Día de juego (1 a 28) y hora: minutos desde las 6:00 (0 a 1200).
+    // La hora cambia de a 10 min.
+    int dayNumber = 1;
     int clockMinutes = 0;
     // Amaneció (ServerDay). Evento: vale solo en el tick en que llega.
     // Presentación (fase pendiente): changeTo(kInitialRoom) + gallo.

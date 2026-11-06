@@ -167,6 +167,7 @@ void ProtocolSender::send_message(const ServerSleepingPlayers& sleepers) {
 
 void ProtocolSender::send_message(const ServerClock& clock) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Clock));
+    send_uint8(clock.day);
     send_uint16(clock.minutes);
 }
 

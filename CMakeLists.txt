@@ -195,6 +195,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ObtainedBannerConfigLoader.cpp
         client/world/ObtainedBannerTomlReader.cpp
         client/world/ObtainedBannerLayout.cpp
+        client/world/AnchorLayout.cpp
+        client/world/HudOverlayCatalog.cpp
+        client/world/HudOverlayTomlReader.cpp
+        client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp
         client/world/ElementLayout.cpp
         client/world/ChunkGrid.cpp

@@ -64,4 +64,20 @@ struct SpriteVisual {
 	int displayHeight() const;
 };
 
+// Región rectangular de una hoja: la celda de origen (arriba-izquierda) y
+// cuántas celdas abarca en cada eje. Es el mismo concepto [col, row, cols,
+// rows] que usan las capas de los overlays (tools_overlay.toml) y el
+// dibujado de bloques (SpriteSheet::drawBlock). Un sprite de una sola
+// celda es cols=rows=1.
+struct SheetRegion {
+	SheetCell at;
+	int cols = 1;
+	int rows = 1;
+
+	SheetRegion() = default;
+
+	// Región por valor (para construir desde datos ya leídos).
+	SheetRegion(const SheetCell& topLeft, int colsValue, int rowsValue);
+};
+
 }

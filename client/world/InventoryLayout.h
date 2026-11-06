@@ -7,24 +7,13 @@
 
 #include "world/ContentCatalog.h"
 #include "world/ContentTraits.h"
+#include "world/PixelBox.h"
 #include "world/SpriteVisual.h"
 
 namespace world {
 
 enum class InventoryAnchor {
 	BottomCenter,
-};
-
-struct PixelBox {
-	int x = 0;
-	int y = 0;
-	int width = 0;
-	int height = 0;
-};
-
-struct PixelSize {
-	int width = 0;
-	int height = 0;
 };
 
 struct FrameCells {

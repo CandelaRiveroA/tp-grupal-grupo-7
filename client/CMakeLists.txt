@@ -218,6 +218,11 @@ target_sources(taller_client
     world/ObtainedBannerConfigLoader.h
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
+    world/PixelBox.h
+    world/AnchorLayout.h
+    world/HudOverlayCatalog.h
+    world/HudOverlayTomlReader.h
+    world/HudOverlayConfigLoader.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h

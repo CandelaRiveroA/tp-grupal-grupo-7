@@ -44,6 +44,20 @@ struct ElementEnter {
 	Direction facing;
 };
 
+// Momento del día. Hoy lo setean las teclas de prueba T, C y N; cuando
+// el server mande la hora real, game::DayPhase la deriva. Dusk (6 pm) y
+// Evening (8 pm) son etapas intermedias de LUZ: para el filtrado por
+// `when` del TOML solo existen Day y Night (DayPhase::phase() traduce
+// cada etapa a uno de los dos), así que no están en el diccionario del
+// reader. Sumar una etapa es: un valor acá + sus filas en las tablas
+// de DayPhase: el dibujo no se toca.
+enum class TimeOfDay {
+	Day,
+	Dusk,
+	Evening,
+	Night,
+};
+
 struct ElementPlacement {
 	std::string tileset;
 	// La pieza que se repite: su tamaño en celdas de hoja y la celda de
@@ -60,6 +74,16 @@ struct ElementPlacement {
 	// "Entrar" al elemento (OPCIONAL, subtabla `enter` del TOML). Sin
 	// esto el elemento es decoración pura y nada cambia.
 	std::optional<ElementEnter> enter = std::nullopt;
+	// Momento del día en el que se dibuja (OPCIONAL, key `when` del
+	// TOML: "day" o "night"). Sin la key el elemento se dibuja en
+	// cualquier momento; con ella, solo en el suyo (p. ej. la ventana
+	// de día y la de noche ocupan la misma celda). El filtro lo
+	// aplica el render con visibleAt; el índice espacial no cambia.
+	std::optional<TimeOfDay> when = std::nullopt;
+
+	// ¿Se dibuja en el momento dado? Sin `when`, siempre: el
+	// elemento es decoración de cualquier momento del día.
+	bool visibleAt(TimeOfDay time) const;
 };
 
 // Poblaciones que admite una sala: DATOS puros (sin SDL ni lógica). La

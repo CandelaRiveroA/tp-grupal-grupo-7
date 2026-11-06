@@ -41,6 +41,13 @@ inline constexpr const char* kKeyEnterRows = "rows";
 inline constexpr const char* kKeyEnterLie = "lie";
 inline constexpr const char* kKeyEnterFacing = "facing";
 
+// Momento del día en el que se dibuja el elemento (OPCIONAL): sin la
+// key el elemento se dibuja en cualquier momento.
+inline constexpr const char* kKeyWhen = "when";
+// Valores que admite `when` (diccionario, no switch).
+inline constexpr const char* kTimeOfDayDay = "day";
+inline constexpr const char* kTimeOfDayNight = "night";
+
 inline constexpr const char* kKeyMode = "mode";
 inline constexpr const char* kKeyScaleX = "scale_x";
 inline constexpr const char* kKeyScaleY = "scale_y";

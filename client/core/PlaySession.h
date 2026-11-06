@@ -6,6 +6,7 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
@@ -26,6 +27,7 @@
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
+#include "sdl/render/HudOverlayPainter.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
@@ -72,7 +74,9 @@ public:
                 const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs,
                 const world::FontCatalog& font,
-                const world::PromptLayout& prompt);
+                const world::PromptLayout& prompt,
+                const world::HudOverlayCatalog& hudOverlays,
+                const world::HudOverlayCatalog& lighting);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -127,6 +131,14 @@ private:
     sdl::Renderer renderer_;
     sdl::InventoryHud inventoryHud_;
     sdl::ObtainedBannerHud bannerHud_;
+    // La herramienta única de texto: la comparten el popup y los HUD
+    // (etiquetas de hud.toml), por eso se declara antes que ellos.
+    sdl::TextRenderer textRenderer_;
+    sdl::HudOverlayPainter hudOverlayPainter_;
+    // Luz nocturna: mismo painter que el HUD fijo, con otro catálogo
+    // (ui/lighting.toml) y dibujado antes de los HUD, modulado por la
+    // intensidad de DayPhase.
+    sdl::HudOverlayPainter lightingPainter_;
     game::ObtainedBannerQueue bannerQueue_;
     sdl::InputManager input_;
     sdl::AudioPlayer audio_;
@@ -140,6 +152,13 @@ private:
     game::EnterSelection enterSelection_;
     game::PopupState popupState_;
     game::SceneTransition sceneTransition_;
+    // El momento del día con el que el render filtra los elementos
+    // `when` de la escena y se gradúa la luz. Punto de entrada: hoy las
+    // teclas T, C y N (testStages_); mañana la conexión — ver
+    // game::DayPhase.
+    game::DayPhase dayPhase_;
+    // Etapa del día que fija cada atajo de prueba.
+    std::map<game::InputCommand::Kind, world::TimeOfDay> testStages_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
@@ -150,8 +169,11 @@ private:
     world::DialogCatalog dialogCatalog_;
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
-    sdl::TextRenderer textRenderer_;
     sdl::PromptPainter promptPainter_;
+
+    // Valores crudos para las etiquetas de texto del HUD (clave = token).
+    // Hoy placeholder; mañana los llena lo que manda el servidor.
+    std::map<std::string, int> hudValues_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

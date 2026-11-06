@@ -29,7 +29,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::ObtainedBannerCatalog& banner,
                          const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                          const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                         const world::PromptLayout& prompt):
+                         const world::PromptLayout& prompt,
+                         const world::HudOverlayCatalog& hudOverlays,
+                         const world::HudOverlayCatalog& lighting):
         scene_(scenario.scene()),
         gameClient_(gameClient),
         characters_(characters),
@@ -44,6 +46,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                   farm_.ground(), farm_.crops()),
         inventoryHud_(sdlContext_, inventory_, digits),
         bannerHud_(sdlContext_, banner, inventory_.slotDrawWidth()),
+        textRenderer_(sdlContext_, font),
+        hudOverlayPainter_(sdlContext_, textRenderer_, hudOverlays),
+        lightingPainter_(sdlContext_, textRenderer_, lighting),
         bannerQueue_(banner.durationTicks, banner.maxVisible),
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
@@ -52,6 +57,12 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
         sceneTransition_(core::kFadeTicks),
+        dayPhase_(core::kLightTransitionTicks),
+        testStages_{
+                {game::InputCommand::Kind::TestDusk, world::TimeOfDay::Dusk},
+                {game::InputCommand::Kind::TestEvening, world::TimeOfDay::Evening},
+                {game::InputCommand::Kind::TestNight, world::TimeOfDay::Night},
+        },
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -62,8 +73,17 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         dialogCatalog_(dialogs),
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
-        textRenderer_(sdlContext_, font),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
+        // PLACEHOLDER: valores crudos que hoy se inventan para ver las
+        // etiquetas de hud.toml. Mañana los arma la estructura que guarda
+        // lo que manda el servidor; cada clave es un {token} (o `source`)
+        // de hud.toml. Es el ÚNICO punto a cambiar.
+        hudValues_{
+                {"dia_semana", 0},
+                {"dia", 1},
+                {"hora", 6},
+                {"minuto", 30},
+        },
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
@@ -86,9 +106,11 @@ void PlaySession::tick(int iteration) {
     const game::LocalWorldView& state = gameClient_.worldState();
     motion_.observe(state, iteration);
     updateCamera(state, motion_, iteration);
+    dayPhase_.advance();
 
     const GamePhase phase = phaseForIteration(iteration);
-    if (screens_.draw(phase, iteration, state, motion_, actionResolver_)) {
+    if (screens_.draw(phase, iteration, state, motion_, actionResolver_,
+                      dayPhase_.phase())) {
         return;
     }
 
@@ -105,7 +127,9 @@ void PlaySession::tick(int iteration) {
         input_.takeCommands();
         input_.takeClicks();
         renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_,
-                            actionResolver_, iteration, camera_.viewport());
+                            actionResolver_, iteration, camera_.viewport(),
+                            dayPhase_.phase());
+        lightingPainter_.draw(dayPhase_.nightFactor());
         sdlContext_.fillRect(
                 SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
                 SDL2pp::Color(0, 0, 0, static_cast<Uint8>(sceneTransition_.alpha())));
@@ -138,6 +162,17 @@ void PlaySession::tick(int iteration) {
             // escena con lo que la vista diga.
             sceneTransition_.changeTo(core::kInitialRoom);
             audio_.play(sdl::SoundId::RoosterCrow);
+            // El nuevo día vuelve a la luz del día (ver DayPhase).
+            dayPhase_.setPhase(world::TimeOfDay::Day);
+            continue;
+        }
+        if (const auto stage = testStages_.find(command.kind);
+            stage != testStages_.end()) {
+            // Atajo de prueba (borrar cuando el server lo llame): fija
+            // el momento del día. Mañana lo setea la conexión con lo
+            // que el server mande, llamando al mismo
+            // DayPhase::setPhase.
+            dayPhase_.setPhase(stage->second);
             continue;
         }
         if (popupState_.modal()) {
@@ -214,7 +249,7 @@ void PlaySession::tick(int iteration) {
     // EnterSelection). Encima, la capa frontal que lo tapa.
     renderer_.drawWorld(scene_, enterSelection_.displayView(state),
                         motion_, actionResolver_, iteration,
-                        camera_.viewport());
+                        camera_.viewport(), dayPhase_.phase());
     drawEnteredFront(state, cells);
     drawPlantingMarker(cells);
 
@@ -246,8 +281,15 @@ void PlaySession::tick(int iteration) {
                             camera_.viewport());
     }
 
+    // Luz nocturna: es el corte mundo/HUD. Todo lo anterior es mundo
+    // (queda tintado); todo lo posterior es interfaz fija (no).
+    lightingPainter_.draw(dayPhase_.nightFactor());
     inventoryHud_.draw(state.inventory, player_.activeSlot());
     bannerHud_.draw(bannerQueue_.active());
+    // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
+    // antes del popup y del puntero para que queden encima.
+    hudOverlayPainter_.draw();
+    hudOverlayPainter_.drawLabels(hudValues_);
     drawPopup(popupBox);
 
     // El puntero: la variante la decide el estado de juego (si hay algo

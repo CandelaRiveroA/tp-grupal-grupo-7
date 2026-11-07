@@ -25,6 +25,7 @@ size = 26
 question    = "¿Terminamos el día?"
 options     = ["Sí", "No"]
 waiting     = "Esperando al resto de jugadores... ({0}/{1})"
+next_day    = "¿Avanzamos al siguiente día?"
 text_color  = [62, 39, 17, 255]
 hover_color = [195, 160, 100, 255]
 text_size   = 18
@@ -54,3 +55,25 @@ bottom_right = [15, 19, 1, 1]
 border = 8
 size   = [32, 32]
 margin = [8, 8]
+anchor = "bottom_right"
+
+# --- El botón OK del popup "¿Avanzamos al siguiente día?" --------------
+# Mismo 9-slice y mismos campos que el de cancelar (otra sección = otro
+# botón), con las piezas del "Botón OK" de cursors.png; anchor lo deja
+# abajo al centro del panel.
+[prompt.ok]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+top_left     = [8, 16, 1, 1]
+top          = [9, 16, 2, 1]
+top_right    = [11, 16, 1, 1]
+left         = [8, 17, 1, 2]
+fill         = [9, 17, 2, 2]
+right        = [11, 17, 1, 2]
+bottom_left  = [8, 19, 1, 1]
+bottom       = [9, 19, 2, 1]
+bottom_right = [11, 19, 1, 1]
+border = 8
+size   = [32, 32]
+margin = [0, 20]
+anchor = "bottom_center"

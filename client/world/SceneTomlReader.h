@@ -44,10 +44,21 @@ private:
 		       const std::string& context,
 		       ElementPlacement& placement) const;
 
+	// Momento del día del elemento (OPCIONAL, key `when`): traduce y
+	// valida; sin la key el elemento se dibuja en cualquier momento.
+	void readWhen(const tomlcfg::TomlDocument& element,
+		      const std::string& context,
+		      ElementPlacement& placement) const;
+
 	// Nombre de dirección del TOML -> vocabulario. Lanza
 	// ConfigError(InvalidValue, path) si el nombre no existe.
 	Direction parseFacing(const std::string& name,
 			      const std::string& context) const;
+
+	// Nombre de momento del día del TOML -> vocabulario. Lanza
+	// ConfigError(InvalidValue, path) si el nombre no existe.
+	TimeOfDay parseTimeOfDay(const std::string& name,
+				 const std::string& context) const;
 
 	std::string join(const std::string& base,
 			 const std::string& key) const;
@@ -57,6 +68,10 @@ private:
 	// Nombres de dirección del TOML -> Direction (diccionario, no
 	// switch): se consulta con find, nunca con .at() sobre dato crudo.
 	std::map<std::string, Direction> directionsByName_;
+
+	// Nombres de momento del día del TOML -> TimeOfDay (mismo
+	// patrón de diccionario).
+	std::map<std::string, TimeOfDay> timeOfDayByName_;
 
 	const tomlcfg::TomlDocument& doc_;
 };

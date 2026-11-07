@@ -46,6 +46,14 @@ void SdlContext::fillRect(const SDL2pp::Rect& rect, const SDL2pp::Color& color) 
 	renderer_.FillRect(rect);
 }
 
+void SdlContext::fillRectMultiply(const SDL2pp::Rect& rect,
+				  const SDL2pp::Color& color) {
+	renderer_.SetDrawBlendMode(SDL_BLENDMODE_MOD);
+	renderer_.SetDrawColor(color);
+	renderer_.FillRect(rect);
+	renderer_.SetDrawBlendMode(SDL_BLENDMODE_BLEND);
+}
+
 void SdlContext::present() { renderer_.Present(); }
 
 int SdlContext::width() const { return window_.GetSize().x; }

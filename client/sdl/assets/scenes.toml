@@ -31,7 +31,7 @@ image = "Decorations/Towninterior.png"
 cell  = [16, 16]
 
 [tilesets.sconcelight]
-image = "Decorations/SconceLigth.png"
+image = "Decorations/daylight.png"
 cell  = [16, 16]
 
 [tilesets.furniture]
@@ -65,22 +65,28 @@ scale       = 2
   at      = [6, 1]
   span    = [18, 18]
 
-  # Ventana: col=1 row=7 (1×2 celdas) → pared superior izquierda.
+  # Ventana de DÍA: col=1 row=7 (1×2 celdas) → pared superior izquierda.
   # scale=3 → 48×96px = 2×3 celdas lógicas (más grande).
+  # `when = "day"`: de noche se esconde y la reemplaza la ventana de
+  # noche de abajo (misma celda, ver game::DayPhase).
   [[rooms.bedroom.elements]]
   tileset = "decoration"
   region  = [1, 7, 1, 2]
   draw    = { mode = "single", scale = 3 }
   at      = [9, 3]
   span    = [2, 3]
+  when    = "day"
 
-  # SconceLigth: ilusión de luz entrando por la ventana (single, pequeño).
+  # Ventana de NOCHE: otra pieza de la MISMA hoja (col=6, rows 38-39,
+  # 1×2 celdas), misma escala y posición que la de día.
+  # `when = "night"`: solo se dibuja de anochecer en adelante (teclas C y N).
   [[rooms.bedroom.elements]]
-  tileset = "sconcelight"
-  region  = [0, 0, 2, 2]
-  draw    = { mode = "single" }
-  at      = [9, 2]
-  span    = [2, 2]
+  tileset = "decoration"
+  region  = [6, 38, 1, 2]
+  draw    = { mode = "single", scale = 3 }
+  at      = [9, 3]
+  span    = [2, 3]
+  when    = "night"
 
   # Chimenea: cols 26-27, rows 20-24 (2×5 celdas) → pared derecha.
   # scale=3 → 96×240px = 3×8 celdas lógicas. Mover: cambiar `at`.

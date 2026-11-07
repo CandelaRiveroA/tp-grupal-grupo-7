@@ -7,6 +7,7 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
@@ -27,6 +28,7 @@
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/InventoryHud.h"
+#include "sdl/render/HudOverlayPainter.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
@@ -69,7 +71,8 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt);
+                const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
+                const world::HudOverlayCatalog& lighting);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -122,6 +125,14 @@ private:
     sdl::Renderer renderer_;
     sdl::InventoryHud inventoryHud_;
     sdl::ObtainedBannerHud bannerHud_;
+    // La herramienta única de texto: la comparten el popup y los HUD
+    // (etiquetas de hud.toml), por eso se declara antes que ellos.
+    sdl::TextRenderer textRenderer_;
+    sdl::HudOverlayPainter hudOverlayPainter_;
+    // Luz nocturna: mismo painter que el HUD fijo, con otro catálogo
+    // (ui/lighting.toml) y dibujado antes de los HUD, modulado por la
+    // intensidad de DayPhase.
+    sdl::HudOverlayPainter lightingPainter_;
     game::ObtainedBannerQueue bannerQueue_;
     sdl::InputManager input_;
     sdl::AudioPlayer audio_;
@@ -139,6 +150,10 @@ private:
     int lastTotal_ = 0;
     bool voted_ = false;
     game::SceneTransition sceneTransition_;
+    // El momento del día (filtra los elementos `when` y gradúa la luz) y
+    // el reloj del HUD. Entrada: el reloj del server (setClock en cada
+    // tick).
+    game::DayPhase dayPhase_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
@@ -149,7 +164,6 @@ private:
     world::DialogCatalog dialogCatalog_;
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
-    sdl::TextRenderer textRenderer_;
     sdl::PromptPainter promptPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una

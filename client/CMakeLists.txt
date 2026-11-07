@@ -80,6 +80,7 @@ target_sources(taller_client
     sdl/render/BuildPlacePainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
+    sdl/render/HudOverlayPainter.cpp
     sdl/render/CursorPainter.cpp
     sdl/render/DialogPainter.cpp
     sdl/render/TextRenderer.cpp
@@ -218,6 +219,11 @@ target_sources(taller_client
     world/ObtainedBannerConfigLoader.h
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
+    world/PixelBox.h
+    world/AnchorLayout.h
+    world/HudOverlayCatalog.h
+    world/HudOverlayTomlReader.h
+    world/HudOverlayConfigLoader.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
@@ -249,6 +255,7 @@ target_sources(taller_client
     sdl/render/BuildPlacePainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
+    sdl/render/HudOverlayPainter.h
     sdl/render/CursorPainter.h
     sdl/render/DialogPainter.h
     sdl/render/TextRenderer.h

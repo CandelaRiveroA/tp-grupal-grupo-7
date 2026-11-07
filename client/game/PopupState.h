@@ -8,6 +8,9 @@ enum class PopupView {
     Question,
     // El avance de "dormir" ("Esperando al resto de jugadores...").
     Waiting,
+    // La pregunta del cambio de día ("¿Avanzamos al siguiente día?")
+    // con su botón OK, sobre la pantalla en negro.
+    NextDay,
     // Sin popup.
     Hidden,
 };
@@ -27,6 +30,19 @@ public:
     // La llama PlaySession con los conteos de ServerSleep. No hay red
     // ni protocolo acá: solo llegan los números.
     void showWaiting(int ready, int total);
+
+    // Punto de ENTRADA: la pregunta del cambio de día. La llama
+    // PlaySession cuando la pantalla quedó en negro.
+    void showNextDay();
+
+    // El jugador apretó OK: deja el aviso pendiente (un pulso, una sola
+    // vez) y cierra el popup.
+    void confirmNextDay();
+
+    // Punto de SALIDA hacia el server: true UNA vez después del OK (lo
+    // consume: la segunda llamada da false). Quien conecta cliente y
+    // servidor lo lee para que el server reinicie el reloj.
+    bool takeNextDayConfirmed();
 
     // Sin popup (cualquier opción de la pregunta lo cierra: es un
     // voto; la consecuencia la decidirá la fuente de estado).
@@ -48,6 +64,7 @@ private:
     PopupView view_ = PopupView::Hidden;
     int waitingReady_ = 0;
     int waitingTotal_ = 0;
+    bool nextDayConfirmed_ = false;
 };
 
 }  // namespace game

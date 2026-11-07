@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include "world/AnchorLayout.h"
+
 namespace world {
 
 int InventoryLayout::scaled(int basePx) const {
@@ -49,12 +51,13 @@ int InventoryLayout::totalHeight() const {
 int InventoryLayout::barWidth() const { return slotsWidth(); }
 
 PixelBox InventoryLayout::outerBox(int windowWidth, int windowHeight) const {
-	PixelBox box;
-	box.width = totalWidth();
-	box.height = totalHeight();
-	box.x = (windowWidth - box.width) / 2;
-	box.y = windowHeight - margin - box.height;
-	return box;
+	// La barra se ancla abajo-centro (el loader del inventario solo
+	// acepta "bottom_center"). La geometría la resuelve AnchorLayout:
+	// la MISMA fórmula de anclaje que overlays y banners (§9, una sola
+	// cuenta compartida; el render no reimplementa aritmética).
+	const AnchorLayout anchors;
+	return anchors.box(Anchor::BottomCenter, 0, margin, totalWidth(),
+			   totalHeight(), windowWidth, windowHeight);
 }
 
 std::vector<PixelBox> InventoryLayout::slotBoxes(int windowWidth,

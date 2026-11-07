@@ -1,0 +1,90 @@
+# Overlays de HUD fijos. Cada overlay es un sprite de una hoja dibujado en
+# una posición fija de la pantalla (anclado a un borde/centro), SIN cámara:
+# se dibuja encima del mundo y no se desplaza al caminar. Es el mecanismo
+# de "cosas fijas de la UI" (el HUD de tiempo es la primera entrada).
+#
+# Sumar otro overlay fijo = sumar una entrada acá, sin tocar el dibujo.
+# La posición es presentación (convención §5): anchor + margin + scale son
+# datos, no constantes compiladas.
+#
+# Campos de cada [[overlay]]:
+#   sheet   = ruta de la hoja de sprites (relativa a assets/).
+#   cell    = [ancho, alto] en px de cada celda de la hoja.
+#   region  = [col, row, cols, rows] (opcional; default [0, 0, 1, 1]):
+#             celda de origen y cuántas celdas abarca el sprite.
+#   anchor  = "top_right" | "top_center" | ... | "bottom_right"
+#             (opcional; default "top_right").
+#   margin  = [x, y] en px, distancia desde el borde del anchor
+#             (opcional; default [0, 0]).
+#   scale   = escala entera del dibujo (opcional; default 1).
+#
+# ETIQUETAS DE TEXTO [[label]]: texto con {tokens} anclado a la ventana
+# (sin cámara). El servidor manda números CRUDOS (día de la semana, día,
+# hora, ...) y acá se decide cómo se muestran y dónde. Sumar un texto
+# nuevo = sumar un [[label]] (y su valor en los valores del HUD), sin
+# tocar el dibujo.
+#   text      = plantilla; cada {nombre} se reemplaza por el valor.
+#   anchor    = igual que los overlays (default "top_right").
+#   margin    = [x, y] desde el borde del anchor (default [0, 0]).
+#   box       = [ancho, alto] de la caja donde se centra el texto.
+#   font_size = tamaño de letra en px.
+#   color     = [r, g, b, a].
+# Formato opcional de cada token, en [label.token.<nombre>]:
+#   source  = clave del valor crudo (default: el nombre del token).
+#   divisor = divide el crudo antes de usarlo (default 1).
+#   modulo  = resto de dividir por este número (default 0 = sin módulo).
+#   names   = lista de textos: el valor (ya dividido) es el índice.
+#   pad     = cantidad mínima de dígitos, con ceros a la izquierda.
+# Sin formato, el token escribe el número tal cual. Un token sin valor
+# queda escrito literal ({nombre}) para detectar el dato que falta.
+
+[[overlay]]
+# HUD de tiempo: la hoja entera (96x64 = 6x4 celdas de 16x16) arriba a la
+# derecha, al doble del tamaño natural (192x128).
+sheet  = "ui/tiempo.png"
+cell   = [16, 16]
+region = [0, 0, 6, 4]
+anchor = "top_right"
+margin = [12, 12]
+scale  = 2
+
+[[label]]
+# Día de la semana y número de día en el panel de madera del reloj
+# (ej. "Lun. 1"). Valores crudos: dia_semana (0 = Lun.) y dia.
+text      = "{semana} {dia}"
+anchor    = "top_right"
+margin    = [28, 13]
+box       = [104, 36]
+font_size = 22
+color     = [62, 39, 17, 255]
+
+[label.token.semana]
+source = "dia_semana"
+names  = ["Lun.", "Mar.", "Mie.", "Jue.", "Vie.", "Sab.", "Dom."]
+
+[[label]]
+# Hora en la barra de abajo del reloj (ej. "6:30 am"). Valores crudos:
+# hora (0..23) y minuto (0..59). La hora se muestra en 12 h y am/pm sale
+# de la misma hora cruda.
+text      = "{h12}:{minuto} {periodo}"
+anchor    = "top_right"
+margin    = [28, 65]
+box       = [104, 24]
+font_size = 18
+color     = [62, 39, 17, 255]
+
+[label.token.h12]
+source = "hora"
+modulo = 12
+names  = ["12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
+
+[label.token.minuto]
+pad = 2
+
+[label.token.periodo]
+# hora / 12 = 0 (am), 1 (pm), 2 (am del día siguiente, el server llega
+# hasta las 2:00): el módulo 2 lo vuelve a am.
+source  = "hora"
+divisor = 12
+modulo  = 2
+names   = ["am", "pm"]

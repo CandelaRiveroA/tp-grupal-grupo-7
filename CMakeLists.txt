@@ -160,6 +160,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ConfigError.cpp
         client/world/SceneConfigLoader.cpp
         client/world/SceneTomlReader.cpp
+        client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
         client/world/CharacterPaletteLoader.cpp
@@ -195,6 +196,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ObtainedBannerConfigLoader.cpp
         client/world/ObtainedBannerTomlReader.cpp
         client/world/ObtainedBannerLayout.cpp
+        client/world/AnchorLayout.cpp
+        client/world/HudOverlayCatalog.cpp
+        client/world/HudOverlayTomlReader.cpp
+        client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp
         client/world/ElementLayout.cpp
         client/world/ChunkGrid.cpp
@@ -242,6 +247,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/EnterSelection.cpp
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
+        client/game/DayPhase.cpp
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp

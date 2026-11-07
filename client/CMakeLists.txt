@@ -236,7 +236,6 @@ target_sources(taller_client
     toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
-    sdl/loop/FrameClock.h
     sdl/loop/GameLoop.h
     sdl/render/Renderer.h
     sdl/render/ElementPainter.h

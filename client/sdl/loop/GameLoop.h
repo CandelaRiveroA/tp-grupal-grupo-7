@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "core/Constants.h"
-#include "sdl/loop/FrameClock.h"
+#include "../common/common_frame_clock.h"
 
 namespace sdl {
 class InputManager;

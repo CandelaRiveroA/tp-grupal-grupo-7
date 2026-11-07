@@ -190,6 +190,10 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         view_.sleep = ViewSleep{sleep->sleeping, sleep->total};
         return;
     }
+    if (std::holds_alternative<ServerDayEnd>(message)) {
+        view_.dayEnded = true;
+        return;
+    }
     if (std::holds_alternative<ServerDay>(message)) {
         view_.dayChanged = true;
         return;
@@ -244,6 +248,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 
 void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
+    view_.dayEnded = false;
     view_.dayChanged = false;
     for (auto& entry: players_) {
         entry.second.moving = false;

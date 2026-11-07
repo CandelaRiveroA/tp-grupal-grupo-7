@@ -25,6 +25,7 @@ enum class ServerMessageType : uint8_t {
     Day = 14,
     SleepingPlayers = 15,
     Clock = 16,
+    DayEnd = 17,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -109,7 +110,11 @@ struct ServerSleep {
     uint8_t total;
 };
 
-// Amaneció: el día terminó por sueño o por timeout. Sin payload.
+// Se terminó el día (sueño o timeout): la pantalla queda en negro hasta que
+// todos manden WakeMessage. Sin payload.
+struct ServerDayEnd {};
+
+// Amaneció: todos despertaron y arranca el día nuevo. Sin payload.
 struct ServerDay {};
 
 // Quiénes están en la cama (sus IDs). Va a todos: el aviso ServerSleep solo
@@ -136,6 +141,7 @@ struct ServerFurniture {
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
-                     ServerSleep, ServerFurniture, ServerDay, ServerSleepingPlayers, ServerClock>;
+                     ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
+                     ServerClock>;
 
 #endif

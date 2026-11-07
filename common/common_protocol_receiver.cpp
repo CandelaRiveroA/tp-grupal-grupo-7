@@ -13,6 +13,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
                 {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
                 {protocol::ClientMessageType::Sleep, &ProtocolReceiver::receive_sleep_message},
+                {protocol::ClientMessageType::Wake, &ProtocolReceiver::receive_wake_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -28,6 +29,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
                 {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
                 {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
+                {ServerMessageType::DayEnd, &ProtocolReceiver::receive_day_end_message},
                 {ServerMessageType::Day, &ProtocolReceiver::receive_day_message},
                 {ServerMessageType::SleepingPlayers,
                  &ProtocolReceiver::receive_sleeping_players_message},
@@ -104,6 +106,8 @@ protocol::ClientMessage ProtocolReceiver::receive_sleep_message() {
     }
     return protocol::SleepMessage{accept == 1};
 }
+
+protocol::ClientMessage ProtocolReceiver::receive_wake_message() { return protocol::WakeMessage{}; }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
     const std::optional<uint8_t> type_byte = receive_uint8_or_end();
@@ -201,6 +205,8 @@ ServerMessage ProtocolReceiver::receive_furniture_message() {
     std::string content_id = receive_string();
     return ServerFurniture{x, y, std::move(content_id)};
 }
+
+ServerMessage ProtocolReceiver::receive_day_end_message() { return ServerDayEnd{}; }
 
 ServerMessage ProtocolReceiver::receive_day_message() { return ServerDay{}; }
 

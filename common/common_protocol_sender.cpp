@@ -65,6 +65,10 @@ void ProtocolSender::send_message(const protocol::SleepMessage& message) {
     send_uint8(message.accept ? 1 : 0);
 }
 
+void ProtocolSender::send_message(const protocol::WakeMessage& /*message*/) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Wake));
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -151,6 +155,10 @@ void ProtocolSender::send_message(const ServerFurniture& furniture) {
     send_uint16(furniture.x);
     send_uint16(furniture.y);
     send_string(furniture.content_id);
+}
+
+void ProtocolSender::send_message(const ServerDayEnd& /*day*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::DayEnd));
 }
 
 void ProtocolSender::send_message(const ServerDay& /*day*/) {

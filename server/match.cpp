@@ -29,7 +29,7 @@
 
 // shortcut: un día de juego de 30s para probar; en la versión final son 15 min
 // (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 30
+#define kDayDurationSeconds 60
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
@@ -141,31 +141,46 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
 }
 
-// Pasaron los 30 s sin que nadie durmiera: todos duermen donde están y
-// amanecen en la cama. Se cancela la votación abierta.
+// Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
+// donde están y amanecen en la cama cuando despiertan.
 void Match::handle(const DayPassed& /*day*/) {
-    world.clear_sleep();
-    world.advance_day();
-    for (const uint8_t id: world.get_player_ids()) {
-        world.set_player_position(id, kBedX, kBedY);
-    }
+    world.end_day();
+    sync_day();
     push_sleep_state();
-    broadcast(ServerDay{});
-    broadcast_clock(0);
     sync_all();
 }
 
 void Match::handle(const AnimalTick& /*tick*/) {
-    world.tick_animals();
+    if (!world.is_waking()) {
+        world.tick_animals();
+    }
     sync_all();
 }
 
 void Match::handle(const ClockStep& step) {
-    // Un paso de un día reiniciado llega tarde: se descarta.
-    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent) {
+    // Un paso de un día reiniciado llega tarde: se descarta. Con el día
+    // terminado el reloj queda congelado hasta que despierten todos.
+    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent ||
+        world.is_waking()) {
         return;
     }
     broadcast_clock(step.minutes);
+}
+
+// Transiciones del día: al terminar, la pantalla se apaga; al arrancar, todos
+// van a la cama y el reloj vuelve a las 6:00.
+void Match::sync_day() {
+    if (world.take_day_ended()) {
+        broadcast(ServerDayEnd{});
+    }
+    if (world.take_day_started()) {
+        for (const uint8_t id: world.get_player_ids()) {
+            world.set_player_position(id, kBedX, kBedY);
+        }
+        clock.restart();
+        broadcast(ServerDay{});
+        broadcast_clock(0);
+    }
 }
 
 void Match::broadcast_clock(uint16_t minutes) {
@@ -177,6 +192,10 @@ void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
+    // Si el día ya terminó, el que entra también tiene que despertar.
+    if (world.is_waking()) {
+        send_to(joined.player_id, ServerDayEnd{});
+    }
     // Sube el total de la votación: mientras no vaya a la cama, el sueño
     // no puede completarse.
     push_sleep_state();
@@ -199,13 +218,7 @@ void Match::handle(const PlayerMessage& event) {
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
-    // Dormir avanzó el día antes de tiempo: el tick ya corrió (los animales
-    // produjeron), solo queda reiniciar el reloj.
-    if (world.take_sleep_advanced()) {
-        clock.restart();
-        broadcast(ServerDay{});
-        broadcast_clock(0);
-    }
+    sync_day();
     push_sleep_state();
     sync_all();
 }
@@ -219,11 +232,7 @@ void Match::handle(const PlayerLeft& left) {
     outputs.erase(it);
     // Saca al jugador de la votación: nadie queda esperando a un ausente.
     world.remove_player(left.player_id);
-    if (world.take_sleep_advanced()) {
-        clock.restart();
-        broadcast(ServerDay{});
-        broadcast_clock(0);
-    }
+    sync_day();
     push_sleep_state();
     broadcast(ServerLeave{left.player_id});
     leaving->close();

@@ -27,6 +27,7 @@ private:
     protocol::ClientMessage receive_pick_message();
     protocol::ClientMessage receive_take_message();
     protocol::ClientMessage receive_sleep_message();
+    protocol::ClientMessage receive_wake_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();
@@ -39,6 +40,7 @@ private:
     ServerMessage receive_animal_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();
+    ServerMessage receive_day_end_message();
     ServerMessage receive_day_message();
     ServerMessage receive_sleeping_players_message();
     ServerMessage receive_clock_message();

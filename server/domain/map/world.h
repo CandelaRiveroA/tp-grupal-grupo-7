@@ -30,8 +30,13 @@ private:
     // accepted. Quien está en sleepers no se puede mover.
     std::unordered_set<uint8_t> sleepers;
     std::unordered_set<uint8_t> accepted;
-    // Consumido por take_sleep_advanced: una sola vez por día dormido.
-    bool sleep_advanced;
+    // Día terminado y esperando que todos despierten (woke ⊆ players). Mientras
+    // tanto el reloj y los animales están quietos.
+    bool waking;
+    std::unordered_set<uint8_t> woke;
+    // Transiciones del día, consumidas por Match (una sola vez cada una).
+    bool day_ended;
+    bool day_started;
     // Día de juego: de 1 a 28, después del 28 vuelve al 1.
     uint8_t day;
     // TODO: Persistencia del inventario del jugador.
@@ -95,16 +100,25 @@ public:
     // Responde al aviso: accept = confirma dormir, false = cancelar (sale
     // de la cama, le devuelve el movimiento y borra solo su OK).
     void answer_sleep(uint8_t player_id, bool accept);
-    // true una sola vez cuando el sueño avanzó el día. Lo consume Match.
-    bool take_sleep_advanced();
     uint8_t sleeping_count() const;
     bool is_sleeping(uint8_t player_id) const;
-    // Cancela la votación abierta sin mover a nadie (lo usa el día forzado).
+    // Cancela la votación abierta sin mover a nadie.
     void clear_sleep();
     void set_player_position(uint8_t player_id, uint16_t x, uint16_t y);
 
+    // --- Fin de día: todos tienen que despertar (OK) antes de arrancar el siguiente ---
+    // Termina el día (timeout o sueño) y congela el reloj hasta despertar.
+    void end_day();
+    // El jugador apretó OK: cuando despiertan todos, el día avanza.
+    void answer_wake(uint8_t player_id);
+    bool is_waking() const;
+    // true una sola vez por transición. Los consume Match.
+    bool take_day_ended();
+    bool take_day_started();
+
 private:
     void try_advance_sleep();
+    void try_start_day();
 };
 
 #endif  // WORLD_H

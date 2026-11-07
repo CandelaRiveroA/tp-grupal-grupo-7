@@ -27,8 +27,8 @@
 #include "sdl/render/Camera.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
-#include "sdl/render/InventoryHud.h"
 #include "sdl/render/HudOverlayPainter.h"
+#include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
@@ -149,6 +149,8 @@ private:
     int lastSleeping_ = 0;
     int lastTotal_ = 0;
     bool voted_ = false;
+    // Día terminado: ya apretó OK y espera a que despierten los demás.
+    bool woke_ = false;
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada

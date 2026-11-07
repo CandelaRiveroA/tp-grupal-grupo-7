@@ -21,17 +21,14 @@
 
 namespace core {
 
-PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
-                         game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                         const world::InventoryLayout& inventory,
-                         const world::ToolOverlayCatalog& toolOverlay,
-                         const world::ResourceCatalog& resources,
-                         const world::ObtainedBannerCatalog& banner,
-                         const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
-                         const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                         const world::PromptLayout& prompt,
-                         const world::HudOverlayCatalog& hudOverlays,
-                         const world::HudOverlayCatalog& lighting):
+PlaySession::PlaySession(
+        const WindowConfig& config, const world::Scenario& scenario, game::GameClient& gameClient,
+        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
+        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
+        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
+        const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
+        const world::FontCatalog& font, const world::PromptLayout& prompt,
+        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
         scene_(scenario.scene()),
         gameClient_(gameClient),
         characters_(characters),
@@ -95,9 +92,24 @@ void PlaySession::tick(int iteration) {
     dayPhase_.setClock(state.dayNumber, state.clockMinutes);
     dayPhase_.advance();
 
+    // Se terminó el día: se cierra todo y la pantalla se funde a negro y SE
+    // QUEDA ahí con el popup del nuevo día hasta que despierten todos. Ahí
+    // (ServerDay) cambia la escena (dormitorio), vuelve el fade y suena el gallo.
+    // Va ANTES de la secuencia de inicio: un jugador que se une durante el
+    // popup recibe el evento mientras todavía está en la intro.
+    if (state.dayEnded) {
+        voted_ = false;
+        woke_ = false;
+        popupState_.hide();
+        sceneTransition_.changeTo(core::kInitialRoom, true);
+    }
+    if (state.dayChanged) {
+        sceneTransition_.release();
+        audio_.play(sdl::SoundId::RoosterCrow);
+    }
+
     const GamePhase phase = phaseForIteration(iteration);
-    if (screens_.draw(phase, iteration, state, motion_, actionResolver_,
-                      dayPhase_.phase())) {
+    if (screens_.draw(phase, iteration, state, motion_, actionResolver_, dayPhase_.phase())) {
         return;
     }
 
@@ -121,28 +133,25 @@ void PlaySession::tick(int iteration) {
         const bool holding = sceneTransition_.holding();
         if (holding) {
             // Sostenida en negro: el popup del nuevo día es lo único que
-            // se puede tocar (como el de la cama, es modal).
-            popupState_.showNextDay();
+            // se puede tocar (como el de la cama, es modal). Sin cancelar.
+            if (!woke_) {
+                popupState_.showNextDay();
+            }
             for (const game::PointerClick& click: clicks) {
-                if (!promptLayout_.buttonAt(world::kPromptOkButton, popupBox,
-                                            world::PixelPoint{click.x, click.y})) {
+                if (woke_ || !promptLayout_.buttonAt(world::kPromptOkButton, popupBox,
+                                                     world::PixelPoint{click.x, click.y})) {
                     continue;
                 }
-                // OK: el pulso queda para el server y se suelta el negro
-                // (cambia la escena y vuelve el fade).
-                // PUNTO DE CONEXIÓN CON EL SERVER: quien conecte
-                // cliente y servidor lee acá `popupState_.takeNextDayConfirmed()`
-                // (true una sola vez) y manda el aviso para reiniciar
-                // el reloj con gameClient_.sendCommand(...).
-                popupState_.confirmNextDay();
-                sceneTransition_.release();
-                audio_.play(sdl::SoundId::RoosterCrow);
+                // OK: el server espera a que despierten todos; el negro se
+                // suelta cuando llega ServerDay.
+                woke_ = true;
+                popupState_.hide();
+                gameClient_.sendCommand(protocol::WakeMessage{});
                 break;
             }
         } else {
             renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_,
-                                actionResolver_, iteration, camera_.viewport(),
-                                dayPhase_.phase());
+                                actionResolver_, iteration, camera_.viewport(), dayPhase_.phase());
             lightingPainter_.draw(dayPhase_.nightFactor());
         }
         sdlContext_.fillRect(SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
@@ -151,9 +160,9 @@ void PlaySession::tick(int iteration) {
             drawPopup(popupBox);
             const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
             cursorPainter_.draw(cursorCatalog_,
-                                promptLayout_.buttonAt(world::kPromptOkButton, popupBox, mouse)
-                                        ? world::CursorKind::Interactive
-                                        : world::CursorKind::Normal,
+                                promptLayout_.buttonAt(world::kPromptOkButton, popupBox, mouse) ?
+                                        world::CursorKind::Interactive :
+                                        world::CursorKind::Normal,
                                 input_.mousePosition());
         }
         sdlContext_.present();
@@ -168,14 +177,6 @@ void PlaySession::tick(int iteration) {
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
     // que se reacciona a la transición y no a cada tick.
-    // Amaneció: se cierra todo y la pantalla se funde a negro y SE QUEDA
-    // ahí con el popup del nuevo día; al apretar OK cambia la escena
-    // (dormitorio), vuelve el fade y suena el gallo.
-    if (state.dayChanged) {
-        voted_ = false;
-        popupState_.hide();
-        sceneTransition_.changeTo(core::kInitialRoom, true);
-    }
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;

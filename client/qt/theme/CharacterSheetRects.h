@@ -13,18 +13,18 @@
 
 #define SHEET_PUPIL_RGB 0x682b0f
 
-// Peinados: se usan las 2 primeras filas de la hoja.
+// Peinados: hoja recortada a las 32 celdas usadas (2 filas).
 #define SHEET_HAIR_W 16
 #define SHEET_HAIR_H 32
 #define SHEET_HAIR_COLUMNS 16
-#define SHEET_HAIR_STRIDE_Y 96
+#define SHEET_HAIR_STRIDE_Y 32
 #define SHEET_HAIR_COUNT 32
 #define SHEET_HAIR_OFFSET_Y 0
 
-// Camisas: se usan las 3 primeras filas de la hoja.
+// Camisas: hoja recortada a las 48 celdas usadas (3 filas).
 #define SHEET_SHIRT_SIZE 8
 #define SHEET_SHIRT_COLUMNS 16
-#define SHEET_SHIRT_STRIDE_Y 32
+#define SHEET_SHIRT_STRIDE_Y 8
 #define SHEET_SHIRT_COUNT 48
 #define SHEET_SHIRT_X 4
 #define SHEET_SHIRT_Y 15
@@ -38,17 +38,19 @@
 #define SHEET_SLEEVE_MID_Y 3
 #define SHEET_SLEEVE_LIGHT_Y 1
 
+// Pantalones: hoja recortada a los 7 teñibles, en el orden del catalogo.
 #define SHEET_PANTS_W 16
 #define SHEET_PANTS_H 32
-#define SHEET_PANTS_STRIDE_X 192
-#define SHEET_PANTS_CELLS 10
+#define SHEET_PANTS_STRIDE_X 16
+#define SHEET_PANTS_CELLS 7
 // Solo pantalones casi grises: el tinte multiplica y ensucia los de color propio.
 #define SHEET_PANTS_DYEABLE_PERCENT 70
 #define SHEET_PANTS_GREY_SPREAD 18
 
-// Accesorios: indice 0 = ninguno. Con offset 2 el vello facial cae bajo los ojos.
+// Accesorios: hoja recortada a las 19 celdas leidas. Indice 0 = ninguno. Con
+// offset 2 el vello facial cae bajo los ojos.
 #define SHEET_ACC_SIZE 16
 #define SHEET_ACC_COLUMNS 8
-#define SHEET_ACC_STRIDE_Y 32
+#define SHEET_ACC_STRIDE_Y 16
 #define SHEET_ACC_COUNT 20
 #define SHEET_ACC_OFFSET_Y 2

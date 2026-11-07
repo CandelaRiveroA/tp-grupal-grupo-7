@@ -5,25 +5,14 @@ namespace game {
 void PopupState::showQuestion() { view_ = PopupView::Question; }
 
 void PopupState::showWaiting(const int ready, const int total) {
-	waitingReady_ = ready;
-	waitingTotal_ = total;
-	view_ = PopupView::Waiting;
+    waitingReady_ = ready;
+    waitingTotal_ = total;
+    view_ = PopupView::Waiting;
 }
 
 void PopupState::hide() { view_ = PopupView::Hidden; }
 
 void PopupState::showNextDay() { view_ = PopupView::NextDay; }
-
-void PopupState::confirmNextDay() {
-	nextDayConfirmed_ = true;
-	hide();
-}
-
-bool PopupState::takeNextDayConfirmed() {
-	const bool confirmed = nextDayConfirmed_;
-	nextDayConfirmed_ = false;
-	return confirmed;
-}
 
 bool PopupState::modal() const { return view_ != PopupView::Hidden; }
 

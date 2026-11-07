@@ -189,8 +189,10 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
-    // Amaneció (ServerDay). Evento: vale solo en el tick en que llega.
-    // Presentación (fase pendiente): changeTo(kInitialRoom) + gallo.
+    // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
+    // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
+    // amanecer se levanta el negro con el gallo.
+    bool dayEnded = false;
     bool dayChanged = false;
 
     // Suma un contenido al inventario (la regla genérica: apila por

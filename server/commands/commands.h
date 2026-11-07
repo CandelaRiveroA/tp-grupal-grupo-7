@@ -15,6 +15,7 @@ void apply(World& world, uint8_t player_id, const protocol::MoveMessage& message
 void apply(World& world, uint8_t player_id, const protocol::PickMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::TakeMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::SleepMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::WakeMessage& message);
 
 }  // namespace commands
 

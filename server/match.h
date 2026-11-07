@@ -48,8 +48,8 @@ using MatchEvent =
         std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, AnimalTick, ClockStep>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
-// restart() corta el día en curso SIN empujar DayPassed: lo usa el sueño,
-// que ya avanzó el día, para que los 30 segundos arranquen de cero.
+// restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
+// del día (todos despiertos), para que los 30 segundos arranquen de cero.
 class DayClock: public Worker {
 private:
     Queue<MatchEvent>& events;
@@ -94,6 +94,7 @@ private:
     void send_to(uint8_t player_id, const ServerMessage& message);
     void push_sleep_state();
     void broadcast_clock(uint16_t minutes);
+    void sync_day();
     void closeOutputs();
 
 public:

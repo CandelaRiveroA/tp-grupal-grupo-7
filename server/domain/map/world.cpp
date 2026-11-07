@@ -9,7 +9,8 @@
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
 
-World::World(uint16_t w, uint16_t h): width(w), height(h), sleep_advanced(false), day(1) {
+World::World(uint16_t w, uint16_t h):
+        width(w), height(h), waking(false), day_ended(false), day_started(false), day(1) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -327,8 +328,10 @@ void World::remove_player(uint8_t player_id) {
     // Nadie queda esperando a un jugador que ya no está en la partida.
     this->sleepers.erase(player_id);
     this->accepted.erase(player_id);
-    // Si el que se fue era el único que faltaba aceptar, el día tiene que avanzar.
+    this->woke.erase(player_id);
+    // Si el que se fue era el único que faltaba aceptar o despertar, el día tiene que avanzar.
     this->try_advance_sleep();
+    this->try_start_day();
 }
 
 void World::set_player_position(uint8_t player_id, uint16_t x, uint16_t y) {
@@ -346,7 +349,7 @@ void World::clear_sleep() {
 
 void World::record_sleep_request(uint8_t player_id) {
     // Idempotente: pisar la cama o usar la mano encima vuelve a llamar acá.
-    if (this->sleepers.count(player_id) > 0) {
+    if (this->waking || this->sleepers.count(player_id) > 0) {
         return;
     }
     this->sleepers.insert(player_id);
@@ -370,22 +373,56 @@ void World::answer_sleep(uint8_t player_id, bool accept) {
     this->try_advance_sleep();
 }
 
-// Avanza cuando todos los de la partida están en la cama y aceptaron.
+// Termina el día cuando todos los de la partida están en la cama y aceptaron.
 void World::try_advance_sleep() {
     if (this->players.empty() || this->sleepers.size() < this->players.size() ||
         this->accepted.size() < this->players.size()) {
         return;
     }
-
-    this->clear_sleep();
-    this->advance_day();
-    this->sleep_advanced = true;
+    this->end_day();
 }
 
-bool World::take_sleep_advanced() {
-    const bool advanced = this->sleep_advanced;
-    this->sleep_advanced = false;
-    return advanced;
+void World::end_day() {
+    if (this->waking) {
+        return;
+    }
+    this->clear_sleep();
+    this->waking = true;
+    this->woke.clear();
+    this->day_ended = true;
+}
+
+void World::answer_wake(uint8_t player_id) {
+    if (!this->waking || this->players.count(player_id) == 0) {
+        return;
+    }
+    this->woke.insert(player_id);
+    this->try_start_day();
+}
+
+// Arranca el día cuando despertaron todos los de la partida.
+void World::try_start_day() {
+    if (!this->waking || this->players.empty() || this->woke.size() < this->players.size()) {
+        return;
+    }
+    this->waking = false;
+    this->woke.clear();
+    this->advance_day();
+    this->day_started = true;
+}
+
+bool World::is_waking() const { return this->waking; }
+
+bool World::take_day_ended() {
+    const bool ended = this->day_ended;
+    this->day_ended = false;
+    return ended;
+}
+
+bool World::take_day_started() {
+    const bool started = this->day_started;
+    this->day_started = false;
+    return started;
 }
 
 uint8_t World::sleeping_count() const { return static_cast<uint8_t>(this->sleepers.size()); }

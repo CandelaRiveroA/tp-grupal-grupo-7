@@ -2,39 +2,53 @@
 #define GAMECLOCK_H
 
 #include <cstdint>
+#include <chrono>
 
-// Estructura ligera que el GameLoop tomará para armar el DTO de red
+// Estructura lista para enviar por la red (DTO ServerClock).
+// El cliente no tiene que calcular absolutamente nada.
 struct TimeInfoDTO {
-    uint32_t days_passed;
-    uint8_t hours;
-    uint8_t minutes; // Garantizado de ser siempre 0, 10, 20, 30, 40 o 50
+    uint32_t days_passed; 
+    uint8_t day_of_season; // 1 a 28
+    uint8_t day_of_week;   // 1 a 7 (Ej: 1=Lunes, 7=Domingo)
+    uint8_t hours;         // Formato 24h (Ej: 6, 14, 23, 1, 2)
+    uint8_t minutes;       // Garantizado de ser 0, 10, 20, 30, 40 o 50
 };
 
 class GameClock {
 private:
     uint32_t days_passed;
     uint16_t in_game_minutes;
-    uint8_t tick_counter;
+    std::chrono::milliseconds real_time_accumulator;
     bool day_ended;
+    
+    // Matemática del tiempo:
+    // 14 minutos reales = 840,000 ms.
+    // 20 horas in-game = 1,200 minutos in-game.
+    // 840,000 ms / 1,200 min = 700 ms reales por cada minuto in-game.
+    static constexpr std::chrono::milliseconds kRealMsPerIngameMinute{700};
+    // 1560 minutos desde las 00:00 representan las 2:00 AM.
+    static constexpr uint16_t kEndOfDayMinutes = 1560;
 
 public:
-    // Por defecto arranca en el Día 1, pero puede recibir el día guardado en la base de datos
-    GameClock(uint32_t initial_days = 1);
+    explicit GameClock(uint32_t initial_days = 1);
     ~GameClock() = default;
 
     GameClock(const GameClock&) = delete;
     GameClock& operator=(const GameClock&) = delete;
 
-    // Avanza el reloj interno. Devuelve 'true' en el instante exacto en que dan las 2:00 AM.
-    bool tick();
+    // Avanza el reloj interno según el tiempo real transcurrido desde la última llamada.
+    bool update(std::chrono::milliseconds elapsed_real_time);
     
-    // Resetea a las 6:00 AM y suma 1 día.
+    // Resetea el estado a las 6:00 AM y vacía el acumulador de tiempo.
     void reset_for_new_day();
 
-    // Empaqueta el tiempo traducido a horas y minutos en intervalos de 10m para la UI del cliente.
+    // Empaqueta el tiempo traducido a días, horas y minutos exactos para la UI.
     TimeInfoDTO get_time_info() const;
     
+    void set_days_passed(uint32_t current_day);
+    
     bool is_day_ended() const;
+    uint16_t get_in_game_minutes() const;
 };
 
 #endif // GAMECLOCK_H

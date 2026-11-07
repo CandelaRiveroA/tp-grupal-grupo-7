@@ -8,8 +8,6 @@
 // El cliente no tiene que calcular absolutamente nada.
 struct TimeInfoDTO {
     uint32_t days_passed; 
-    uint8_t day_of_season; // 1 a 28
-    uint8_t day_of_week;   // 1 a 7 (Ej: 1=Lunes, 7=Domingo)
     uint8_t hours;         // Formato 24h (Ej: 6, 14, 23, 1, 2)
     uint8_t minutes;       // Garantizado de ser 0, 10, 20, 30, 40 o 50
 };

@@ -13,6 +13,10 @@ bool Chicken::is_walkable() const { return true; }
 
 std::string Chicken::kind_name() const { return "chicken"; }
 
+bool Chicken::is_walkable() const {
+    return true;
+}
+
 void Chicken::update(World& w) {
     this->days_passed++;
 

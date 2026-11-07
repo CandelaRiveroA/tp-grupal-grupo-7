@@ -58,13 +58,26 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const world::EntityAppearance appearance =
 		resolver.appearanceFor(entity.facing, action, phase);
 
-	SpriteSheet& sheet = sheets_.sheet(
-		characters_.sheetFile(entity.kind),
-		core::assetPath(characters_.sheetFile(entity.kind)),
-		characters_.sheetCellWidth(entity.kind),
-		characters_.sheetCellHeight(entity.kind));
+	// La acción puede traer su PROPIA hoja (enemigos: una por acción);
+	// si no la declara, se usa la de la criatura (el jugador).
+	const world::ActionData& actionData = *appearance.action;
+	const bool ownSheet = !actionData.sheet.empty();
+	const std::string& sheetFile =
+		ownSheet ? actionData.sheet : characters_.sheetFile(entity.kind);
+	const int cellW = ownSheet ? actionData.cellWidth
+				   : characters_.sheetCellWidth(entity.kind);
+	const int cellH = ownSheet ? actionData.cellHeight
+				   : characters_.sheetCellHeight(entity.kind);
+	const int frameCols = ownSheet ? actionData.frameCols
+				       : characters_.frameCols(entity.kind);
+	const int frameRows = ownSheet ? actionData.frameRows
+				       : characters_.frameRows(entity.kind);
+
+	SpriteSheet& sheet = sheets_.sheet(sheetFile, core::assetPath(sheetFile),
+					   cellW, cellH);
 	CharacterSprite sprite(sheet, characters_.drawnWidth(entity.kind),
-			      characters_.drawnHeight(entity.kind));
+			      characters_.drawnHeight(entity.kind), frameCols,
+			      frameRows);
 
 	const Flip flip =
 		appearance.mirrored ? Flip::Horizontal : Flip::None;

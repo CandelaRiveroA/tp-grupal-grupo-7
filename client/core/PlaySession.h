@@ -42,6 +42,7 @@
 
 namespace game {
 class GameClient;
+class EnemyTestTrigger;
 struct LocalWorldView;
 }  // namespace game
 
@@ -72,7 +73,8 @@ public:
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
                 const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
-                const world::HudOverlayCatalog& lighting);
+                const world::HudOverlayCatalog& lighting,
+                game::EnemyTestTrigger* enemyTestTrigger = nullptr);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -112,6 +114,9 @@ private:
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
     game::GameClient& gameClient_;
+    // ANDAMIAJE TEMPORAL (prueba): disparador del ataque de enemigos del
+    // mundo simulado (null si no hay). Se saca con la tecla F.
+    game::EnemyTestTrigger* enemyTestTrigger_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario

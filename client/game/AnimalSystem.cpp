@@ -1,5 +1,6 @@
 #include "game/AnimalSystem.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <span>
@@ -27,6 +28,23 @@ constexpr std::array<world::GridCell, 3> kCowSpawns = {{
 	{13, 3},
 }};
 
+// Enemigos de la cueva: mismo wander que los animales, sin huevos ni
+// sonidos (no tienen fila en esas tablas). Datos del "server falso".
+constexpr std::array<world::GridCell, 2> kOrcSpawns = {{
+	{15, 9},
+	{16, 9},
+}};
+
+constexpr std::array<world::GridCell, 2> kSkeletonSpawns = {{
+	{6, 14},
+	{23, 15},
+}};
+
+constexpr std::array<world::GridCell, 2> kVampireSpawns = {{
+	{10, 16},
+	{19, 7},
+}};
+
 // Una fila por especie de la simulación: kind + sus celdas. Sumar una
 // especie = una fila acá + la apariencia en characters.toml.
 struct AnimalBinding {
@@ -34,9 +52,12 @@ struct AnimalBinding {
 	std::span<const world::GridCell> cells;
 };
 
-constexpr std::array<AnimalBinding, 2> kAnimalBindings = {{
+constexpr std::array<AnimalBinding, 5> kAnimalBindings = {{
 	{world::CreatureKind::Chicken, kChickenSpawns},
 	{world::CreatureKind::Cow, kCowSpawns},
+	{world::CreatureKind::Orc, kOrcSpawns},
+	{world::CreatureKind::Skeleton, kSkeletonSpawns},
+	{world::CreatureKind::Vampire, kVampireSpawns},
 }};
 
 // Productos cuya "cosecha" deja el animal LISTO en vez de tirarlos al
@@ -57,8 +78,17 @@ AnimalSystem::~AnimalSystem() = default;
 
 void AnimalSystem::spawnAnimals(const world::CharacterCatalog& characters,
 				const int playerCellX,
-				const int playerCellY) {
+				const int playerCellY,
+				const std::vector<world::CreatureKind>& only) {
 	for (const AnimalBinding& binding : kAnimalBindings) {
+		// Filtro opcional: con `only` no vacío, spawnea SOLO esas
+		// especies (el resto las trae otra fuente, p. ej. el server);
+		// vacío = todas (el mock standalone y sus tests).
+		if (!only.empty() &&
+		    std::find(only.begin(), only.end(), binding.kind) ==
+			    only.end()) {
+			continue;
+		}
 		// Sin apariencia declarada, el kind no entra: si characters
 		// no lo describe, el render no lo sabría dibujar.
 		const world::CreatureData* creature =
@@ -70,11 +100,27 @@ void AnimalSystem::spawnAnimals(const world::CharacterCatalog& characters,
 			simulation_->spawn(binding.kind, creature->cadence,
 					   cell, playerCellX, playerCellY);
 		}
+		// Si el catálogo describe el ataque de este kind, puede atacar
+		// (andamiaje de prueba): una entrada por enemigo, sin hardcodear.
+		for (const world::DirectionAppearance& dir : creature->directions) {
+			if (dir.actions.find(world::ActionKind::Attack) !=
+			    dir.actions.end()) {
+				attackers_.insert(binding.kind);
+				break;
+			}
+		}
 	}
+}
+
+void AnimalSystem::triggerEnemyAttack() {
+	attackTicksLeft_ = kEnemyAttackTicks;
 }
 
 void AnimalSystem::update(const int iteration, const int playerCellX,
 			  const int playerCellY) {
+	if (attackTicksLeft_ > 0) {
+		--attackTicksLeft_;
+	}
 	simulation_->update(iteration, playerCellX, playerCellY);
 	for (const ProducedItem& laid : simulation_->takeProducedItems()) {
 		// Cada producto según su política: la leche deja la vaca
@@ -103,6 +149,13 @@ void AnimalSystem::appendEntities(std::vector<ViewEntity>& out) const {
 		entity.moving = animal.moving;
 		entity.action = animal.moving ? world::ActionKind::Walk
 					      : world::ActionKind::Idle;
+		// ANDAMIAJE TEMPORAL: mientras dura el ataque de prueba, los
+		// enemigos (los que saben atacar) muestran Attack. Es la
+		// MISMA vía que usará el server: escribir entity.action.
+		if (attackTicksLeft_ > 0 &&
+		    attackers_.find(animal.kind) != attackers_.end()) {
+			entity.action = world::ActionKind::Attack;
+		}
 		// El "server falso" marca lo que es interactivo (hoy los
 		// animales); mañana lo mandará el server real en el estado.
 		entity.interactive = true;

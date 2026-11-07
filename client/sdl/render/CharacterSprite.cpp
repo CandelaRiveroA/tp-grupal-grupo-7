@@ -6,10 +6,13 @@
 namespace sdl {
 
 CharacterSprite::CharacterSprite(SpriteSheet& sheet, int drawnWidth,
-				 int drawnHeight)
+				 int drawnHeight, int referenceCols,
+				 int referenceRows)
 	: sheet_(sheet)
 	, drawnWidth_(drawnWidth)
-	, drawnHeight_(drawnHeight) {}
+	, drawnHeight_(drawnHeight)
+	, referenceCols_(referenceCols)
+	, referenceRows_(referenceRows) {}
 
 void CharacterSprite::draw(const world::Pose& pose,
 			   const SDL2pp::Rect& logicalBox, Flip flip) const {
@@ -20,7 +23,7 @@ void CharacterSprite::draw(const world::Pose& pose,
 	const world::CharacterLayout layout(
 		world::PixelRect{logicalBox.x, logicalBox.y, logicalBox.w,
 				 logicalBox.h},
-		drawnWidth_, drawnHeight_);
+		drawnWidth_, drawnHeight_, referenceCols_, referenceRows_);
 
 	const world::LayerFrame& baseLayer = pose.front();
 	for (const world::LayerFrame& layer : pose) {

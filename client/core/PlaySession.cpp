@@ -9,6 +9,7 @@
 #include "core/StartupSequence.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
+#include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
@@ -31,9 +32,11 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::DialogCatalog& dialogs, const world::FontCatalog& font,
                          const world::PromptLayout& prompt,
                          const world::HudOverlayCatalog& hudOverlays,
-                         const world::HudOverlayCatalog& lighting):
+                         const world::HudOverlayCatalog& lighting,
+                         game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
         gameClient_(gameClient),
+        enemyTestTrigger_(enemyTestTrigger),
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -192,6 +195,15 @@ void PlaySession::tick(int iteration) {
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     for (const game::InputCommand& command: commands) {
+        if (command.kind == game::InputCommand::Kind::TestAttack) {
+            // ANDAMIAJE TEMPORAL: enciende el ataque de los enemigos en
+            // el mundo simulado (si hay). El server real pondrá la acción
+            // directo en la vista y esto se saca.
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->attackAll();
+            }
+            continue;
+        }
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).

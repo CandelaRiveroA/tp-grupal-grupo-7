@@ -21,6 +21,12 @@ constexpr int kPickupCycles = 1;
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
 
+// ANDAMIAJE TEMPORAL: ticks que dura el ataque de prueba de los enemigos
+// (la tecla de prueba lo enciende; al terminar vuelven a caminar). Cubre
+// la animación de ataque más larga. Se va con la tecla cuando el server
+// mande la acción.
+constexpr int kEnemyAttackTicks = 100;
+
 // --- Reloj de juego (ServerClock) ---------------------------------------
 
 // El server manda los minutos desde esta hora (0 = 6:00).

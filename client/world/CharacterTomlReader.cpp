@@ -18,6 +18,7 @@ constexpr const char* kFrame = "frame";
 constexpr const char* kSheet = "sheet";
 constexpr const char* kGrid = "grid";
 constexpr const char* kDrawn = "drawn";
+constexpr const char* kFrameCells = "frame_cells";
 constexpr const char* kCadence = "cadence";
 constexpr const char* kStep = "step";
 constexpr const char* kMirrored = "mirrored";
@@ -31,10 +32,13 @@ struct CreatureBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<CreatureBinding, 3> kCreatureBindings = {{
+constexpr std::array<CreatureBinding, 6> kCreatureBindings = {{
 	{CreatureKind::Player, "characters.player"},
 	{CreatureKind::Chicken, "characters.chicken"},
 	{CreatureKind::Cow, "characters.cow"},
+	{CreatureKind::Orc, "characters.orc"},
+	{CreatureKind::Skeleton, "characters.skeleton"},
+	{CreatureKind::Vampire, "characters.vampire"},
 }};
 
 }
@@ -112,6 +116,31 @@ ActionData CharacterTomlReader::readAction(const std::string& actionPath,
 	} else {
 		action.frameTicks = defaultFrameTicks;
 	}
+	// Hoja PROPIA de la acción (opcional): si la declara, se dibuja con
+	// esta en vez de la de la criatura. Útil para enemigos con una hoja
+	// por acción. `grid` y `frame_cells` acompañan a la hoja.
+	const std::string sheetPath = join(actionPath, kSheet);
+	if (doc_.hasKey(sheetPath)) {
+		action.sheet = doc_.getString(sheetPath);
+		if (action.sheet.empty()) {
+			throw ConfigError(Kind::InvalidValue, sheetPath);
+		}
+		const std::string gridPath = join(actionPath, kGrid);
+		const std::array<int, 2> grid = doc_.getIntArray<2>(gridPath);
+		requirePositive(grid[0], gridPath);
+		requirePositive(grid[1], gridPath);
+		action.cellWidth = grid[0];
+		action.cellHeight = grid[1];
+		const std::string frameCellsPath = join(actionPath, kFrameCells);
+		if (doc_.hasKey(frameCellsPath)) {
+			const std::array<int, 2> fc =
+				doc_.getIntArray<2>(frameCellsPath);
+			requirePositive(fc[0], frameCellsPath);
+			requirePositive(fc[1], frameCellsPath);
+			action.frameCols = fc[0];
+			action.frameRows = fc[1];
+		}
+	}
 	return action;
 }
 
@@ -159,6 +188,18 @@ CharacterCatalog::CreatureEntry CharacterTomlReader::readCreature(
 	requirePositive(drawn[1], drawnPath);
 	entry.drawnWidth = drawn[0];
 	entry.drawnHeight = drawn[1];
+
+	// Opcional: el frame de referencia en celdas (la escala fija de la
+	// criatura); sin la clave, cada frame se escala por sus celdas.
+	const std::string frameCellsPath = join(base, kFrameCells);
+	if (doc_.hasKey(frameCellsPath)) {
+		const std::array<int, 2> frameCells =
+			doc_.getIntArray<2>(frameCellsPath);
+		requirePositive(frameCells[0], frameCellsPath);
+		requirePositive(frameCells[1], frameCellsPath);
+		entry.frameCols = frameCells[0];
+		entry.frameRows = frameCells[1];
+	}
 
 	entry.data.cadence = readCadence(base);
 	entry.data.hold = readHold(base);
@@ -250,10 +291,22 @@ void CharacterTomlReader::requireNonNegative(int value,
 
 CharacterCatalog CharacterTomlReader::readCatalog() const {
 	CharacterCatalog catalog;
-	for (const CreatureBinding& binding : kCreatureBindings) {
-		catalog.setEntry(binding.kind, readCreature(binding.tableKey));
-	}
+	mergeInto(catalog);
 	return catalog;
+}
+
+void CharacterTomlReader::mergeInto(CharacterCatalog& catalog) const {
+	// Lee SOLO las tablas presentes en este documento: el mismo reader
+	// sirve para characters.toml (jugador y animales) y enemies.toml
+	// (enemigos), volcando sobre el MISMO catálogo. El binding
+	// nombre->kind es el vocabulario; una tabla ausente no se carga
+	// (otro archivo la trae).
+	for (const CreatureBinding& binding : kCreatureBindings) {
+		if (doc_.hasKey(binding.tableKey)) {
+			catalog.setEntry(binding.kind,
+					 readCreature(binding.tableKey));
+		}
+	}
 }
 
 }

@@ -4,12 +4,14 @@
 #include <vector>
 
 #include "game/AnimalSystem.h"
+#include "game/EnemyTestTrigger.h"
 #include "game/FloorItems.h"
 #include "game/GameClient.h"
 #include "game/InteractionSession.h"
 #include "game/LocalWorldView.h"
 #include "world/CharacterCatalog.h"
 #include "world/ContentIds.h"
+#include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 
 namespace game {
@@ -26,15 +28,22 @@ namespace game {
 // compartidas son FloorItems (el piso del mundo) e InteractionSession
 // (la interacción en curso). Sumar un sistema nuevo (cultivos,
 // enemigos) = su módulo + registrarlo en `interactors_`.
-class MockWorldClient: public GameClient {
+class MockWorldClient: public GameClient, public EnemyTestTrigger {
 public:
+    // `spawnOnly`: si no está vacío, el mundo simulado spawnea SOLO esas
+    // especies (p. ej. al envolver el cliente de red, que ya trae
+    // gallinas y vacas, acá van solo los enemigos). Vacío = todas.
     MockWorldClient(std::unique_ptr<GameClient> inner, const world::CharacterCatalog& characters,
-                    world::GridSpan grid);
+                    world::GridSpan grid,
+                    std::vector<world::CreatureKind> spawnOnly = {});
 
     void sendCommand(const protocol::ClientMessage& message) override;
     void update(int iteration) override;
     const LocalWorldView& worldState() const override;
     bool connected() const override;
+
+    // EnemyTestTrigger (andamiaje de prueba): delega en el mundo simulado.
+    void attackAll() override;
 
 private:
     // El primer interactuable que encuentre algo cerca del jugador
@@ -50,6 +59,8 @@ private:
 
     std::unique_ptr<GameClient> inner_;
     world::GridSpan grid_;
+    // Especies que spawnea esta capa (vacío = todas).
+    std::vector<world::CreatureKind> spawnOnly_;
     // Catálogo prestado por su dueño (lo superpone en vida): de ahí
     // salen los datos de las acciones para medir las ventanas.
     const world::CharacterCatalog* characters_;

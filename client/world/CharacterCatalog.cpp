@@ -55,4 +55,12 @@ int CharacterCatalog::drawnHeight(CreatureKind kind) const {
 	return entryFor(kind).drawnHeight;
 }
 
+int CharacterCatalog::frameCols(CreatureKind kind) const {
+	return entryFor(kind).frameCols;
+}
+
+int CharacterCatalog::frameRows(CreatureKind kind) const {
+	return entryFor(kind).frameRows;
+}
+
 }

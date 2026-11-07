@@ -11,6 +11,12 @@ class CharacterCatalogLoader {
 public:
 	CharacterCatalog loadFromFile(const std::string& path) const;
 
+	// Fusiona las criaturas de `path` sobre un catálogo ya cargado (p.
+	// ej. characters.toml + enemies.toml): solo agrega las tablas
+	// presentes en ese archivo.
+	void mergeFromFile(CharacterCatalog& catalog,
+			   const std::string& path) const;
+
 	CharacterCatalog loadFromString(const std::string& toml) const;
 };
 

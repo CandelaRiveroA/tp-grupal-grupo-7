@@ -17,6 +17,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		  {world::ActionKind::Pickup, PhaseClock::Action},
 		  {world::ActionKind::Carry, PhaseClock::Action},
 		  {world::ActionKind::CarryWalk, PhaseClock::Step},
+		  {world::ActionKind::Attack, PhaseClock::Action},
 	  }
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "world/SpriteVisual.h"
@@ -44,12 +45,24 @@ enum class ActionKind {
     // Variante de Walk para el mismo caso local (ver
     // ActionResolver::carryVariants_).
     CarryWalk,
+    // Ataque de un enemigo: su propia secuencia one-shot (la enciende la
+    // fuente de estado; hoy el server falso con la letra de prueba).
+    Attack,
 };
 
 struct ActionData {
     std::vector<Pose> frames;
     bool loops = false;
     int frameTicks = 0;
+    // Hoja PROPIA de la acción (opcional): si está, la acción se dibuja
+    // con esta hoja y su celda/escala, en vez de las de la criatura.
+    // Vacío/0 = usar las de la criatura (el caso del jugador). Sirve para
+    // enemigos con una hoja por acción (walk, attack, ...).
+    std::string sheet;
+    int cellWidth = 0;
+    int cellHeight = 0;
+    int frameCols = 0;
+    int frameRows = 0;
 };
 
 }  // namespace world

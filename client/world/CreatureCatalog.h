@@ -13,6 +13,9 @@ enum class CreatureKind {
 	Player,
 	Chicken,
 	Cow,
+	Orc,
+	Skeleton,
+	Vampire,
 };
 
 struct MoveCadence {

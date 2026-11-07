@@ -10,16 +10,18 @@ namespace game {
 
 MockWorldClient::MockWorldClient(std::unique_ptr<GameClient> inner,
                                  const world::CharacterCatalog& characters,
-                                 const world::GridSpan grid):
+                                 const world::GridSpan grid,
+                                 std::vector<world::CreatureKind> spawnOnly):
         inner_(std::move(inner)),
         grid_(grid),
+        spawnOnly_(std::move(spawnOnly)),
         characters_(&characters),
         animals_(grid, floor_),
         interactors_{&animals_, &floor_} {
     int playerX = grid_.columns / 2;
     int playerY = grid_.rows / 2;
     playerCell(playerX, playerY);
-    animals_.spawnAnimals(characters, playerX, playerY);
+    animals_.spawnAnimals(characters, playerX, playerY, spawnOnly_);
     mergeView();
 }
 
@@ -55,6 +57,8 @@ void MockWorldClient::update(const int iteration) {
 const LocalWorldView& MockWorldClient::worldState() const { return merged_; }
 
 bool MockWorldClient::connected() const { return inner_->connected(); }
+
+void MockWorldClient::attackAll() { animals_.triggerEnemyAttack(); }
 
 bool MockWorldClient::startInteraction() {
     const world::CreatureData* player = characters_->find(world::CreatureKind::Player);

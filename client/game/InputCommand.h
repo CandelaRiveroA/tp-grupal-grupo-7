@@ -14,6 +14,10 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // ANDAMIAJE TEMPORAL (prueba): enciende el ataque de los
+        // enemigos. Lo consume PlaySession llamando al disparador del
+        // mundo simulado; se va cuando el server mande la acción.
+        TestAttack,
     };
 
     Kind kind;

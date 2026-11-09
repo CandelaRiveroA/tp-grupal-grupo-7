@@ -1,9 +1,9 @@
 #include "mine_controller.h"
 
-#include <memory>
-#include <vector>
 #include <array>
 #include <functional>
+#include <memory>
+#include <vector>
 
 #include "../entities/dropped_item.h"
 #include "../map/world.h"
@@ -40,7 +40,8 @@ void MineController::clear_generation(World& world) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
             for (IEntity* entity: world.get_entity_at(x, y)) {
                 const auto snap = entity->snapshot();
-                if (snap && snap->kind == CellSnapshot::Kind::Resource) {
+                if (snap && (snap->kind == CellSnapshot::Kind::Resource ||
+                             snap->kind == CellSnapshot::Kind::Dropped)) {
                     to_clear.push_back(entity);
                 }
             }
@@ -60,12 +61,11 @@ std::unique_ptr<IEntity> MineController::create_entity(uint16_t x, uint16_t y) {
 
     using RockFactory = std::function<std::unique_ptr<IEntity>(uint16_t, uint16_t)>;
     static const std::array<RockFactory, 5> rock_factories = {
-        [](uint16_t x, uint16_t y) { return std::make_unique<Rock>(x, y); },
-        [](uint16_t x, uint16_t y) { return std::make_unique<CoalRock>(x, y); },
-        [](uint16_t x, uint16_t y) { return std::make_unique<LapisRock>(x, y); },
-        [](uint16_t x, uint16_t y) { return std::make_unique<SilverRock>(x, y); },
-        [](uint16_t x, uint16_t y) { return std::make_unique<GoldRock>(x, y); }
-    };
+            [](uint16_t x, uint16_t y) { return std::make_unique<Rock>(x, y); },
+            [](uint16_t x, uint16_t y) { return std::make_unique<CoalRock>(x, y); },
+            [](uint16_t x, uint16_t y) { return std::make_unique<LapisRock>(x, y); },
+            [](uint16_t x, uint16_t y) { return std::make_unique<SilverRock>(x, y); },
+            [](uint16_t x, uint16_t y) { return std::make_unique<GoldRock>(x, y); }};
 
     std::discrete_distribution<size_t> pick(weights.begin(), weights.end());
     const size_t selected = pick(this->rng);

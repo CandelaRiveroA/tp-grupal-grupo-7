@@ -7,6 +7,8 @@ target_sources(taller_world_model
     Map.cpp
     FormatError.cpp
     WorldVocabulary.cpp
+    WorldTomlReader.cpp
+    WorldSerializer.cpp
     PUBLIC
     # .h files
     Geometry.h
@@ -20,5 +22,7 @@ target_sources(taller_world_model
     Scenario.h
     FormatError.h
     WorldVocabulary.h
+    WorldTomlReader.h
+    WorldSerializer.h
     ValidationIssue.h
     )

@@ -56,3 +56,13 @@ uint8_t Inventory::get_amount(uint8_t index) const {
         return 0;
     return slots[index].amount;
 }
+
+void Inventory::consume_item(uint8_t slot_idx) {
+    if (slot_idx < this->max_slots && !this->slots[slot_idx].is_empty()) {
+        this->slots[slot_idx].amount--;
+        if (this->slots[slot_idx].amount == 0) {
+            // Se gastó la última semilla, destruimos el puntero y vaciamos el slot
+            this->slots[slot_idx].item.reset(); 
+        }
+    }
+}

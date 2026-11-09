@@ -8,6 +8,7 @@ target_sources(taller_world_model
     FormatError.cpp
     WorldVocabulary.cpp
     WorldTomlReader.cpp
+    WorldTomlWriter.cpp
     WorldSerializer.cpp
     PUBLIC
     # .h files
@@ -23,6 +24,7 @@ target_sources(taller_world_model
     FormatError.h
     WorldVocabulary.h
     WorldTomlReader.h
+    WorldTomlWriter.h
     WorldSerializer.h
     ValidationIssue.h
     )

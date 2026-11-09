@@ -44,6 +44,11 @@ target_sources(taller_tests
     ../server/domain/minerals/gold_rock.cpp
     ../server/domain/minerals/rock.cpp
     ../server/domain/minerals/mine_controller.cpp
+    ../server/domain/crops/crop.cpp
+    ../server/domain/crops/strawberry.cpp
+    ../server/domain/crops/green_onion.cpp
+    ../server/domain/crops/potato.cpp
+    ../server/domain/crops/pumpkin.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp

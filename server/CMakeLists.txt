@@ -38,6 +38,11 @@ target_sources(taller_server
     domain/minerals/gold_rock.cpp
     domain/minerals/rock.cpp
     domain/minerals/mine_controller.cpp
+    domain/crops/crop.cpp
+    domain/crops/strawberry.cpp
+    domain/crops/green_onion.cpp
+    domain/crops/potato.cpp
+    domain/crops/pumpkin.cpp
     PUBLIC
     # .h files
     server.h

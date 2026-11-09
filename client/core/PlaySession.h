@@ -114,9 +114,13 @@ private:
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
     game::GameClient& gameClient_;
-    // ANDAMIAJE TEMPORAL (prueba): disparador del ataque de enemigos del
-    // mundo simulado (null si no hay). Se saca con la tecla F.
+    // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
+    // del mundo simulado (null si no hay). Se va con las teclas de
+    // prueba (G/F/H/K).
     game::EnemyTestTrigger* enemyTestTrigger_;
+    // ANDAMIAJE TEMPORAL (prueba): despacho de esas teclas a la acción
+    // que disparan (una fila por tecla). Se va con el disparador.
+    std::map<game::InputCommand::Kind, world::ActionKind> testActions_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario

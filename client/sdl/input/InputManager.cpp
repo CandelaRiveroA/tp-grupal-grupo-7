@@ -89,9 +89,13 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-    // ANDAMIAJE TEMPORAL (prueba): F enciende el ataque de los enemigos.
-    // Se saca cuando el server mande la acción de ataque.
+    // ANDAMIAJE TEMPORAL (prueba): G/F/H/K disparan las acciones de los
+    // enemigos (mover, atacar, daño, muerte). Se sacan cuando el server
+    // mande esas acciones.
+    bindings.insert({SDLK_g, game::InputCommand{Kind::TestMove, 0}});
     bindings.insert({SDLK_f, game::InputCommand{Kind::TestAttack, 0}});
+    bindings.insert({SDLK_h, game::InputCommand{Kind::TestDamage, 0}});
+    bindings.insert({SDLK_k, game::InputCommand{Kind::TestDeath, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

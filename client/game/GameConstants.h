@@ -21,11 +21,10 @@ constexpr int kPickupCycles = 1;
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
 
-// ANDAMIAJE TEMPORAL: ticks que dura el ataque de prueba de los enemigos
-// (la tecla de prueba lo enciende; al terminar vuelven a caminar). Cubre
-// la animación de ataque más larga. Se va con la tecla cuando el server
-// mande la acción.
-constexpr int kEnemyAttackTicks = 100;
+// ANDAMIAJE TEMPORAL: primer id de los enemigos del bot de prueba
+// (los del mundo simulado de granja arrancan en 1). Se va con el bot
+// cuando el server mande los enemigos.
+constexpr int kEnemyBotFirstId = 1000;
 
 // --- Reloj de juego (ServerClock) ---------------------------------------
 

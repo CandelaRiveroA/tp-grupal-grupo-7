@@ -37,6 +37,10 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         scene_(scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
+        testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
+                     {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
+                     {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death}},
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -194,13 +198,14 @@ void PlaySession::tick(int iteration) {
 
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
+    // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
+    // de los enemigos en el mundo simulado (si hay). El server real
+    // pondrá la acción directo en la vista y esto se saca.
     for (const game::InputCommand& command: commands) {
-        if (command.kind == game::InputCommand::Kind::TestAttack) {
-            // ANDAMIAJE TEMPORAL: enciende el ataque de los enemigos en
-            // el mundo simulado (si hay). El server real pondrá la acción
-            // directo en la vista y esto se saca.
+        const auto test = testActions_.find(command.kind);
+        if (test != testActions_.end()) {
             if (enemyTestTrigger_ != nullptr) {
-                enemyTestTrigger_->attackAll();
+                enemyTestTrigger_->triggerAll(test->second);
             }
             continue;
         }

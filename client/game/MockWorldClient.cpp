@@ -17,11 +17,13 @@ MockWorldClient::MockWorldClient(std::unique_ptr<GameClient> inner,
         spawnOnly_(std::move(spawnOnly)),
         characters_(&characters),
         animals_(grid, floor_),
+        enemies_(characters, grid),
         interactors_{&animals_, &floor_} {
     int playerX = grid_.columns / 2;
     int playerY = grid_.rows / 2;
     playerCell(playerX, playerY);
     animals_.spawnAnimals(characters, playerX, playerY, spawnOnly_);
+    enemies_.spawnEnemies(characters, playerX, playerY, spawnOnly_);
     mergeView();
 }
 
@@ -44,6 +46,15 @@ void MockWorldClient::update(const int iteration) {
     animals_.update(iteration, playerX, playerY);
     soundEvents_ = animals_.takeSoundEvents();
 
+    // La acción de prueba pedida desde el input se aplica recién acá
+    // (al comienzo del update que la observa): así la ventana observada
+    // coincide con frames x frameTicks y la última tecla del frame gana.
+    if (pendingTestAction_.has_value()) {
+        enemies_.triggerAll(*pendingTestAction_, iteration, playerX, playerY);
+        pendingTestAction_.reset();
+    }
+    enemies_.update(iteration);
+
     // La ventana se cierra en este tick: el sistema dueño del objetivo
     // aplica su efecto final.
     if (session_.advance() && activeInteractor_ != nullptr) {
@@ -58,7 +69,11 @@ const LocalWorldView& MockWorldClient::worldState() const { return merged_; }
 
 bool MockWorldClient::connected() const { return inner_->connected(); }
 
-void MockWorldClient::attackAll() { animals_.triggerEnemyAttack(); }
+void MockWorldClient::triggerAll(const world::ActionKind action) {
+    // Solo la anota (andamiaje de prueba): se aplica al comienzo del
+    // próximo update. La última tecla del frame gana.
+    pendingTestAction_ = action;
+}
 
 bool MockWorldClient::startInteraction() {
     const world::CreatureData* player = characters_->find(world::CreatureKind::Player);
@@ -96,6 +111,7 @@ void MockWorldClient::mergeView() {
     merged_ = inner_->worldState();
 
     animals_.appendEntities(merged_.entities);
+    enemies_.appendEntities(merged_.entities);
     merged_.soundEvents.insert(merged_.soundEvents.end(), soundEvents_.begin(), soundEvents_.end());
 
     // Los ítems del piso del mundo, al final de los del inner. El

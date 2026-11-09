@@ -26,22 +26,16 @@ public:
 	AnimalSystem(world::GridSpan grid, FloorItems& floor);
 	~AnimalSystem() override;
 
-	// Spawnea los animales del mundo (celdas en el .cpp). El jugador
-	// está en su celda para no spawnear encima. `only`: si no está
-	// vacío, spawnea SOLO esas especies (las demás las trae otra fuente,
-	// p. ej. el server manda gallinas y vacas y acá van solo enemigos);
-	// vacío = todas.
+	// Spawnea los animales de granja del mundo (celdas en el .cpp). El
+	// jugador está en su celda para no spawnear encima. `only`: si no
+	// está vacío, spawnea SOLO esas especies (las demás las trae otra
+	// fuente, p. ej. el server manda unas y acá van solo las otras);
+	// vacío = todas. Los enemigos no van acá: los trae EnemyBot.
 	void spawnAnimals(const world::CharacterCatalog& characters,
 			  int playerCellX, int playerCellY,
 			  const std::vector<world::CreatureKind>& only = {});
 
 	void update(int iteration, int playerCellX, int playerCellY);
-
-	// ANDAMIAJE TEMPORAL (prueba): enciende el ataque de los enemigos.
-	// Mientras dura su ventana, appendEntities los reporta con
-	// ActionKind::Attack; después vuelven a caminar/idle. El server real
-	// pondrá la acción directo en la vista y esto se borra.
-	void triggerEnemyAttack();
 
 	// Las entidades de los animales para la vista (incluye la vaca
 	// congelada mientras se la ordeña).
@@ -70,13 +64,6 @@ private:
 	int frozenCowId_ = -1;
 	int frozenCowCellX_ = 0;
 	int frozenCowCellY_ = 0;
-
-	// ANDAMIAJE TEMPORAL (prueba del ataque de enemigos):
-	// kinds que SABEN atacar (los que el catálogo describe con la acción
-	// Attack), llenado al spawnear; y los ticks que quedan del ataque en
-	// curso (0 = no atacando). Se va con la tecla de prueba.
-	std::set<world::CreatureKind> attackers_;
-	int attackTicksLeft_ = 0;
 
 	std::vector<ViewSoundEvent> soundEvents_;
 };

@@ -23,6 +23,19 @@ std::string WorldTomlReader::idx(const std::string& base,
 	return base + "[" + std::to_string(index) + "]";
 }
 
+int WorldTomlReader::readPositiveInt(const std::string& path) const {
+	const int value = doc_.getInt(path);
+	if (value <= 0) {
+		throw FormatError(FormatErrorKind::InvalidValue, path);
+	}
+	return value;
+}
+
+TilePos WorldTomlReader::readTilePos(const std::string& path) const {
+	const std::array<int, 2> values = doc_.getIntArray<2>(path);
+	return TilePos{values[0], values[1]};
+}
+
 World WorldTomlReader::read() const {
 	const int version = doc_.getInt("format_version");
 	if (version != 1) {
@@ -87,21 +100,9 @@ Map WorldTomlReader::readMap(const World& world,
 		}
 	}
 
-	map.width = doc_.getInt(join(path, "width"));
-	map.height = doc_.getInt(join(path, "height"));
-	map.tileSize = doc_.getInt(join(path, "tile_size"));
-	if (map.width <= 0) {
-		throw FormatError(FormatErrorKind::InvalidValue,
-				  join(path, "width"));
-	}
-	if (map.height <= 0) {
-		throw FormatError(FormatErrorKind::InvalidValue,
-				  join(path, "height"));
-	}
-	if (map.tileSize <= 0) {
-		throw FormatError(FormatErrorKind::InvalidValue,
-				  join(path, "tile_size"));
-	}
+	map.width = readPositiveInt(join(path, "width"));
+	map.height = readPositiveInt(join(path, "height"));
+	map.tileSize = readPositiveInt(join(path, "tile_size"));
 
 	const std::size_t cells = static_cast<std::size_t>(map.width) *
 				  static_cast<std::size_t>(map.height);
@@ -198,9 +199,7 @@ void WorldTomlReader::readObjects(const World& world,
 		checkTileset(world, *tile, tilePath);
 		object.tile = *tile;
 
-		const std::array<int, 2> cell =
-			doc_.getIntArray<2>(join(path, "cell"));
-		object.cell = TilePos{cell[0], cell[1]};
+		object.cell = readTilePos(join(path, "cell"));
 
 		const std::string sizePath = join(path, "size");
 		if (doc_.hasKey(sizePath)) {
@@ -217,9 +216,7 @@ void WorldTomlReader::readObjects(const World& world,
 
 		const std::string doorPath = join(path, "door");
 		if (doc_.hasKey(doorPath)) {
-			const std::array<int, 2> door =
-				doc_.getIntArray<2>(doorPath);
-			object.door = TilePos{door[0], door[1]};
+			object.door = readTilePos(doorPath);
 		}
 
 		map.objects.push_back(object);
@@ -243,9 +240,7 @@ void WorldTomlReader::readMarkers(const std::string& mapPath,
 		}
 		marker.kind = *kind;
 
-		const std::array<int, 2> cell =
-			doc_.getIntArray<2>(join(path, "cell"));
-		marker.cell = TilePos{cell[0], cell[1]};
+		marker.cell = readTilePos(join(path, "cell"));
 		map.markers.push_back(marker);
 	}
 }
@@ -274,12 +269,8 @@ void WorldTomlReader::readPortals(const std::string& mapPath,
 					  targetMapPath);
 		}
 
-		const std::array<int, 2> cell =
-			doc_.getIntArray<2>(join(path, "cell"));
-		portal.cell = TilePos{cell[0], cell[1]};
-		const std::array<int, 2> targetCell =
-			doc_.getIntArray<2>(join(path, "target_cell"));
-		portal.targetCell = TilePos{targetCell[0], targetCell[1]};
+		portal.cell = readTilePos(join(path, "cell"));
+		portal.targetCell = readTilePos(join(path, "target_cell"));
 		map.portals.push_back(portal);
 	}
 }

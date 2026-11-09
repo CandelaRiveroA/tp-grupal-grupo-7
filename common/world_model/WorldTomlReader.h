@@ -4,6 +4,7 @@
 #include <string>
 
 #include "toml/TomlDocument.h"
+#include "world_model/Geometry.h"
 #include "world_model/Map.h"
 #include "world_model/World.h"
 #include "world_model/WorldVocabulary.h"
@@ -19,6 +20,8 @@ public:
 private:
 	std::string join(const std::string& base, const std::string& key) const;
 	std::string idx(const std::string& base, std::size_t index) const;
+	int readPositiveInt(const std::string& path) const;
+	TilePos readTilePos(const std::string& path) const;
 	void readWorld(World& world) const;
 	void readTilesets(World& world) const;
 	Map readMap(const World& world, const std::string& id) const;

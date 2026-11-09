@@ -82,6 +82,12 @@ public:
 private:
     void tick(int iteration);
 
+    // Vista de presentación del tick: la de "meterse" (EnterSelection)
+    // más el override LOCAL del desmayo (pose, frente y, al terminar la
+    // caída, la indicación de las Z). La consumen el movimiento, el
+    // renderer y los diálogos; el estado de juego queda intacto.
+    game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
+
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
 
@@ -168,6 +174,11 @@ private:
     };
     std::map<game::StatKind, game::FractionStat> stats_;
     std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Demo del desmayo (tecla F): presentación local mientras el server
+    // no manda la acción. El reloj cuenta desde el inicio de la caída
+    // para recién entonces mostrar las Z.
+    bool faintRequested_ = false;
+    int faintFallTicks_ = 0;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

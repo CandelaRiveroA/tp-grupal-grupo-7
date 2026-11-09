@@ -96,8 +96,14 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    motion_.observe(state, iteration);
-    updateCamera(state, motion_, iteration);
+    if (faintRequested_) {
+        ++faintFallTicks_;
+    }
+    // La presentación local del tick (desmayo incluido) es la que ven
+    // el movimiento, el renderer y los diálogos.
+    const game::LocalWorldView presentation = presentationView(state);
+    motion_.observe(presentation, iteration);
+    updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
     dayPhase_.setClock(state.dayNumber, state.clockMinutes);
     dayPhase_.advance();
@@ -164,8 +170,8 @@ void PlaySession::tick(int iteration) {
                 break;
             }
         } else {
-            renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_,
-                                actionResolver_, iteration, camera_.viewport(), dayPhase_.phase());
+            renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+                                camera_.viewport(), dayPhase_.phase());
             lightingPainter_.draw({}, dayPhase_.nightFactor());
         }
         sdlContext_.fillRect(SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
@@ -217,6 +223,15 @@ void PlaySession::tick(int iteration) {
             // Simulación local del gasto: no es una intención para el
             // GameClient, la consumen los stats del cliente.
             stats_.at(spend->second.stat).spend(spend->second.cost);
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::Faint) {
+            // Demo local: la primera pulsación dispara la caída; con el
+            // personaje ya desmayado no se reinicia.
+            if (!faintRequested_) {
+                faintRequested_ = true;
+                faintFallTicks_ = 0;
+            }
             continue;
         }
         playerCommands.push_back(command);
@@ -280,17 +295,17 @@ void PlaySession::tick(int iteration) {
     // El mundo se dibuja con la vista "puesta": si el jugador está
     // metido en un elemento, en su pose (presentación local; ver
     // EnterSelection). Encima, la capa frontal que lo tapa.
-    renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_, actionResolver_,
-                        iteration, camera_.viewport(), dayPhase_.phase());
-    drawEnteredFront(state, cells);
+    renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+                        camera_.viewport(), dayPhase_.phase());
+    drawEnteredFront(presentation, cells);
     drawPlantingMarker(cells);
 
     // Diálogos de las entidades (lo que "dicen"): la indicación viene en
     // el estado y el catálogo dice cómo se ve. Sobre el mundo, después
     // de las entidades.
-    dialogAnimator_.observe(state, iteration);
-    for (std::size_t i = 0; i < state.entities.size(); ++i) {
-        const game::ViewEntity& entity = state.entities[i];
+    dialogAnimator_.observe(presentation, iteration);
+    for (std::size_t i = 0; i < presentation.entities.size(); ++i) {
+        const game::ViewEntity& entity = presentation.entities[i];
         if (!entity.indication.has_value()) {
             continue;
         }
@@ -302,7 +317,7 @@ void PlaySession::tick(int iteration) {
     }
     // Y los de los cultivos (p. ej. piden agua): mismo mecanismo, el
     // dueño es la celda de tierra donde se dibuja la planta.
-    for (const game::ViewCrop& crop: state.plantedCrops) {
+    for (const game::ViewCrop& crop: presentation.plantedCrops) {
         if (!crop.indication.has_value()) {
             continue;
         }
@@ -411,6 +426,27 @@ void PlaySession::tick(int iteration) {
                         interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
                         input_.mousePosition());
     sdlContext_.present();
+}
+
+game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
+    // Primero la pose de "meterse" (EnterSelection) y encima el override
+    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    game::LocalWorldView display = enterSelection_.displayView(view);
+    if (!faintRequested_ || display.entities.empty()) {
+        return display;
+    }
+    game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
+    local.action = world::ActionKind::Faint;
+    local.facing = world::Direction::Front;
+    local.moving = false;
+    // Las Z aparecen recién cuando la caída mostró todas sus poses. La
+    // duración sale de los MISMOS datos de la acción (contrato §10), no
+    // de una constante duplicada.
+    const world::CreatureData& creature = characters_.dataFor(local.kind);
+    if (faintFallTicks_ >= creature.actionCycleTicks(world::ActionKind::Faint)) {
+        local.indication = world::Indication::NoEnergy;
+    }
+    return display;
 }
 
 void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {

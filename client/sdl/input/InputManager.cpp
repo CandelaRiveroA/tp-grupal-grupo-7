@@ -98,6 +98,10 @@ auto InputManager::defaultCommandBindings() const
     // tecla (H). Cuando el server mande la vida real, esta tecla se puede
     // quitar sin tocar el dibujo de la barra.
     bindings.insert({SDLK_h, game::InputCommand{Kind::SpendLife, 0}});
+    // Demo del desmayo: one-shot local que dispara la secuencia de
+    // Faint + el diálogo de las Z. Cuando el server mande la acción,
+    // esta tecla se puede quitar sin tocar el dibujo.
+    bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

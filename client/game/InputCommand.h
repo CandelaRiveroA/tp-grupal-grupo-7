@@ -22,6 +22,10 @@ struct InputCommand {
         // que la energía, con otro stat. Lo consume PlaySession; NO
         // viaja al GameClient.
         SpendLife,
+        // Demo del desmayo (tecla F por ahora): presentación local
+        // mientras el server no manda la acción. Lo consume PlaySession;
+        // NO viaja al GameClient.
+        Faint,
     };
 
     Kind kind;

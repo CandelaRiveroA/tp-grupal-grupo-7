@@ -148,6 +148,12 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS OR TALLER_QT_HARNESS)
     set_project_warnings(taller_toml ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
     target_include_directories(taller_toml PUBLIC ${CMAKE_SOURCE_DIR}/common)
     target_link_libraries(taller_toml PUBLIC tomlplusplus::tomlplusplus)
+
+    add_library(taller_world_model STATIC)
+    add_subdirectory(common/world_model)
+    set_project_warnings(taller_world_model ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+    target_include_directories(taller_world_model PUBLIC ${CMAKE_SOURCE_DIR}/common)
+    target_link_libraries(taller_world_model PUBLIC taller_toml)
 endif()
 
 # Librería del cliente SIN dependencia de SDL: datos puros de la escena,
@@ -457,6 +463,7 @@ if(TALLER_TESTS)
     target_link_libraries(taller_tests
         taller_common
         taller_client_world
+        taller_world_model
         GTest::gtest_main
     )
 

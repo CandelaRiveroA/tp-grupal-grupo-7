@@ -47,6 +47,14 @@ void Player::select_slot(uint8_t slot_idx) {
     }
 }
 
+const Item* Player::peek_equipped_item() const {
+    return this->backpack.peek_item(this->selected_slot);
+}
+
+void Player::consume_equipped_item() {
+    this->backpack.consume_item(this->selected_slot);
+}
+
 ToolType Player::get_equipped_tool() const {
     // Si el slot está vacío, las manos están desarmadas
     if (this->backpack.is_slot_empty(this->selected_slot)) {

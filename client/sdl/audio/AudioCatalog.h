@@ -18,10 +18,11 @@ enum class SoundId {
 	CowMoo,
 	ShovelDig,
 	WateringCanPour,
+	Death,
 };
 
 inline constexpr int kSoundCount =
-	static_cast<int>(SoundId::WateringCanPour) + 1;
+	static_cast<int>(SoundId::Death) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -39,6 +40,7 @@ inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/farm/cow.ogg", SoundCategory::Sfx},
 	 {"sfx/tools/shovel.ogg", SoundCategory::Sfx},
 	 {"sfx/tools/watering_can.ogg", SoundCategory::Sfx},
+	 {"sfx/player/death.ogg", SoundCategory::Sfx},
 }};
 
 }

@@ -231,6 +231,7 @@ void PlaySession::tick(int iteration) {
             if (!faintRequested_) {
                 faintRequested_ = true;
                 faintFallTicks_ = 0;
+                audio_.play(sdl::SoundId::Death);
             }
             continue;
         }

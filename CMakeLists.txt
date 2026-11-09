@@ -143,6 +143,11 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS OR TALLER_QT_HARNESS)
         GIT_PROGRESS TRUE
     )
     FetchContent_MakeAvailable(tomlplusplus)
+
+    add_library(taller_toml STATIC common/toml/TomlDocument.cpp)
+    set_project_warnings(taller_toml ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+    target_include_directories(taller_toml PUBLIC ${CMAKE_SOURCE_DIR}/common)
+    target_link_libraries(taller_toml PUBLIC tomlplusplus::tomlplusplus)
 endif()
 
 # Librería del cliente SIN dependencia de SDL: datos puros de la escena,
@@ -156,7 +161,6 @@ endif()
 # client y tests.
 if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
     add_library(taller_client_world STATIC
-        client/toml/TomlDocument.cpp
         client/world/ConfigError.cpp
         client/world/SceneConfigLoader.cpp
         client/world/SceneTomlReader.cpp
@@ -261,8 +265,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/render/Viewport.cpp
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
-    target_link_libraries(taller_client_world PUBLIC tomlplusplus::tomlplusplus
-                          taller_common)
+    target_link_libraries(taller_client_world PUBLIC taller_toml taller_common)
     set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 

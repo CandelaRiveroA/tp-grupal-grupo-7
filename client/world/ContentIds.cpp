@@ -16,6 +16,7 @@ ContentIds::ContentIds()
 		  {ResourceKind::Coal, "coal"},
 		  {ResourceKind::Lapis, "lapis"},
 		  {ResourceKind::Gold, "gold"},
+		  {ResourceKind::Rock, "rock"},
 	  } {}
 
 const std::string* ContentIds::find(const ItemKind kind) const {

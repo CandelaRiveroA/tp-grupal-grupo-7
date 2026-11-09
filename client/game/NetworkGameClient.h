@@ -46,6 +46,8 @@ private:
     };
 
     void apply(const ServerMessage& message);
+    // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
+    void applyNow(const ServerMessage& message);
 
     // Un Take cerca de una vaca lista abre la animación de ordeñe; la leche la
     // da el servidor.
@@ -76,6 +78,10 @@ private:
     std::vector<ViewDroppedItem> dropped_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;
+    // Lote Reset…SyncEnd en curso: se acumula y se aplica de una al llegar
+    // el cierre. Si se aplicara de a mensajes, un frame entre el Reset y las
+    // entidades dibujaría el mundo vacío (el parpadeo). Vacío = sin lote.
+    std::vector<ServerMessage> batch_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
     std::vector<ViewObtained> obtained_;
     LocalWorldView view_;

@@ -17,6 +17,7 @@ std::string content_id_for(ItemID id) {
             {ItemID::COAL_ORB, "coal"},
             {ItemID::LAPIS_ORB, "lapis"},
             {ItemID::GOLD_ORB, "gold"},
+            {ItemID::ROCK, "rock"},
             {ItemID::EGG, "egg"},
             {ItemID::MILK, "milk"},
             {ItemID::BED, "bed"}};
@@ -85,5 +86,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               content_id_for(item->get_id())});
         }
     }
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
+    out.push_back(ServerSyncEnd{});
     return out;
 }

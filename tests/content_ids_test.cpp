@@ -48,7 +48,7 @@ TEST(ContentIdsTest, CoversEveryItemKind) {
         EXPECT_FALSE(contentId.empty());
     }
     EXPECT_EQ(ids.itemEntries().size(), 6u);
-    EXPECT_EQ(ids.resourceEntries().size(), 4u);
+    EXPECT_EQ(ids.resourceEntries().size(), 5u);
 }
 
 }  // namespace

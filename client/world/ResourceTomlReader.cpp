@@ -1,6 +1,7 @@
 #include "world/ResourceTomlReader.h"
 
 #include <array>
+#include <utility>
 
 #include "world/ConfigError.h"
 
@@ -26,11 +27,12 @@ struct ResourceBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<ResourceBinding, 4> kResourceBindings = {{
+constexpr std::array<ResourceBinding, 5> kResourceBindings = {{
 	{ResourceKind::Silver, "silver"},
 	{ResourceKind::Coal, "coal"},
 	{ResourceKind::Lapis, "lapis"},
 	{ResourceKind::Gold, "gold"},
+	{ResourceKind::Rock, "rock"},
 }};
 
 }

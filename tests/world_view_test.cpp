@@ -52,11 +52,16 @@ TEST(WorldViewTest, EverySyncStartsWithAResetAndDescribesTheWholeState) {
     EXPECT_EQ(only<ServerInventorySlot>(messages).size(), 4u);
     // El inventario inicial no es una obtención: eso lo emite Match.
     EXPECT_TRUE(only<ServerObtained>(messages).empty());
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje
+    // (sin el cierre podría dibujar un frame sin entidades = parpadeo).
+    ASSERT_GT(messages.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(messages.back()));
 
     // Sin memoria entre llamadas: sin cambios, el mismo estado sale otra vez.
     const std::vector<ServerMessage> again = view.sync(world, 1);
     EXPECT_EQ(again.size(), messages.size());
     EXPECT_TRUE(std::holds_alternative<ServerReset>(again.front()));
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(again.back()));
 }
 
 TEST(WorldViewTest, BlockedMoveKeepsSendingTheSameState) {

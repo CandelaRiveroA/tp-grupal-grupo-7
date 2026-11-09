@@ -53,3 +53,13 @@ cell    = [16, 16]
 intact  = [0, 6, 2, 2]
 cracked = [2, 6, 2, 2]
 broken  = [4, 6, 2, 2]
+
+# shortcut: reusa las celdas de [silver] hasta que haya un sprite de roca
+# lisa en ore.png (la hoja está llena: 4 minerales x 3 estados). El upgrade
+# es meter un bloque nuevo en la hoja y apuntarlo acá.
+[rock]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 0, 2, 2]
+cracked = [2, 0, 2, 2]
+broken  = [4, 0, 2, 2]

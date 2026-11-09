@@ -6,7 +6,8 @@
 
 namespace {
 
-const std::string kMineralsToml = R"(
+// cpplint pide C string para constantes globales; loadString convierte.
+const char kMineralsToml[] = R"(
 [silver]
 sheet   = "Cavern/ore.png"
 cell    = [16, 16]
@@ -41,6 +42,23 @@ TEST(ResourceConfigLoaderTest, UndeclaredResourceIsNotInCatalog) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
 	EXPECT_EQ(catalog.find(world::ResourceKind::Coal,
 			       world::ResourceState::Intact),
+		  nullptr);
+}
+
+// El binding del TOML es el que habilita la sección [rock]: sin él la
+// tabla se ignora y el catálogo queda sin la roca de relleno.
+TEST(ResourceConfigLoaderTest, LoadsRockBinding) {
+	const std::string toml = R"(
+[rock]
+sheet   = "Cavern/ore.png"
+cell    = [16, 16]
+intact  = [0, 0, 2, 2]
+cracked = [2, 0, 2, 2]
+broken  = [4, 0, 2, 2]
+)";
+	const world::ResourceCatalog catalog = loadString(toml);
+	EXPECT_NE(catalog.find(world::ResourceKind::Rock,
+			      world::ResourceState::Intact),
 		  nullptr);
 }
 

@@ -34,6 +34,7 @@ private:
     void send_message(const ServerToolUsed& used);
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
+    void send_message(const ServerSyncEnd& end);
     void send_message(const ServerAnimal& animal);
     void send_message(const ServerSleep& sleep);
     void send_message(const ServerFurniture& furniture);

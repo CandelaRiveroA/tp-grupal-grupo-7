@@ -26,6 +26,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
                 {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
                 {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
+                {ServerMessageType::SyncEnd, &ProtocolReceiver::receive_sync_end_message},
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
                 {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
                 {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
@@ -179,6 +180,8 @@ ServerMessage ProtocolReceiver::receive_tool_used_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
+
+ServerMessage ProtocolReceiver::receive_sync_end_message() { return ServerSyncEnd{}; }
 
 ServerMessage ProtocolReceiver::receive_animal_message() {
     const uint8_t id = receive_uint8();

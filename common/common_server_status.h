@@ -26,6 +26,7 @@ enum class ServerMessageType : uint8_t {
     SleepingPlayers = 15,
     Clock = 16,
     DayEnd = 17,
+    SyncEnd = 18,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -92,6 +93,11 @@ struct ServerResourceHit {
 // siempre el estado completo, así que lo que no vuelva ya no existe.
 struct ServerReset {};
 
+// Último mensaje de cada lote de estado: sin él el cliente no sabe dónde
+// termina el lote y puede dibujar un frame entre el Reset y las entidades
+// (mundo vacío = el parpadeo). El cliente aplica el lote recién acá.
+struct ServerSyncEnd {};
+
 // Animal del mundo (vaca, gallina). kind es el vocabulario de characters.toml;
 // ready_to_milk avisa al jugador que la vaca se puede ordeñar; direction es hacia dónde mira.
 struct ServerAnimal {
@@ -142,6 +148,6 @@ using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock>;
+                     ServerClock, ServerSyncEnd>;
 
 #endif

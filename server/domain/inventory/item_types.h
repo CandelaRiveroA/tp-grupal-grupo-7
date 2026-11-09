@@ -19,7 +19,8 @@ enum class ItemID : uint16_t {
     COAL_ORB,
     LAPIS_ORB,
     SILVER_ORB,
-    GOLD_ORB
+    GOLD_ORB,
+    ROCK
 };
 
 enum class Quality : uint8_t { BASE = 1, GOOD = 2, EXCELLENT = 3, INCREDIBLE = 4, PERFECT = 5 };

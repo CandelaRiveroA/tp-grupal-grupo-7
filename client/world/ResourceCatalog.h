@@ -14,6 +14,7 @@ enum class ResourceKind {
 	Coal,
 	Lapis,
 	Gold,
+	Rock,
 };
 
 // Estado de daño que decide el servidor. Son los estados VISIBLES: al

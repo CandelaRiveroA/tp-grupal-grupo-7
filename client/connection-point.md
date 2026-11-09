@@ -45,9 +45,11 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
 ## 2. Qué RECIBE el cliente — estado y eventos
 
 Archivo: `common/common_server_status.h`. El servidor manda el **estado
-completo** en cada lote: empieza con `Reset` (10) y después describe a todos
-los jugadores, minerales, drops y slots ocupados. El cliente borra el mapa y el
-inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe.
+completo** en cada lote: empieza con `Reset` (10), describe a todos los
+jugadores, minerales, drops y slots ocupados, y cierra con `SyncEnd` (18).
+El cliente acumula el lote entero y lo aplica recién al recibir `SyncEnd`
+(sin ese cierre podría dibujar un frame entre el `Reset` y las entidades:
+mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
@@ -67,11 +69,12 @@ inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe
 | 14 | `Day` | (sin payload) | Amaneció: el día terminó por sueño o por timeout de 30 s |
 | 15 | `SleepingPlayers` | `count u8, ids u8 × count` | Quiénes están en la cama (IDs). Va a todos los jugadores; se manda solo al cambiar |
 | 16 | `Clock` | `day u8, minutes u16` | Día de juego (1 a 28, vuelve al 1) y hora: minutos desde las 6:00 (0 a 1200). La hora salta de a 10 min; se manda al cambiar, al amanecer (día nuevo, 0) y al entrar un jugador |
+| 18 | `SyncEnd` | (sin payload) | Último mensaje de cada lote de estado: el cliente aplica el lote acumulado recién acá (evita el frame a medias = parpadeo) |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).
 - `content_id` es el vocabulario compartido de `inventory.toml` y
-  `resources.toml`: `pickaxe, shovel, watering_can, sword, silver, coal, lapis, gold`.
+  `resources.toml`: `pickaxe, shovel, watering_can, sword, silver, coal, lapis, gold, rock`.
 - `Obtained` solo se manda al jugador que obtuvo el contenido, y no en el
   inventario inicial.
 - Las dimensiones del mundo **no viajan por la red**: el servidor usa el mismo

@@ -37,6 +37,7 @@ private:
     ServerMessage receive_tool_used_message();
     ServerMessage receive_resource_hit_message();
     ServerMessage receive_reset_message();
+    ServerMessage receive_sync_end_message();
     ServerMessage receive_animal_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();

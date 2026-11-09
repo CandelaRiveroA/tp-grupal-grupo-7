@@ -38,6 +38,7 @@ std::optional<world::ResourceKind> resourceKindFor(const std::string& contentId)
             {"coal", world::ResourceKind::Coal},
             {"lapis", world::ResourceKind::Lapis},
             {"gold", world::ResourceKind::Gold},
+            {"rock", world::ResourceKind::Rock},
     };
     const auto it = kinds.find(contentId);
     if (it == kinds.end()) {
@@ -148,6 +149,28 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
+    // limpia y rellena, así nunca se dibuja un estado a medias.
+    if (std::holds_alternative<ServerReset>(message)) {
+        batch_.clear();
+        batch_.push_back(message);
+        return;
+    }
+    if (std::holds_alternative<ServerSyncEnd>(message)) {
+        for (const ServerMessage& buffered: batch_) {
+            applyNow(buffered);
+        }
+        batch_.clear();
+        return;
+    }
+    if (!batch_.empty()) {
+        batch_.push_back(message);
+        return;
+    }
+    applyNow(message);
+}
+
+void NetworkGameClient::applyNow(const ServerMessage& message) {
     if (std::holds_alternative<ServerReset>(message)) {
         // Cada lote describe el estado completo: lo que no vuelve ya no existe.
         // players_ no se borra porque ServerStatus reescribe todas las

@@ -8,6 +8,7 @@ target_sources(taller_tests
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
+    mine_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
@@ -27,6 +28,7 @@ target_sources(taller_tests
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
@@ -39,7 +41,9 @@ target_sources(taller_tests
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp
     ../server/domain/minerals/silver_rock.cpp
-    ../server/domain/minerals/gold_rock.cpp    
+    ../server/domain/minerals/gold_rock.cpp
+    ../server/domain/minerals/rock.cpp
+    ../server/domain/minerals/mine_controller.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp

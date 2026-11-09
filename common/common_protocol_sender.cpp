@@ -132,6 +132,10 @@ void ProtocolSender::send_message(const ServerReset& /*reset*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Reset));
 }
 
+void ProtocolSender::send_message(const ServerSyncEnd& /*end*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SyncEnd));
+}
+
 void ProtocolSender::send_message(const ServerAnimal& animal) {
     validate_direction(animal.direction);
 

@@ -298,7 +298,8 @@ LocalWorldView viewWith(const ViewEntity& first) {
 
 
 // La fuente (mock/servidor) decide la acción. El ActionResolver la sigue:
-// Walk si la presentación detecta caminata, si no la acción de la vista.
+// Walk si la presentación detecta caminata y la acción es de locomoción;
+// si no, la acción de la vista (las de la fuente no las pisa la caminata).
 
 TEST(ActionResolverTest, QuietEntityDrawsTheViewAction) {
 	ViewMotion motion(catalog());
@@ -366,15 +367,21 @@ TEST(ActionResolverTest, ConcreteActionFromTheSourceIsRespected) {
 		  ActionKind::Milk);
 }
 
-TEST(ActionResolverTest, WalkingBeatsUseTool) {
+TEST(ActionResolverTest, SourceActionBeatsWalk) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
 	const ActionResolver resolver(motion, kNoCarry);
 
-	ViewEntity moving = entity(ActionKind::UseTool);
-	moving.moving = true;
-	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
-		  ActionKind::Walk);
+	// La caminata NO tapa a las acciones de la fuente: aunque la
+	// entidad se esté moviendo, se anima lo que manda la fuente
+	// (contrato §10).
+	for (const ActionKind action :
+	     {ActionKind::UseTool, ActionKind::Attack, ActionKind::Damage,
+	      ActionKind::Death}) {
+		ViewEntity moving = entity(action);
+		moving.moving = true;
+		EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100), action);
+	}
 }
 
 TEST(ActionResolverTest, ToolPhaseStartsAtZeroWhenTheSourceBeginsUseTool) {

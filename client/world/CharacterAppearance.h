@@ -48,6 +48,14 @@ enum class ActionKind {
     // Ataque de un enemigo: su propia secuencia one-shot (la enciende la
     // fuente de estado; hoy el server falso con la letra de prueba).
     Attack,
+    // Daño recibido por un enemigo: su propia secuencia one-shot (la
+    // enciende la fuente de estado). Al ser de ACCIÓN, el resolver la
+    // anima aunque la entidad se esté moviendo (interrumpe la caminata
+    // y, según la prioridad del que la emite, el ataque).
+    Damage,
+    // Muerte de un enemigo: su propia secuencia one-shot, que se queda
+    // en el ÚLTIMO frame (loops = false). Terminal: no vuelve a Idle.
+    Death,
 };
 
 struct ActionData {

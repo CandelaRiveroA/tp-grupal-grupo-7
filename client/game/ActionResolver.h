@@ -20,6 +20,23 @@ enum class PhaseClock {
 	Action,
 };
 
+// QUIÉN decide la acción (convención §10): las de locomoción (idle,
+// caminata) las deduce la presentación local de la interpolación del
+// paso; las de acción las enciende y apaga la fuente de estado y el
+// cliente las anima tal cual (la caminata no las pisa, aunque la
+// entidad se esté moviendo).
+enum class ActionRole {
+	Locomotion,
+	Action,
+};
+
+// Fila de la tabla de acciones: rol + reloj. Sumar una acción nueva es
+// una entrada acá y ya funciona (convención §4/§9).
+struct ActionSpec {
+	ActionRole role;
+	PhaseClock clock;
+};
+
 // Resuelve la pose efectiva de cada entidad: la acción que se anima, su
 // fase y —para el jugador local— qué contenido sostiene. La caminata y
 // el "sostener" son presentación local (selección del HUD); el resto de
@@ -53,10 +70,14 @@ private:
 	// traducido a la animación propia de la herramienta activa.
 	world::ActionKind toolAction(const ViewEntity& entity) const;
 
+	// Fila de la tabla de acciones (rol + reloj) de una acción.
+	const ActionSpec& specFor(world::ActionKind action) const;
+
 	const ViewMotion& motion_;
 	const CarrySelection& carry_;
-	// Qué reloj anima cada acción: sumar una acción nueva = una entrada.
-	std::map<world::ActionKind, PhaseClock> phaseClocks_;
+	// Qué decide y con qué reloj anima cada acción: sumar una acción
+	// nueva = una fila (rol + reloj).
+	std::map<world::ActionKind, ActionSpec> actionSpecs_;
 	// Variante "sosteniendo" de cada acción del jugador local (Idle ->
 	// Carry, Walk -> CarryWalk; lo no mapeado -> Carry mientras
 	// sostenga). Sumar una variante = una fila + sus datos.

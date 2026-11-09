@@ -6,6 +6,7 @@
 #include "sdl/context/SdlContext.h"
 #include "sdl/render/SpriteSheet.h"
 #include "sdl/render/TextRenderer.h"
+#include "world/HudFillLayout.h"
 
 namespace sdl {
 
@@ -65,7 +66,8 @@ void HudOverlayPainter::drawLabels(const std::map<std::string, int>& values) {
 	}
 }
 
-void HudOverlayPainter::draw(const double intensity) {
+void HudOverlayPainter::draw(const std::map<std::string, double>& fillValues,
+			     const double intensity) {
 	const int windowWidth = context_.width();
 	const int windowHeight = context_.height();
 
@@ -98,7 +100,34 @@ void HudOverlayPainter::draw(const double intensity) {
 				overlay.region.cols, overlay.region.rows,
 				SDL2pp::Rect(box.x, box.y, box.width,
 					     box.height));
+		drawFill(overlay, box, fillValues);
 	}
+}
+
+void HudOverlayPainter::drawFill(
+	const world::HudOverlay& overlay, const world::PixelBox& shell,
+	const std::map<std::string, double>& values) {
+	if (!overlay.fill.has_value()) {
+		return;
+	}
+	const world::HudFill& fill = *overlay.fill;
+	double fraction = 0.0;
+	if (const auto found = values.find(fill.value); found != values.end()) {
+		fraction = found->second;
+	}
+
+	const world::HudFillLayout layout(shell, fill, overlay.scale);
+	const world::PixelBox box = layout.box(fraction);
+	if (box.height <= 0) {
+		return;
+	}
+
+	SpriteSheet& sheet = sheets_.sheet(
+		fill.sheetImage, core::assetPath(fill.sheetImage),
+		fill.cellWidth, fill.cellHeight);
+	sheet.drawContentStretched(fill.region.at.col, fill.region.at.row,
+				   SDL2pp::Rect(box.x, box.y, box.width,
+						box.height));
 }
 
 }

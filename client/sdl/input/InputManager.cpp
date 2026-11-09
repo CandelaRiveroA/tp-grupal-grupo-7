@@ -89,6 +89,19 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
+    // Demo del gasto de energía: cada pulsación simula una acción que
+    // cansa al jugador (gastar). Es un one-shot rebindeable; cuando el
+    // server mande el gasto real, esta tecla se puede quitar sin tocar
+    // el dibujo de la barra.
+    bindings.insert({SDLK_g, game::InputCommand{Kind::SpendEnergy, 0}});
+    // Demo del gasto de vida: mismo mecanismo que la energía, con otra
+    // tecla (H). Cuando el server mande la vida real, esta tecla se puede
+    // quitar sin tocar el dibujo de la barra.
+    bindings.insert({SDLK_h, game::InputCommand{Kind::SpendLife, 0}});
+    // Demo del desmayo: one-shot local que dispara la secuencia de
+    // Faint + el diálogo de las Z. Cuando el server mande la acción,
+    // esta tecla se puede quitar sin tocar el dibujo.
+    bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

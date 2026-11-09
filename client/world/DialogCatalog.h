@@ -21,8 +21,17 @@ struct DialogAnimation {
 	int frameTicks = 1;
 	bool loops = false;
 
+	// Si la animación debe DESAPARECER al terminar (en vez de quedarse
+	// en el último frame). Default false: los avisos que informan
+	// siguen visibles mientras la fuente mantenga la indicación.
+	bool hideAtEnd = false;
+
 	// Índice del frame que corresponde a un tick de animación.
 	int frameIndexAt(int animationTick) const;
+
+	// ¿La animación no repetitiva ya mostró todos sus frames? Con
+	// hideAtEnd el painter deja de dibujarla.
+	bool finishedAt(int animationTick) const;
 };
 
 // Un diálogo del juego como DATOS: cómo aparece (animación), qué

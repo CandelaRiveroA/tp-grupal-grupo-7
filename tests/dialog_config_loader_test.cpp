@@ -48,9 +48,25 @@ anchor_offset = [0, -40]
   frames      = [ [0, 0], [1, 0], [2, 0], [2, 7] ]
 )";
 
+// Sin energía: la secuencia de las Z. hide_at_end hace que el diálogo
+// desaparezca al terminar (en vez de quedarse en el último frame).
+constexpr const char* kNoEnergyToml = R"(
+[no_energy]
+anchor_offset = [0, -40]
+
+  [no_energy.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  hide_at_end = true
+  frames      = [ [0, 0], [1, 0], [2, 0], [3, 0] ]
+)";
+
 TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
 	const DialogCatalog catalog = DialogConfigLoader().loadFromString(
-		std::string(kDialogsToml) + kWaterToml);
+		std::string(kDialogsToml) + kWaterToml + kNoEnergyToml);
 
 	const world::DialogData* dialog =
 			catalog.find(Indication::ReadyToMilk);
@@ -66,6 +82,8 @@ TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
 	EXPECT_EQ(animation.frames[3].col, 3);
 	EXPECT_EQ(animation.frameTicks, 6);
 	EXPECT_FALSE(animation.loops);
+	// Sin hide_at_end: el aviso se queda informando.
+	EXPECT_FALSE(animation.hideAtEnd);
 
 	// Contenido centrado adentro (la leche).
 	ASSERT_TRUE(dialog->content.has_value());
@@ -80,7 +98,7 @@ TEST(DialogConfigLoaderTest, LoadsDialogWithAnimationAndContent) {
 
 TEST(DialogConfigLoaderTest, AnimationIsOneShotByDefault) {
 	const DialogCatalog catalog = DialogConfigLoader().loadFromString(
-		std::string(kDialogsToml) + kWaterToml);
+		std::string(kDialogsToml) + kWaterToml + kNoEnergyToml);
 	const world::DialogData* dialog =
 			catalog.find(Indication::ReadyToMilk);
 	ASSERT_NE(dialog, nullptr);
@@ -91,6 +109,45 @@ TEST(DialogConfigLoaderTest, AnimationIsOneShotByDefault) {
 	EXPECT_EQ(dialog->animation.frameIndexAt(18), 3);
 	EXPECT_EQ(dialog->animation.frameIndexAt(500), 3);
 }
+
+TEST(DialogConfigLoaderTest, HideAtEndFinishesAfterLastFrame) {
+	const DialogCatalog catalog = DialogConfigLoader().loadFromString(
+		std::string(kDialogsToml) + kWaterToml + kNoEnergyToml);
+	const world::DialogData* dialog = catalog.find(Indication::NoEnergy);
+	ASSERT_NE(dialog, nullptr);
+
+	const world::DialogAnimation& animation = dialog->animation;
+	EXPECT_TRUE(animation.hideAtEnd);
+	// Todavía mostrando (y clampado al último frame) hasta el final.
+	EXPECT_FALSE(animation.finishedAt(0));
+	EXPECT_EQ(animation.frameIndexAt(18), 3);
+	EXPECT_FALSE(animation.finishedAt(23));
+	// 4 frames x 6 ticks: al tick 24 ya no queda nada que dibujar.
+	EXPECT_TRUE(animation.finishedAt(24));
+	EXPECT_TRUE(animation.finishedAt(500));
+}
+
+#ifdef TALLER_DIALOGS_TOML
+TEST(DialogConfigLoaderTest, LoadsRealDialogsFile) {
+	const DialogCatalog catalog =
+		DialogConfigLoader().loadFromFile(TALLER_DIALOGS_TOML);
+
+	// Las Z del desmayo: aparecen, parpadean dos veces y se van al
+	// revés; al terminar, el diálogo desaparece.
+	const world::DialogData* noEnergy = catalog.find(Indication::NoEnergy);
+	ASSERT_NE(noEnergy, nullptr);
+	EXPECT_TRUE(noEnergy->animation.hideAtEnd);
+	EXPECT_FALSE(noEnergy->animation.loops);
+	EXPECT_EQ(noEnergy->animation.frameTicks, 6);
+	EXPECT_EQ(noEnergy->animation.frames.size(), 16u);
+	EXPECT_EQ(noEnergy->anchorOffset.y, -40);
+
+	// Los avisos existentes siguen quedándose visibles (default).
+	const world::DialogData* milk = catalog.find(Indication::ReadyToMilk);
+	ASSERT_NE(milk, nullptr);
+	EXPECT_FALSE(milk->animation.hideAtEnd);
+}
+#endif
 
 TEST(DialogConfigLoaderTest, ZeroFrameTicksIsInvalidValue) {
 	const std::string toml = R"(

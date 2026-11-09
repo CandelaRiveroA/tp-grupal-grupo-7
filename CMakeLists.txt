@@ -199,6 +199,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/AnchorLayout.cpp
         client/world/HudOverlayCatalog.cpp
         client/world/HudOverlayTomlReader.cpp
+        client/world/HudFillLayout.cpp
         client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp
         client/world/ElementLayout.cpp
@@ -248,6 +249,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
         client/game/DayPhase.cpp
+        client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp
@@ -465,5 +467,6 @@ if(TALLER_TESTS)
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
         TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
-        TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\")
+        TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
+        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
 endif()

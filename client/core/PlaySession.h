@@ -12,6 +12,8 @@
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
+#include "game/FractionStat.h"
+#include "game/InputCommand.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -79,6 +81,12 @@ public:
 
 private:
     void tick(int iteration);
+
+    // Vista de presentación del tick: la de "meterse" (EnterSelection)
+    // más el override LOCAL del desmayo (pose, frente y, al terminar la
+    // caída, la indicación de las Z). La consumen el movimiento, el
+    // renderer y los diálogos; el estado de juego queda intacto.
+    game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
@@ -156,6 +164,21 @@ private:
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
     // tick).
     game::DayPhase dayPhase_;
+    // Stats simulados del jugador: hoy los simula el cliente y el server
+    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
+    // qué comando gasta cuál. La traducción a las claves del HUD queda en
+    // el borde de dibujo, no en el estado.
+    struct StatSpend {
+        game::StatKind stat;
+        double cost = 0.0;
+    };
+    std::map<game::StatKind, game::FractionStat> stats_;
+    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Demo del desmayo (tecla F): presentación local mientras el server
+    // no manda la acción. El reloj cuenta desde el inicio de la caída
+    // para recién entonces mostrar las Z.
+    bool faintRequested_ = false;
+    int faintFallTicks_ = 0;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

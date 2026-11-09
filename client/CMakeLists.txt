@@ -162,6 +162,7 @@ target_sources(taller_client
     game/GameClient.h
     game/GameConstants.h
     game/InputCommand.h
+    game/FractionStat.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
@@ -223,6 +224,7 @@ target_sources(taller_client
     world/AnchorLayout.h
     world/HudOverlayCatalog.h
     world/HudOverlayTomlReader.h
+    world/HudFillLayout.h
     world/HudOverlayConfigLoader.h
     world/SceneConfigLoader.h
     world/SceneDescription.h

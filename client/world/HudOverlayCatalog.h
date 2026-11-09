@@ -19,6 +19,24 @@ enum class BlendMode {
 	Multiply,
 };
 
+// Relleno dinámico opcional de un overlay: un sprite que se estira
+// verticalmente desde abajo según una fracción 0..1. `value` es la clave
+// del valor que manda la fuente de estado; `cavity` es la ventana
+// interior del tubo en px de la hoja, relativa a la región del overlay
+// ([x, y, ancho, alto]). Así una barra nueva es solo datos: hoja del
+// relleno, celda y cavidad.
+struct HudFill {
+	std::string value;
+	std::string sheetImage;
+	int cellWidth = 0;
+	int cellHeight = 0;
+	SheetRegion region;
+	int cavityX = 0;
+	int cavityY = 0;
+	int cavityWidth = 0;
+	int cavityHeight = 0;
+};
+
 // Un overlay de HUD: un sprite de una hoja dibujado en una posición fija
 // de la pantalla (anclado a un borde/centro, sin cámara). Es DATO de
 // presentación (convención §5): qué hoja, qué región, dónde y a qué
@@ -40,6 +58,9 @@ struct HudOverlay {
 	std::optional<Color> color = std::nullopt;
 	// Cómo se mezcla el velo de color (key opcional `blend`).
 	BlendMode blend = BlendMode::Alpha;
+	// Relleno dinámico (subtabla opcional `[overlay.fill]`). Se dibuja
+	// después de la cáscara del overlay.
+	std::optional<HudFill> fill = std::nullopt;
 };
 
 // Cómo se interpreta el valor crudo de un {token} de una etiqueta. TODO es

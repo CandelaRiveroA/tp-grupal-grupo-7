@@ -31,6 +31,11 @@ private:
 
 	SheetRegion readRegion(const tomlcfg::TomlDocument& overlayDoc) const;
 
+	// Relleno dinámico [overlay.fill]: valor 0..1, sprite del relleno y
+	// cavidad interior del tubo (en px de la hoja).
+	HudFill readFill(const tomlcfg::TomlDocument& fillDoc,
+			 const HudOverlay& overlay) const;
+
 	// Opacidad máxima opcional (`alpha`, 0..255) y color plano de un velo
 	// (`color = [r, g, b]`).
 	void readAlpha(const tomlcfg::TomlDocument& overlayDoc,

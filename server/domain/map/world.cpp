@@ -271,8 +271,7 @@ void World::process_end_of_day_floor() {
             }
 
             // 2. Comprobamos si hay algún cultivo plantado
-            // Nota: En una implementación más robusta podrías usar dynamic_cast 
-            // para asegurar que es un Crop y no un DroppedItem, pero para el modelo esto sirve.
+            // TODO: Hace con dynamic_cast para asegurarse de que es un Crop y no un DroppedItem, pero para el modelo esto sirve.
             bool has_crop = !current_cell.is_empty(); 
 
             // 3. Aplicamos las reglas de estado del suelo

@@ -35,6 +35,9 @@ constexpr const char* kColor = "color";
 constexpr const char* kBlend = "blend";
 constexpr const char* kBlendAlpha = "alpha";
 constexpr const char* kBlendMultiply = "multiply";
+constexpr const char* kFill = "fill";
+constexpr const char* kValue = "value";
+constexpr const char* kCavity = "cavity";
 
 constexpr int kDefaultScale = 1;
 constexpr int kMaxAlpha = 255;
@@ -144,7 +147,7 @@ HudOverlay HudOverlayTomlReader::readOverlay(
 
 	if (overlayDoc.hasKey(kColor)) {
 		// Velo de color plano: no lleva hoja. Mezclar ambos es ambiguo.
-		if (overlayDoc.hasKey(kSheetImage)) {
+		if (overlayDoc.hasKey(kSheetImage) || overlayDoc.hasKey(kFill)) {
 			throw ConfigError(Kind::InvalidValue, kColor);
 		}
 		overlay.color = readColor(overlayDoc);
@@ -183,7 +186,60 @@ HudOverlay HudOverlayTomlReader::readOverlay(
 
 	readAlpha(overlayDoc, overlay);
 
+	if (overlayDoc.hasKey(kFill)) {
+		overlay.fill = readFill(overlayDoc.getSubtable(kFill), overlay);
+	}
+
 	return overlay;
+}
+
+HudFill HudOverlayTomlReader::readFill(
+	const tomlcfg::TomlDocument& fillDoc,
+	const HudOverlay& overlay) const {
+	HudFill fill;
+
+	fill.value = fillDoc.getString(kValue);
+	if (fill.value.empty()) {
+		throw ConfigError(Kind::InvalidValue, kValue);
+	}
+
+	fill.sheetImage = fillDoc.getString(kSheetImage);
+	if (fill.sheetImage.empty()) {
+		throw ConfigError(Kind::InvalidValue, kSheetImage);
+	}
+
+	const std::array<int, 2> cell = fillDoc.getIntArray<2>(kCell);
+	fill.cellWidth = cell[0];
+	fill.cellHeight = cell[1];
+	if (fill.cellWidth <= 0 || fill.cellHeight <= 0) {
+		throw ConfigError(Kind::InvalidValue, kCell);
+	}
+
+	fill.region = readRegion(fillDoc);
+	if (fill.region.cols != 1 || fill.region.rows != 1) {
+		// El relleno se estira desde UNA celda: el contenido opaco de
+		// esa celda es el que llena la cavidad.
+		throw ConfigError(Kind::InvalidValue, kRegion);
+	}
+
+	const std::array<int, 4> cavity = fillDoc.getIntArray<4>(kCavity);
+	fill.cavityX = cavity[0];
+	fill.cavityY = cavity[1];
+	fill.cavityWidth = cavity[2];
+	fill.cavityHeight = cavity[3];
+	if (fill.cavityX < 0 || fill.cavityY < 0 ||
+	    fill.cavityWidth <= 0 || fill.cavityHeight <= 0) {
+		throw ConfigError(Kind::InvalidValue, kCavity);
+	}
+	// La cavidad es relativa a la región del overlay (la cáscara).
+	const int shellWidth = overlay.region.cols * overlay.cellWidth;
+	const int shellHeight = overlay.region.rows * overlay.cellHeight;
+	if (fill.cavityX + fill.cavityWidth > shellWidth ||
+	    fill.cavityY + fill.cavityHeight > shellHeight) {
+		throw ConfigError(Kind::InvalidValue, kCavity);
+	}
+
+	return fill;
 }
 
 void HudOverlayTomlReader::readAlpha(const tomlcfg::TomlDocument& overlayDoc,

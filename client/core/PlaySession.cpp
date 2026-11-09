@@ -55,6 +55,16 @@ PlaySession::PlaySession(
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
+        stats_{
+                {game::StatKind::Energy, game::FractionStat{}},
+                {game::StatKind::Life, game::FractionStat{}},
+        },
+        statSpends_{
+                {game::InputCommand::Kind::SpendEnergy,
+                 {game::StatKind::Energy, game::kEnergyCostPerAction}},
+                {game::InputCommand::Kind::SpendLife,
+                 {game::StatKind::Life, game::kLifeCostPerAction}},
+        },
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -106,6 +116,10 @@ void PlaySession::tick(int iteration) {
     if (state.dayChanged) {
         sceneTransition_.release();
         audio_.play(sdl::SoundId::RoosterCrow);
+        // Día nuevo: los stats simulados arrancan llenos (lo dirá el server).
+        for (auto& entry : stats_) {
+            entry.second.reset();
+        }
     }
 
     const GamePhase phase = phaseForIteration(iteration);
@@ -152,7 +166,7 @@ void PlaySession::tick(int iteration) {
         } else {
             renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_,
                                 actionResolver_, iteration, camera_.viewport(), dayPhase_.phase());
-            lightingPainter_.draw(dayPhase_.nightFactor());
+            lightingPainter_.draw({}, dayPhase_.nightFactor());
         }
         sdlContext_.fillRect(SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
                              SDL2pp::Color(0, 0, 0, static_cast<Uint8>(sceneTransition_.alpha())));
@@ -196,6 +210,13 @@ void PlaySession::tick(int iteration) {
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
+            continue;
+        }
+        if (const auto spend = statSpends_.find(command.kind);
+            spend != statSpends_.end()) {
+            // Simulación local del gasto: no es una intención para el
+            // GameClient, la consumen los stats del cliente.
+            stats_.at(spend->second.stat).spend(spend->second.cost);
             continue;
         }
         playerCommands.push_back(command);
@@ -293,12 +314,17 @@ void PlaySession::tick(int iteration) {
 
     // Luz nocturna: es el corte mundo/HUD. Todo lo anterior es mundo
     // (queda tintado); todo lo posterior es interfaz fija (no).
-    lightingPainter_.draw(dayPhase_.nightFactor());
+    lightingPainter_.draw({}, dayPhase_.nightFactor());
     inventoryHud_.draw(state.inventory, player_.activeSlot());
     bannerHud_.draw(bannerQueue_.active());
     // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
     // antes del popup y del puntero para que queden encima.
-    hudOverlayPainter_.draw();
+    std::map<std::string, double> hudFillValues;
+    hudFillValues[game::kHudEnergyKey] =
+            stats_.at(game::StatKind::Energy).fraction();
+    hudFillValues[game::kHudLifeKey] =
+            stats_.at(game::StatKind::Life).fraction();
+    hudOverlayPainter_.draw(hudFillValues);
     hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
     drawPopup(popupBox);
 

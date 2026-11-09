@@ -199,6 +199,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/AnchorLayout.cpp
         client/world/HudOverlayCatalog.cpp
         client/world/HudOverlayTomlReader.cpp
+        client/world/HudFillLayout.cpp
         client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp
         client/world/ElementLayout.cpp
@@ -248,6 +249,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
         client/game/DayPhase.cpp
+        client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp

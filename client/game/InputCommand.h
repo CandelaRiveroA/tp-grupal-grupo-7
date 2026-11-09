@@ -14,6 +14,14 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Gasto de energía simulado (tecla G por ahora): representa una
+        // acción del juego que cansa al jugador. Lo consume PlaySession
+        // contra game::FractionStat; NO viaja al GameClient.
+        SpendEnergy,
+        // Gasto de vida simulado (tecla H por ahora): mismo mecanismo
+        // que la energía, con otro stat. Lo consume PlaySession; NO
+        // viaja al GameClient.
+        SpendLife,
     };
 
     Kind kind;

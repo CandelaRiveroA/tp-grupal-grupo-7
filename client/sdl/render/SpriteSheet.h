@@ -41,6 +41,12 @@ public:
 	void drawContentCentered(int col, int row, const SDL2pp::Rect& dest,
 				 double scale = 1.0);
 
+	// Dibuja SOLO el contenido opaco de la celda estirado a dest, sin
+	// conservar proporción. Para rellenos que crecen/achican en un eje
+	// (la barra de energía): el degradé horizontal se estira al ancho
+	// de la cavidad y la altura sigue la fracción.
+	void drawContentStretched(int col, int row, const SDL2pp::Rect& dest);
+
 	// Tiñe la hoja al dibujar (color modulation): cada píxel se multiplica
 	// por (r,g,b). Útil para recolorear sprites claros (ej. dígitos
 	// blancos -> negro con (0,0,0)). clearColorMod() vuelve a (255,255,255).

@@ -12,6 +12,8 @@
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
+#include "game/FractionStat.h"
+#include "game/InputCommand.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -156,6 +158,16 @@ private:
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
     // tick).
     game::DayPhase dayPhase_;
+    // Stats simulados del jugador: hoy los simula el cliente y el server
+    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
+    // qué comando gasta cuál. La traducción a las claves del HUD queda en
+    // el borde de dibujo, no en el estado.
+    struct StatSpend {
+        game::StatKind stat;
+        double cost = 0.0;
+    };
+    std::map<game::StatKind, game::FractionStat> stats_;
+    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

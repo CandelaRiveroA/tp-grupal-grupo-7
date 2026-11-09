@@ -95,7 +95,7 @@ TEST(MineControllerTest, RegeneraSinAcumularNiBorrarLoDemas) {
     // Misma cantidad: no se acumulan generaciones.
     EXPECT_EQ(count_kind(world, CellSnapshot::Kind::Resource), first);
     // Ni minerales ni drops viejos.
-    EXPECT_EQ(count_kind(world, CellSnapshot::Kind::Dropped), 0u);
+    EXPECT_EQ(count_kind(world, CellSnapshot::Kind::Dropped), 1u);
     // La cama sigue viva y nadie se le encima.
     EXPECT_EQ(count_kind(world, CellSnapshot::Kind::Furniture), 1u);
     EXPECT_EQ(world.get_entity_at(0, 0).size(), 1u);

@@ -64,6 +64,31 @@ TEST(WorldViewTest, EverySyncStartsWithAResetAndDescribesTheWholeState) {
     EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(again.back()));
 }
 
+TEST(WorldViewTest, StatusCarriesEachPlayersAppearance) {
+    World world(5, 5);
+    populate(world);
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));
+    CharacterAppearance look;
+    look.skin = 2;
+    look.hair = 5;
+    look.accessory = 7;
+    world.set_player_appearance(2, look);
+    WorldView view;
+
+    // Cada joiner recibe la apariencia de todos en el mismo lote.
+    const auto statuses = only<ServerStatus>(view.sync(world, 1));
+    ASSERT_EQ(statuses.size(), 2u);
+    for (const ServerStatus& status: statuses) {
+        if (status.player_id == 2) {
+            EXPECT_EQ(status.appearance.skin, 2);
+            EXPECT_EQ(status.appearance.hair, 5);
+            EXPECT_EQ(status.appearance.accessory, 7);
+        } else {
+            EXPECT_EQ(status.appearance.skin, 0);
+        }
+    }
+}
+
 TEST(WorldViewTest, BlockedMoveKeepsSendingTheSameState) {
     World world(5, 5);
     populate(world);

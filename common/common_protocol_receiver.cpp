@@ -71,6 +71,19 @@ std::string ProtocolReceiver::receive_string() {
     return std::string(value.begin(), value.end());
 }
 
+CharacterAppearance ProtocolReceiver::receive_appearance() {
+    CharacterAppearance appearance;
+    appearance.skin = receive_uint8();
+    appearance.eyes = receive_uint8();
+    appearance.hair = receive_uint8();
+    appearance.hairColor = receive_uint8();
+    appearance.shirt = receive_uint8();
+    appearance.pants = receive_uint8();
+    appearance.pantsColor = receive_uint8();
+    appearance.accessory = receive_uint8();
+    return appearance;
+}
+
 Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
     if (value > static_cast<uint8_t>(Direction::RIGHT)) {
         throw std::invalid_argument("La direccion recibida no es valida.");
@@ -130,7 +143,8 @@ ServerMessage ProtocolReceiver::receive_status_message() {
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     const Direction direction = direction_from_byte(receive_uint8());
-    return ServerStatus(player_id, x, y, direction);
+    const CharacterAppearance appearance = receive_appearance();
+    return ServerStatus(player_id, x, y, direction, appearance);
 }
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
@@ -257,8 +271,10 @@ MatchRequest ProtocolReceiver::receive_match_request() {
     std::string nameMatch = receive_string();
     std::string username = receive_string();
     std::string characterName = receive_string();
+    const CharacterAppearance appearance = receive_appearance();
     return MatchRequest{static_cast<MatchRequestType>(type), std::move(codeMatch),
-                        std::move(nameMatch), std::move(username), std::move(characterName)};
+                        std::move(nameMatch), std::move(username), std::move(characterName),
+                        appearance};
 }
 
 LobbyStatus ProtocolReceiver::receive_lobby_status() {

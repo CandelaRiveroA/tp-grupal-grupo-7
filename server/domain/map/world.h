@@ -92,6 +92,8 @@ public:
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
+    // Personalizacion del personaje del jugador (indices de capa, sin validar).
+    void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
     void take_item(uint8_t player_id);
 
     // --- Sueño (votación para dormir y pasar de día) ---

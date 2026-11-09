@@ -54,7 +54,7 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
 | 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
-| 1 | `Status` | `player_id u8, x u16, y u16, direction u8` | Pose de un jugador |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8` | Pose y personalización de un jugador (índices de capa, sin validar) |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
 | 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |

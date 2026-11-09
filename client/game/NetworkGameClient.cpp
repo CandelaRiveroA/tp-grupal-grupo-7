@@ -207,6 +207,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         player.cellX = status->x;
         player.cellY = status->y;
         player.facing = world::viewDirectionFrom(status->direction);
+        player.appearance = status->appearance;
         return;
     }
     if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
@@ -297,6 +298,7 @@ void NetworkGameClient::update(int) {
                           player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
                           std::nullopt};
         entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
+        entity.appearance = player.appearance;
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = world::ItemKind::Pickaxe;

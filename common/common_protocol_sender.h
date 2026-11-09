@@ -17,6 +17,8 @@ private:
     void send_uint16(uint16_t value);
     // cppcheck-suppress unusedPrivateFunction
     void send_string(const std::string& value);
+    // Los 8 indices de la personalizacion, siempre en el mismo orden.
+    void send_appearance(const CharacterAppearance& appearance);
 
     static void validate_direction(Direction direction);
 

@@ -25,7 +25,8 @@ std::optional<LobbyStatus> MatchesMonitor::identityError(const std::string& user
 
 MatchSeat MatchesMonitor::joinLocked(MatchEntry& entry, const std::string& username,
                                      const std::string& characterName,
-                                     const std::shared_ptr<Queue<ServerMessage>>& statuses) {
+                                     const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                                     const CharacterAppearance& appearance) {
     if (entry.players >= MAX_JUGADORES) {
         return MatchSeat{LobbyStatus::Full, 0, nullptr};
     }
@@ -36,7 +37,7 @@ MatchSeat MatchesMonitor::joinLocked(MatchEntry& entry, const std::string& usern
     }
     const uint8_t player_id = entry.next_player_id;
     try {
-        entry.events.push(MatchEvent(PlayerJoined{player_id, statuses}));
+        entry.events.push(MatchEvent(PlayerJoined{player_id, statuses, appearance}));
     } catch (const ClosedQueue&) {
         // El match ya terminó por un error: no admite jugadores.
         return MatchSeat{LobbyStatus::NotFound, 0, nullptr};
@@ -50,7 +51,8 @@ MatchSeat MatchesMonitor::joinLocked(MatchEntry& entry, const std::string& usern
 
 MatchSeat MatchesMonitor::create(const std::string& codeMatch, const std::string& username,
                                  const std::string& characterName,
-                                 const std::shared_ptr<Queue<ServerMessage>>& statuses) {
+                                 const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                                 const CharacterAppearance& appearance) {
     std::lock_guard<std::mutex> lock(mtx);
     if (const std::optional<LobbyStatus> error = identityError(username, characterName)) {
         return MatchSeat{*error, 0, nullptr};
@@ -66,12 +68,13 @@ MatchSeat MatchesMonitor::create(const std::string& codeMatch, const std::string
     MatchEntry& created = *entry;
     matches.emplace(codeMatch, std::move(entry));
     created.match.start();
-    return joinLocked(created, username, characterName, statuses);
+    return joinLocked(created, username, characterName, statuses, appearance);
 }
 
 MatchSeat MatchesMonitor::join(const std::string& codeMatch, const std::string& username,
                                const std::string& characterName,
-                               const std::shared_ptr<Queue<ServerMessage>>& statuses) {
+                               const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                               const CharacterAppearance& appearance) {
     std::lock_guard<std::mutex> lock(mtx);
     if (const std::optional<LobbyStatus> error = identityError(username, characterName)) {
         return MatchSeat{*error, 0, nullptr};
@@ -83,7 +86,7 @@ MatchSeat MatchesMonitor::join(const std::string& codeMatch, const std::string& 
     if (it == matches.end()) {
         return MatchSeat{LobbyStatus::NotFound, 0, nullptr};
     }
-    return joinLocked(*it->second, username, characterName, statuses);
+    return joinLocked(*it->second, username, characterName, statuses, appearance);
 }
 
 void MatchesMonitor::leave(const std::string& codeMatch, uint8_t player_id) {

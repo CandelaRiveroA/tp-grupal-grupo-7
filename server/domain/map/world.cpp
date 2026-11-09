@@ -275,6 +275,10 @@ void World::set_player_facing(uint8_t player_id, Direction dir) {
     this->players.at(player_id)->set_facing(dir);
 }
 
+void World::set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance) {
+    this->players.at(player_id)->set_appearance(appearance);
+}
+
 void World::take_item(uint8_t player_id) {
     // Durmiendo no se toma nada ni se ordeña.
     if (this->sleepers.count(player_id) > 0) {

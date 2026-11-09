@@ -43,6 +43,7 @@ private:
         world::Direction facing = world::Direction::Front;
         bool moving = false;
         int toolUseRemaining = 0;
+        CharacterAppearance appearance;
     };
 
     void apply(const ServerMessage& message);

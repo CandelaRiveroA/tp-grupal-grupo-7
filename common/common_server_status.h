@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include "common/model/draft/CharacterAppearance.h"
 #include "common_constants.h"
 
 enum class ServerMessageType : uint8_t {
@@ -37,9 +38,15 @@ struct ServerStatus {
     uint16_t x;
     uint16_t y;
     Direction direction;
+    // Personalizacion del personaje: indices de capa sin validar. El server
+    // no conoce los counts de characters.toml, asi que el cliente los acota
+    // al dibujar y cae al 0 (default) si estan fuera de rango. Viaja en cada
+    // lote para que un joiner tarde la reciba de todos los jugadores.
+    CharacterAppearance appearance;
 
-    ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction):
-            player_id(player_id), x(x), y(y), direction(direction) {}
+    ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
+                 const CharacterAppearance& appearance):
+            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance) {}
 };
 
 struct ServerWelcome {

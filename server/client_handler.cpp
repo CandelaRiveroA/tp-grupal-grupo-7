@@ -41,8 +41,9 @@ void ClientHandler::serve() {
         codeMatch = request.codeMatch;
         seat = request.type == MatchRequestType::Create ?
                        matches.create(codeMatch, request.username, request.characterName,
-                                      statuses) :
-                       matches.join(codeMatch, request.username, request.characterName, statuses);
+                                      statuses, request.appearance) :
+                       matches.join(codeMatch, request.username, request.characterName, statuses,
+                                    request.appearance);
         protocol_sender.send_lobby_status(seat.status);
         if (seat.status != LobbyStatus::Ok) {
             return;

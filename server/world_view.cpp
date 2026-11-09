@@ -46,7 +46,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
 
     for (const uint8_t id: world.get_player_ids()) {
         const Player& player = world.get_player(id);
-        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing()));
+        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
+                                   player.get_appearance()));
     }
 
     for (uint16_t y = 0; y < world.get_height(); ++y) {

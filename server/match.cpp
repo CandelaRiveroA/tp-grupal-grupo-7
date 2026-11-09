@@ -188,6 +188,7 @@ void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
+    world.set_player_appearance(joined.player_id, joined.appearance);
     // Si el día ya terminó, el que entra también tiene que despertar.
     if (world.is_waking()) {
         send_to(joined.player_id, ServerDayEnd{});

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/model/draft/CharacterAppearance.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
@@ -54,6 +55,11 @@ struct ViewEntity {
     // selección del HUD (otra pose, otra fuente). Va al final del
     // struct para no romper los aggregate-init posicionales.
     std::optional<std::string> activeContent = std::nullopt;
+
+    // Personalización del personaje (índices de capa, tal cual los manda el
+    // server). El render los acota contra characters.toml y cae al 0 si
+    // están fuera de rango. Va al final por los aggregate-init posicionales.
+    CharacterAppearance appearance{};
 };
 
 // Recurso picable. La fuente decide tipo, celda y estado; al agotarse

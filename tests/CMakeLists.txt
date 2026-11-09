@@ -41,6 +41,11 @@ target_sources(taller_tests
     ../server/domain/minerals/silver_rock.cpp
     ../server/domain/minerals/gold_rock.cpp    
     toml_document_test.cpp
+    tile_ref_test.cpp
+    tile_codec_test.cpp
+    world_vocabulary_test.cpp
+    world_format_error_test.cpp
+    map_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp

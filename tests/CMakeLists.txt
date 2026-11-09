@@ -46,6 +46,7 @@ target_sources(taller_tests
     world_vocabulary_test.cpp
     world_format_error_test.cpp
     map_test.cpp
+    world_toml_reader_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp

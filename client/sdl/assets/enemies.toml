@@ -187,6 +187,42 @@ cadence     = { step = 60, frame = 6 }
       [ [28, 0, 2, 2] ],
     ]
 
+    [characters.skeleton.front.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.front.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
   [characters.skeleton.back]
   mirrored = false
     [characters.skeleton.back.idle]
@@ -228,6 +264,42 @@ cadence     = { step = 60, frame = 6 }
       [ [24, 0, 2, 2] ],
       [ [26, 0, 2, 2] ],
       [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.back.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.back.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
     ]
 
   [characters.skeleton.left]
@@ -273,6 +345,42 @@ cadence     = { step = 60, frame = 6 }
       [ [28, 0, 2, 2] ],
     ]
 
+    [characters.skeleton.left.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.left.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
   [characters.skeleton.right]
   mirrored = false
     [characters.skeleton.right.idle]
@@ -314,6 +422,42 @@ cadence     = { step = 60, frame = 6 }
       [ [24, 0, 2, 2] ],
       [ [26, 0, 2, 2] ],
       [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.right.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.right.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
     ]
 
 # --- Vampiro (vampire_movement.png). 8 frames contiguos de 2x2 celdas.
@@ -367,6 +511,41 @@ cadence     = { step = 48, frame = 6 }
       [ [30, 0, 2, 2] ],
     ]
 
+    [characters.vampire.front.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.front.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
   [characters.vampire.back]
   mirrored = false
     [characters.vampire.back.idle]
@@ -407,6 +586,41 @@ cadence     = { step = 48, frame = 6 }
       [ [26, 0, 2, 2] ],
       [ [28, 0, 2, 2] ],
       [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.back.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.back.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
     ]
 
   [characters.vampire.left]
@@ -451,6 +665,41 @@ cadence     = { step = 48, frame = 6 }
       [ [30, 0, 2, 2] ],
     ]
 
+    [characters.vampire.left.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.left.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
   [characters.vampire.right]
   mirrored = false
     [characters.vampire.right.idle]
@@ -491,4 +740,39 @@ cadence     = { step = 48, frame = 6 }
       [ [26, 0, 2, 2] ],
       [ [28, 0, 2, 2] ],
       [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.right.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.right.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
     ]

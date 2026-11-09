@@ -5,8 +5,8 @@
 
 #include "qt/services/SaveService.h"
 
-// Tres partidas fijas, una de ellas multiplayer. Si se construye con un
-// error, todos los pedidos fallan con ese error.
+// Tres partidas iniciales, una multiplayer. Con error, todo pedido falla;
+// deleteSave() persiste en los requestSaves() siguientes.
 class FakeSaveService : public SaveService {
 	Q_OBJECT
 
@@ -15,10 +15,12 @@ public:
 		std::optional<ServiceError> failure = std::nullopt,
 		QObject* parent = nullptr);
 
-	void requestSaves() override;
+	void requestSaves(const std::string& username) override;
+	void deleteSave(std::uint32_t saveId) override;
 
 private:
-	static std::vector<SaveSummary> fixedSaves();
+	std::vector<SaveSummary> buildInitialSaves() const;
 
+	std::vector<SaveSummary> saves_;
 	std::optional<ServiceError> failure_;
 };

@@ -7,10 +7,6 @@ Mineral::Mineral(uint16_t x, uint16_t y, uint8_t hits_remaining):
 
 bool Mineral::is_walkable() const { return false; }
 
-uint8_t Mineral::get_hits_remaining() const { return this->hits_remaining; }
-
-uint8_t Mineral::get_max_hits() const { return this->max_hits; }
-
 std::optional<CellSnapshot> Mineral::snapshot() const {
     return CellSnapshot{CellSnapshot::Kind::Resource, get_drop_id(),
                         static_cast<uint8_t>(max_hits - hits_remaining), max_hits};

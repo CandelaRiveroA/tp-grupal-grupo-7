@@ -1,5 +1,6 @@
 #include "dropped_item.h"
 
+#include <set>
 #include <utility>
 
 #include "../map/world.h"
@@ -8,8 +9,6 @@
 
 DroppedItem::DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y):
         IEntity(x, y), payload(std::move(item)) {}
-
-const Item* DroppedItem::get_payload() const { return this->payload.get(); }
 
 bool DroppedItem::is_walkable() const { return true; }
 
@@ -20,15 +19,19 @@ std::optional<CellSnapshot> DroppedItem::snapshot() const {
     return CellSnapshot{CellSnapshot::Kind::Dropped, payload->get_id(), 0, 0};
 }
 
+bool DroppedItem::pickup_on_take() const {
+    static const std::set<ItemID> kTakePickups = {ItemID::EGG};
+    return this->payload != nullptr && kTakePickups.count(this->payload->get_id()) > 0;
+}
+
 void DroppedItem::interact(Player& p, ToolType tool, World& w) {
-    // Dejamos la mano para los huevos
-    // Pero tal bien se pueden levantar solo caminando.
     if (tool == ToolType::HAND && this->payload) {
-        uint16_t cx = this->pos_x;
-        uint16_t cy = this->pos_y;
+        // El payload se mueve al inventario: el item se lee antes.
+        const ItemID picked = this->payload->get_id();
 
         if (p.pick_up_item(std::move(this->payload))) {
-            w.remove_entity_at(cx, cy);
+            w.remove_entity(this);
+            w.record_pickup(p.get_id(), picked);
         }
     }
 }

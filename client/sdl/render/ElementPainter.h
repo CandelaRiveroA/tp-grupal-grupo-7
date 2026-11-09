@@ -1,6 +1,8 @@
 #pragma once
 
-#include "sdl/render/TileLayout.h"
+#include <map>
+
+#include "world/ElementLayout.h"
 #include "world/SceneDescription.h"
 #include "world/ScenePixelMapper.h"
 
@@ -14,21 +16,33 @@ public:
 		       const world::ElementPlacement& element,
 		       const world::PixelRect& area);
 
-	void paint(SpriteSheet& sheet) const;
+	world::PixelRect bounds() const;
+
+	// Dibuja la pieza del elemento dentro del clip. `firstRow` /
+	// `lastRow` acotan qué filas de la pieza se dibujan (0-based,
+	// inclusive): la pieza entera es el rango completo; la capa frontal
+	// de un elemento "entrable" son solo sus filas de adelante.
+	void paint(SpriteSheet& sheet, const world::PixelRect& clip,
+		   int firstRow, int lastRow) const;
 
 private:
-	void paintSingle(SpriteSheet& sheet) const;
-	void paintTiled(SpriteSheet& sheet) const;
-	void paintStrip(SpriteSheet& sheet) const;
+	using PaintMethod =
+		void (ElementPainter::*)(SpriteSheet&,
+					 const world::PixelRect&, int,
+					 int) const;
 
-	void blit(SpriteSheet& sheet, const TileLayout::Placement& piece) const;
+	void paintSingle(SpriteSheet& sheet, const world::PixelRect& clip,
+			 int firstRow, int lastRow) const;
+	void paintTiled(SpriteSheet& sheet, const world::PixelRect& clip,
+			int firstRow, int lastRow) const;
+	void paintStrip(SpriteSheet& sheet, const world::PixelRect& clip,
+			int firstRow, int lastRow) const;
 
-	int pieceWidth() const;
-	int pieceHeight() const;
+	void blit(SpriteSheet& sheet, int offsetX, int offsetY, int width,
+		  int height, int firstRow, int lastRow) const;
 
-	const world::TileSetDef& tileset_;
-	const world::ElementPlacement& element_;
-	const world::PixelRect area_;
+	const world::ElementLayout layout_;
+	std::map<world::DrawMode, PaintMethod> paintMethods_;
 };
 
-}
+}  // namespace sdl

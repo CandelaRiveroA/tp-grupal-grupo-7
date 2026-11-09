@@ -36,10 +36,14 @@ TEST(SceneConfigLoaderTest, LoadsElementsInOrder) {
 
 	const world::ElementPlacement& floor = scene.elements[0];
 	EXPECT_EQ(floor.tileset, "farm");
-	EXPECT_EQ(floor.region.origin.column, 0);
-	EXPECT_EQ(floor.region.origin.row, 27);
-	EXPECT_EQ(floor.region.size.columns, 2);
-	EXPECT_EQ(floor.region.size.rows, 2);
+	EXPECT_EQ(floor.pieceSize.columns, 2);
+	EXPECT_EQ(floor.pieceSize.rows, 2);
+	// region = [0, 27, 2, 2] se normaliza a la pieza celda por celda.
+	ASSERT_EQ(floor.pieceCells.size(), 4u);
+	EXPECT_EQ(floor.pieceCells[0].column, 0);
+	EXPECT_EQ(floor.pieceCells[0].row, 27);
+	EXPECT_EQ(floor.pieceCells[3].column, 1);
+	EXPECT_EQ(floor.pieceCells[3].row, 28);
 	EXPECT_EQ(floor.at.column, 0);
 	EXPECT_EQ(floor.at.row, 2);
 	EXPECT_EQ(floor.span.columns, 15);
@@ -91,6 +95,36 @@ TEST(SceneConfigLoaderTest, MissingRoomThrows) {
 		     world::ConfigError);
 }
 
+TEST(SceneConfigLoaderTest, RoomWithoutSoundsIsSilent) {
+	// La key `sounds` es OPCIONAL: una sala sin ella no declara
+	// cues y la presentación no reproduce nada ahí.
+	const world::SceneDescription scene = loadBedroom();
+	EXPECT_TRUE(scene.soundCues.empty());
+}
+
+TEST(SceneConfigLoaderTest, LoadsRoomSoundCues) {
+	const std::string toml = R"(
+[tilesets.farm]
+image = "x.png"
+cell  = [16, 16]
+[rooms.barn]
+floor_color = [0,0,0,255]
+grid = [4,4]
+scale = 2
+sounds = ["chicken_cluck", "rooster"]
+  [[rooms.barn.elements]]
+  tileset = "farm"
+  region  = [0,0,1,1]
+  draw    = { mode = "single" }
+  at      = [0,0]
+  span    = [1,1]
+)";
+	const world::SceneDescription scene = loadString(toml, "barn");
+	ASSERT_EQ(scene.soundCues.size(), 2u);
+	EXPECT_EQ(scene.soundCues[0], "chicken_cluck");
+	EXPECT_EQ(scene.soundCues[1], "rooster");
+}
+
 TEST(SceneConfigLoaderTest, InvalidTomlThrows) {
 	EXPECT_THROW(loadString("not = = toml", "bedroom"),
 		     world::ConfigError);
@@ -101,12 +135,20 @@ TEST(SceneConfigLoaderTest, LoadsRealBedroomFile) {
 	world::SceneConfigLoader loader;
 	const world::SceneDescription scene =
 		loader.loadFromFile(TALLER_SCENES_TOML, "bedroom");
-	ASSERT_EQ(scene.tilesets.count("farm"), 1u);
-	ASSERT_EQ(scene.elements.size(), 2u);
-	EXPECT_EQ(scene.elements[0].draw.mode, world::DrawMode::Tile);
-	EXPECT_EQ(scene.elements[1].draw.mode,
-		  world::DrawMode::HorizontalStrip);
-	EXPECT_EQ(scene.elements[1].draw.scaleY, 3);
+	// Fondo + 6 decoraciones: ventana, sconcelight, chimenea,
+	// cama (composición única), planta, alfombra.
+	ASSERT_EQ(scene.tilesets.count("bedroom"), 1u);
+	ASSERT_EQ(scene.tilesets.count("decoration"), 1u);
+	ASSERT_EQ(scene.tilesets.count("sconcelight"), 1u);
+	ASSERT_EQ(scene.elements.size(), 7u);
+	EXPECT_EQ(scene.elements[0].tileset, "bedroom");
+	EXPECT_EQ(scene.elements[0].draw.mode, world::DrawMode::Single);
+	// El dormitorio NO puebla ni suena a animales: sus cues y sus
+	// animales viven en el jardín (la sala a la que se sale de la
+	// casa). Sin la key de sonidos, la sala es muda.
+	EXPECT_TRUE(scene.soundCues.empty());
+	EXPECT_FALSE(scene.spawns.animals);
+	EXPECT_FALSE(scene.spawns.minerals);
 }
 #endif
 

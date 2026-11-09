@@ -1,6 +1,7 @@
 #ifndef COMMON_WORKER_H
 #define COMMON_WORKER_H
 
+#include <atomic>
 #include <exception>
 
 #include "common_queue.h"
@@ -9,6 +10,7 @@
 class Worker: public Thread {
 private:
     std::exception_ptr failure;
+    std::atomic<bool> has_failed;
 
 protected:
     virtual void execute() = 0;

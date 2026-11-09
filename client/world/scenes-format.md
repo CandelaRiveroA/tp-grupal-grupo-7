@@ -48,6 +48,7 @@ lista de elementos.
 floor_color = [0, 0, 0, 255]   # RGBA del fondo (lo que no cubre un tile)
 grid        = [30, 20]         # tamaño de la habitación en celdas lógicas
 scale       = 2                # escala de dibujo por defecto (entera)
+sounds      = ["chicken_cluck"] # cues audibles mientras se renderiza (opcional)
 ```
 
 | Campo         | Tipo            | Obligatorio | Descripción                              |
@@ -55,6 +56,16 @@ scale       = 2                # escala de dibujo por defecto (entera)
 | `floor_color` | `[int,int,int,int]` | sí      | Color de fondo RGBA (0..255 por canal)   |
 | `grid`        | `[int, int]`    | sí          | Celdas lógicas `[columnas, filas]`       |
 | `scale`       | int             | sí          | Escala por defecto de los elementos      |
+| `sounds`      | `[string, ...]` | no          | Cues de sonido audibles en la sala       |
+
+**`sounds` (opcional; sin la key la sala es muda):** lista de cues de
+sonido que la presentación reproduce MIENTRAS esta sala se renderiza.
+Quien llena la vista (el mock hoy, el server mañana) emite eventos
+per-tick (`LocalWorldView.soundEvents`, cada uno con cue + id del
+emisor); un evento solo suena si la sala actual declara su cue — ej.
+las gallinas cacarean solo donde están. Cuando el granero sea una sala
+propia, su lista declarará los sonidos de animales y la de este cuarto
+dejará de hacerlo: **cambio de TOML, cero código**.
 
 Una **celda lógica** mide, en píxeles, `cell_del_tileset × scale`. Con
 `cell = [16,16]` y `scale = 2`, cada celda lógica es de 32×32 px; una
@@ -84,6 +95,7 @@ orden de dibujo**: lo que está más abajo se pinta encima.
 | `draw`    | tabla inline         | sí          | Modo de dibujo y escala (ver abajo)                  |
 | `at`      | `[int, int]`         | sí          | Celda lógica donde arranca `[columna, fila]`         |
 | `span`    | `[int, int]`         | sí          | Área lógica que cubre `[columnas, filas]`            |
+| `enter`   | tabla inline         | no          | Hace "entrable" al elemento (ver abajo)              |
 
 - `region` describe un rectángulo dentro de la imagen, en celdas: empieza
   en `(col, row)` y abarca `cols × rows` celdas.
@@ -115,6 +127,29 @@ la habitación. Si declara `scale`, lo usa en ambos ejes. `scale_x`/
   el alto es el de la pieza dibujada (su `scale_y`). Recorta la última
   pieza en ancho para cubrir exacto.
 
+### `enter` (opcional)
+
+```toml
+enter = { rows = [2, 3], lie = [20, 13], facing = "back" }
+```
+
+Hace **entrable** al elemento: el jugador puede meterse con el click
+del cursor (presentación local del cliente; la fuente de estado no
+participa). Al meterse, el jugador se ubica en `lie` mirando `facing` y
+las filas `rows` de la pieza se dibujan **encima de las entidades** (lo
+"tapan"). En la cama: la cabecera queda detrás —la cabeza se ve sobre
+la almohada— y las frazadas (mitad + pie) quedan delante del cuerpo.
+Sale con otro click sobre el elemento, con un click afuera o al moverse.
+
+| Campo    | Tipo         | Obligatorio | Descripción                                            |
+|----------|--------------|-------------|--------------------------------------------------------|
+| `rows`   | `[int, int]` | sí          | Filas de la pieza (inclusive, desde 0) que van adelante |
+| `lie`    | `[int, int]` | sí          | Celda lógica donde queda el jugador `[col, fila]` (dentro de `at`/`span`) |
+| `facing` | string       | sí          | Pose del jugador: `front`, `back`, `left`, `right`      |
+
+Otra cama (o cualquier mueble donde meterse) = otra entrada de elemento
+con su `enter`: sin código nuevo.
+
 ---
 
 ## 4. Ejemplo completo: el dormitorio
@@ -128,6 +163,7 @@ cell  = [16, 16]
 floor_color = [0, 0, 0, 255]
 grid        = [30, 20]
 scale       = 2
+sounds      = ["chicken_cluck"]
 
   # Piso: bloque lógico de 2x2 celdas desde (col 0, fila 27), en mosaico.
   [[rooms.bedroom.elements]]

@@ -21,11 +21,9 @@ constexpr const char* kDrawn = "drawn";
 constexpr const char* kCadence = "cadence";
 constexpr const char* kStep = "step";
 constexpr const char* kMirrored = "mirrored";
-
-// Nombres de acción en el TOML.
-constexpr const char* kIdle = "idle";
-constexpr const char* kWalk = "walk";
-constexpr const char* kUseTool = "use_tool";
+constexpr const char* kHold = "hold";
+constexpr const char* kOffsetY = "offset_y";
+constexpr const char* kScale = "scale";
 
 // Criatura lógica -> tabla del TOML que la describe.
 struct CreatureBinding {
@@ -33,8 +31,10 @@ struct CreatureBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<CreatureBinding, 1> kCreatureBindings = {{
+constexpr std::array<CreatureBinding, 3> kCreatureBindings = {{
 	{CreatureKind::Player, "characters.player"},
+	{CreatureKind::Chicken, "characters.chicken"},
+	{CreatureKind::Cow, "characters.cow"},
 }};
 
 }
@@ -52,14 +52,6 @@ std::string CharacterTomlReader::idx(const std::string& base,
 	return base + "[" + std::to_string(i) + "]";
 }
 
-std::map<std::string, ActionKind> CharacterTomlReader::actionNames() const {
-	return {
-		{kIdle, ActionKind::Idle},
-		{kWalk, ActionKind::Walk},
-		{kUseTool, ActionKind::UseTool},
-	};
-}
-
 LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 					  std::size_t layerIdx) const {
 	const std::string cellPath = idx(posePath, layerIdx);
@@ -69,7 +61,7 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 		requireNonNegative(a[0], cellPath);
 		requireNonNegative(a[1], cellPath);
 		return LayerFrame{static_cast<Layer>(layerIdx),
-				  FrameIndex{a[0], a[1]}, 1, 1};
+				  SheetCell{a[0], a[1]}, 1, 1};
 	}
 	if (n == 4) {
 		const std::array<int, 4> a = doc_.getIntArray<4>(cellPath);
@@ -78,7 +70,7 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 		requirePositive(a[2], cellPath);
 		requirePositive(a[3], cellPath);
 		return LayerFrame{static_cast<Layer>(layerIdx),
-				  FrameIndex{a[0], a[1]}, a[2], a[3]};
+				  SheetCell{a[0], a[1]}, a[2], a[3]};
 	}
 	throw ConfigError(Kind::InvalidValue, cellPath);
 }
@@ -126,7 +118,7 @@ ActionData CharacterTomlReader::readAction(const std::string& actionPath,
 std::map<ActionKind, ActionData> CharacterTomlReader::readActions(
 	const std::string& dirBase, int defaultFrameTicks) const {
 	std::map<ActionKind, ActionData> actions;
-	for (const auto& [name, kind] : actionNames()) {
+	for (const auto& [name, kind] : actionNames_.entries()) {
 		const std::string actionPath = join(dirBase, name);
 		if (doc_.hasKey(actionPath)) {
 			actions.emplace(
@@ -169,8 +161,33 @@ CharacterCatalog::CreatureEntry CharacterTomlReader::readCreature(
 	entry.drawnHeight = drawn[1];
 
 	entry.data.cadence = readCadence(base);
+	entry.data.hold = readHold(base);
 	entry.data.directions = readDirections(base, entry.data.cadence);
 	return entry;
+}
+
+HoldPresentation CharacterTomlReader::readHold(const std::string& base) const {
+	HoldPresentation hold;
+	const std::string holdBase = join(base, kHold);
+	if (!doc_.hasKey(holdBase)) {
+		return hold;
+	}
+	const std::string offsetPath = join(holdBase, kOffsetY);
+	if (doc_.hasKey(offsetPath)) {
+		// Con signo (como los offsets de tools_overlay.toml):
+		// positivo separa el ítem sobre la cabeza; negativo lo baja
+		// y pisa la cabeza. Es puro ajuste visual.
+		hold.offsetY = doc_.getInt(offsetPath);
+	}
+	const std::string scalePath = join(holdBase, kScale);
+	if (doc_.hasKey(scalePath)) {
+		const double scale = doc_.getDouble(scalePath);
+		if (scale <= 0.0) {
+			throw ConfigError(Kind::InvalidValue, scalePath);
+		}
+		hold.scale = scale;
+	}
+	return hold;
 }
 
 MoveCadence CharacterTomlReader::readCadence(const std::string& base) const {
@@ -197,18 +214,21 @@ CharacterTomlReader::readDirections(const std::string& base,
 		if (directions[i].actions.find(ActionKind::Idle) ==
 		    directions[i].actions.end()) {
 			throw ConfigError(Kind::MissingStructure,
-					  join(dirBase, kIdle));
+					  join(dirBase, *actionNames_.nameFor(
+								ActionKind::Idle)));
 		}
 		const auto walk = directions[i].actions.find(ActionKind::Walk);
 		if (walk == directions[i].actions.end()) {
 			throw ConfigError(Kind::MissingStructure,
-					  join(dirBase, kWalk));
+					  join(dirBase, *actionNames_.nameFor(
+								ActionKind::Walk)));
 		}
 		const int frames =
 			static_cast<int>(walk->second.frames.size());
 		if (cadence.stepTicks != walk->second.frameTicks * frames) {
 			throw ConfigError(Kind::InvalidValue,
-					  join(dirBase, kWalk));
+					  join(dirBase, *actionNames_.nameFor(
+								ActionKind::Walk)));
 		}
 	}
 	return directions;

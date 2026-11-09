@@ -1,17 +1,35 @@
 #include "game/NetworkGameClient.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
 #include <exception>
 #include <map>
 #include <optional>
+#include <variant>
 
 #include <sys/socket.h>
 
+#include "game/GameConstants.h"
 #include "world/CreatureCatalog.h"
 #include "world/ResourceCatalog.h"
 
 namespace game {
 
 namespace {
+
+// Vocabulario compartido con el servidor (characters.toml).
+std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) {
+    static const std::map<std::string, world::CreatureKind> kinds = {
+            {"chicken", world::CreatureKind::Chicken},
+            {"cow", world::CreatureKind::Cow},
+    };
+    const auto it = kinds.find(kind);
+    if (it == kinds.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
 
 // Vocabulario compartido con el servidor (inventory.toml y resources.toml).
 std::optional<world::ResourceKind> resourceKindFor(const std::string& contentId) {
@@ -40,14 +58,16 @@ world::ResourceState resourceStateFor(ResourceDamage damage) {
 
 }  // namespace
 
-NetworkGameClient::NetworkGameClient(const char* host, const char* port, int toolUseDurationTicks):
-        socket_(host, port),
+NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
+                                     const world::CharacterCatalog& characters):
+        socket_(std::move(socket)),
         sender_(socket_),
         receiver_(socket_),
         clientSender_(sender_, commands_),
         clientReceiver_(receiver_, messages_),
         localPlayerId_(receiver_.receive_welcome().player_id),
-        toolUseDurationTicks_(toolUseDurationTicks > 0 ? toolUseDurationTicks : 1) {
+        toolUseDurationTicks_(toolUseDurationTicks > 0 ? toolUseDurationTicks : 1),
+        characters_(&characters) {
     clientSender_.start();
     clientReceiver_.start();
 }
@@ -62,10 +82,98 @@ NetworkGameClient::~NetworkGameClient() {
 }
 
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
+    if (std::holds_alternative<protocol::TakeMessage>(message)) {
+        // Orden del mock: primero los animales (ordeño), después el piso (recogida).
+        startMilking();
+        startPickup();
+    }
     commands_.push(message);
 }
 
+void NetworkGameClient::startMilking() {
+    const auto player = players_.find(localPlayerId_);
+    if (session_.active() || player == players_.end()) {
+        return;
+    }
+    const RemotePlayer& self = player->second;
+    for (const auto& [id, animal]: animals_) {
+        // Lista para ordeñar = con indicación (la fuente la pone solo a las listas).
+        if (!animal.indication.has_value() || std::abs(animal.cellX - self.cellX) > 1 ||
+            std::abs(animal.cellY - self.cellY) > 1) {
+            continue;
+        }
+        InteractionTarget target;
+        target.action = world::ActionKind::Milk;
+        target.cycles = kDefaultMilkCycles;
+        target.targetId = id;
+        target.cellX = animal.cellX;
+        target.cellY = animal.cellY;
+        session_.start(target, self.cellX, self.cellY,
+                       characters_->dataFor(world::CreatureKind::Player));
+        return;
+    }
+}
+
+void NetworkGameClient::startPickup() {
+    if (session_.active()) {
+        return;  // ya hay una interacción abierta (el ordeño va primero)
+    }
+    const auto player = players_.find(localPlayerId_);
+    if (player == players_.end()) {
+        return;
+    }
+    const RemotePlayer& self = player->second;
+    for (std::size_t i = 0; i < dropped_.size(); ++i) {
+        const ViewDroppedItem& item = dropped_[i];
+        // Mismo alcance que el servidor: World::take_item levanta el huevo de las
+        // 8 vecinas.
+        if (!item.interactive || std::abs(item.cellX - self.cellX) > 1 ||
+            std::abs(item.cellY - self.cellY) > 1) {
+            continue;
+        }
+        InteractionTarget target;
+        target.action = world::ActionKind::Pickup;
+        target.cycles = kPickupCycles;
+        // La recompensa la entrega el servidor (ServerObtained + el slot), por
+        // eso esta sesión no llama mergeRewards: acá solo se anima.
+        target.reward = item.contentId;
+        target.heldContent = item.contentId;
+        target.targetId = static_cast<int>(i);
+        target.cellX = item.cellX;
+        target.cellY = item.cellY;
+        session_.start(target, self.cellX, self.cellY,
+                       characters_->dataFor(world::CreatureKind::Player));
+        return;
+    }
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
+    if (std::holds_alternative<ServerReset>(message)) {
+        // Cada lote describe el estado completo: lo que no vuelve ya no existe.
+        // players_ no se borra porque ServerStatus reescribe todas las
+        // posiciones y ServerLeave ya borra a quien se fue.
+        resources_.clear();
+        dropped_.clear();
+        inventory_.clear();
+        animals_.clear();
+        return;
+    }
+    if (const auto* animal = std::get_if<ServerAnimal>(&message)) {
+        const std::optional<world::CreatureKind> kind = creatureKindFor(animal->kind);
+        if (kind.has_value()) {
+            ViewEntity entity{kind.value(), animal->x,
+                              animal->y,    world::viewDirectionFrom(animal->direction),
+                              false,        world::ActionKind::Idle,
+                              std::nullopt};
+            entity.id = animal->id;
+            entity.interactive = true;
+            if (animal->ready_to_milk) {
+                entity.indication = world::Indication::ReadyToMilk;
+            }
+            animals_[animal->id] = entity;
+        }
+        return;
+    }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
         return;
@@ -76,6 +184,27 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         player.cellX = status->x;
         player.cellY = status->y;
         player.facing = world::viewDirectionFrom(status->direction);
+        return;
+    }
+    if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
+        view_.sleep = ViewSleep{sleep->sleeping, sleep->total};
+        return;
+    }
+    if (std::holds_alternative<ServerDayEnd>(message)) {
+        view_.dayEnded = true;
+        return;
+    }
+    if (std::holds_alternative<ServerDay>(message)) {
+        view_.dayChanged = true;
+        return;
+    }
+    if (const auto* sleepers = std::get_if<ServerSleepingPlayers>(&message)) {
+        sleepers_ = sleepers->players;
+        return;
+    }
+    if (const auto* clock = std::get_if<ServerClock>(&message)) {
+        view_.dayNumber = clock->day;
+        view_.clockMinutes = clock->minutes;
         return;
     }
     if (const auto* hit = std::get_if<ServerResourceHit>(&message)) {
@@ -90,17 +219,9 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         }
         return;
     }
-    if (const auto* removed = std::get_if<ServerResourceRemoved>(&message)) {
-        resources_.erase({removed->x, removed->y});
-        return;
-    }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
-        dropped_[{dropped->x, dropped->y}] =
-                ViewDroppedItem{dropped->content_id, dropped->x, dropped->y};
-        return;
-    }
-    if (const auto* removed = std::get_if<ServerDroppedRemoved>(&message)) {
-        dropped_.erase({removed->x, removed->y});
+        const ServerDropped& drop = *dropped;
+        dropped_.push_back(ViewDroppedItem{drop.content_id, drop.x, drop.y, drop.interactive});
         return;
     }
     if (const auto* slot = std::get_if<ServerInventorySlot>(&message)) {
@@ -112,10 +233,9 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         return;
     }
     if (const auto* obtained = std::get_if<ServerObtained>(&message)) {
-        const std::optional<world::ResourceKind> kind = resourceKindFor(obtained->content_id);
-        if (kind.has_value()) {
-            obtained_.push_back(ViewResourceObtained{kind.value()});
-        }
+        // El evento de obtención viaja por content_id (vocabulario
+        // genérico): el view lo refleja tal cual.
+        obtained_.push_back(ViewObtained{obtained->content_id});
         return;
     }
     if (const auto* used = std::get_if<ServerToolUsed>(&message)) {
@@ -126,8 +246,10 @@ void NetworkGameClient::apply(const ServerMessage& message) {
     }
 }
 
-void NetworkGameClient::update() {
+void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
+    view_.dayEnded = false;
+    view_.dayChanged = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -151,6 +273,7 @@ void NetworkGameClient::update() {
                           player.moving,
                           player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
                           std::nullopt};
+        entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = world::ItemKind::Pickaxe;
@@ -166,9 +289,13 @@ void NetworkGameClient::update() {
     for (const auto& [cell, resource]: resources_) {
         view_.resources.push_back(resource);
     }
-    view_.droppedItems.clear();
-    for (const auto& [cell, dropped]: dropped_) {
-        view_.droppedItems.push_back(dropped);
+    view_.droppedItems = dropped_;
+    for (const auto& entry: animals_) {
+        view_.entities.push_back(entry.second);
+    }
+    session_.advance();
+    if (!view_.entities.empty()) {
+        session_.mergePlayer(view_.entities[0]);
     }
     view_.inventory.clear();
     for (const auto& [index, slot]: inventory_) {
@@ -179,5 +306,9 @@ void NetworkGameClient::update() {
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }
+
+bool NetworkGameClient::connected() const {
+    return !clientSender_.failed() && !clientReceiver_.failed();
+}
 
 }  // namespace game

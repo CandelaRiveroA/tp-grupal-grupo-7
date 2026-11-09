@@ -1,21 +1,21 @@
 #include "client_handler.h"
 
 #include <exception>
+#include <string>
 #include <utility>
 
 #include <sys/socket.h>
 
-ClientHandler::ClientHandler(Socket&& client_socket, uint8_t player_id, Queue<MatchEvent>& events,
+ClientHandler::ClientHandler(Socket&& client_socket, MatchesMonitor& matches,
                              ServerOutputMonitor& output):
         peer(std::move(client_socket)),
-        player_id(player_id),
-        events(events),
+        matches(matches),
         output(output),
         statuses(std::make_shared<Queue<ServerMessage>>()),
         protocol_sender(peer),
         protocol_receiver(peer),
-        receiver(protocol_receiver, events, player_id),
-        sender(protocol_sender, *statuses) {}
+        sender(protocol_sender, *statuses),
+        peer_closed(false) {}
 
 void ClientHandler::reportFailure(const Worker& worker) {
     if (!worker.failed() || !should_keep_running()) {
@@ -29,25 +29,41 @@ void ClientHandler::reportFailure(const Worker& worker) {
 }
 
 void ClientHandler::run() {
+    serve();
+    peer.close();
+}
+
+void ClientHandler::serve() {
+    std::string codeMatch;
+    MatchSeat seat{LobbyStatus::Invalid, 0, nullptr};
     try {
-        protocol_sender.send_welcome(ServerWelcome{player_id});
-        events.push(MatchEvent(PlayerJoined{player_id, statuses}));
+        const MatchRequest request = protocol_receiver.receive_match_request();
+        codeMatch = request.codeMatch;
+        seat = request.type == MatchRequestType::Create ?
+                       matches.create(codeMatch, request.username, request.characterName,
+                                      statuses) :
+                       matches.join(codeMatch, request.username, request.characterName, statuses);
+        protocol_sender.send_lobby_status(seat.status);
+        if (seat.status != LobbyStatus::Ok) {
+            return;
+        }
+        protocol_sender.send_welcome(ServerWelcome{seat.player_id});
     } catch (const std::exception& error) {
+        if (seat.status == LobbyStatus::Ok) {
+            matches.leave(codeMatch, seat.player_id);
+        }
         if (should_keep_running()) {
             output.printError("Error iniciando cliente: ", error.what());
         }
         return;
     }
 
+    ServerReceiver receiver(protocol_receiver, *seat.events, seat.player_id);
     sender.start();
     receiver.start();
     receiver.join();
 
-    try {
-        events.push(MatchEvent(PlayerLeft{player_id}));
-    } catch (const ClosedQueue&) {
-        statuses->close();
-    }
+    matches.leave(codeMatch, seat.player_id);
 
     sender.join();
 
@@ -58,7 +74,7 @@ void ClientHandler::run() {
 void ClientHandler::stop() {
     Thread::stop();
     try {
-        peer.shutdown(SHUT_RD);
+        peer.shutdown(SHUT_RDWR);
     } catch (const std::exception&) {
         // El cliente ya se desconecto por su lado.
     }

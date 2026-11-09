@@ -10,5 +10,6 @@ struct CharacterAppearance {
 	std::uint8_t hairColor = 0;
 	std::uint8_t shirt = 0;
 	std::uint8_t pants = 0;
+	std::uint8_t pantsColor = 0;
 	std::uint8_t accessory = 0;
 };

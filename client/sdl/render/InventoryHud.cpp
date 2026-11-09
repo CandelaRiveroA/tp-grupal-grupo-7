@@ -1,5 +1,6 @@
 #include "sdl/render/InventoryHud.h"
 
+#include <algorithm>
 #include <vector>
 
 #include "core/Constants.h"
@@ -58,36 +59,58 @@ void InventoryHud::draw(
 		}
 	}
 
-	if (layout_.activeSlotFrame.enabled) {
-		const int clampedSlot =
-			(activeSlot >= 0 && activeSlot < static_cast<int>(boxes.size()))
-				? activeSlot
-				: 0;
-		const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
-		drawFrame(layout_.activeSlotFrameLayout(
-				  boxes[static_cast<std::size_t>(clampedSlot)]),
-			  drawEdges);
-	}
-
 	const int slots = static_cast<int>(boxes.size());
+
+	if (layout_.activeSlotFrame.enabled && activeSlot >= 0 &&
+	    activeSlot < slots) {
+		// El marco marca un slot CON contenido: la selección nunca
+		// se dibuja sobre un cuadro vacío. Qué hay es estado (la
+		// vista); esto solo dibuja lo que la vista indica.
+		const bool occupied = std::any_of(
+			inventory.begin(), inventory.end(),
+			[&](const game::ViewInventorySlot& entry) {
+				return entry.slotIndex == activeSlot;
+			});
+		if (occupied) {
+			const bool drawEdges = !layout_.activeSlotFrame.cornersOnly;
+			drawFrame(layout_.activeSlotFrameLayout(
+					  boxes[static_cast<std::size_t>(activeSlot)]),
+				  drawEdges);
+		}
+	}
 	for (const game::ViewInventorySlot& entry : inventory) {
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
 		}
-		if (!layout_.content.has(entry.contentId)) {
+		const world::SpriteVisual* visual =
+			layout_.content.find(entry.contentId);
+		if (visual == nullptr) {
 			continue;
 		}
-		const world::ItemVisual& visual =
-			layout_.content.visualFor(entry.contentId);
 		SpriteSheet& itemSheet = itemSheets_.sheet(
-			visual.sheetImage, core::assetPath(visual.sheetImage),
-			visual.cellWidth, visual.cellHeight);
+			visual->sheetImage,
+			core::assetPath(visual->sheetImage),
+			visual->cellWidth, visual->cellHeight);
 		const world::PixelBox& slotBox =
 			boxes[static_cast<std::size_t>(entry.slotIndex)];
 		const world::PixelBox icon = layout_.iconBox(slotBox);
-		itemSheet.draw(visual.col, visual.row,
-			       SDL2pp::Rect(icon.x, icon.y, icon.width,
-					    icon.height));
+		// Tamaño en la celda: el `slot_drawn` del ítem si lo declara,
+		// si no el `drawn` del sprite (centrado), si no la caja
+		// entera (los de celda 16x16, por ejemplo).
+		int drawW = icon.width;
+		int drawH = icon.height;
+		const auto slotIt = layout_.slotDrawn.find(entry.contentId);
+		if (slotIt != layout_.slotDrawn.end()) {
+			drawW = slotIt->second.width;
+			drawH = slotIt->second.height;
+		} else if (visual->drawnWidth > 0 && visual->drawnHeight > 0) {
+			drawW = visual->displayWidth();
+			drawH = visual->displayHeight();
+		}
+		itemSheet.draw(visual->col, visual->row,
+			       SDL2pp::Rect(icon.x + (icon.width - drawW) / 2,
+					    icon.y + (icon.height - drawH) / 2,
+					    drawW, drawH));
 		// Cantidad: solo se dibuja si hay más de 1.
 		if (entry.count > 1) {
 			drawCount(slotBox, entry.count);
@@ -95,20 +118,33 @@ void InventoryHud::draw(
 	}
 }
 
+void InventoryHud::drawPanel(const world::PixelBox& box, const int columns,
+			     const int rows) {
+	// La figura del inventario "vacía": los cuadros de los slots (el
+	// fondo del panel, en grilla columns×rows) y, encima, el marco.
+	// Sin el borde interior de cada slot (la profundidad) y sin ítems.
+	for (const world::PixelBox& slot : layout_.slotBoxes(box, columns,
+								rows)) {
+		sheet_.draw(layout_.slotCol, layout_.slotRow,
+			    SDL2pp::Rect(slot.x, slot.y, slot.width,
+					 slot.height));
+	}
+	if (layout_.frame.enabled) {
+		drawFrame(layout_.frameLayout(box));
+	}
+}
+
 void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 	const std::vector<int> digits = world::digitsOf(count);
 	const std::vector<world::PixelBox> boxes =
 		layout_.countBoxes(slot, static_cast<int>(digits.size()));
-	// Los dígitos de la hoja son claros; se tiñen de negro al dibujarlos.
-	digitSheet_.setColorMod(0, 0, 0);
 	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
-		const world::DigitCell& cell = digits_.cellFor(digits[i]);
+		const world::SheetCell& cell = digits_.cellFor(digits[i]);
 		const world::PixelBox& box = boxes[i];
 		digitSheet_.draw(cell.col, cell.row,
 				 SDL2pp::Rect(box.x, box.y, box.width,
 					      box.height));
 	}
-	digitSheet_.clearColorMod();
 }
 
 }

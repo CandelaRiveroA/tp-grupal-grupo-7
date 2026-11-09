@@ -22,6 +22,11 @@ public:
 	void draw(const std::vector<game::ViewInventorySlot>& inventory,
 		  int activeSlot);
 
+	// La figura del inventario "vacía" en la caja pedida: los cuadros
+	// de los slots (el fondo del panel, en grilla columns×rows) y el
+	// marco. Sin slots ni herramientas.
+	void drawPanel(const world::PixelBox& box, int columns, int rows);
+
 private:
 	void drawFrame(const world::FrameLayout& fl, bool drawEdges = true);
 

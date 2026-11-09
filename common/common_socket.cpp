@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -413,6 +414,16 @@ Socket Socket::accept() {
      * Por eso creamos un `Socket` y lo pasamos por movimiento
      * */
     return Socket(peer_skt);
+}
+
+void Socket::set_receive_timeout(int seconds) {
+    chk_skt_or_fail();
+    struct timeval timeout {
+        seconds, 0
+    };
+    if (setsockopt(this->skt, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        throw LibError(errno, "socket set receive timeout failed");
+    }
 }
 
 void Socket::shutdown(int how) {

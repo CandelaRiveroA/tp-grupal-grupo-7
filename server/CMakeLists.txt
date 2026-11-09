@@ -5,6 +5,7 @@ target_sources(taller_server
     server.cpp
     acceptor.cpp
     client_handler.cpp
+    matches_monitor.cpp
     server_sender.cpp
     server_receiver.cpp
     match.cpp
@@ -12,15 +13,22 @@ target_sources(taller_server
     commands/move_command.cpp
     commands/pick_command.cpp
     commands/take_command.cpp
+    commands/sleep_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
     domain/entities/i_entity.cpp
     domain/entities/player.cpp
     domain/entities/dropped_item.cpp
+    domain/animals/animal.cpp
+    domain/animals/chicken.cpp
+    domain/animals/cow.cpp
+    domain/furniture/furniture.cpp
+    domain/furniture/bed.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp
+    domain/inventory/decoration_item.cpp
     domain/inventory/slot.cpp
     domain/minerals/mineral.cpp
     domain/minerals/coal_rock.cpp
@@ -32,6 +40,7 @@ target_sources(taller_server
     server.h
     acceptor.h
     client_handler.h
+    matches_monitor.h
     server_sender.h
     server_receiver.h
     match.h

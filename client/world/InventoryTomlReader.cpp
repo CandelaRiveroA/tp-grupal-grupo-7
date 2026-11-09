@@ -1,6 +1,7 @@
 #include "world/InventoryTomlReader.h"
 
 #include <array>
+#include <utility>
 #include <vector>
 
 #include "world/ConfigError.h"
@@ -43,12 +44,14 @@ constexpr const char* kRight = "right";
 constexpr const char* kAnchorBottomCenter = "bottom_center";
 
 constexpr const char* kItems = "items";
-constexpr const char* kItemSheet = "sheet";
-constexpr const char* kItemCell = "cell";
 constexpr const char* kItemAt = "at";
+constexpr const char* kSlotDrawn = "slot_drawn";
+constexpr const char* kDroppable = "droppable";
 
 constexpr const char* kBarDigitScale = "bar.digit_scale";
 constexpr const char* kBarDigitMargin = "bar.digit_margin";
+constexpr const char* kBarDigitMarginX = "bar.digit_margin_x";
+constexpr const char* kBarDigitGap = "bar.digit_gap";
 
 }
 
@@ -113,9 +116,19 @@ InventoryLayout InventoryTomlReader::read() const {
 
 	if (doc_.hasKey(kBarDigitMargin)) {
 		layout.digitMargin = doc_.getInt(kBarDigitMargin);
-		if (layout.digitMargin < 0) {
-			throw ConfigError(Kind::InvalidValue, kBarDigitMargin);
-		}
+	}
+
+	// digit_margin_x: margen solo para el eje X, admite negativos para
+	// empujar el número hacia afuera del borde derecho del slot.
+	// Si no se declara, countBoxes usa digitMargin como fallback.
+	if (doc_.hasKey(kBarDigitMarginX)) {
+		layout.digitMarginX = doc_.getInt(kBarDigitMarginX);
+	}
+
+	// digit_gap: separación extra entre dígitos (admite negativos para
+	// solapar y compensar el padding interno del sprite).
+	if (doc_.hasKey(kBarDigitGap)) {
+		layout.digitGap = doc_.getInt(kBarDigitGap);
 	}
 
 	if (doc_.hasKey(kFrame)) {
@@ -131,33 +144,40 @@ InventoryLayout InventoryTomlReader::read() const {
 	}
 
 	if (doc_.hasKey(kItems)) {
-		readItems(layout.content);
+		readItems(layout);
 	}
 
 	return layout;
 }
 
-void InventoryTomlReader::readItems(world::ContentCatalog& catalog) const {
+void InventoryTomlReader::readItems(world::InventoryLayout& layout) const {
 	const std::vector<std::string> names = doc_.subtableKeys(kItems);
 	for (const std::string& name : names) {
 		const std::string base = join(kItems, name);
-		world::ItemVisual visual;
-		visual.sheetImage = doc_.getString(join(base, kItemSheet));
-		const std::array<int, 2> cell =
-			doc_.getIntArray<2>(join(base, kItemCell));
-		visual.cellWidth = cell[0];
-		visual.cellHeight = cell[1];
-		const std::array<int, 2> at =
-			doc_.getIntArray<2>(join(base, kItemAt));
-		visual.col = at[0];
-		visual.row = at[1];
-		if (visual.cellWidth <= 0 || visual.cellHeight <= 0 ||
-		    visual.col < 0 || visual.row < 0) {
-			throw ConfigError(Kind::InvalidValue, base);
-		}
 		// contentId = nombre de la subtabla. No se traduce a ningún
-		// enum: el inventario es genérico.
-		catalog.visuals.emplace(name, visual);
+		// enum: el inventario es genérico. El sprite se lee completo
+		// con el lector compartido (sheet/cell/at/drawn).
+		layout.content.visuals.emplace(
+			name, world::SpriteVisual(doc_, base, kItemAt));
+		// droppable (opcional, default false): rasgo del contenido
+		// (¿se puede soltar del inventario?). Vive en la tabla de
+		// rasgos, no en la apariencia.
+		const std::string droppablePath = join(base, kDroppable);
+		layout.traits.set(name,
+				  world::ContentTrait{doc_.hasKey(droppablePath) &&
+						      doc_.getBool(
+							      droppablePath)});
+		// slot_drawn (opcional): el tamaño en la celda del
+		// inventario, que puede diferir del `drawn` del mapa.
+		const std::string slotPath = join(base, kSlotDrawn);
+		if (doc_.hasKey(slotPath)) {
+			const std::array<int, 2> size =
+				doc_.getIntArray<2>(slotPath);
+			if (size[0] <= 0 || size[1] <= 0) {
+				throw ConfigError(Kind::InvalidValue, slotPath);
+			}
+			layout.slotDrawn.emplace(name, PixelSize{size[0], size[1]});
+		}
 	}
 }
 
@@ -206,11 +226,7 @@ std::string InventoryTomlReader::join(const std::string& section,
 }
 
 SheetCell InventoryTomlReader::readCell(const std::string& key) const {
-	const std::array<int, 2> cell = doc_.getIntArray<2>(key);
-	if (cell[0] < 0 || cell[1] < 0) {
-		throw ConfigError(Kind::InvalidValue, key);
-	}
-	return SheetCell{cell[0], cell[1]};
+	return SheetCell(doc_, key);
 }
 
 InventoryAnchor InventoryTomlReader::parseAnchor(

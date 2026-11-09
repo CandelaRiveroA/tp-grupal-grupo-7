@@ -175,7 +175,44 @@ del borde interno también escala con `ui_scale`, así el conjunto completo
 
 ---
 
-## 6. Cómo cambiar la barra
+## 6. Catálogo visual de ítems (`[items.*]`)
+
+Mapea cada ítem LÓGICO (lo que el servidor pone en el inventario o en el
+suelo) a su APARIENCIA. El cliente resuelve cómo se ve acá, sin
+hardcodear. Agregar un ítem = una subtabla más + una fila en la tabla
+`kItemKinds` del reader (`world/InventoryTomlReader.cpp`).
+
+```toml
+[items.egg]
+sheet = "Farm/egg.png"
+cell  = [10, 11]
+at    = [0, 0]
+drawn = [15, 16]
+```
+
+| Campo   | Tipo         | Obligatorio | Descripción                                        |
+|---------|--------------|-------------|----------------------------------------------------|
+| `sheet` | string       | sí          | Hoja del ítem (puede ser distinta por ítem)        |
+| `cell`  | `[int, int]` | sí          | Tamaño de celda de ESA hoja (px), `> 0`            |
+| `at`    | `[int, int]` | sí          | Celda `[columna, fila]` del ítem en la hoja        |
+| `drawn` | `[int, int]` | no          | Tamaño del ítem DIBUJADO EN EL MAPA (`> 0` si está) |
+
+- El sprite puede ser una hoja de una sola celda: el huevo
+  (`Farm/egg.png`) es una imagen única de 10×11 px, no una grilla — su
+  `cell` es el tamaño completo de la imagen y `at` es `[0, 0]`.
+- `drawn` solo importa para los **ítems en el suelo** (ver
+  `animals-entry-point.md`): el nativo puede quedar chico dentro de una
+  celda del mapa. Sin `drawn`, el ítem del suelo se dibuja a tamaño
+  nativo. El **ícono del inventario NO usa `drawn`**: escala al slot
+  como los demás.
+- El catálogo lo consumen **dos lugares**: `sdl::InventoryHud` (los
+  íconos de los slots) y `sdl::Renderer` (los ítems del suelo). Una sola
+  fuente de datos para los dos.
+- Un ítem sin entrada acá se **ignora** en ambos lugares (sin error).
+
+---
+
+## 7. Cómo cambiar la barra
 
 - **Mover o reescalar:** editá `scale`, `margin` o `anchor` en `[bar]`.
 - **Achicar/agrandar todo junto:** cambiá `ui_scale` en `[bar]`.

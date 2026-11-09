@@ -246,7 +246,7 @@ TEST(InventoryCountTest, EmptyWhenNoDigits) {
 	EXPECT_TRUE(bar.countBoxes(slot, 0).empty());
 }
 
-TEST(InventoryCountTest, SingleDigitTopRightInsideSlot) {
+TEST(InventoryCountTest, SingleDigitBottomRightInsideSlot) {
 	world::InventoryLayout bar = makeBar();
 	bar.digitScale = 0.33;
 	bar.digitMargin = 2;
@@ -254,11 +254,12 @@ TEST(InventoryCountTest, SingleDigitTopRightInsideSlot) {
 	const std::vector<world::PixelBox> boxes = bar.countBoxes(slot, 1);
 	ASSERT_EQ(boxes.size(), 1u);
 	const int digit = 21;  // round(64*0.33)
-	// Pegado arriba-derecha: x = slot derecha - margin - digit.
+	// Pegado abajo-derecha: x = slot derecha - margin - digit,
+	// y = slot abajo - margin - digit.
 	EXPECT_EQ(boxes[0].width, digit);
 	EXPECT_EQ(boxes[0].height, digit);
 	EXPECT_EQ(boxes[0].x, 100 + 64 - 2 - digit);
-	EXPECT_EQ(boxes[0].y, 102);
+	EXPECT_EQ(boxes[0].y, 100 + 64 - 2 - digit);
 	// Contenido dentro del slot.
 	EXPECT_GE(boxes[0].x, slot.x);
 	EXPECT_LE(boxes[0].x + boxes[0].width, slot.x + slot.width);

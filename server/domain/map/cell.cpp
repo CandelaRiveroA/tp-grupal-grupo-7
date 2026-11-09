@@ -22,6 +22,10 @@ bool Cell::is_soil_watered() const {
     return this->soil_state == SoilState::WATERED;
 }
 
+void Cell::reset_soil() {
+    this->soil_state = SoilState::NORMAL;
+}
+
 void Cell::till_soil() {
     if (this->soil_state == SoilState::NORMAL) {
         this->soil_state = SoilState::TILLED;

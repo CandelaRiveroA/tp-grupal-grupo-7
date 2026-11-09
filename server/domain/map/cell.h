@@ -31,6 +31,7 @@ struct Cell {
     bool is_soil_tilled() const;
     bool is_soil_watered() const;
 
+    void reset_soil();
     void till_soil();
     void water_soil();
     void dry_soil();

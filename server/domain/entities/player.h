@@ -36,6 +36,8 @@ public:
     // Movimiento y orientación
     void set_facing(Direction dir);
     std::pair<uint16_t, uint16_t> get_target_tile() const;
+    void consume_equipped_item();
+    const Item* peek_equipped_item() const;
 
     // Interacción con herramientas e inventario
     void select_slot(uint8_t slot_idx);

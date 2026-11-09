@@ -27,6 +27,7 @@ public:
     const Item* peek_item(uint8_t index) const;
     uint8_t get_amount(uint8_t index) const;
     uint8_t get_max_slots() const;
+    void consume_item(uint8_t slot_idx);
 };
 
 #endif  // INVENTORY_H

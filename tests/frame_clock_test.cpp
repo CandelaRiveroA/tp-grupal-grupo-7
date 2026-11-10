@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#include "sdl/loop/FrameClock.h"
+#include "../common/common_frame_clock.h"
 
 namespace {
 

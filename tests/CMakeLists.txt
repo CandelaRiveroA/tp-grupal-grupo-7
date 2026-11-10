@@ -23,7 +23,10 @@ target_sources(taller_tests
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp
     ../server/domain/minerals/silver_rock.cpp
-    ../server/domain/minerals/gold_rock.cpp    
+    ../server/domain/minerals/gold_rock.cpp
+    ../server/domain/crops/crop.cpp
+    ../server/domain/crops/strawberry.cpp
+    ../server/domain/crops/green_onion.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
@@ -52,6 +55,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
+    farming_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

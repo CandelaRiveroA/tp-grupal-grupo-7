@@ -14,6 +14,7 @@
 #include "common_queue.h"
 #include "common_server_status.h"
 #include "common_worker.h"
+#include "common/model/draft/CharacterAppearance.h"
 #include "server_output_monitor.h"
 #include "world_view.h"
 
@@ -25,6 +26,8 @@ struct PlayerMessage {
 struct PlayerJoined {
     uint8_t player_id;
     std::shared_ptr<Queue<ServerMessage>> statuses;
+    // Personalizacion del personaje que mando al entrar (MatchRequest).
+    CharacterAppearance appearance;
 };
 
 struct PlayerLeft {

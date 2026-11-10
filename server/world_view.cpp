@@ -17,6 +17,12 @@ std::string content_id_for(ItemID id) {
             {ItemID::COAL_ORB, "coal"},
             {ItemID::LAPIS_ORB, "lapis"},
             {ItemID::GOLD_ORB, "gold"},
+            {ItemID::ROCK, "rock"},
+            {ItemID::ROCK_2, "rock_2"},
+            {ItemID::ROCK_3, "rock_3"},
+            {ItemID::ROCK_4, "rock_4"},
+            {ItemID::ROCK_5, "rock_5"},
+            {ItemID::ROCK_6, "rock_6"},
             {ItemID::EGG, "egg"},
             {ItemID::MILK, "milk"},
             {ItemID::BED, "bed"}};
@@ -45,7 +51,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
 
     for (const uint8_t id: world.get_player_ids()) {
         const Player& player = world.get_player(id);
-        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing()));
+        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
+                                   player.get_appearance()));
     }
 
     for (uint16_t y = 0; y < world.get_height(); ++y) {
@@ -85,5 +92,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               content_id_for(item->get_id())});
         }
     }
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
+    out.push_back(ServerSyncEnd{});
     return out;
 }

@@ -23,6 +23,8 @@ private:
     uint8_t receive_uint8();
     uint16_t receive_uint16();
     std::string receive_string();
+    // Inverso de ProtocolSender::send_appearance: mismo orden, 8 bytes.
+    CharacterAppearance receive_appearance();
     protocol::ClientMessage receive_move_message();
     protocol::ClientMessage receive_pick_message();
     protocol::ClientMessage receive_take_message();
@@ -37,6 +39,7 @@ private:
     ServerMessage receive_tool_used_message();
     ServerMessage receive_resource_hit_message();
     ServerMessage receive_reset_message();
+    ServerMessage receive_sync_end_message();
     ServerMessage receive_animal_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();

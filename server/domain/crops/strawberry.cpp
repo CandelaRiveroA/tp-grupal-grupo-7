@@ -12,7 +12,7 @@ void Strawberry::harvest(World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);
     
     // 2. Instanciamos el DroppedItem en el mapa (Mismo patrón que el huevo)[cite: 6]
-    auto drop = std::make_unique<DroppedItem>(this->get_x(), this->get_y(), std::move(product));
+    auto drop = std::make_unique<DroppedItem>(std::move(product), this->get_x(), this->get_y());
     w.set_entity_at(this->get_x(), this->get_y(), std::move(drop));
 
     // 3. Rebrote (restamos 2 días) Se puede cosechar cada 2 dias

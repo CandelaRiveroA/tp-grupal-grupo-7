@@ -9,7 +9,7 @@ Potato::Potato(uint16_t x, uint16_t y)
 
 void Potato::harvest(World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);
-    auto drop = std::make_unique<DroppedItem>(this->get_x(), this->get_y(), std::move(product));
+    auto drop = std::make_unique<DroppedItem>(std::move(product), this->get_x(), this->get_y());
     
     w.set_entity_at(this->get_x(), this->get_y(), std::move(drop));
 

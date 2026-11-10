@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include "common/model/draft/CharacterAppearance.h"
 #include "common_constants.h"
 
 enum class ServerMessageType : uint8_t {
@@ -26,6 +27,7 @@ enum class ServerMessageType : uint8_t {
     SleepingPlayers = 15,
     Clock = 16,
     DayEnd = 17,
+    SyncEnd = 18,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -36,9 +38,15 @@ struct ServerStatus {
     uint16_t x;
     uint16_t y;
     Direction direction;
+    // Personalizacion del personaje: indices de capa sin validar. El server
+    // no conoce los counts de characters.toml, asi que el cliente los acota
+    // al dibujar y cae al 0 (default) si estan fuera de rango. Viaja en cada
+    // lote para que un joiner tarde la reciba de todos los jugadores.
+    CharacterAppearance appearance;
 
-    ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction):
-            player_id(player_id), x(x), y(y), direction(direction) {}
+    ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
+                 const CharacterAppearance& appearance):
+            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance) {}
 };
 
 struct ServerWelcome {
@@ -92,6 +100,11 @@ struct ServerResourceHit {
 // siempre el estado completo, así que lo que no vuelva ya no existe.
 struct ServerReset {};
 
+// Último mensaje de cada lote de estado: sin él el cliente no sabe dónde
+// termina el lote y puede dibujar un frame entre el Reset y las entidades
+// (mundo vacío = el parpadeo). El cliente aplica el lote recién acá.
+struct ServerSyncEnd {};
+
 // Animal del mundo (vaca, gallina). kind es el vocabulario de characters.toml;
 // ready_to_milk avisa al jugador que la vaca se puede ordeñar; direction es hacia dónde mira.
 struct ServerAnimal {
@@ -142,6 +155,6 @@ using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock>;
+                     ServerClock, ServerSyncEnd>;
 
 #endif

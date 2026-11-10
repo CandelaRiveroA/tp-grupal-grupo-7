@@ -11,16 +11,17 @@
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
 #include "domain/furniture/bed.h"
-#include "domain/minerals/coal_rock.h"
-#include "domain/minerals/gold_rock.h"
-#include "domain/minerals/lapis_rock.h"
-#include "domain/minerals/silver_rock.h"
+#include "domain/minerals/mine_controller.h"
 
 // Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
 #define kWidth 30
 #define kHeight 20
 #define kSpawnX 15
 #define kSpawnY 10
+
+// TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
+// (ver MineController::create_entity).
+#define kRoomNumber 1
 
 // Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
 // compartida: los durmientes no colisionan, así todos caben en ella.
@@ -105,19 +106,10 @@ void DayClock::execute() {
 }
 
 void Match::place_minerals() {
-    // Piedras de prueba alrededor del punto de aparición. Hasta que haya
-    // generación de mundo, el servidor fija estas.
-    world.set_entity_at(kSpawnX + 1, kSpawnY, std::make_unique<SilverRock>(kSpawnX + 1, kSpawnY));
-    world.set_entity_at(kSpawnX + 2, kSpawnY, std::make_unique<CoalRock>(kSpawnX + 2, kSpawnY));
-    world.set_entity_at(kSpawnX + 1, kSpawnY + 1,
-                        std::make_unique<LapisRock>(kSpawnX + 1, kSpawnY + 1));
-    world.set_entity_at(kSpawnX + 2, kSpawnY + 1,
-                        std::make_unique<GoldRock>(kSpawnX + 2, kSpawnY + 1));
-    world.set_entity_at(kSpawnX - 1, kSpawnY, std::make_unique<CoalRock>(kSpawnX - 1, kSpawnY));
-    world.set_entity_at(kSpawnX, kSpawnY + 2, std::make_unique<SilverRock>(kSpawnX, kSpawnY + 2));
-    world.set_entity_at(kSpawnX - 1, kSpawnY + 2,
-                        std::make_unique<GoldRock>(kSpawnX - 1, kSpawnY + 2));
-    world.set_entity_at(kSpawnX + 3, kSpawnY, std::make_unique<LapisRock>(kSpawnX + 3, kSpawnY));
+    // El controller se construye de nuevo en cada llamada: así la semilla
+    // aleatoria cambia y cada generación dispone los minerales distinto.
+    MineController mine(kRoomNumber);
+    mine.populate(world, kSpawnX, kSpawnY);
 }
 
 void Match::place_animals() {
@@ -136,9 +128,9 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         sleeping_sent(0),
         total_sent(0),
         clock_minutes_sent(0) {
-    place_minerals();
     place_animals();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
+    place_minerals();
 }
 
 // Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
@@ -171,6 +163,10 @@ void Match::handle(const ClockStep& step) {
 // van a la cama y el reloj vuelve a las 6:00.
 void Match::sync_day() {
     if (world.take_day_ended()) {
+        // La caverna se repone en todo fin de día, sea por timeout
+        // (DayPassed) o porque todos durmieron (World::try_advance_sleep),
+        // que cierra el día sin pasar por DayPassed.
+        place_minerals();
         broadcast(ServerDayEnd{});
     }
     if (world.take_day_started()) {
@@ -192,6 +188,7 @@ void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
+    world.set_player_appearance(joined.player_id, joined.appearance);
     // Si el día ya terminó, el que entra también tiene que despertar.
     if (world.is_waking()) {
         send_to(joined.player_id, ServerDayEnd{});
@@ -291,6 +288,8 @@ void Match::push_sleep_state() {
     std::vector<uint8_t> sleepers;
     for (const uint8_t id: players) {
         if (world.is_sleeping(id)) {
+            // cppcheck-suppress useStlAlgorithm; copy_if con lambda queda más
+            // ruido que este filtro de tres líneas.
             sleepers.push_back(id);
         }
     }

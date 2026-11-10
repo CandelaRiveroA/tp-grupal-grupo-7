@@ -143,3 +143,36 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
     
     EXPECT_EQ(strawberry_count, 2) << "El rebrote no produjo la segunda frutilla.";
 }
+
+// ---------------------------------------------------------
+// TEST 4: Plantado de Semillas desde el Inventario
+// ---------------------------------------------------------
+TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
+    World world(5, 5);
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p_ref = player.get();
+    world.add_player(1, std::move(player));
+
+    world.set_player_facing(1, Direction::RIGHT);
+
+    // 1. Arar la tierra con la pala (Slot 1)
+    p_ref->select_slot(1);
+    world.use_tool(1);
+    EXPECT_TRUE(world.get_cell(3, 2).is_soil_tilled());
+
+    // 2. Le damos 1 Semilla de Frutilla al jugador
+    p_ref->pick_up_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, true));
+    p_ref->select_slot(4); 
+    ASSERT_FALSE(p_ref->get_inventory().is_slot_empty(4));
+
+    // 3. Plantamos usando directamente tu método público
+    world.try_plant_seed(1);
+
+    // 4. Verificaciones Finales:
+    // A) La semilla se consumió
+    EXPECT_TRUE(p_ref->get_inventory().is_slot_empty(4)) << "La semilla no se consumió del inventario.";
+
+    // B) Como el cultivo es traspasable, verificamos directamente si está en la celda
+    const std::vector<IEntity*> entities = world.get_entity_at(3, 2);
+    EXPECT_FALSE(entities.empty()) << "El cultivo no se instanció en la celda.";
+}

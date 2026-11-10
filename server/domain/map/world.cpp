@@ -267,7 +267,6 @@ void World::use_tool(uint8_t player_id) {
 }
 
 void World::try_plant_seed(uint8_t player_id) {
-    // TODO: Se parece mucho a use_tool, refactorizar para no repetir código.
     Player& p = *this->players.at(player_id);
     auto [tx, ty] = p.get_target_tile(); 
 
@@ -281,14 +280,10 @@ void World::try_plant_seed(uint8_t player_id) {
     const Item* active_item = p.peek_equipped_item();
     if (!active_item) return; 
     
-    // Si el jugador equipó una herramienta real (Pico, Regadera, Pala), abortamos.
-    // Solo permitimos semillas, las cuales mapéan a HAND en tu player[cite: 8].
     if (p.get_equipped_tool() != ToolType::HAND) return;
 
     ItemID id = active_item->get_id();
     std::unique_ptr<Crop> new_crop = nullptr;
-
-    //TODO: Sacar este switch a un factory method en CropFactory para no tener que tocar World.cpp cada vez que agregamos un nuevo cultivo.
 
     switch (id) {
         case ItemID::STRAWBERRY_SEED:
@@ -309,7 +304,8 @@ void World::try_plant_seed(uint8_t player_id) {
 
     if (new_crop) {
         p.consume_equipped_item(); 
-        target_cell.entities.push_back(std::move(new_crop)); 
+        // Usamos el setter del mundo para guardarlo correctamente en la grilla
+        this->set_entity_at(tx, ty, std::move(new_crop)); 
     }
 }
 

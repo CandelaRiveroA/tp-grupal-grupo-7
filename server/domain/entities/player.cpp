@@ -12,9 +12,15 @@ uint8_t Player::get_id() const { return this->player_id; }
 
 Direction Player::get_facing() const { return this->facing; }
 
+const CharacterAppearance& Player::get_appearance() const { return this->appearance; }
+
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
 void Player::set_facing(Direction dir) { this->facing = dir; }
+
+void Player::set_appearance(const CharacterAppearance& new_appearance) {
+    this->appearance = new_appearance;
+}
 
 // Calcula la posición de la casilla objetivo según la dirección en la que el jugador está mirando.
 std::pair<uint16_t, uint16_t> Player::get_target_tile() const {

@@ -92,6 +92,8 @@ public:
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
+    // Personalizacion del personaje del jugador (indices de capa, sin validar).
+    void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
     void try_plant_seed(u_int8_t player_id);
     // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);

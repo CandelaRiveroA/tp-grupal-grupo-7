@@ -42,6 +42,7 @@ public:
     Crop(Crop&&) = default;
     Crop& operator=(Crop&&) = default;
 
+    bool is_walkable() const override;
     void update(World& w) override; 
     void interact(Player& p, ToolType tool, World& w) override;
 

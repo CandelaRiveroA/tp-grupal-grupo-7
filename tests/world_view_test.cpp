@@ -52,11 +52,41 @@ TEST(WorldViewTest, EverySyncStartsWithAResetAndDescribesTheWholeState) {
     EXPECT_EQ(only<ServerInventorySlot>(messages).size(), 4u);
     // El inventario inicial no es una obtención: eso lo emite Match.
     EXPECT_TRUE(only<ServerObtained>(messages).empty());
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje
+    // (sin el cierre podría dibujar un frame sin entidades = parpadeo).
+    ASSERT_GT(messages.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(messages.back()));
 
     // Sin memoria entre llamadas: sin cambios, el mismo estado sale otra vez.
     const std::vector<ServerMessage> again = view.sync(world, 1);
     EXPECT_EQ(again.size(), messages.size());
     EXPECT_TRUE(std::holds_alternative<ServerReset>(again.front()));
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(again.back()));
+}
+
+TEST(WorldViewTest, StatusCarriesEachPlayersAppearance) {
+    World world(5, 5);
+    populate(world);
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));
+    CharacterAppearance look;
+    look.skin = 2;
+    look.hair = 5;
+    look.accessory = 7;
+    world.set_player_appearance(2, look);
+    WorldView view;
+
+    // Cada joiner recibe la apariencia de todos en el mismo lote.
+    const auto statuses = only<ServerStatus>(view.sync(world, 1));
+    ASSERT_EQ(statuses.size(), 2u);
+    for (const ServerStatus& status: statuses) {
+        if (status.player_id == 2) {
+            EXPECT_EQ(status.appearance.skin, 2);
+            EXPECT_EQ(status.appearance.hair, 5);
+            EXPECT_EQ(status.appearance.accessory, 7);
+        } else {
+            EXPECT_EQ(status.appearance.skin, 0);
+        }
+    }
 }
 
 TEST(WorldViewTest, BlockedMoveKeepsSendingTheSameState) {

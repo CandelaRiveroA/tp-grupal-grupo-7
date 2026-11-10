@@ -32,6 +32,17 @@ void ProtocolSender::send_string(const std::string& value) {
     }
 }
 
+void ProtocolSender::send_appearance(const CharacterAppearance& appearance) {
+    send_uint8(appearance.skin);
+    send_uint8(appearance.eyes);
+    send_uint8(appearance.hair);
+    send_uint8(appearance.hairColor);
+    send_uint8(appearance.shirt);
+    send_uint8(appearance.pants);
+    send_uint8(appearance.pantsColor);
+    send_uint8(appearance.accessory);
+}
+
 void ProtocolSender::validate_direction(Direction direction) {
     const uint8_t raw_direction = static_cast<uint8_t>(direction);
     if (raw_direction > static_cast<uint8_t>(Direction::RIGHT)) {
@@ -81,6 +92,7 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.x);
     send_uint16(status.y);
     send_uint8(static_cast<uint8_t>(status.direction));
+    send_appearance(status.appearance);
 }
 
 void ProtocolSender::send_message(const ServerLeave& leave) {
@@ -130,6 +142,10 @@ void ProtocolSender::send_message(const ServerResourceHit& hit) {
 
 void ProtocolSender::send_message(const ServerReset& /*reset*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Reset));
+}
+
+void ProtocolSender::send_message(const ServerSyncEnd& /*end*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SyncEnd));
 }
 
 void ProtocolSender::send_message(const ServerAnimal& animal) {
@@ -194,6 +210,7 @@ void ProtocolSender::send_match_request(const MatchRequest& request) {
     send_string(request.nameMatch);
     send_string(request.username);
     send_string(request.characterName);
+    send_appearance(request.appearance);
 }
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {

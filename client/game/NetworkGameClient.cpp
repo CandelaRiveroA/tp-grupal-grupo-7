@@ -31,31 +31,6 @@ std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) {
     return it->second;
 }
 
-// Vocabulario compartido con el servidor (inventory.toml y resources.toml).
-std::optional<world::ResourceKind> resourceKindFor(const std::string& contentId) {
-    static const std::map<std::string, world::ResourceKind> kinds = {
-            {"silver", world::ResourceKind::Silver},
-            {"coal", world::ResourceKind::Coal},
-            {"lapis", world::ResourceKind::Lapis},
-            {"gold", world::ResourceKind::Gold},
-    };
-    const auto it = kinds.find(contentId);
-    if (it == kinds.end()) {
-        return std::nullopt;
-    }
-    return it->second;
-}
-
-world::ResourceState resourceStateFor(ResourceDamage damage) {
-    static const std::map<ResourceDamage, world::ResourceState> states = {
-            {ResourceDamage::Intact, world::ResourceState::Intact},
-            {ResourceDamage::Cracked, world::ResourceState::Cracked},
-            {ResourceDamage::Broken, world::ResourceState::Broken}};
-
-    const auto it = states.find(damage);
-    return it != states.end() ? it->second : world::ResourceState::Intact;
-}
-
 }  // namespace
 
 NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
@@ -67,7 +42,10 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
         clientReceiver_(receiver_, messages_),
         localPlayerId_(receiver_.receive_welcome().player_id),
         toolUseDurationTicks_(toolUseDurationTicks > 0 ? toolUseDurationTicks : 1),
-        characters_(&characters) {
+        characters_(&characters),
+        resourceStates_{{ResourceDamage::Intact, world::ResourceState::Intact},
+                        {ResourceDamage::Cracked, world::ResourceState::Cracked},
+                        {ResourceDamage::Broken, world::ResourceState::Broken}} {
     clientSender_.start();
     clientReceiver_.start();
 }
@@ -79,6 +57,11 @@ NetworkGameClient::~NetworkGameClient() {
     } catch (const std::exception&) {}
     clientSender_.join();
     clientReceiver_.join();
+}
+
+world::ResourceState NetworkGameClient::resourceStateFor(ResourceDamage damage) const {
+    const auto it = resourceStates_.find(damage);
+    return it != resourceStates_.end() ? it->second : world::ResourceState::Intact;
 }
 
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
@@ -148,6 +131,28 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
+    // limpia y rellena, así nunca se dibuja un estado a medias.
+    if (std::holds_alternative<ServerReset>(message)) {
+        batch_.clear();
+        batch_.push_back(message);
+        return;
+    }
+    if (std::holds_alternative<ServerSyncEnd>(message)) {
+        for (const ServerMessage& buffered: batch_) {
+            applyNow(buffered);
+        }
+        batch_.clear();
+        return;
+    }
+    if (!batch_.empty()) {
+        batch_.push_back(message);
+        return;
+    }
+    applyNow(message);
+}
+
+void NetworkGameClient::applyNow(const ServerMessage& message) {
     if (std::holds_alternative<ServerReset>(message)) {
         // Cada lote describe el estado completo: lo que no vuelve ya no existe.
         // players_ no se borra porque ServerStatus reescribe todas las
@@ -184,6 +189,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         player.cellX = status->x;
         player.cellY = status->y;
         player.facing = world::viewDirectionFrom(status->direction);
+        player.appearance = status->appearance;
         return;
     }
     if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
@@ -212,11 +218,12 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         return;
     }
     if (const auto* resource = std::get_if<ServerResource>(&message)) {
-        const std::optional<world::ResourceKind> kind = resourceKindFor(resource->content_id);
-        if (kind.has_value()) {
-            resources_[{resource->x, resource->y}] = ViewResource{
-                    kind.value(), resource->x, resource->y, resourceStateFor(resource->damage)};
-        }
+        // El contentId viaja tal cual: el vocabulario es abierto y lo
+        // resuelve resources.toml en el draw (un id sin sección no se
+        // dibuja, igual que un ítem sin visual en ObjectPicker).
+        resources_[{resource->x, resource->y}] = ViewResource{
+                resource->content_id, resource->x, resource->y,
+                resourceStateFor(resource->damage)};
         return;
     }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
@@ -274,6 +281,7 @@ void NetworkGameClient::update(int) {
                           player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
                           std::nullopt};
         entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
+        entity.appearance = player.appearance;
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = world::ItemKind::Pickaxe;

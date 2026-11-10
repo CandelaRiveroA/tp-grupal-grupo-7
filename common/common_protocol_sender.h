@@ -17,6 +17,8 @@ private:
     void send_uint16(uint16_t value);
     // cppcheck-suppress unusedPrivateFunction
     void send_string(const std::string& value);
+    // Los 8 indices de la personalizacion, siempre en el mismo orden.
+    void send_appearance(const CharacterAppearance& appearance);
 
     static void validate_direction(Direction direction);
 
@@ -34,6 +36,7 @@ private:
     void send_message(const ServerToolUsed& used);
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
+    void send_message(const ServerSyncEnd& end);
     void send_message(const ServerAnimal& animal);
     void send_message(const ServerSleep& sleep);
     void send_message(const ServerFurniture& furniture);

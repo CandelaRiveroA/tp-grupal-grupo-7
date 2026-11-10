@@ -13,6 +13,7 @@
 #include "resource_hit.h"
 
 class Animal;
+class Crop;
 
 class World {
 private:
@@ -22,6 +23,7 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
+    std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
 

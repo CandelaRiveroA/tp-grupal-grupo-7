@@ -6,6 +6,7 @@
 #include "../crops/pumpkin.h"
 #include "../inventory/item_types.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <stdexcept>
 #include <utility>
@@ -149,6 +150,7 @@ void World::remove_entity(IEntity* target_entity) {
     // Buscamos y borramos específicamente la entidad solicitada
     for (auto it = cell_entities.begin(); it != cell_entities.end(); ++it) {
         if (it->get() == target_entity) {
+            crops.erase(std::remove(crops.begin(), crops.end(), target_entity), crops.end());
             cell_entities.erase(it);  // Se destruye automáticamente
             break;
         }
@@ -161,7 +163,7 @@ void World::remove_entity_at(uint16_t x, uint16_t y) {
 
     auto& cell_entities = this->grid[y][x].entities;
     if (!cell_entities.empty()) {
-        cell_entities.erase(cell_entities.begin());
+        remove_entity(cell_entities.front().get());
     }
 }
 
@@ -178,6 +180,11 @@ void World::tick_day() {
     const std::vector<Animal*> AToday = animals;
     for (Animal* animal: AToday) {
         animal->update(*this);
+    }
+
+    const std::vector<Crop*> crops_today = crops;
+    for (Crop* crop: crops_today) {
+        crop->update(*this);
     }
 }
 
@@ -302,7 +309,8 @@ bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
         case ItemID::PUMPKIN_SEED: new_crop = std::make_unique<Pumpkin>(tx, ty); break;
         default: return false; 
     }
-
+    
+    crops.push_back(new_crop.get());
     if (new_crop) {
         p.consume_equipped_item(); 
         target_cell.entities.push_back(std::move(new_crop));

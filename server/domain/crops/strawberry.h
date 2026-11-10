@@ -9,7 +9,7 @@ public:
     Strawberry(uint16_t x, uint16_t y);
     ~Strawberry() override = default;
     
-    void harvest(World& w) override;
+    void harvest(Player& p, World& w) override;
 };
 
 #endif // STRAWBERRY_H

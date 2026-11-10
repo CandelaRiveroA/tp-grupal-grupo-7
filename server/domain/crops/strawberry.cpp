@@ -7,18 +7,18 @@
 Strawberry::Strawberry(uint16_t x, uint16_t y) 
     : Crop(x, y, 4, 2, ItemID::STRAWBERRY, 25) {}
 
-void Strawberry::harvest(World& w) {
-    // 1. Usamos la calidad ya trackeada y fijada internamente por el update
+void Strawberry::harvest(Player& p, World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);
     
-    // 2. Instanciamos el DroppedItem en el mapa (Mismo patrón que el huevo)[cite: 6]
-    auto drop = std::make_unique<DroppedItem>(this->get_x(), this->get_y(), std::move(product));
-    w.set_entity_at(this->get_x(), this->get_y(), std::move(drop));
-
-    // 3. Rebrote (restamos 2 días) Se puede cosechar cada 2 dias
-    this->is_ready_to_harvest = false;
-    this->days_alive = this->required_days_to_harvest - 2; 
+    // 2. Intentamos dársela al jugador
+    bool success = p.pick_up_item(std::move(product));
     
-    // Vuelve a Quality::BASE por las dudas, se recalculará al llegar al final del ciclo
-    this->current_quality = Quality::BASE;
+    // 3. Si se guardó en la mochila, aplicamos la regla del rebrote
+    if (success) {
+        this->is_ready_to_harvest = false;
+        // La frutilla tarda 4 días la primera vez, pero el rebrote tarda 2 días.
+        // Restándole 2 a los días requeridos, arrancará desde la mitad de su ciclo.
+        this->days_alive = this->required_days_to_harvest - 2; 
+        this->current_quality = Quality::BASE; // Reseteamos la calidad para el nuevo ciclo
+    }
 }

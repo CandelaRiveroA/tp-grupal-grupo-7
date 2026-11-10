@@ -8,7 +8,7 @@ public:
     GreenOnion(uint16_t x, uint16_t y);
     ~GreenOnion() override = default;
     
-    void harvest(World& w) override;
+    void harvest(Player& p, World& w) override;
 };
 
 #endif // GREEN_ONION_H

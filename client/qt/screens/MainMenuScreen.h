@@ -3,23 +3,37 @@
 #include <QString>
 
 #include "qt/screens/Screen.h"
+#include "qt/theme/TitleSprites.h"
 
-class QPushButton;
+namespace core {
+class MusicControl;
+}
 
-class MainMenuScreen : public Screen {
-	Q_OBJECT
+class TitleButton;
+class UsernamePlate;
+
+class MainMenuScreen: public Screen {
+    Q_OBJECT
 
 public:
-	explicit MainMenuScreen(QWidget* parent = nullptr);
+    explicit MainMenuScreen(QWidget* parent = nullptr, core::MusicControl* music = nullptr);
 
-signals:
-	// "Salir" no navega a ninguna pantalla: el shell decide cómo cerrar.
-	void exitRequested();
+    // Enciende la musica y toma el foco; las nubes las maneja la base
+    void onEnter() override;
+    void onExit() override;
+
+    signals:
+    // "Salir" no navega a ninguna pantalla: el shell decide cómo cerrar.
+    void exitRequested();
+
+    void newGameRequested();
 
 private:
-	static constexpr int kButtonWidth = 200;
+    TitleButton* makeButton(int spriteIndex, const QString& accessibleText, const QString& name);
+    TitleButton* makeNavButton(int spriteIndex, const QString& accessibleText, const QString& name,
+                               ScreenId target);
 
-	QPushButton* makeButton(const QString& text, const QString& name);
-	QPushButton* makeNavButton(const QString& text, const QString& name,
-				   ScreenId target);
+    core::MusicControl* music_;
+    TitleSprites sprites_;
+    UsernamePlate* plate_;
 };

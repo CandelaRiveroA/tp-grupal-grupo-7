@@ -35,19 +35,10 @@ constexpr const char* kDurationTicks = "duration_ticks";
 constexpr const char* kMaxVisible = "max_visible";
 constexpr const char* kStackGap = "stack_gap";
 
-// Mineral lógico -> tabla del TOML que describe su icono. Reusa el mismo
-// vocabulario que resources.toml.
-struct IconBinding {
-    ResourceKind kind;
-    const char* tableKey;
-};
-
-constexpr std::array<IconBinding, 4> kIconBindings = {{
-        {ResourceKind::Silver, "silver"},
-        {ResourceKind::Coal, "coal"},
-        {ResourceKind::Lapis, "lapis"},
-        {ResourceKind::Gold, "gold"},
-}};
+// Iconos del cartel: subtablas [icons.<contentId>]. Cualquier contenido
+// del juego puede tener su icono (vocabulario genérico: el mismo del
+// inventario y los ítems del piso).
+constexpr const char* kIcons = "icons";
 
 }  // namespace
 
@@ -57,14 +48,9 @@ std::string ObtainedBannerTomlReader::join(const std::string& base, const std::s
     return base + "." + key;
 }
 
-BannerCell ObtainedBannerTomlReader::readCell(const std::string& base,
+SheetCell ObtainedBannerTomlReader::readCell(const std::string& base,
                                               const std::string& key) const {
-    const std::string path = join(base, key);
-    const std::array<int, 2> cell = doc_.getIntArray<2>(path);
-    if (cell[0] < 0 || cell[1] < 0) {
-        throw ConfigError(Kind::InvalidValue, path);
-    }
-    return BannerCell{cell[0], cell[1]};
+    return SheetCell(doc_, join(base, key));
 }
 
 BannerFrame ObtainedBannerTomlReader::readFrame() const {
@@ -96,31 +82,8 @@ BannerFrame ObtainedBannerTomlReader::readFrame() const {
     return frame;
 }
 
-BannerIcon ObtainedBannerTomlReader::readIcon(const std::string& base) const {
-    BannerIcon icon;
-
-    const std::string sheetPath = join(base, kSheet);
-    icon.sheetImage = doc_.getString(sheetPath);
-    if (icon.sheetImage.empty()) {
-        throw ConfigError(Kind::InvalidValue, sheetPath);
-    }
-
-    const std::string cellPath = join(base, kCell);
-    const std::array<int, 2> cell = doc_.getIntArray<2>(cellPath);
-    if (cell[0] <= 0 || cell[1] <= 0) {
-        throw ConfigError(Kind::InvalidValue, cellPath);
-    }
-    icon.cellWidth = cell[0];
-    icon.cellHeight = cell[1];
-
-    const std::string iconPath = join(base, kIcon);
-    const std::array<int, 2> pos = doc_.getIntArray<2>(iconPath);
-    if (pos[0] < 0 || pos[1] < 0) {
-        throw ConfigError(Kind::InvalidValue, iconPath);
-    }
-    icon.col = pos[0];
-    icon.row = pos[1];
-    return icon;
+SpriteVisual ObtainedBannerTomlReader::readIcon(const std::string& base) const {
+    return SpriteVisual(doc_, base, kIcon);
 }
 
 ObtainedBannerCatalog ObtainedBannerTomlReader::read() const {
@@ -168,11 +131,12 @@ ObtainedBannerCatalog ObtainedBannerTomlReader::read() const {
         }
     }
 
-    for (const IconBinding& binding: kIconBindings) {
-        if (!doc_.hasKey(binding.tableKey)) {
-            continue;
+    // La tabla de iconos es opcional: un TOML sin [icons] no tiene
+    // ningún icono (igual que los items del inventario).
+    if (doc_.hasKey(kIcons)) {
+        for (const std::string& name : doc_.subtableKeys(kIcons)) {
+            catalog.icons.emplace(name, readIcon(join(kIcons, name)));
         }
-        catalog.icons.emplace(binding.kind, readIcon(binding.tableKey));
     }
     return catalog;
 }

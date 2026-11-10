@@ -4,7 +4,7 @@
 
 namespace world {
 
-const DigitCell& DigitCatalog::cellFor(int digit) const {
+const SheetCell& DigitCatalog::cellFor(int digit) const {
 	const int clamped = std::clamp(digit, 0, 9);
 	return digits[static_cast<std::size_t>(clamped)];
 }

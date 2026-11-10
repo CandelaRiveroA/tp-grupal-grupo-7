@@ -28,14 +28,22 @@ void MockGameClient::placeMinerals() {
     const int cx = playerCellX_;
     const int cy = playerCellY_;
     const std::vector<MineralSpot> spots = {
-            {world::ResourceKind::Silver, cx + 1, cy, 0},
-            {world::ResourceKind::Coal, cx + 2, cy, 0},
-            {world::ResourceKind::Lapis, cx + 1, cy + 1, 0},
-            {world::ResourceKind::Gold, cx + 2, cy + 1, 0},
-            {world::ResourceKind::Coal, cx - 1, cy, 0},
-            {world::ResourceKind::Silver, cx, cy + 2, 0},
-            {world::ResourceKind::Gold, cx - 1, cy + 2, 0},
-            {world::ResourceKind::Lapis, cx + 3, cy, 0},
+            {"silver", cx + 1, cy, 0},
+            {"coal", cx + 2, cy, 0},
+            {"lapis", cx + 1, cy + 1, 0},
+            {"gold", cx + 2, cy + 1, 0},
+            {"coal", cx - 1, cy, 0},
+            {"silver", cx, cy + 2, 0},
+            {"gold", cx - 1, cy + 2, 0},
+            {"lapis", cx + 3, cy, 0},
+            // Rellenos destructibles (1 golpe, sin drop): una fila de
+            // rocas 2 celdas arriba del jugador, para verlas de una.
+            {"rock", cx - 2, cy - 2, 0, 1, false},
+            {"rock_2", cx - 1, cy - 2, 0, 1, false},
+            {"rock_3", cx, cy - 2, 0, 1, false},
+            {"rock_4", cx + 1, cy - 2, 0, 1, false},
+            {"rock_5", cx + 2, cy - 2, 0, 1, false},
+            {"rock_6", cx + 3, cy - 2, 0, 1, false},
     };
     for (const MineralSpot& spot: spots) {
         if (spot.cellX < 0 || spot.cellX >= gridColumns_ || spot.cellY < 0 ||
@@ -70,6 +78,15 @@ void MockGameClient::sendCommand(const protocol::ClientMessage& message) {
     }
     rebuildView();
 }
+
+void MockGameClient::update(int) {
+    view_.resourceHits.clear();
+    advanceToolUse();
+    rebuildView();
+    advanceObtained();
+}
+
+const LocalWorldView& MockGameClient::worldState() const { return view_; }
 
 void MockGameClient::frontCell(::Direction direction, int& cellX, int& cellY) const {
     cellX = playerCellX_;
@@ -122,14 +139,16 @@ void MockGameClient::advanceToolUse() {
     if (toolUseRemaining_ == 0 && pendingMineral_ >= 0 &&
         pendingMineral_ < static_cast<int>(minerals_.size())) {
         MineralSpot& spot = minerals_[static_cast<std::size_t>(pendingMineral_)];
-        if (spot.hits < 3) {
+        if (spot.hits < spot.hitsToBreak) {
             ++spot.hits;
-            view_.resourceHits.push_back(ViewResourceHit{spot.cellX, spot.cellY, spot.hits == 3});
-            // Al agotar la roca, el mineral CAE al piso como item
-            // recogible. Ya no se obtiene automático: el jugador
-            // debe pararse sobre la celda y mandar Take (Enter).
-            if (spot.hits == 3) {
-                dropped_.push_back(DroppedItem{spot.kind, spot.cellX, spot.cellY});
+            view_.resourceHits.push_back(
+                    ViewResourceHit{spot.cellX, spot.cellY, spot.hits == spot.hitsToBreak});
+            // Al agotar el mineral que dropea, CAE al piso como item
+            // recogible (las rocas no dejan nada). Ya no se obtiene
+            // automático: el jugador debe pararse sobre la celda y mandar
+            // Take (Enter).
+            if (spot.hits == spot.hitsToBreak && spot.drops) {
+                dropped_.push_back(DroppedItem{spot.contentId, spot.cellX, spot.cellY});
             }
         }
         pendingMineral_ = -1;
@@ -141,7 +160,7 @@ void MockGameClient::advanceObtained() {
     // El evento de obtención lo dispara un Take exitoso (no se deduce):
     // se emite por un solo tick y luego se limpia.
     if (obtainedPending_) {
-        view_.obtained.push_back(ViewResourceObtained{obtainedKind_});
+        view_.obtained.push_back(ViewObtained{obtainedContentId_});
         obtainedPending_ = false;
     }
 }
@@ -160,60 +179,27 @@ void MockGameClient::collectAt(int cellX, int cellY) {
     if (index < 0) {
         return;  // no hay nada para recoger en esa celda
     }
-    const world::ResourceKind kind = dropped_[static_cast<std::size_t>(index)].kind;
-    obtainedKind_ = kind;
+    const std::string contentId = dropped_[static_cast<std::size_t>(index)].contentId;
+    obtainedContentId_ = contentId;
     obtainedPending_ = true;
     dropped_.erase(dropped_.begin() + index);
     // Recoger = sumar al inventario. El servidor manda la cantidad; el
     // mock la simula acumulando +1.
-    addToInventory(contentIdFor(kind));
+    addToInventory(contentId);
 }
 
 void MockGameClient::addToInventory(const std::string& contentId) {
-    for (ViewInventorySlot& slot: view_.inventory) {
-        // cppcheck-suppress useStlAlgorithm
-        if (slot.contentId == contentId) {
-            ++slot.count;
-            return;
-        }
-    }
-    // No estaba: ocupar el primer slotIndex libre.
-    int index = 0;
-    bool used = true;
-    while (used) {
-        used = false;
-        for (const ViewInventorySlot& slot: view_.inventory) {
-            // cppcheck-suppress useStlAlgorithm
-            if (slot.slotIndex == index) {
-                used = true;
-                ++index;
-                break;
-            }
-        }
-    }
-    view_.inventory.push_back({index, contentId, 1});
-}
-
-std::string MockGameClient::contentIdFor(world::ResourceKind kind) {
-    switch (kind) {
-        case world::ResourceKind::Silver:
-            return "silver";
-        case world::ResourceKind::Coal:
-            return "coal";
-        case world::ResourceKind::Lapis:
-            return "lapis";
-        case world::ResourceKind::Gold:
-            return "gold";
-    }
-    return "";
+    view_.addInventoryContent(contentId);
 }
 
 void MockGameClient::rebuildView() {
     view_.entities.clear();
     view_.grid = world::GridSpan{gridColumns_, gridRows_};
 
+    // El jugador es SIEMPRE la entidad 0 con id estable 0.
     ViewEntity player;
     player.kind = world::CreatureKind::Player;
+    player.id = 0;
     player.cellX = playerCellX_;
     player.cellY = playerCellY_;
     player.facing = playerFacing_;
@@ -234,10 +220,9 @@ void MockGameClient::rebuildDropped() {
     view_.droppedItems.clear();
     for (const DroppedItem& item: dropped_) {
         ViewDroppedItem view;
-        // El mock simula minerales: traduce su ResourceKind interno al
-        // contentId genérico (mismo vocabulario que el inventario). El
-        // servidor mandará directamente el contentId.
-        view.contentId = contentIdFor(item.kind);
+        // El mock simula minerales: su contentId es el mismo vocabulario
+        // genérico que el inventario. El servidor mandará el contentId.
+        view.contentId = item.contentId;
         view.cellX = item.cellX;
         view.cellY = item.cellY;
         view_.droppedItems.push_back(view);
@@ -246,35 +231,29 @@ void MockGameClient::rebuildDropped() {
 
 void MockGameClient::rebuildResources() {
     view_.resources.clear();
-    // hits: 0 intacto, 1 cracked, 2 broken, 3+ agotado (sale de la vista).
+    // Mismo criterio que el servidor (world_view.cpp): 0 intacto; el golpe
+    // previo al final se dibuja broken; el resto cracked. Agotado, sale
+    // de la vista.
     for (const MineralSpot& spot: minerals_) {
+        if (spot.hits >= spot.hitsToBreak) {
+            continue;  // agotado
+        }
         world::ResourceState state;
         if (spot.hits == 0) {
             state = world::ResourceState::Intact;
-        } else if (spot.hits == 1) {
-            state = world::ResourceState::Cracked;
-        } else if (spot.hits == 2) {
+        } else if (spot.hits + 1 >= spot.hitsToBreak) {
             state = world::ResourceState::Broken;
         } else {
-            continue;  // agotado
+            state = world::ResourceState::Cracked;
         }
         ViewResource resource;
-        resource.kind = spot.kind;
+        resource.contentId = spot.contentId;
         resource.cellX = spot.cellX;
         resource.cellY = spot.cellY;
         resource.state = state;
         view_.resources.push_back(resource);
     }
 }
-
-void MockGameClient::update() {
-    view_.resourceHits.clear();
-    advanceToolUse();
-    rebuildView();
-    advanceObtained();
-}
-
-const LocalWorldView& MockGameClient::worldState() const { return view_; }
 
 void MockGameClient::rebuildInventory() {
     // El inventario es genérico: cada slot lleva un contentId (string) y

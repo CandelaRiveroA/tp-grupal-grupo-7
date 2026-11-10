@@ -1,64 +1,81 @@
 #include "MainMenuScreen.h"
 
-#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
 #include <QVBoxLayout>
 
-MainMenuScreen::MainMenuScreen(QWidget* parent) : Screen(parent) {
-	setObjectName("mainMenu");
+#include "core/MusicControl.h"
+#include "qt/theme/TitleSprites.h"
+#include "qt/widgets/TitleButton.h"
+#include "qt/widgets/UsernamePlate.h"
 
-	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(96, 64, 96, 64);
-	layout->addStretch();
+MainMenuScreen::MainMenuScreen(QWidget* parent, core::MusicControl* music):
+        Screen(parent), music_(music) {
+    setObjectName("mainMenu");
 
-	// El logo va en su propio panel, centrado, como el cartel del juego.
-	auto* banner = new QFrame(this);
-	banner->setObjectName("logoBanner");
-	auto* bannerLayout = new QVBoxLayout(banner);
-	auto* logo = new QLabel("Stardew Valley", banner);
-	logo->setObjectName("gameLogo");
-	logo->setAlignment(Qt::AlignCenter);
-	bannerLayout->addWidget(logo);
-	layout->addWidget(banner, 0, Qt::AlignHCenter);
+    // La pantalla toma el foco al mostrarse (y no un boton)
+    setFocusPolicy(Qt::StrongFocus);
 
-	layout->addStretch();
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, TITLE_LOGO_TOP_Y, 0, TITLE_BUTTON_ROW_BOTTOM_MARGIN);
+    layout->setSpacing(0);
 
-	auto* buttons = new QWidget(this);
-	buttons->setObjectName("menuButtons");
-	auto* row = new QHBoxLayout(buttons);
-	row->setContentsMargins(0, 0, 0, 0);
-	row->setSpacing(32);
-	row->addWidget(makeNavButton("Nueva partida", "newButton",
-				     ScreenId::WorldSelect));
-	row->addWidget(makeNavButton("Reanudar partida", "loadButton",
-				     ScreenId::SaveList));
-	row->addWidget(makeNavButton("Unirse a partida", "coopButton",
-				     ScreenId::JoinCode));
+    auto* logo = new QLabel(this);
+    logo->setObjectName("gameLogo");
+    logo->setPixmap(sprites_.logo());
+    logo->setFixedSize(TITLE_LOGO_W, TITLE_LOGO_H);
+    logo->setAlignment(Qt::AlignCenter);
+    layout->addWidget(logo, 0, Qt::AlignHCenter);
 
-	auto* exit = makeButton("Salir", "exitButton");
-	connect(exit, &QPushButton::clicked, this,
-		&MainMenuScreen::exitRequested);
-	row->addWidget(exit);
-	layout->addWidget(buttons, 0, Qt::AlignHCenter);
+    layout->addStretch(1);
 
-	layout->addStretch();
+    // Botones sprite
+    auto* buttons = new QWidget(this);
+    buttons->setObjectName("menuButtons");
+    auto* row = new QHBoxLayout(buttons);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(TITLE_BUTTON_SPACING);
+    auto* newGame = makeButton(0, "Nueva partida", "newButton");
+    connect(newGame, &QAbstractButton::clicked, this,
+            &MainMenuScreen::newGameRequested);
+    row->addWidget(newGame);
+    row->addWidget(makeNavButton(1, "Reanudar partida", "loadButton", ScreenId::SaveList));
+    row->addWidget(makeNavButton(2, "Unirse a partida", "coopButton", ScreenId::JoinCode));
+
+    auto* exit = makeButton(3, "Salir", "exitButton");
+    connect(exit, &QAbstractButton::clicked, this, &MainMenuScreen::exitRequested);
+    row->addWidget(exit);
+    layout->addWidget(buttons, 0, Qt::AlignHCenter);
+
+    // placa del username arriba a la derecha fuera del layout.
+    plate_ = new UsernamePlate(sprites_.nameplate(), this);
+    plate_->move(TITLE_SCREEN_W - TITLE_PLATE_W - TITLE_PLATE_MARGIN, TITLE_PLATE_TOP_Y);
 }
 
-QPushButton* MainMenuScreen::makeButton(const QString& text,
-					const QString& name) {
-	auto* button = new QPushButton(text, this);
-	button->setObjectName(name);
-	button->setFixedWidth(kButtonWidth);
-	return button;
+TitleButton* MainMenuScreen::makeButton(int spriteIndex, const QString& accessibleText,
+                                        const QString& name) {
+    auto* button = new TitleButton(sprites_.button(spriteIndex), sprites_.buttonHover(spriteIndex),
+                                   accessibleText, this);
+    button->setObjectName(name);
+    return button;
 }
 
-QPushButton* MainMenuScreen::makeNavButton(const QString& text,
-					   const QString& name,
-					   ScreenId target) {
-	auto* button = makeButton(text, name);
-	connect(button, &QPushButton::clicked, this,
-		[this, target]() { emit requestNavigate(target); });
-	return button;
+TitleButton* MainMenuScreen::makeNavButton(int spriteIndex, const QString& accessibleText,
+                                           const QString& name, ScreenId target) {
+    auto* button = makeButton(spriteIndex, accessibleText, name);
+    connect(button, &QAbstractButton::clicked, this,
+            [this, target]() { emit requestNavigate(target); });
+    return button;
 }
+
+void MainMenuScreen::onEnter() {
+    // Al volver devuelve el foco a la pantalla para no dejar ningun boton marcado.
+    setFocus(Qt::OtherFocusReason);
+    plate_->setUsername(username());
+    Screen::onEnter();
+    if (music_ != nullptr) {
+        music_->play(core::MusicTrack::MenuTheme);
+    }
+}
+
+void MainMenuScreen::onExit() { Screen::onExit(); }

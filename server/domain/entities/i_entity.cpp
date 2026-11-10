@@ -15,4 +15,10 @@ bool IEntity::is_walkable() const {
     return false;  // Por defecto bloquean el paso
 }
 
+bool IEntity::pickup_on_take() const { return false; }
+
 std::optional<CellSnapshot> IEntity::snapshot() const { return std::nullopt; }
+
+std::optional<AnimalSnapshot> IEntity::animal_snapshot() const { return std::nullopt; }
+
+void IEntity::update(World& /*w*/) {}

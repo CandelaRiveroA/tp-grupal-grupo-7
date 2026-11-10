@@ -18,9 +18,12 @@ void CharacterCatalog::setEntry(CreatureKind kind, CreatureEntry entry) {
 		std::make_unique<CreatureEntry>(std::move(entry));
 }
 
-bool CharacterCatalog::has(CreatureKind kind) const {
+const CreatureData* CharacterCatalog::find(CreatureKind kind) const {
 	const std::size_t index = indexOf(kind);
-	return index < entries_.size() && entries_[index] != nullptr;
+	if (index >= entries_.size() || entries_[index] == nullptr) {
+		return nullptr;
+	}
+	return &entries_[index]->data;
 }
 
 const CharacterCatalog::CreatureEntry& CharacterCatalog::entryFor(

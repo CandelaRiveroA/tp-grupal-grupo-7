@@ -1,6 +1,18 @@
 #include "world/ObtainedBannerLayout.h"
 
+#include "world/AnchorLayout.h"
+#include "world/PixelBox.h"
+
 namespace world {
+
+namespace {
+
+// Ancla del panel dentro de la ventana. La pila va anclada a la izquierda
+// y centrada en vertical: eso es un CenterLeft de AnchorLayout (la misma
+// fórmula de anclaje que overlays e inventario, §9).
+constexpr Anchor kPanelAnchor = Anchor::CenterLeft;
+
+}  // namespace
 
 ObtainedBannerLayout::ObtainedBannerLayout(int windowWidth, int windowHeight, int panelSide,
                                            int marginX, int stackGap, int iconMargin,
@@ -15,14 +27,16 @@ ObtainedBannerLayout::ObtainedBannerLayout(int windowWidth, int windowHeight, in
         iconOffsetY_(iconOffsetY) {}
 
 BannerBox ObtainedBannerLayout::panelBox(int stackIndex) const {
+    // El primer panel (stackIndex 0) se ancla con AnchorLayout; la pila
+    // crece hacia abajo sumando panel+gap por nivel.
+    const AnchorLayout anchors;
+    const PixelBox anchored = anchors.box(kPanelAnchor, marginX_, 0, panelSide_,
+                                          panelSide_, windowWidth_, windowHeight_);
     BannerBox box;
     box.width = panelSide_;
     box.height = panelSide_;
-    box.x = marginX_;
-    // El primer panel (stackIndex 0) queda con su borde superior tal que
-    // la pila arranca centrada en vertical; crece hacia abajo.
-    const int top = (windowHeight_ - panelSide_) / 2;
-    box.y = top + stackIndex * (panelSide_ + stackGap_);
+    box.x = anchored.x;
+    box.y = anchored.y + stackIndex * (panelSide_ + stackGap_);
     return box;
 }
 

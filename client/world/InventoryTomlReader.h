@@ -22,7 +22,7 @@ private:
 
 	SheetCell readCell(const std::string& key) const;
 
-	void readItems(world::ContentCatalog& catalog) const;
+	void readItems(world::InventoryLayout& layout) const;
 
 	const tomlcfg::TomlDocument& doc_;
 };

@@ -12,21 +12,29 @@
 
 namespace game {
 
+// "Server falso": simula el mundo del lado del servidor (jugador,
+// minerales, inventario) sin red. Los animales NO viven acá: los
+// superpone game::MockWorldClient sobre cualquier GameClient.
 class MockGameClient: public GameClient {
 public:
     MockGameClient(int gridColumns, int gridRows, int startX, int startY, int toolUseDurationTicks);
 
     void sendCommand(const protocol::ClientMessage& message) override;
-    void update() override;
+    void update(int iteration) override;
     const LocalWorldView& worldState() const override;
+    bool connected() const override { return true; }
 
 private:
-    // Mineral simulado: a los 3 golpes se agota. Simula al servidor.
+    // Mineral simulado: se agota a los `hitsToBreak` golpes (las rocas de
+    // relleno, 1; los minerales, 3). Simula al servidor. `drops` marca si
+    // deja item al agotarse: las rocas no dejan nada (como server::Rock).
     struct MineralSpot {
-        world::ResourceKind kind;
+        std::string contentId;
         int cellX;
         int cellY;
         int hits = 0;
+        int hitsToBreak = 3;
+        bool drops = true;
     };
 
     void walk(::Direction direction);
@@ -56,10 +64,6 @@ private:
     // primer slotIndex libre. Simula al servidor acumulando cantidad.
     void addToInventory(const std::string& contentId);
 
-    // contentId estable de un recurso (mismo vocabulario que el servidor
-    // y que inventory.toml / resources.toml).
-    static std::string contentIdFor(world::ResourceKind kind);
-
     // update() avanza la simulación un tick; worldState() solo consulta la vista.
     void advanceToolUse();
 
@@ -85,7 +89,7 @@ private:
 
     // Mineral caído al piso tras agotarse una roca. Recogible con Take.
     struct DroppedItem {
-        world::ResourceKind kind;
+        std::string contentId;
         int cellX;
         int cellY;
     };
@@ -94,7 +98,7 @@ private:
     // Evento de obtención encolado por un Take exitoso: se emite en el
     // próximo update() y dura un solo tick.
     bool obtainedPending_ = false;
-    world::ResourceKind obtainedKind_{};
+    std::string obtainedContentId_;
 
     LocalWorldView view_;
 };

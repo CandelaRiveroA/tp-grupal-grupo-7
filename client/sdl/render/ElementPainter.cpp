@@ -1,74 +1,124 @@
 #include "sdl/render/ElementPainter.h"
 
+#include <algorithm>
+
 #include "sdl/render/SpriteSheet.h"
+#include "sdl/render/TileLayout.h"
 
 namespace sdl {
 
 ElementPainter::ElementPainter(const world::TileSetDef& tileset,
 			       const world::ElementPlacement& element,
 			       const world::PixelRect& area)
-	: tileset_(tileset)
-	, element_(element)
-	, area_(area) {}
+	: layout_(tileset, element, area)
+	, paintMethods_{
+		  {world::DrawMode::Single, &ElementPainter::paintSingle},
+		  {world::DrawMode::Tile, &ElementPainter::paintTiled},
+		  {world::DrawMode::HorizontalStrip,
+		   &ElementPainter::paintStrip},
+	  } {}
 
-void ElementPainter::paint(SpriteSheet& sheet) const {
-	switch (element_.draw.mode) {
-	case world::DrawMode::Single:
-		paintSingle(sheet);
+world::PixelRect ElementPainter::bounds() const { return layout_.bounds(); }
+
+void ElementPainter::paint(SpriteSheet& sheet,
+			   const world::PixelRect& clip, const int firstRow,
+			   const int lastRow) const {
+	const PaintMethod method = paintMethods_.at(layout_.mode());
+	(this->*method)(sheet, clip, firstRow, lastRow);
+}
+
+void ElementPainter::paintSingle(SpriteSheet& sheet,
+				 const world::PixelRect&, const int firstRow,
+				 const int lastRow) const {
+	const world::PixelRect box = layout_.bounds();
+	if (box.width <= 0 || box.height <= 0) {
 		return;
-	case world::DrawMode::Tile:
-		paintTiled(sheet);
+	}
+	blit(sheet, 0, 0, box.width, box.height, firstRow, lastRow);
+}
+
+void ElementPainter::paintTiled(SpriteSheet& sheet,
+				const world::PixelRect& clip,
+				const int firstRow, const int lastRow) const {
+	TileLayout layout(layout_.area(), layout_.pieceWidth(),
+			  layout_.pieceHeight());
+	const TileLayout::Range range = layout.visibleTiled(clip);
+	if (range.empty()) {
 		return;
-	case world::DrawMode::HorizontalStrip:
-		paintStrip(sheet);
-		return;
+	}
+	for (int row = range.firstRow; row <= range.lastRow; ++row) {
+		for (int column = range.firstColumn; column <= range.lastColumn;
+		     ++column) {
+			const TileLayout::Placement piece =
+				layout.tiledAt(column, row);
+			blit(sheet, piece.offsetX, piece.offsetY, piece.width,
+			     piece.height, firstRow, lastRow);
+		}
 	}
 }
 
-void ElementPainter::paintSingle(SpriteSheet& sheet) const {
-	const SDL2pp::Rect dest(area_.x, area_.y, pieceWidth(),
-				pieceHeight());
-	sheet.drawBlock(element_.region.origin.column,
-			element_.region.origin.row,
-			element_.region.size.columns,
-			element_.region.size.rows, dest);
-}
-
-void ElementPainter::paintTiled(SpriteSheet& sheet) const {
-	const TileLayout layout(area_, pieceWidth(), pieceHeight());
-	for (const TileLayout::Placement& piece : layout.tiled()) {
-		blit(sheet, piece);
+void ElementPainter::paintStrip(SpriteSheet& sheet,
+				const world::PixelRect& clip, const int firstRow,
+				const int lastRow) const {
+	TileLayout layout(layout_.area(), layout_.pieceWidth(),
+			  layout_.pieceHeight());
+	const TileLayout::Range range = layout.visibleStrip(clip);
+	if (range.empty()) {
+		return;
+	}
+	for (int column = range.firstColumn; column <= range.lastColumn;
+	     ++column) {
+		const TileLayout::Placement piece = layout.stripAt(column);
+		blit(sheet, piece.offsetX, piece.offsetY, piece.width,
+		     piece.height, firstRow, lastRow);
 	}
 }
 
-void ElementPainter::paintStrip(SpriteSheet& sheet) const {
-	const TileLayout layout(area_, pieceWidth(), pieceHeight());
-	for (const TileLayout::Placement& piece : layout.strip()) {
-		blit(sheet, piece);
+void ElementPainter::blit(SpriteSheet& sheet, const int offsetX,
+			  const int offsetY, const int width,
+			  const int height, const int firstRow,
+			  const int lastRow) const {
+	if (width <= 0 || height <= 0) {
+		return;
+	}
+	// La pieza se dibuja celda por celda en su cuadrante del destino:
+	// sirve igual para el bloque contiguo (region) y para las
+	// composiciones explícitas (cells). La pieza cortada por el clip se
+	// dibuja con la fracción de fuente que se ve (la misma regla que
+	// tenía drawBlock con fracW/fracH). Solo se dibujan las filas del
+	// rango pedido, cada una en su posición natural.
+	const world::ElementPlacement& element = layout_.element();
+	const int cellW = layout_.pieceWidth() / element.pieceSize.columns;
+	const int cellH = layout_.pieceHeight() / element.pieceSize.rows;
+	for (int row = 0; row < element.pieceSize.rows; ++row) {
+		if (row < firstRow || row > lastRow) {
+			continue;
+		}
+		for (int column = 0; column < element.pieceSize.columns;
+		     ++column) {
+			const int visibleW =
+				std::min(cellW, width - column * cellW);
+			const int visibleH =
+				std::min(cellH, height - row * cellH);
+			if (visibleW <= 0 || visibleH <= 0) {
+				continue;
+			}
+			const world::GridCell cell =
+				element.pieceCells[static_cast<std::size_t>(
+					row * element.pieceSize.columns +
+					column)];
+			sheet.drawBlock(
+				cell.column, cell.row, 1, 1,
+				SDL2pp::Rect(layout_.area().x + offsetX +
+						     column * cellW,
+					     layout_.area().y + offsetY +
+						     row * cellH,
+					     visibleW, visibleH),
+				Flip::None,
+				static_cast<double>(visibleW) / cellW,
+				static_cast<double>(visibleH) / cellH);
+		}
 	}
 }
 
-void ElementPainter::blit(SpriteSheet& sheet,
-			  const TileLayout::Placement& piece) const {
-	const SDL2pp::Rect dest(area_.x + piece.offsetX,
-				area_.y + piece.offsetY, piece.width,
-				piece.height);
-	sheet.drawBlock(element_.region.origin.column,
-			element_.region.origin.row,
-			element_.region.size.columns,
-			element_.region.size.rows, dest, Flip::None,
-			static_cast<double>(piece.width) / pieceWidth(),
-			static_cast<double>(piece.height) / pieceHeight());
-}
-
-int ElementPainter::pieceWidth() const {
-	return tileset_.cellWidth * element_.region.size.columns *
-	       element_.draw.scaleX;
-}
-
-int ElementPainter::pieceHeight() const {
-	return tileset_.cellHeight * element_.region.size.rows *
-	       element_.draw.scaleY;
-}
-
-}
+}  // namespace sdl

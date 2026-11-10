@@ -11,10 +11,16 @@
 namespace {
 
 using game::ActionResolver;
+using game::CarrySelection;
 using game::LocalWorldView;
 using game::ViewEntity;
 using game::ViewMotion;
 using world::ActionKind;
+
+// Sin rasgos de contenido, nunca se sostiene nada: el resolver de estas
+// pruebas sigue solo lo que dice la fuente de estado.
+const world::ContentTraits kEmptyTraits;
+const CarrySelection kNoCarry(kEmptyTraits);
 
 const char* const kPlayerToml = R"(
 [characters.player]
@@ -63,6 +69,93 @@ cadence = { step = 24, frame = 12 }
       [[3, 16, 1, 2], [9, 16, 1, 2]],
       [[4, 16, 1, 2], [10, 16, 1, 2]],
     ]
+    [characters.player.right.pickup]
+    loops  = false
+    frames = [
+      [[4, 60], [10, 61]],
+      [[5, 60], [11, 61]],
+      [[0, 62], [6, 62]],
+      [[1, 62], [7, 62]],
+    ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -96,7 +189,7 @@ LocalWorldView viewWith(const ViewEntity& first) {
 TEST(ActionResolverTest, QuietEntityDrawsTheViewAction) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100),
 		  ActionKind::Idle);
@@ -109,7 +202,7 @@ TEST(ActionResolverTest, FollowsUseToolFromTheSource) {
 	ViewMotion motion(catalog());
 	// La fuente reporta UseTool: el resolver lo sigue.
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.actionFor(entity(ActionKind::UseTool), kPlayerIndex,
 				     100),
 		  ActionKind::UseTool);
@@ -120,16 +213,49 @@ TEST(ActionResolverTest, BackToIdleWhenTheSourceStopsUseTool) {
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
 	// La fuente vuelve a Idle: el resolver deja de mostrar UseTool.
 	motion.observe(viewWith(entity(ActionKind::Idle)), 130);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.actionFor(entity(ActionKind::Idle), kPlayerIndex,
 				     130),
 		  ActionKind::Idle);
 }
 
+TEST(ActionResolverTest, WateringCanUseToolAnimatesAsWater) {
+	ViewMotion motion(catalog());
+	ViewEntity watering = entity(ActionKind::UseTool);
+	watering.activeTool = world::ItemKind::WateringCan;
+	motion.observe(viewWith(watering), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(watering, kPlayerIndex, 100),
+		  ActionKind::Water);
+}
+
+TEST(ActionResolverTest, ToolWithoutRowKeepsUseTool) {
+	ViewMotion motion(catalog());
+	ViewEntity picking = entity(ActionKind::UseTool);
+	picking.activeTool = world::ItemKind::Pickaxe;
+	motion.observe(viewWith(picking), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(picking, kPlayerIndex, 100),
+		  ActionKind::UseTool);
+}
+
+TEST(ActionResolverTest, ConcreteActionFromTheSourceIsRespected) {
+	ViewMotion motion(catalog());
+	ViewEntity milking = entity(ActionKind::Milk);
+	milking.activeTool = world::ItemKind::WateringCan;
+	motion.observe(viewWith(milking), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(milking, kPlayerIndex, 100),
+		  ActionKind::Milk);
+}
+
 TEST(ActionResolverTest, WalkingBeatsUseTool) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	ViewEntity moving = entity(ActionKind::UseTool);
 	moving.moving = true;
@@ -137,10 +263,25 @@ TEST(ActionResolverTest, WalkingBeatsUseTool) {
 		  ActionKind::Walk);
 }
 
+TEST(ActionResolverTest, FaintBeatsWalkingAndUsesTheActionClock) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::Faint)), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	// Aunque el jugador siga moviéndose, la pose es Faint.
+	ViewEntity moving = entity(ActionKind::Faint);
+	moving.moving = true;
+	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
+		  ActionKind::Faint);
+	// La fase corre con el reloj de la acción, desde su arranque.
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 100), 0);
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 112), 12);
+}
+
 TEST(ActionResolverTest, ToolPhaseStartsAtZeroWhenTheSourceBeginsUseTool) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::UseTool), kPlayerIndex,
 				    100),
 		  0);
@@ -158,7 +299,7 @@ TEST(ActionResolverTest, WalkKeepsTheStepAnchoredPhase) {
 		       100);
 	ViewEntity moving = entity();
 	moving.moving = true;
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 105),
 		  ActionKind::Walk);
@@ -168,7 +309,7 @@ TEST(ActionResolverTest, WalkKeepsTheStepAnchoredPhase) {
 TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	const world::CreatureData& creature =
 		catalog().dataFor(world::CreatureKind::Player);
@@ -183,6 +324,42 @@ TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
 		const int phase = resolver.phaseFor(e, kPlayerIndex, it);
 		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(world::Direction::Right,
 						ActionKind::UseTool, phase),
+			  frame)
+			<< "en el cuadro " << frame;
+	}
+}
+
+TEST(ActionResolverTest, PickupAnimatesOnTheActionClock) {
+	ViewMotion motion(catalog());
+	// El jugador dejó de caminar hace rato (el reloj del paso quedó
+	// viejo) y la fuente enciende Pickup: la fase corre desde el
+	// arranque de la acción, así los cuadros salen 1-2-3-4.
+	motion.observe(viewWith(entity()), 0);
+	motion.observe(viewWith(entity(ActionKind::Pickup)), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    100),
+		  0);
+	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
+				    124),
+		  24);
+
+	const world::CreatureData& creature =
+		catalog().dataFor(world::CreatureKind::Player);
+	const int frameTicks = creature.cadence.frameTicks;
+	constexpr int kFrames = 4;
+	for (int frame = 0; frame < kFrames; ++frame) {
+		const int it = 100 + frame * frameTicks;
+		const int phase = resolver.phaseFor(entity(ActionKind::Pickup),
+						    kPlayerIndex, it);
+		ASSERT_EQ(resolver.actionFor(entity(ActionKind::Pickup),
+					     kPlayerIndex, it),
+			  ActionKind::Pickup)
+			<< "en el cuadro " << frame;
+		EXPECT_EQ(world::AppearanceResolver(creature).frameIndexFor(
+				  world::Direction::Right, ActionKind::Pickup,
+				  phase),
 			  frame)
 			<< "en el cuadro " << frame;
 	}

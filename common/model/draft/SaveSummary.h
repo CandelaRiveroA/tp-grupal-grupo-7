@@ -22,6 +22,9 @@ struct SaveSummary {
 	// En multiplayer hay más de un jugador. El primero es el jugador local.
 	std::vector<SavePlayer> players;
 	bool multiplayer = false;
+	std::uint32_t connectedPlayers = 0;
+	std::uint32_t maxPlayers = 0;
 	std::string inGameDate;
 	std::uint32_t playTimeSeconds = 0;
+	std::uint32_t gold = 500;
 };

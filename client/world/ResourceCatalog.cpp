@@ -2,17 +2,14 @@
 
 namespace world {
 
-bool ResourceCatalog::has(ResourceKind kind, ResourceState state) const {
-	const auto kindIt = visuals.find(kind);
-	if (kindIt == visuals.end()) {
-		return false;
+const ResourceVisual* ResourceCatalog::find(const std::string& contentId,
+					    ResourceState state) const {
+	const auto resourceIt = visuals.find(contentId);
+	if (resourceIt == visuals.end()) {
+		return nullptr;
 	}
-	return kindIt->second.find(state) != kindIt->second.end();
-}
-
-const ResourceVisual& ResourceCatalog::visualFor(ResourceKind kind,
-						 ResourceState state) const {
-	return visuals.at(kind).at(state);
+	const auto stateIt = resourceIt->second.find(state);
+	return stateIt == resourceIt->second.end() ? nullptr : &stateIt->second;
 }
 
 }

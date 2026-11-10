@@ -42,7 +42,7 @@ Quality Crop::map_score_to_quality(int total_score) const {
 }
 
 Quality Crop::calculate_quality() const {
-   int base_score = this->calculate_watering_score();
+    int base_score = this->calculate_watering_score();
     int luck_score = this->generate_luck_score();
     
     return this->map_score_to_quality(base_score + luck_score);

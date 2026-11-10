@@ -1,0 +1,27 @@
+# Marcador de selección de lugar: el cuadrado que se dibuja sobre la
+# tierra tratada cuando el jugador sostiene un saco (game::
+# PlantingSelection decide QUÉ celda y en qué estado; esto solo dice
+# CÓMO se ve). Cada estado es un bloque FIJO de la hoja (composición
+# 4x4: esquinas en las puntas, dos posiciones por borde, cuatro
+# interiores) dibujado estirado sobre la celda seleccionada.
+
+# Hoja de sprites y tamaño de su celda.
+[sheet]
+image = "Players/main/tools/buildplace.png"
+cell  = [16, 16]
+
+# Selección disponible (el piso está trabajado): el bloque col=0..3
+# row=0..3 de la hoja (esquinas (0,0)(3,0)(0,3)(3,3); bordes
+# (1,0)(2,0) (0,1)(0,2) (1,3)(2,3) (3,1)(3,2); interior
+# (1,1)(2,1)(1,2)(2,2)). block = [col, row, cols, rows].
+[states.available]
+block = [0, 0, 4, 4]
+# Tamaño sobre la celda seleccionada (1 = la celda entera). Se afina a
+# ojo: subirlo agranda el cuadrado alrededor de la celda.
+scale = 1.0
+
+# Ocupado (el cuadrado rojo): la celda ya tiene su cultivo plantado.
+# Mismo patrón compuesto 4x4, en el bloque col=4..7 row=0..3.
+[states.placed]
+block = [4, 0, 4, 4]
+scale = 1.0

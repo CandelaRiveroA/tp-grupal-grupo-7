@@ -18,9 +18,6 @@ public:
     void interact(Player& p, ToolType tool, World& w) override;
     std::optional<CellSnapshot> snapshot() const override;
 
-    uint8_t get_hits_remaining() const;
-    uint8_t get_max_hits() const;
-
     // Item que deja al agotarse (identifica el tipo de mineral).
     virtual ItemID get_drop_id() const = 0;
 

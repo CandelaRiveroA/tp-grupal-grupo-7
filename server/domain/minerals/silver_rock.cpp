@@ -16,10 +16,11 @@ void SilverRock::mine_mineral(World& w) {
     // TODO: Separar logica de randomizado?
     int chance = std::rand() % 100;
 
+    // La roca se rompe siempre; desde acá this queda destruido (solo rx y ry).
+    w.remove_entity(this);
     if (chance < 10) {
         // Regla del 10%: Spawnear manada de orcos
         // TODO: w.spawn_orc_pack(rx, ry);
-        w.remove_entity(this);
     } else {
         auto orb = std::make_unique<Product>(ItemID::SILVER_ORB, 250, Quality::BASE);
         auto drop = std::make_unique<DroppedItem>(std::move(orb), rx, ry);

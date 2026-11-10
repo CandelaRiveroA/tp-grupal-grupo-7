@@ -9,7 +9,7 @@ FakeWorldService::FakeWorldService(std::optional<ServiceError> failure,
 	: WorldService(parent)
 	, failure_(failure) {}
 
-std::vector<WorldSummary> FakeWorldService::fixedWorlds() {
+std::vector<WorldSummary> FakeWorldService::worlds() const {
 	WorldSummary valle;
 	valle.id = 1;
 	valle.name = "Valle Verde";
@@ -29,6 +29,6 @@ void FakeWorldService::requestWorlds() {
 			emit worldsFailed(*failure_);
 			return;
 		}
-		emit worldsReady(fixedWorlds());
+		emit worldsReady(worlds());
 	});
 }

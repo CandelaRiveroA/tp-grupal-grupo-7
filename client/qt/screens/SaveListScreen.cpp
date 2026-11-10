@@ -6,87 +6,150 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSizePolicy>
 #include <QVBoxLayout>
 
 #include <utility>
 
-#include "qt/services/AssetCatalog.h"
+#include "qt/screens/Screen.h"
+#include "qt/theme/SaveListRects.h"
+#include "qt/theme/TitleSprites.h"
 #include "qt/services/SaveService.h"
 #include "qt/services/SessionService.h"
-#include "qt/widgets/CharacterPreview.h"
+#include "qt/widgets/SaveRowButton.h"
+#include "qt/widgets/TitleButton.h"
 
 SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
-			       const AssetCatalog* catalog, QWidget* parent)
+			       const CharacterLayerSource* source, QWidget* parent)
 	: Screen(parent)
 	, saveService_(saves)
 	, sessionService_(sessions)
-	, catalog_(catalog)
+	, source_(source)
 	, scroll_(nullptr)
 	, rowsHost_(nullptr)
 	, rowsLayout_(nullptr)
 	, group_(nullptr)
 	, status_(nullptr)
 	, retry_(nullptr)
+	, window_(nullptr)
+	, scrollUp_(nullptr)
+	, scrollDown_(nullptr)
+	, backButton_(nullptr)
 	, states_()
+	, sprites_()
 	, errorMessages_() {
 	setObjectName("saveList");
 
 	auto* layout = new QVBoxLayout(this);
-	layout->setContentsMargins(64, 48, 64, 48);
-	layout->setSpacing(16);
+	layout->setContentsMargins(SAVE_ROOT_MARGIN_LEFT, SAVE_ROOT_MARGIN_TOP,
+				   SAVE_ROOT_MARGIN_RIGHT, SAVE_ROOT_MARGIN_BOTTOM);
+	layout->setSpacing(0);
 
-	auto* title = new QLabel("Elegí una partida", this);
-	title->setObjectName("screenTitle");
-	layout->addWidget(title);
+	layout->addStretch(SAVE_STRETCH_TOP);
 
-	scroll_ = new QScrollArea(this);
+	auto* centerRow = new QHBoxLayout();
+	centerRow->addStretch(SAVE_STRETCH_LEFT);
+
+	window_ = new QLabel(this);
+	window_->setObjectName("saveWindow");
+	window_->setPixmap(sprites_.windowBox());
+	window_->setFixedSize(SAVE_WINDOW_W, SAVE_WINDOW_H);
+	centerRow->addWidget(window_);
+
+	auto* windowLayout = new QVBoxLayout(window_);
+	windowLayout->setContentsMargins(SAVE_WINDOW_PAD, SAVE_WINDOW_PAD,
+					 SAVE_WINDOW_PAD, SAVE_WINDOW_PAD);
+
+	scroll_ = new QScrollArea(window_);
+	scroll_->setObjectName("saveScroll");
 	scroll_->setWidgetResizable(true);
 	scroll_->setFrameShape(QFrame::NoFrame);
 	scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	scroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	scroll_->setAutoFillBackground(false);
+	scroll_->viewport()->setAutoFillBackground(false);
 	scroll_->setVisible(false);
-	layout->addWidget(scroll_, 1);
+	windowLayout->addWidget(scroll_, 1);
 
 	rowsHost_ = new QWidget(scroll_);
+	rowsHost_->setObjectName("saveRowsHost");
+	rowsHost_->setAutoFillBackground(false);
 	rowsLayout_ = new QVBoxLayout(rowsHost_);
 	rowsLayout_->setContentsMargins(0, 0, 0, 0);
-	rowsLayout_->setSpacing(16);
+	rowsLayout_->setSpacing(0);
+	rowsLayout_->setAlignment(Qt::AlignTop);
 	scroll_->setWidget(rowsHost_);
+
+	// lo apagamos para que la zona libre muestre el panel y no el Window gris.
+	rowsHost_->setAutoFillBackground(false);
 
 	group_ = new QButtonGroup(this);
 	connect(group_, &QButtonGroup::idClicked, this,
 		&SaveListScreen::onRowClicked);
 
-	status_ = new QLabel(this);
+	status_ = new QLabel(window_);
 	status_->setObjectName("screenStatus");
 	status_->setAlignment(Qt::AlignCenter);
 	status_->setWordWrap(true);
 	status_->setVisible(false);
-	layout->addWidget(status_);
+	windowLayout->addWidget(status_);
 
-	retry_ = new QPushButton("Reintentar", this);
+	retry_ = new QPushButton("Reintentar", window_);
 	retry_->setObjectName("retryButton");
 	retry_->setVisible(false);
 	connect(retry_, &QPushButton::clicked, this,
 		&SaveListScreen::requestSaves);
-	layout->addWidget(retry_, 0, Qt::AlignHCenter);
+	windowLayout->addWidget(retry_, 0, Qt::AlignHCenter);
+
+	centerRow->addSpacing(SAVE_ARROWS_GAP);
+
+	auto* arrows = new QVBoxLayout();
+	scrollUp_ = new TitleButton(sprites_.upArrow(), sprites_.upArrowHover(),
+				    "Subir", this);
+	scrollUp_->setObjectName("scrollUpButton");
+	scrollUp_->setFixedSize(SAVE_SCROLL_ARROW_W, SAVE_SCROLL_ARROW_H);
+	scrollDown_ = new TitleButton(sprites_.downArrow(),
+				      sprites_.downArrowHover(), "Bajar", this);
+	scrollDown_->setObjectName("scrollDownButton");
+	scrollDown_->setFixedSize(SAVE_SCROLL_ARROW_W, SAVE_SCROLL_ARROW_H);
+	connect(scrollUp_, &QAbstractButton::clicked, this,
+		&SaveListScreen::scrollUp);
+	connect(scrollDown_, &QAbstractButton::clicked, this,
+		&SaveListScreen::scrollDown);
+	
+	arrows->addSpacing(SAVE_SCROLL_ARROW_GAP_TOP);
+	arrows->addWidget(scrollUp_);
+	arrows->addStretch(1);
+	arrows->addWidget(scrollDown_);
+	arrows->addSpacing(SAVE_SCROLL_ARROW_GAP_BOTTOM);
+	centerRow->addLayout(arrows);
+	centerRow->addStretch(SAVE_STRETCH_RIGHT);
+
+	layout->addLayout(centerRow);
+	layout->addStretch(SAVE_STRETCH_BOTTOM);
 
 	auto* buttons = new QHBoxLayout();
-	buttons->addStretch();
-
-	auto* back = new QPushButton("Volver", this);
-	back->setObjectName("backButton");
-	connect(back, &QPushButton::clicked, this, [this]() {
+	TitleSprites titles;
+	backButton_ = new TitleButton(titles.backButton(),
+				      titles.backButtonHover(), "Volver", this);
+	backButton_->setObjectName("backButton");
+	backButton_->setText("Volver");
+	connect(backButton_, &QAbstractButton::clicked, this, [this]() {
 		emit requestNavigate(ScreenId::MainMenu);
 	});
-	buttons->addWidget(back);
-
+	buttons->addStretch();
+	buttons->addWidget(backButton_);
 	layout->addLayout(buttons);
 
 	connect(saveService_, &SaveService::savesReady, this,
 		&SaveListScreen::showSaves);
 	connect(saveService_, &SaveService::savesFailed, this,
 		&SaveListScreen::showError);
+	connect(saveService_, &SaveService::saveDeleted, this,
+		&SaveListScreen::onSaveDeleted);
+	connect(saveService_, &SaveService::deleteFailed, this,
+		&SaveListScreen::onDeleteFailed);
 	connect(sessionService_, &SessionService::gameLoaded, this,
 		&SaveListScreen::onGameLoaded);
 	connect(sessionService_, &SessionService::sessionFailed, this,
@@ -99,12 +162,27 @@ SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
 	states_.bind(ScreenState::Error, retry_);
 
 	buildMessages();
+
+	connect(scroll_->verticalScrollBar(), &QScrollBar::valueChanged, this,
+		&SaveListScreen::updateNavigation);
+	connect(scroll_->verticalScrollBar(), &QScrollBar::rangeChanged, this,
+		&SaveListScreen::updateNavigation);
+	updateNavigation();
 }
 
 void SaveListScreen::onEnter() {
 	// Siempre se vuelve a pedir: el server puede haber creado o borrado
 	// partidas desde la última visita.
+	Screen::onEnter();
 	requestSaves();
+}
+
+void SaveListScreen::onExit() {
+	loading_ = false;
+	selecting_ = false;
+	deleting_ = false;
+	Screen::onExit();
+	updateNavigation();
 }
 
 void SaveListScreen::buildMessages() {
@@ -115,18 +193,18 @@ void SaveListScreen::buildMessages() {
 }
 
 void SaveListScreen::requestSaves() {
-	if (loading_) {
+	if (loading_ || deleting_) {
 		return;
 	}
 	loading_ = true;
-	showState(ScreenState::Loading, "Buscando partidas…");
-	saveService_->requestSaves();
+	showState(ScreenState::Loading, "Buscando partidas...");
+	saveService_->requestSaves(username());
 }
 
 void SaveListScreen::showSaves(std::vector<SaveSummary> saves) {
 	loading_ = false;
 	saves_ = std::move(saves);
-	selectedSave_ = -1;
+	selectedSave_ = kNoSelection;
 	clearRows();
 
 	const int count = static_cast<int>(saves_.size());
@@ -151,6 +229,32 @@ void SaveListScreen::showState(ScreenState state, const QString& message) {
 		status_->setText(message);
 	}
 	states_.setState(state);
+	updateNavigation();
+}
+
+void SaveListScreen::updateNavigation() {
+	const bool busy = loading_ || selecting_ || deleting_;
+	const bool scrollable =
+		static_cast<int>(saves_.size()) > SAVE_VISIBLE_ROWS;
+	QScrollBar* bar = scroll_->verticalScrollBar();
+
+	// Se pinta en gris un QLabel con pixmap disabled y apaga el panel.
+	scroll_->setEnabled(!busy);
+	backButton_->setEnabled(!busy);
+	scrollUp_->setEnabled(!busy && scrollable &&
+			      bar->value() > bar->minimum());
+	scrollDown_->setEnabled(!busy && scrollable &&
+				bar->value() < bar->maximum());
+}
+
+void SaveListScreen::scrollUp() {
+	QScrollBar* bar = scroll_->verticalScrollBar();
+	bar->setValue(bar->value() - SAVE_ROW_H);
+}
+
+void SaveListScreen::scrollDown() {
+	QScrollBar* bar = scroll_->verticalScrollBar();
+	bar->setValue(bar->value() + SAVE_ROW_H);
 }
 
 void SaveListScreen::clearRows() {
@@ -161,77 +265,22 @@ void SaveListScreen::clearRows() {
 }
 
 QWidget* SaveListScreen::makeRow(const SaveSummary& save, int index) {
-	auto* row = new QPushButton(rowsHost_);
-	row->setObjectName("saveRow");
-	row->setCursor(Qt::PointingHandCursor);
-	row->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-	auto* line = new QHBoxLayout(row);
-	line->setContentsMargins(16, 12, 16, 12);
-	line->setSpacing(24);
-
-	// Retrato a escala 2 del lienzo (el sizeHint del preview apunta a la
-	// escala 6 de la pantalla de personaje).
-	auto* portrait = new CharacterPreview(catalog_, row);
-	portrait->setAttribute(Qt::WA_TransparentForMouseEvents);
-	portrait->setAppearance(save.players.empty() ? CharacterAppearance{}
-						     : save.players.front()
-							       .appearance);
-	const QSize portraitSize = portrait->sizeHint() / 3;
-	portrait->setFixedSize(portraitSize);
-	line->addWidget(portrait, 0, Qt::AlignVCenter);
-
-	// El botón no toma la altura de su layout: la fijamos desde el
-	// retrato (12 de padding arriba y abajo).
-	row->setFixedHeight(portraitSize.height() + 24);
-
-	auto* info = new QVBoxLayout();
-	info->setSpacing(4);
-
-	auto* name = new QLabel(QString::fromStdString(save.gameName), row);
-	name->setObjectName("saveName");
-	name->setAttribute(Qt::WA_TransparentForMouseEvents);
-	info->addWidget(name);
-
-	if (!save.players.empty()) {
-		auto* player =
-			new QLabel(QString::fromStdString(
-					   save.players.front().name),
-				   row);
-		player->setObjectName("savePlayer");
-		player->setAttribute(Qt::WA_TransparentForMouseEvents);
-		info->addWidget(player);
-	}
-
-	if (!save.inGameDate.empty()) {
-		auto* date =
-			new QLabel(QString::fromStdString(save.inGameDate),
-				   row);
-		date->setObjectName("saveDate");
-		date->setAttribute(Qt::WA_TransparentForMouseEvents);
-		info->addWidget(date);
-	}
-
-	if (save.multiplayer) {
-		auto* badge = new QLabel("Cooperativa", row);
-		badge->setObjectName("saveBadge");
-		badge->setAttribute(Qt::WA_TransparentForMouseEvents);
-		info->addWidget(badge);
-	}
-
-	line->addLayout(info, 1);
+	auto* row = new SaveRowButton(save, index + 1, source_, sprites_,
+				      rowsHost_);
 	group_->addButton(row, index);
+	connect(row, &SaveRowButton::deleteRequested, this,
+		[this, index]() { onDeleteClicked(index); });
 	return row;
 }
 
 void SaveListScreen::onRowClicked(int index) {
-	if (selecting_ || index < 0 || index >= static_cast<int>(saves_.size()))
-	{
+	if (selecting_ || deleting_ || index < 0 ||
+	    index >= static_cast<int>(saves_.size())) {
 		return;
 	}
 	selectedSave_ = index;
 	selecting_ = true;
-	showState(ScreenState::Loading, "Cargando partida…");
+	showState(ScreenState::Loading, "Cargando partida...");
 	sessionService_->loadGame(saves_[selectedSave_].id);
 }
 
@@ -250,8 +299,37 @@ void SaveListScreen::onSessionFailed(ServiceError error) {
 		// pantalla.
 		return;
 	}
-	selectedSave_ = -1;
+	selectedSave_ = kNoSelection;
 	selecting_ = false;
+	showState(ScreenState::Error, messageFor(error));
+}
+
+void SaveListScreen::onDeleteClicked(int index) {
+	if (loading_ || selecting_ || deleting_ || index < 0 ||
+	    index >= static_cast<int>(saves_.size())) {
+		return;
+	}
+	deleting_ = true;
+	showState(ScreenState::Loading, "Eliminando partida...");
+	saveService_->deleteSave(saves_[index].id);
+}
+
+void SaveListScreen::onSaveDeleted(std::uint32_t saveId) {
+	if (!deleting_) {
+		return;  // respuesta tardia tras onExit()
+	}
+	deleting_ = false;
+	std::erase_if(saves_, [saveId](const SaveSummary& save) {
+		return save.id == saveId;
+	});
+	showSaves(std::move(saves_));
+}
+
+void SaveListScreen::onDeleteFailed(ServiceError error) {
+	if (!deleting_) {
+		return;
+	}
+	deleting_ = false;
 	showState(ScreenState::Error, messageFor(error));
 }
 

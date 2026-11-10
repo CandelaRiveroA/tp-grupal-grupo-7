@@ -62,6 +62,85 @@ cadence = { step = 24, frame = 12 }
       [[3, 16, 1, 2], [9, 16, 1, 2]],
       [[4, 16, 1, 2], [10, 16, 1, 2]],
     ]
+
+# Gallina mínima: el loader exige una tabla por criatura del enum.
+# Walk de 1 cuadro => invariante step == frame * 1 (8 == 8 * 1).
+[characters.chicken]
+sheet   = "Chicken.png"
+grid    = [16, 16]
+drawn   = [32, 32]
+cadence = { step = 8, frame = 8 }
+  [characters.chicken.front]
+  mirrored = false
+    [characters.chicken.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.right]
+  mirrored = false
+    [characters.chicken.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.back]
+  mirrored = false
+    [characters.chicken.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.chicken.left]
+  mirrored = false
+    [characters.chicken.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.chicken.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+# El loader exige una tabla por criatura del enum: vaca mínima.
+[characters.cow]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.cow.front]
+  mirrored = false
+    [characters.cow.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.right]
+  mirrored = false
+    [characters.cow.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.back]
+  mirrored = false
+    [characters.cow.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.cow.left]
+  mirrored = false
+    [characters.cow.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.cow.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -130,7 +209,7 @@ TEST(EntityAppearanceTest, MirroredDirectionReusesTheSameFrames) {
 }
 
 
-TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
+TEST(EntityAppearanceTest, WalkSheetCellStartsAtZeroAndCyclesTheSequence) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Walk, 0),
 		  0);
@@ -145,7 +224,7 @@ TEST(EntityAppearanceTest, WalkFrameIndexStartsAtZeroAndCyclesTheSequence) {
 		  1);
 }
 
-TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
+TEST(EntityAppearanceTest, WalkSheetCellIsExactlyTheDrawnFrame) {
 	const int stepTicks = player().cadence.stepTicks;
 	for (int tick = 0; tick < 4 * stepTicks; tick += 7) {
 		const int frame = world::AppearanceResolver(player()).frameIndexFor( Direction::Front, ActionKind::Walk, tick);
@@ -158,7 +237,7 @@ TEST(EntityAppearanceTest, WalkFrameIndexIsExactlyTheDrawnFrame) {
 }
 
 
-TEST(EntityAppearanceTest, IdleFrameIndexIsAlwaysZero) {
+TEST(EntityAppearanceTest, IdleSheetCellIsAlwaysZero) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::Idle, 0),
 		  0);
@@ -212,7 +291,7 @@ TEST(EntityAppearanceTest, UncachedUseToolFallsBackToIdle) {
 	EXPECT_FALSE(front.mirrored);
 }
 
-TEST(EntityAppearanceTest, UncachedActionFrameIndexIsTheIdleFrame) {
+TEST(EntityAppearanceTest, UncachedActionSheetCellIsTheIdleFrame) {
 	EXPECT_EQ(world::AppearanceResolver(player()).frameIndexFor( Direction::Front,
 				       ActionKind::UseTool, 0),
 		  0);

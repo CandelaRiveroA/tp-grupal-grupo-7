@@ -5,8 +5,10 @@
 
 #include <sys/socket.h>
 
-Acceptor::Acceptor(const char* service, Queue<MatchEvent>& events, ServerOutputMonitor& output):
-        listening(service), events(events), output(output), next_player_id(1) {}
+#include "../common/common_liberror.h"
+
+Acceptor::Acceptor(const char* service, MatchesMonitor& matches, ServerOutputMonitor& output):
+        listening(service), matches(matches), output(output) {}
 
 void Acceptor::collectFinishedHandlers() {
     auto it = handlers.begin();
@@ -29,22 +31,27 @@ void Acceptor::clear() {
 }
 
 void Acceptor::run() {
-    try {
-        while (should_keep_running()) {
+    while (should_keep_running()) {
+        try {
             Socket peer = listening.accept();
             collectFinishedHandlers();
-            if (handlers.size() >= static_cast<size_t>(MAX_JUGADORES)) {
-                output.printError("Conexion rechazada: ", "la partida esta llena.");
-                continue;
-            }
-            handlers.push_back(std::make_unique<ClientHandler>(std::move(peer), next_player_id,
-                                                               events, output));
+            handlers.push_back(std::make_unique<ClientHandler>(std::move(peer), matches, output));
             handlers.back()->start();
-            ++next_player_id;
-        }
-    } catch (const std::exception& error) {
-        if (should_keep_running()) {
-            output.printError("Error aceptando conexion: ", error.what());
+        } catch (const LibError& error) {
+            if (should_keep_running()) {
+                output.printError("Error aceptando conexion: ", error.what());
+            }
+            break;
+        } catch (const std::exception& error) {
+            if (should_keep_running()) {
+                output.printError("Error inesperado en acceptor: ", error.what());
+            }
+            break;
+        } catch (...) {
+            if (should_keep_running()) {
+                output.printError("Error inesperado en acceptor: ", "<Desconocido>");
+            }
+            break;
         }
     }
 

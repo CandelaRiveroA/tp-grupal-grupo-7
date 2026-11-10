@@ -1,6 +1,7 @@
 #include "world/ResourceTomlReader.h"
 
 #include <array>
+#include <utility>
 
 #include "world/ConfigError.h"
 
@@ -12,6 +13,7 @@ using tomlcfg::TomlDocument;
 using Kind = ConfigErrorKind;
 
 // Claves del TOML.
+constexpr const char* kResources = "resources";
 constexpr const char* kOffsetY = "offset_y";
 constexpr const char* kScale = "scale";
 constexpr const char* kSheet = "sheet";
@@ -19,19 +21,6 @@ constexpr const char* kCell = "cell";
 constexpr const char* kIntact = "intact";
 constexpr const char* kCracked = "cracked";
 constexpr const char* kBroken = "broken";
-
-// Recurso lógico -> tabla del TOML que lo describe.
-struct ResourceBinding {
-	ResourceKind kind;
-	const char* tableKey;
-};
-
-constexpr std::array<ResourceBinding, 4> kResourceBindings = {{
-	{ResourceKind::Silver, "silver"},
-	{ResourceKind::Coal, "coal"},
-	{ResourceKind::Lapis, "lapis"},
-	{ResourceKind::Gold, "gold"},
-}};
 
 }
 
@@ -60,17 +49,17 @@ ResourceVisual ResourceTomlReader::readVisual(const std::string& base,
 		throw ConfigError(Kind::InvalidValue, path);
 	}
 	ResourceVisual visual;
-	visual.sheetImage = sheet;
-	visual.cellWidth = cellWidth;
-	visual.cellHeight = cellHeight;
-	visual.col = block[0];
-	visual.row = block[1];
+	visual.sprite.sheetImage = sheet;
+	visual.sprite.cellWidth = cellWidth;
+	visual.sprite.cellHeight = cellHeight;
+	visual.sprite.col = block[0];
+	visual.sprite.row = block[1];
 	visual.cols = block[2];
 	visual.rows = block[3];
 	return visual;
 }
 
-void ResourceTomlReader::readResource(ResourceKind kind,
+void ResourceTomlReader::readResource(const std::string& contentId,
 				      const std::string& base,
 				      ResourceCatalog& catalog) const {
 	const std::string sheetPath = join(base, kSheet);
@@ -90,7 +79,7 @@ void ResourceTomlReader::readResource(ResourceKind kind,
 		byState.emplace(state, readVisual(base, sheet, cell[0],
 						  cell[1], name));
 	}
-	catalog.visuals.emplace(kind, std::move(byState));
+	catalog.visuals.emplace(contentId, std::move(byState));
 }
 
 ResourceCatalog ResourceTomlReader::read() const {
@@ -101,11 +90,13 @@ ResourceCatalog ResourceTomlReader::read() const {
 	if (doc_.hasKey(kScale)) {
 		catalog.scale = doc_.getDouble(kScale);
 	}
-	for (const ResourceBinding& binding : kResourceBindings) {
-		if (!doc_.hasKey(binding.tableKey)) {
-			continue;
+	// Vocabulario ABIERTO: cada subtabla [resources.<contentId>] es un
+	// recurso. Agregar uno = una sección en el TOML, sin tocar código.
+	if (doc_.hasKey(kResources)) {
+		for (const std::string& contentId : doc_.subtableKeys(kResources)) {
+			readResource(contentId, join(kResources, contentId),
+				     catalog);
 		}
-		readResource(binding.kind, binding.tableKey, catalog);
 	}
 	return catalog;
 }

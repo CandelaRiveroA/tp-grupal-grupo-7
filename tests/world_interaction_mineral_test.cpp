@@ -49,6 +49,26 @@ TEST(WorldInteractionTest, MoversePicarYLevantarCarbonAutomaticamente) {
     EXPECT_EQ(inv.peek_item(4)->get_id(), ItemID::COAL_ORB);
 }
 
+TEST(WorldInteractionTest, PickupRecordsADomainEventDrainedByQuery) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.set_entity_at(2, 1, std::make_unique<CoalRock>(2, 1));
+
+    // Romper la roca deja un drop en su lugar: todavía no es una recogida.
+    world.move_player(1, Direction::RIGHT);  // Bloqueado por la roca.
+    world.use_tool(1);
+    EXPECT_TRUE(world.take_pickups().empty());
+
+    // Pisar el drop lo levanta y deja el evento en la cola del dominio.
+    world.move_player(1, Direction::RIGHT);
+    const auto pickups = world.take_pickups();
+    ASSERT_EQ(pickups.size(), 1u);
+    EXPECT_EQ(pickups[0].player_id, 1);
+    EXPECT_EQ(pickups[0].item, ItemID::COAL_ORB);
+    // La cola se vacía por consulta, no se duplica.
+    EXPECT_TRUE(world.take_pickups().empty());
+}
+
 TEST(WorldInteractionTest, EveryAcceptedHitEmitsAnEventIncludingDestruction) {
     World world(4, 4);
     world.add_player(1, std::make_unique<Player>(1, 0, 1));
@@ -65,11 +85,9 @@ TEST(WorldInteractionTest, EveryAcceptedHitEmitsAnEventIncludingDestruction) {
         EXPECT_EQ(events[0].y, 1);
         EXPECT_EQ(events[0].destroyed, hit == 4);
         EXPECT_TRUE(world.take_resource_hits().empty());
-        const auto changes = view.sync(world, 1);
-        if (hit == 2) {
-            // Cracked -> Cracked: still emits an impact despite no visual update.
-            EXPECT_TRUE(changes.empty());
-        }
+        // Estado completo: el lote describe la celda aunque el impacto no
+        // cambie nada visible.
+        EXPECT_FALSE(view.sync(world, 1).empty());
     }
     world.use_tool(1);  // A dropped item is not a mineral hit.
     EXPECT_TRUE(world.take_resource_hits().empty());

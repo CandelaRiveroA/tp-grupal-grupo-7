@@ -33,7 +33,7 @@ private:
 
     void drawPanel(int x, int y, int side);
 
-    void drawCell(const world::BannerCell& cell, int dx, int dy, int dw, int dh);
+    void drawCell(const world::SheetCell& cell, int dx, int dy, int dw, int dh);
 
     SdlContext& context_;
     world::ObtainedBannerCatalog catalog_;

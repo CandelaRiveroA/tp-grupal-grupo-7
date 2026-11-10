@@ -1,53 +1,80 @@
 #include "CharacterScreen.h"
 
+#include <QAbstractButton>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QSignalBlocker>
-#include <QSlider>
+#include <QStyle>
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <string>
+#include <vector>
+
 #include "common/model/draft/GameSelection.h"
-#include "qt/services/AssetCatalog.h"
+#include "core/MusicControl.h"
+#include "core/MusicTrack.h"
+#include "qt/services/CharacterLayerSource.h"
 #include "qt/services/SessionService.h"
-#include "qt/util/IndexCycle.h"
-#include "qt/widgets/CharacterPreview.h"
+#include "qt/theme/CharacterRects.h"
+#include "qt/theme/TitleSprites.h"
+#include "qt/theme/WorldSpriteRects.h"
+#include "qt/widgets/CharacterAppearanceEditor.h"
+#include "qt/widgets/InputBox.h"
+#include "qt/widgets/TitleButton.h"
+#include "qt/widgets/WorldSelectorWidget.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,
-				 const AssetCatalog* catalog, QWidget* parent)
+				 const CharacterLayerSource* source, QWidget* parent,
+				 core::MusicControl* music)
 	: Screen(parent)
 	, session_(session)
-	, catalog_(catalog)
-	, layers_()
+	, music_(music)
+	, source_(source)
+	, editor_(nullptr)
 	, content_(nullptr)
-	, preview_(nullptr)
 	, worldLabel_(nullptr)
+	, worldSelector_(nullptr)
 	, characterName_(nullptr)
 	, gameName_(nullptr)
 	, create_(nullptr)
 	, backButton_(nullptr)
 	, status_(nullptr)
-	, values_()
-	, sliders_()
 	, errorMessages_() {
 	buildMessages();
+	editor_ = new CharacterAppearanceEditor(source_, sprites_, this);
+	connect(editor_, &CharacterAppearanceEditor::appearanceChanged, this,
+		&CharacterScreen::updateValidation);
 	buildUi();
 
 	connect(session_, &SessionService::gameCreated, this,
 		&CharacterScreen::onCreated);
+	connect(session_, &SessionService::gameJoined, this,
+		&CharacterScreen::onJoined);
 	connect(session_, &SessionService::sessionFailed, this,
 		&CharacterScreen::onSessionFailed);
 
 	resetDraft();
 }
 
-void CharacterScreen::startNewGame(const WorldSummary& world) {
+void CharacterScreen::startNewGame(
+	const std::vector<WorldSummary>& worlds) {
 	mode_ = Mode::NewGame;
-	world_ = world;
+	worldSelector_->setWorlds(worlds);
+	world_ = worldSelector_->selectedWorld();
 	resetDraft();
+}
+
+void CharacterScreen::onWorldSelected(WorldSummary world) {
+	if (mode_ != Mode::NewGame) {
+		return;
+	}
+	world_ = world;
+	worldLabel_->setText(
+		QString("Mundo: %1").arg(QString::fromStdString(world_->name)));
+	updateValidation();
 }
 
 void CharacterScreen::startJoinGame(const std::string& gameName) {
@@ -57,11 +84,34 @@ void CharacterScreen::startJoinGame(const std::string& gameName) {
 	resetDraft();
 }
 
-void CharacterScreen::onEnter() { characterName_->setFocus(); }
+void CharacterScreen::onEnter() {
+	if (music_ != nullptr) {
+		music_->play(core::MusicTrack::CharacterSelect);
+	}
+
+	characterName_->setFocus();
+	Screen::onEnter();
+}
+
+void CharacterScreen::onExit() {
+	// Devuelve la musica del lobby: las demas pantallas no piden pista.
+	if (music_ != nullptr) {
+		music_->play(core::MusicTrack::MenuTheme);
+	}
+
+	Screen::onExit();
+	submitting_ = false;
+}
 
 void CharacterScreen::buildMessages() {
 	errorMessages_[ServiceError::GameNameTaken] =
 		"Ya existe una partida con ese nombre.";
+	errorMessages_[ServiceError::InvalidCode] =
+		"No hay ninguna partida con ese código.";
+	errorMessages_[ServiceError::GameFull] = "La partida está llena.";
+	errorMessages_[ServiceError::CharacterNameTaken] =
+		"Ya hay un jugador con ese personaje en la partida.";
+	errorMessages_[ServiceError::UsernameTaken] = "Ese usuario ya está conectado.";
 	errorMessages_[ServiceError::Network] =
 		"No se pudo conectar con el servidor.";
 }
@@ -70,36 +120,50 @@ void CharacterScreen::buildUi() {
 	setObjectName("character");
 
 	auto* root = new QVBoxLayout(this);
-	root->setContentsMargins(48, 24, 48, 24);
+	root->setContentsMargins(48, 24, 28, 12);
 	root->setSpacing(8);
 
 	// Ventana con toda la configuración, centrada sobre la pantalla.
-	content_ = new QFrame(this);
-	content_->setObjectName("characterWindow");
-	content_->setMaximumWidth(kWindowMaxWidth);
+	// El panel de madera es un QLabel con el pixmap
+	auto* frame = new QLabel(this);
+	frame->setPixmap(sprites_.windowBox());
+	frame->setFixedSize(CHAR_WINDOW_W, CHAR_WINDOW_H);
+	frame->setObjectName("characterWindow");
+	content_ = frame;
 	auto* window = new QVBoxLayout(content_);
-	window->setContentsMargins(24, 24, 24, 24);
+	window->setContentsMargins(CHAR_WINDOW_PAD, CHAR_WINDOW_PAD,
+				   CHAR_WINDOW_PAD, CHAR_WINDOW_PAD - 4);
 	window->setSpacing(16);
 
 	auto* columns = new QHBoxLayout();
-	columns->setSpacing(48);
-	columns->addWidget(makePreviewColumn(), 0, Qt::AlignTop);
-	columns->addWidget(makeFormColumn(), 1, Qt::AlignTop);
+	columns->setSpacing(CHAR_COLUMN_GAP);
+	columns->addWidget(editor_->previewColumn(this), 0, Qt::AlignTop);
+	columns->addWidget(makeFormColumn(), 0, Qt::AlignTop);
 	window->addLayout(columns, 1);
 
-	create_ = new QPushButton("Crear", content_);
+	create_ = new TitleButton(sprites_.okButton(), sprites_.okButtonHover(),
+				  "Crear", content_);
 	create_->setObjectName("createButton");
-	create_->setDefault(true);
 	create_->setEnabled(false);
-	connect(create_, &QPushButton::clicked, this,
+	connect(create_, &QAbstractButton::clicked, this,
 		&CharacterScreen::submit);
 	auto* createRow = new QHBoxLayout();
 	createRow->addStretch();
 	createRow->addWidget(create_);
 	window->addLayout(createRow);
 
+	worldSelector_ = new WorldSelectorWidget(this);
+	connect(worldSelector_, &WorldSelectorWidget::worldSelected, this,
+		&CharacterScreen::onWorldSelected);
+
+	auto* centerRow = new QHBoxLayout();
+	centerRow->setSpacing(WorldSpriteRects::kPanelGap);
+	centerRow->addStretch();
+	centerRow->addWidget(content_, 0, Qt::AlignTop);
+	centerRow->addWidget(worldSelector_, 0, Qt::AlignTop);
+	centerRow->addStretch();
 	root->addStretch();
-	root->addWidget(content_, 0, Qt::AlignHCenter);
+	root->addLayout(centerRow);
 	root->addStretch();
 
 	status_ = new QLabel(this);
@@ -110,86 +174,61 @@ void CharacterScreen::buildUi() {
 	root->addWidget(status_);
 
 	auto* buttons = new QHBoxLayout();
-	backButton_ = new QPushButton("Volver", this);
+	
+	TitleSprites sprites;
+	backButton_ = new TitleButton(sprites.backButton(),
+				      sprites.backButtonHover(), "Volver", this);
 	backButton_->setObjectName("backButton");
-	connect(backButton_, &QPushButton::clicked, this, [this]() {
+	backButton_->setText("Volver");
+	connect(backButton_, &QAbstractButton::clicked, this, [this]() {
 		emit requestNavigate(mode_ == Mode::JoinGame
 					      ? ScreenId::JoinCode
-					      : ScreenId::WorldSelect);
+					      : ScreenId::MainMenu);
 	});
 	buttons->addStretch();
 	buttons->addWidget(backButton_);
 	root->addLayout(buttons);
 }
 
-QWidget* CharacterScreen::makePreviewColumn() {
-	auto* column = new QWidget(this);
-	column->setObjectName("previewColumn");
-	auto* layout = new QVBoxLayout(column);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(6);
-
-	preview_ = new CharacterPreview(catalog_, column);
-	preview_->setFixedSize(preview_->sizeHint());
-	layout->addWidget(preview_, 0, Qt::AlignHCenter);
-
-	struct Row {
-		CharacterLayer layer;
-		const char* name;
-	};
-	const Row rows[] = {
-		{CharacterLayer::Skin, "Piel"},
-		{CharacterLayer::Hair, "Pelo"},
-		{CharacterLayer::Shirt, "Camisa"},
-		{CharacterLayer::Pants, "Pantalón"},
-		{CharacterLayer::Accessory, "Accesorio"},
-	};
-	for (const Row& row : rows) {
-		layout->addWidget(makeRow(row.layer, row.name));
-	}
-	layout->addStretch();
-	return column;
+QLineEdit* CharacterScreen::makeInputRow(QVBoxLayout* layout,
+					 const QString& label,
+					 const QString& objectName, int maxLength) {
+	QWidget* parent = layout->parentWidget();
+	auto* field = new QVBoxLayout();
+	field->setSpacing(CHAR_INPUT_LABEL_GAP);
+	field->addWidget(new QLabel(label, parent));
+	auto* box = new InputBox(
+		sprites_.inputBox(),
+		QMargins(CHAR_INPUT_PAD_LEFT, CHAR_INPUT_PAD_TOP,
+			 CHAR_INPUT_PAD_RIGHT, CHAR_INPUT_PAD_BOTTOM),
+		parent);
+	QLineEdit* edit = box->edit();
+	edit->setObjectName(objectName);
+	edit->setMaxLength(maxLength);
+	field->addWidget(box, 0, Qt::AlignLeft);
+	layout->addLayout(field);
+	return edit;
 }
 
 QWidget* CharacterScreen::makeFormColumn() {
 	auto* column = new QWidget(this);
 	column->setObjectName("formColumn");
+	column->setFixedWidth(CHAR_FORM_COL_W);
 	auto* layout = new QVBoxLayout(column);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(12);
 
-	auto* nameRow = new QHBoxLayout();
-	auto* nameLabel = new QLabel("Nombre", column);
-	nameLabel->setMinimumWidth(110);
-	nameRow->addWidget(nameLabel);
-	characterName_ = new QLineEdit(column);
-	characterName_->setObjectName("characterInput");
-	characterName_->setMaxLength(16);
-	characterName_->setMaximumWidth(420);
-	characterName_->setPlaceholderText("Nombre del personaje");
-	nameRow->addWidget(characterName_, 1);
-	layout->addLayout(nameRow);
-
-	auto* gameRow = new QHBoxLayout();
-	auto* gameLabel = new QLabel("Partida", column);
-	gameLabel->setMinimumWidth(110);
-	gameRow->addWidget(gameLabel);
-	gameName_ = new QLineEdit(column);
-	gameName_->setObjectName("gameInput");
-	gameName_->setMaxLength(20);
-	gameName_->setMaximumWidth(420);
-	gameName_->setPlaceholderText("Nombre de la partida");
-	gameRow->addWidget(gameName_, 1);
-	layout->addLayout(gameRow);
+	characterName_ = makeInputRow(layout, "Nombre", "characterInput",
+				      CHAR_INPUT_MAX_CHARS);
+	gameName_ = makeInputRow(layout, "Nombre de la granja", "gameInput",
+				 CHAR_INPUT_MAX_CHARS);
 
 	worldLabel_ = new QLabel(column);
 	worldLabel_->setObjectName("worldLabel");
 	layout->addWidget(worldLabel_);
 
 	layout->addSpacing(16);
-	layout->addWidget(makeSlider(CharacterLayer::Eyes, "Color de ojos"));
-	layout->addWidget(
-		makeSlider(CharacterLayer::HairColor, "Color de pelo"));
+	layout->addWidget(editor_->sliderColumn(column));
 	layout->addStretch();
 
 	connect(characterName_, &QLineEdit::textChanged, this,
@@ -202,127 +241,11 @@ QWidget* CharacterScreen::makeFormColumn() {
 			selection_.gameName = text.trimmed().toStdString();
 			updateValidation();
 		});
+	connect(characterName_, &QLineEdit::returnPressed, this,
+		&CharacterScreen::submit);
+	connect(gameName_, &QLineEdit::returnPressed, this,
+		&CharacterScreen::submit);
 	return column;
-}
-
-QWidget* CharacterScreen::makeRow(CharacterLayer layer, const QString& name) {
-	auto* row = new QWidget(this);
-	auto* layout = new QVBoxLayout(row);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(0);
-
-	auto* line = new QHBoxLayout();
-	line->setSpacing(8);
-
-	auto* previous = new QPushButton("◀", row);
-	previous->setFixedWidth(36);
-	connect(previous, &QPushButton::clicked, this, [this, layer]() {
-		cycleLayer(layer, -1);
-	});
-	line->addWidget(previous);
-
-	auto* label = new QLabel(name, row);
-	label->setAlignment(Qt::AlignCenter);
-	label->setMinimumWidth(120);
-	line->addWidget(label, 1);
-
-	auto* next = new QPushButton("▶", row);
-	next->setFixedWidth(36);
-	connect(next, &QPushButton::clicked, this, [this, layer]() {
-		cycleLayer(layer, 1);
-	});
-	line->addWidget(next);
-	layout->addLayout(line);
-
-	auto* value = new QLabel(row);
-	value->setAlignment(Qt::AlignCenter);
-	layout->addWidget(value);
-	values_[layer] = value;
-	return row;
-}
-
-QWidget* CharacterScreen::makeSlider(CharacterLayer layer,
-				     const QString& name) {
-	auto* block = new QWidget(this);
-	auto* layout = new QVBoxLayout(block);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(2);
-
-	layout->addWidget(new QLabel(name, block));
-
-	auto* line = new QHBoxLayout();
-	line->setSpacing(12);
-
-	auto* slider = new QSlider(Qt::Horizontal, block);
-	const int total = catalog_->count(layer);
-	slider->setRange(0, total > 0 ? total - 1 : 0);
-	slider->setSingleStep(1);
-	slider->setPageStep(1);
-	connect(slider, &QSlider::valueChanged, this,
-		[this, layer](int value) {
-			setLayer(layer, static_cast<std::uint8_t>(value));
-		});
-	line->addWidget(slider, 1);
-
-	auto* value = new QLabel(block);
-	value->setMinimumWidth(24);
-	value->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-	line->addWidget(value);
-	layout->addLayout(line);
-
-	sliders_[layer] = slider;
-	values_[layer] = value;
-	return block;
-}
-
-void CharacterScreen::cycleLayer(CharacterLayer layer, int direction) {
-	const std::uint8_t total = catalog_->count(layer);
-	if (total == 0) {
-		return;
-	}
-
-	const IndexCycle cycle(total);
-	const std::uint8_t current =
-		layers_.value(selection_.appearance, layer);
-	const std::uint8_t next = direction > 0 ? cycle.next(current)
-					       : cycle.previous(current);
-	setLayer(layer, next);
-}
-
-void CharacterScreen::setLayer(CharacterLayer layer, std::uint8_t index) {
-	const std::uint8_t total = catalog_->count(layer);
-	if (total == 0) {
-		return;
-	}
-	if (index >= total) {
-		index = static_cast<std::uint8_t>(total - 1);
-	}
-
-	layers_.set(selection_.appearance, layer, index);
-	applyDraft();
-}
-
-void CharacterScreen::applyDraft() {
-	preview_->setAppearance(selection_.appearance);
-
-	for (int layer = 0; layer < static_cast<int>(CharacterLayer::Count);
-	     ++layer) {
-		const auto current = static_cast<CharacterLayer>(layer);
-		const std::uint8_t value =
-			layers_.value(selection_.appearance, current);
-
-		const auto label = values_.find(current);
-		if (label != values_.end()) {
-			label->second->setText(QString::number(value));
-		}
-
-		const auto slider = sliders_.find(current);
-		if (slider != sliders_.end()) {
-			const QSignalBlocker blocker(slider->second);
-			slider->second->setValue(value);
-		}
-	}
-	updateValidation();
 }
 
 void CharacterScreen::updateValidation() {
@@ -335,11 +258,11 @@ void CharacterScreen::submit() {
 	}
 
 	if (mode_ == Mode::JoinGame) {
-		// La sesión ya se unió al aceptar el código: acá solo queda
-		// confirmar el personaje. TODO con protocolo: confirmar cómo
-		// viaja el personaje del joiner (ver
-		// docs/ui/plan-e2-servicios.md).
-		emit characterConfirmed(selection_);
+		submitting_ = true;
+		showState(ScreenState::Loading, "Uniéndose a la partida...");
+		selection_.appearance = editor_->appearance();
+		session_->joinGame(selection_.gameName, username(), selection_.characterName,
+				   selection_.appearance);
 		return;
 	}
 
@@ -348,9 +271,12 @@ void CharacterScreen::submit() {
 	}
 
 	submitting_ = true;
-	showState(ScreenState::Loading, "Creando partida…");
+	showState(ScreenState::Loading, "Creando partida...");
+
+	selection_.appearance = editor_->appearance();
 
 	GameSelection game;
+	game.username = username();
 	game.gameName = selection_.gameName;
 	game.characterName = selection_.characterName;
 	game.worldId = world_->id;
@@ -359,6 +285,18 @@ void CharacterScreen::submit() {
 }
 
 void CharacterScreen::onCreated() {
+	if (!submitting_) {
+		// Llegó después de salir de la pantalla: no se entra al juego.
+		return;
+	}
+	submitting_ = false;
+	emit characterConfirmed(selection_);
+}
+
+void CharacterScreen::onJoined(const std::string&, std::uint32_t) {
+	if (!submitting_) {
+		return;
+	}
 	submitting_ = false;
 	emit characterConfirmed(selection_);
 }
@@ -387,7 +325,10 @@ void CharacterScreen::resetDraft() {
 	gameName_->clear();
 
 	gameName_->setReadOnly(mode_ == Mode::JoinGame);
+	gameName_->style()->unpolish(gameName_);
+	gameName_->style()->polish(gameName_);
 	worldLabel_->setVisible(mode_ != Mode::JoinGame);
+	worldSelector_->setVisible(mode_ == Mode::NewGame);
 	if (mode_ == Mode::JoinGame) {
 		selection_.gameName = joinedName;
 		const QSignalBlocker blocker(gameName_);
@@ -403,15 +344,17 @@ void CharacterScreen::resetDraft() {
 	}
 
 	create_->setText(mode_ == Mode::JoinGame ? "Aceptar" : "Crear");
+	create_->setToolTip(create_->text());
 
 	showState(ScreenState::Ready, QString());
-	applyDraft();
+	editor_->setAppearance(selection_.appearance);
 }
 
 void CharacterScreen::showState(ScreenState state, const QString& message) {
 	const bool busy = state == ScreenState::Loading;
 
 	content_->setEnabled(!busy);
+	worldSelector_->setEnabled(!busy);
 	backButton_->setEnabled(!busy);
 	create_->setEnabled(!busy && canSubmit());
 

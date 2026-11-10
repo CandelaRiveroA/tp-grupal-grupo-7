@@ -2,7 +2,7 @@
 
 namespace game {
 
-bool FootstepCue::update(bool moving, int walkFrame) {
+bool FootstepCue::update(bool moving, int stepFrame) {
 	if (!moving) {
 		moving_ = false;
 		return false;
@@ -10,12 +10,12 @@ bool FootstepCue::update(bool moving, int walkFrame) {
 
 	if (!moving_) {
 		moving_ = true;
-		frame_ = walkFrame;
+		frame_ = stepFrame;
 		return true;
 	}
 
-	const bool changed = (walkFrame != frame_);
-	frame_ = walkFrame;
+	const bool changed = (stepFrame != frame_);
+	frame_ = stepFrame;
 	return changed;
 }
 

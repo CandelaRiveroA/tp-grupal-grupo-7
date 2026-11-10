@@ -27,7 +27,8 @@ public:
 
 	void setEntry(CreatureKind kind, CreatureEntry entry);
 
-	bool has(CreatureKind kind) const;
+	// Una sola búsqueda: nullptr si la criatura no está en el catálogo.
+	const CreatureData* find(CreatureKind kind) const;
 
 	const CreatureData& dataFor(CreatureKind kind) const;
 

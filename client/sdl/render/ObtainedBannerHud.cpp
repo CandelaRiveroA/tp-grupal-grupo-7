@@ -36,7 +36,7 @@ int ObtainedBannerHud::borderThickness() const {
     return std::max(t, 1);
 }
 
-void ObtainedBannerHud::drawCell(const world::BannerCell& cell, int dx, int dy, int dw, int dh) {
+void ObtainedBannerHud::drawCell(const world::SheetCell& cell, int dx, int dy, int dw, int dh) {
     if (dw <= 0 || dh <= 0) {
         return;
     }
@@ -72,19 +72,29 @@ void ObtainedBannerHud::draw(const std::vector<game::ActiveBanner>& banners) {
                                              catalog_.iconOffsetX, catalog_.iconOffsetY);
 
     for (const game::ActiveBanner& banner: banners) {
-        if (!catalog_.hasIcon(banner.kind)) {
+        const world::SpriteVisual* iconVisual = catalog_.find(banner.contentId);
+        if (iconVisual == nullptr) {
             continue;
         }
         const world::BannerBox panel = layout.panelBox(banner.stackIndex);
         drawPanel(panel.x, panel.y, panel.width);
 
         const world::BannerBox icon = layout.iconBox(panel);
-        const world::BannerIcon& iconVisual = catalog_.iconFor(banner.kind);
         SpriteSheet& iconSheet =
-                iconSheets_.sheet(iconVisual.sheetImage, core::assetPath(iconVisual.sheetImage),
-                                  iconVisual.cellWidth, iconVisual.cellHeight);
-        iconSheet.draw(iconVisual.col, iconVisual.row,
-                       SDL2pp::Rect(icon.x, icon.y, icon.width, icon.height));
+                iconSheets_.sheet(iconVisual->sheetImage,
+                                  core::assetPath(iconVisual->sheetImage),
+                                  iconVisual->cellWidth, iconVisual->cellHeight);
+        // Si el icono declara `drawn` se dibuja a ese tamaño, centrado en
+        // la caja; si no, llena la caja entera (los minerales, por
+        // ejemplo, se estiran a ella).
+        const int drawW = iconVisual->drawnWidth > 0 ? iconVisual->displayWidth()
+                                                     : icon.width;
+        const int drawH = iconVisual->drawnHeight > 0 ? iconVisual->displayHeight()
+                                                      : icon.height;
+        iconSheet.draw(iconVisual->col, iconVisual->row,
+                       SDL2pp::Rect(icon.x + (icon.width - drawW) / 2,
+                                    icon.y + (icon.height - drawH) / 2, drawW,
+                                    drawH));
     }
 }
 

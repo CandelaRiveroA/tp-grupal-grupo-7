@@ -15,6 +15,7 @@ void Pumpkin::harvest(Player& p, World& w) {
     
     // 3. Si el inventario tenía lugar, la planta se arranca de la tierra
     if (success) {
+        w.record_pickup(p.get_id(), this->product_id);
         w.remove_entity(this);
     }
 }

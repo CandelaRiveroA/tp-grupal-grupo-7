@@ -28,10 +28,15 @@ enum class ServerMessageType : uint8_t {
     Clock = 16,
     DayEnd = 17,
     SyncEnd = 18,
+    Crop = 19,
+    GroundEffect = 20,
 };
 
 // Estado de daño visible de un recurso picable.
 enum class ResourceDamage : uint8_t { Intact = 0, Cracked = 1, Broken = 2 };
+
+// Consecuencia visible en el suelo de una celda (tierra arada / regada).
+enum class GroundEffect : uint8_t { Dug = 0, Watered = 1 };
 
 struct ServerStatus {
     uint8_t player_id;
@@ -84,9 +89,11 @@ struct ServerObtained {
     std::string content_id;
 };
 
-// El jugador player_id usó una herramienta (animación de golpe).
+// El jugador player_id usó una herramienta (animación de golpe). content_id es
+// el contenido equipado (vacío = manos); el cliente elige la animación por él.
 struct ServerToolUsed {
     uint8_t player_id;
+    std::string content_id;
 };
 
 // Impacto confirmado: no depende de cambios del estado visual.
@@ -151,10 +158,30 @@ struct ServerFurniture {
     std::string content_id;
 };
 
+// Cultivo plantado. crop_id es el contentId del producto (ej. "strawberry").
+// stage: 0 semilla, 1..5 crecimiento, 6 cosecha. quality: 1..5 = BASE..PERFECT,
+// el mismo orden que qualities de crops.toml (solo importa en la cosecha).
+struct ServerCrop {
+    uint16_t x;
+    uint16_t y;
+    std::string crop_id;
+    uint8_t stage;
+    bool needs_water;
+    bool interactive;
+    uint8_t quality;
+};
+
+// Tierra tratada en una celda. Una celda regada manda Dug y después Watered.
+struct ServerGroundEffect {
+    uint16_t x;
+    uint16_t y;
+    GroundEffect effect;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock, ServerSyncEnd>;
+                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect>;
 
 #endif

@@ -293,13 +293,14 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
   (`core::ToolUseSounds`, tabla herramienta -> sonido). Si la fuente manda
   directamente una acción concreta (`Water`, `Milk`, ...), se respeta tal
   cual.
-- **El slot es selección LOCAL.** Seleccionar un casillero del inventario
-  (teclas 1..N, N = `InventoryLayout::count`) no viaja al servidor. Qué
-  herramienta se usa y si se puede lo decide la fuente.
+- **El slot viaja con el Pick.** Seleccionar un casillero (teclas 1..N, N =
+  `InventoryLayout::count`) es local, pero al usar, `PickMessage.slot` manda
+  el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
+  ella lo decide la fuente.
 - **Presentación local del campo** (`game::FarmSelection`): lo que se
   sostiene sobre la cabeza (contenido `droppable` del slot activo) y el
   marcador de plantado bajo el puntero salen de la selección del HUD; el
-  estado (`plantedCrops`, `groundEffects`) lo manda la fuente.
+  estado (`plantedCrops`, `groundEffects`) lo manda la fuente (el servidor: `ServerCrop` y `ServerGroundEffect`).
 - **Sumar un sistema del campo** = una fila en la tabla que corresponda
   (`toolActions_`, `ToolUseSounds`) + sus datos en TOML; `PlaySession` solo
   compone y llama, no decide.

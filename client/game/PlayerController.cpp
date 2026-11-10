@@ -145,9 +145,9 @@ std::optional<world::Direction> PlayerController::walkingDirection(
 }
 
 void PlayerController::useTool(const world::Direction direction) {
-    // El slot activo solo gobierna la selección local del inventario;
-    // con qué herramienta se usa y si se puede lo decide el servidor.
-    client_.sendCommand(moveCommand_.use(direction));
+    // El slot activo viaja con el Pick: el servidor usa esa herramienta
+    // (y decide si se puede).
+    client_.sendCommand(moveCommand_.use(direction, activeSlot()));
 }
 
 void PlayerController::handleUseTool(const std::optional<world::Direction>& pressed) {

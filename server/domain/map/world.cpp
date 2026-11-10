@@ -6,6 +6,7 @@
 #include "../crops/pumpkin.h"
 #include "../inventory/item_types.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <stdexcept>
 #include <utility>
@@ -149,6 +150,7 @@ void World::remove_entity(IEntity* target_entity) {
     // Buscamos y borramos específicamente la entidad solicitada
     for (auto it = cell_entities.begin(); it != cell_entities.end(); ++it) {
         if (it->get() == target_entity) {
+            crops.erase(std::remove(crops.begin(), crops.end(), target_entity), crops.end());
             cell_entities.erase(it);  // Se destruye automáticamente
             break;
         }
@@ -161,7 +163,7 @@ void World::remove_entity_at(uint16_t x, uint16_t y) {
 
     auto& cell_entities = this->grid[y][x].entities;
     if (!cell_entities.empty()) {
-        cell_entities.erase(cell_entities.begin());
+        remove_entity(cell_entities.front().get());
     }
 }
 
@@ -175,9 +177,14 @@ void World::add_animal(std::unique_ptr<Animal> animal) {
 
 void World::tick_day() {
     // Se copian los punteros: update puede poner huevos y cambiar las listas de celdas.
-    const std::vector<Animal*> today = animals;
-    for (Animal* animal: today) {
+    const std::vector<Animal*> AToday = animals;
+    for (Animal* animal: AToday) {
         animal->update(*this);
+    }
+
+    const std::vector<Crop*> crops_today = crops;
+    for (Crop* crop: crops_today) {
+        crop->update(*this);
     }
 }
 
@@ -236,20 +243,22 @@ void World::use_tool(uint8_t player_id) {
         return;
     }
     Player& p = *this->players.at(player_id);
+    if (p.is_energy_depleted()) return;
     auto [tx, ty] = p.get_target_tile();
 
-    if (tx >= this->width || ty >= this->height)
-        return;
-
+    if (tx >= this->width || ty >= this->height) return;
     Cell& target_cell = this->grid[ty][tx];
-    
     ToolType tool = p.get_equipped_tool();
 
+    bool action_performed = false;
+
     if (tool == ToolType::SHOVEL) {
-        target_cell.till_soil(); 
+        target_cell.till_soil();
+        action_performed = true; 
     } 
     else if (tool == ToolType::WATERING_CAN) {
         target_cell.water_soil();
+        action_performed = true;
     }
 
     // Interactuar de frente (picar, levantar manual)
@@ -263,51 +272,53 @@ void World::use_tool(uint8_t player_id) {
         for (IEntity* ent: iteratable_entities) {
             ent->interact(p, p.get_equipped_tool(), *this);
         }
+        action_performed = true;
+    } else if (tool == ToolType::HAND) {
+        action_performed = this->try_plant_seed(player_id, tx, ty);
+    }
+
+    apply_consume_energy(player_id, action_performed ? 5.0f : 1.0f);
+}
+
+void World::apply_consume_energy(uint8_t player_id, float amount) {
+    Player& p = *this->players.at(player_id);
+    p.consume_energy(amount);
+    if (p.is_energy_depleted()) {
+        // TODO: Cambiar estado del jugador a INCONSCIENTE.
+        // Si es Single Player, forzar el process_end_of_day().
+        // Si es Multiplayer, notificar que este jugador ya no puede actuar hasta mañana.
     }
 }
 
-void World::try_plant_seed(uint8_t player_id) {
+bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
+    // TODO: Se parece mucho a use_tool, refactorizar para no repetir código.
     Player& p = *this->players.at(player_id);
-    auto [tx, ty] = p.get_target_tile(); 
-
-    if (tx >= this->width || ty >= this->height) return;
-
     Cell& target_cell = this->grid[ty][tx];
 
-    if (!target_cell.is_soil_tilled() && !target_cell.is_soil_watered()) return;
-    if (!target_cell.is_empty()) return;
-    if (!target_cell.can_plant_seed()) return;
+    if (!target_cell.is_soil_tilled() && !target_cell.is_soil_watered()) return false;
 
     const Item* active_item = p.peek_equipped_item();
-    if (!active_item) return; 
-    
-    if (p.get_equipped_tool() != ToolType::HAND) return;
+    if (!active_item) return false; 
 
-    ItemID id = active_item->get_id();
+    //TODO: Sacar este switch a un factory method en CropFactory para no tener que tocar World.cpp cada vez que agregamos un nuevo cultivo.
     std::unique_ptr<Crop> new_crop = nullptr;
-
-    switch (id) {
-        case ItemID::STRAWBERRY_SEED:
-            new_crop = std::make_unique<Strawberry>(tx, ty);
-            break;
-        case ItemID::ONION_SEED:
-            new_crop = std::make_unique<GreenOnion>(tx, ty);
-            break;
-        case ItemID::POTATO_SEED:
-            new_crop = std::make_unique<Potato>(tx, ty);
-            break;
-        case ItemID::PUMPKIN_SEED:
-            new_crop = std::make_unique<Pumpkin>(tx, ty);
-            break;
-        default:
-            return; 
+    switch (active_item->get_id()) {
+        case ItemID::STRAWBERRY_SEED: new_crop = std::make_unique<Strawberry>(tx, ty); break;
+        case ItemID::ONION_SEED: new_crop = std::make_unique<GreenOnion>(tx, ty); break;
+        case ItemID::POTATO_SEED: new_crop = std::make_unique<Potato>(tx, ty); break;
+        case ItemID::PUMPKIN_SEED: new_crop = std::make_unique<Pumpkin>(tx, ty); break;
+        default: return false; 
     }
-
+    
+    crops.push_back(new_crop.get());
     if (new_crop) {
         p.consume_equipped_item(); 
-        // Usamos el setter del mundo para guardarlo correctamente en la grilla
-        this->set_entity_at(tx, ty, std::move(new_crop)); 
+        target_cell.entities.push_back(std::move(new_crop));
+        // Si se planta una semilla, el suelo queda arado aunque se haya regado antes.
+        target_cell.till_soil();
+        return true; 
     }
+    return false;
 }
 
 void World::record_resource_hit(uint16_t x, uint16_t y, bool destroyed) {
@@ -332,6 +343,10 @@ std::vector<PlayerPickup> World::take_pickups() {
 
 void World::set_player_facing(uint8_t player_id, Direction dir) {
     this->players.at(player_id)->set_facing(dir);
+}
+
+void World::select_slot(uint8_t player_id, uint8_t slot) {
+    this->players.at(player_id)->select_slot(slot);
 }
 
 void World::set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance) {
@@ -425,6 +440,13 @@ void World::process_end_of_day_floor() {
 }
 
 Cell& World::get_cell(uint16_t x, uint16_t y) {
+    if (x >= this->width || y >= this->height) {
+        throw std::out_of_range("Cell coordinates out of bounds");
+    }
+    return this->grid[y][x];
+}
+
+const Cell& World::get_cell(uint16_t x, uint16_t y) const {
     if (x >= this->width || y >= this->height) {
         throw std::out_of_range("Cell coordinates out of bounds");
     }

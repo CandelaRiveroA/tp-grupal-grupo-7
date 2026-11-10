@@ -1,12 +1,21 @@
 #include "player.h"
+#include <cstdlib>
 
-Player::Player(uint8_t id, uint16_t x, uint16_t y):
-        IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9) {
+Player::Player(uint8_t id, uint16_t x, uint16_t y)
+        : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
+          energy(100.0f), max_energy(100.0f), hp(100), max_hp(100) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::WATERING_CAN, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SWORD, false));
+        // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
+    // se compren o se cosechen semillas (hoy no hay tienda).
+    this->backpack.add_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::ONION_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::POTATO_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::PUMPKIN_SEED, false));
+    this->gold = std::rand() % 101;
 }
 uint8_t Player::get_id() const { return this->player_id; }
 
@@ -92,6 +101,23 @@ ToolType Player::get_equipped_tool() const {
 
 bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
+}
+
+void Player::consume_energy(float amount) {
+    if (this->energy >= amount) {
+        this->energy -= amount;
+    } else {
+        this->energy = 0.0f;
+        // TODO: Disparar evento de desmayo automático[cite: 1]
+    }
+}
+
+bool Player::is_exhausted() const {
+    return (this->energy / this->max_energy) <= 0.10f;
+}
+
+bool Player::is_energy_depleted() const {
+    return this->energy <= 0.0f;
 }
 
 bool Player::is_walkable() const { return true; }

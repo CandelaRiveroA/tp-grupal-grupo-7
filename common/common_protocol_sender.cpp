@@ -62,6 +62,7 @@ void ProtocolSender::send_message(const protocol::PickMessage& message) {
 
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Pick));
     send_uint8(static_cast<uint8_t>(message.direction));
+    send_uint8(message.slot);
 }
 
 void ProtocolSender::send_message(const protocol::TakeMessage& message) {
@@ -131,6 +132,7 @@ void ProtocolSender::send_message(const ServerObtained& obtained) {
 void ProtocolSender::send_message(const ServerToolUsed& used) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::ToolUsed));
     send_uint8(used.player_id);
+    send_string(used.content_id);
 }
 
 void ProtocolSender::send_message(const ServerResourceHit& hit) {
@@ -193,6 +195,24 @@ void ProtocolSender::send_message(const ServerClock& clock) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Clock));
     send_uint8(clock.day);
     send_uint16(clock.minutes);
+}
+
+void ProtocolSender::send_message(const ServerCrop& crop) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Crop));
+    send_uint16(crop.x);
+    send_uint16(crop.y);
+    send_string(crop.crop_id);
+    send_uint8(crop.stage);
+    send_uint8(crop.needs_water ? 1 : 0);
+    send_uint8(crop.interactive ? 1 : 0);
+    send_uint8(crop.quality);
+}
+
+void ProtocolSender::send_message(const ServerGroundEffect& ground) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GroundEffect));
+    send_uint16(ground.x);
+    send_uint16(ground.y);
+    send_uint8(static_cast<uint8_t>(ground.effect));
 }
 
 void ProtocolSender::send_server_message(const ServerMessage& message) {

@@ -15,9 +15,11 @@ struct MoveMessage {
     Direction direction;
 };
 
-// Pick: usa la herramienta equipada sobre la celda que el jugador tiene enfrente.
+// Pick: usa la herramienta del casillero `slot` sobre la celda enfrentada.
+// La selección del inventario es local; viaja solo al usar.
 struct PickMessage {
     Direction direction;
+    uint8_t slot;
 };
 
 // Take: recoge el item caído sobre la celda propia del jugador.

@@ -128,6 +128,13 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
         world.process_end_of_day_floor();
     }
 
+    // Liberamos el inventario (herramientas y semillas): la segunda frutilla
+    // puede no apilar con la primera (calidad distinta) y necesita slot libre.
+    for (uint8_t slot = 0; slot < 8; ++slot) {
+        p_ref->select_slot(slot);
+        p_ref->consume_equipped_item();
+    }
+
     // Segunda cosecha
     p_ref->select_slot(8);
     world.use_tool(1); // Cosechamos
@@ -160,13 +167,12 @@ TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
     world.use_tool(1);
     EXPECT_TRUE(world.get_cell(3, 2).is_soil_tilled());
 
-    // 2. Le damos 1 Semilla de Frutilla al jugador
-    p_ref->pick_up_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, true));
+    // 2. La Semilla de Frutilla ya viene en el slot 4 del inventario inicial
     p_ref->select_slot(4); 
     ASSERT_FALSE(p_ref->get_inventory().is_slot_empty(4));
 
     // 3. Plantamos usando directamente tu método público
-    world.try_plant_seed(1);
+    world.try_plant_seed(1, 3, 2);
 
     // 4. Verificaciones Finales:
     // A) La semilla se consumió

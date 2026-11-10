@@ -205,7 +205,9 @@ void Match::handle(const PlayerMessage& event) {
                 &event](const auto& message) { commands::apply(world, event.player_id, message); },
                event.message);
     if (std::holds_alternative<protocol::PickMessage>(event.message)) {
-        broadcast(ServerToolUsed{event.player_id});
+        const Item* equipped = world.get_player(event.player_id).peek_equipped_item();
+        broadcast(ServerToolUsed{event.player_id,
+                                 equipped ? content_id_for(equipped->get_id()) : ""});
     }
     // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
     // inventarios: solo se traduce a mensaje acá.

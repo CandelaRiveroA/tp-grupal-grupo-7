@@ -13,6 +13,7 @@
 #include "resource_hit.h"
 
 class Animal;
+class Crop;
 
 class World {
 private:
@@ -22,6 +23,7 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
+    std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
 
@@ -43,7 +45,7 @@ private:
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
     std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
-
+    void apply_consume_energy(uint8_t player_id, float amount);
 public:
     World(uint16_t w, uint16_t h);
     ~World() = default;
@@ -92,9 +94,10 @@ public:
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
-    void try_plant_seed(uint8_t player_id);
+    void select_slot(uint8_t player_id, uint8_t slot);
     // Personalizacion del personaje del jugador (indices de capa, sin validar).
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
+    bool try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty);
     // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);
 
@@ -104,6 +107,7 @@ public:
 
     // Para tests
     Cell& get_cell(uint16_t x, uint16_t y);
+    const Cell& get_cell(uint16_t x, uint16_t y) const;
     
     // --- Sueño (votación para dormir y pasar de día) ---
     // El jugador pisa la cama: entra en la votación y queda sin movimiento.

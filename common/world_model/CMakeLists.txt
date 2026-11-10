@@ -20,6 +20,7 @@ target_sources(taller_world_model
     ScenarioLibrary.cpp
     ScenarioLibraryLoader.cpp
     WorldFactory.cpp
+    WorldValidator.cpp
     PUBLIC
     # .h files
     Geometry.h
@@ -46,5 +47,6 @@ target_sources(taller_world_model
     ScenarioLibrary.h
     ScenarioLibraryLoader.h
     WorldFactory.h
+    WorldValidator.h
     ValidationIssue.h
     )

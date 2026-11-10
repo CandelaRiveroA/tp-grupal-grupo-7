@@ -110,6 +110,10 @@ bool Player::is_exhausted() const {
     return (this->energy / this->max_energy) <= 0.10f;
 }
 
+bool Player::is_energy_depleted() const {
+    return this->energy <= 0.0f;
+}
+
 bool Player::is_walkable() const { return true; }
 
 void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {}

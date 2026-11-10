@@ -53,7 +53,8 @@ public:
 
     //Energia y salud
     void consume_energy(float amount);
-    bool is_exhausted() const;
+    bool is_exhausted() const; //Caso debajo 10% energia
+    bool is_energy_depleted() const; //Caso debajo 0% energia
 
     // Interacción con herramientas e inventario
     void select_slot(uint8_t slot_idx);

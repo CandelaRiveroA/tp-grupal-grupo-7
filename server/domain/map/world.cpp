@@ -287,3 +287,11 @@ void World::process_end_of_day_floor() {
         }
     }
 }
+
+Cell& World::get_cell(uint16_t x, uint16_t y) {
+    if (x >= this->width || y >= this->height) {
+        throw std::out_of_range("Cell coordinates out of bounds");
+    }
+    return this->grid[y][x];
+}
+

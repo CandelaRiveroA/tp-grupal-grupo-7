@@ -6,7 +6,6 @@ namespace {
 
 using world::ContentIds;
 using world::ItemKind;
-using world::ResourceKind;
 
 TEST(ContentIdsTest, FindsItemContentIds) {
     const ContentIds ids;
@@ -15,28 +14,15 @@ TEST(ContentIdsTest, FindsItemContentIds) {
     EXPECT_EQ(*ids.find(ItemKind::WateringCan), "watering_can");
 }
 
-TEST(ContentIdsTest, FindsResourceContentIds) {
-    const ContentIds ids;
-    ASSERT_NE(ids.find(ResourceKind::Silver), nullptr);
-    EXPECT_EQ(*ids.find(ResourceKind::Silver), "silver");
-}
-
 TEST(ContentIdsTest, ReverseLookupFindsItemKinds) {
-    // La traducción inversa es sobre las MISMAS tablas: es la que usan
+    // La traducción inversa es sobre la MISMA tabla: es la que usan
     // las fuentes de estado para equipar lo que hay en un slot.
     const ContentIds ids;
     EXPECT_EQ(ids.itemKindFor("shovel"), ItemKind::Shovel);
     EXPECT_EQ(ids.itemKindFor("milk"), ItemKind::Milk);
-    // Un recurso no es un ítem equipable; un desconocido tampoco.
+    // Un recurso ("silver") no es un ítem equipable; un desconocido tampoco.
     EXPECT_EQ(ids.itemKindFor("silver"), std::nullopt);
     EXPECT_EQ(ids.itemKindFor("nope"), std::nullopt);
-}
-
-TEST(ContentIdsTest, ReverseLookupFindsResourceKinds) {
-    const ContentIds ids;
-    EXPECT_EQ(ids.resourceKindFor("coal"), ResourceKind::Coal);
-    EXPECT_EQ(ids.resourceKindFor("pickaxe"), std::nullopt);
-    EXPECT_EQ(ids.resourceKindFor("nope"), std::nullopt);
 }
 
 TEST(ContentIdsTest, CoversEveryItemKind) {
@@ -48,7 +34,6 @@ TEST(ContentIdsTest, CoversEveryItemKind) {
         EXPECT_FALSE(contentId.empty());
     }
     EXPECT_EQ(ids.itemEntries().size(), 6u);
-    EXPECT_EQ(ids.resourceEntries().size(), 5u);
 }
 
 }  // namespace

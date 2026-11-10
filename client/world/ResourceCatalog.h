@@ -7,16 +7,6 @@
 
 namespace world {
 
-// Recurso picable del mundo (vocabulario del juego, lo comunica el
-// servidor). Agregar uno = un valor acá + sus datos en el TOML.
-enum class ResourceKind {
-	Silver,
-	Coal,
-	Lapis,
-	Gold,
-	Rock,
-};
-
 // Estado de daño que decide el servidor. Son los estados VISIBLES: al
 // agotarse, el recurso sale de la vista (no es un estado dibujable).
 enum class ResourceState {
@@ -34,6 +24,10 @@ struct ResourceVisual {
 	int rows = 1;
 };
 
+// Recursos picables del mundo indexados por contentId (clave estable del
+// contenido, vocabulario compartido con el servidor: la clave de cada
+// sección [resources.*] de resources.toml). Vocabulario ABIERTO por
+// datos: agregar un recurso = una sección en el TOML, sin tocar código.
 struct ResourceCatalog {
 	// Ajuste vertical global (px) para apoyar los recursos al piso.
 	int offsetY = 0;
@@ -42,10 +36,12 @@ struct ResourceCatalog {
 	// de arriba y acercar el recurso a la altura del golpe.
 	double scale = 1.0;
 
-	std::map<ResourceKind, std::map<ResourceState, ResourceVisual>> visuals;
+	std::map<std::string, std::map<ResourceState, ResourceVisual>> visuals;
 
-	// Una sola búsqueda: nullptr si el par (kind, state) no tiene visual.
-	const ResourceVisual* find(ResourceKind kind, ResourceState state) const;
+	// Una sola búsqueda: nullptr si el par (contentId, state) no tiene
+	// visual (p. ej. un id sin sección en el TOML: no se dibuja).
+	const ResourceVisual* find(const std::string& contentId,
+				   ResourceState state) const;
 };
 
 }

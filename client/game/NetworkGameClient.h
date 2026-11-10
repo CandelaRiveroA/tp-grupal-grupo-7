@@ -50,6 +50,10 @@ private:
     // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
     void applyNow(const ServerMessage& message);
 
+    // Estado de daño del protocolo -> estado visible de la vista. Lo que
+    // no llega a ser el golpe final cae en Intact (seguro ante wire roto).
+    world::ResourceState resourceStateFor(ResourceDamage damage) const;
+
     // Un Take cerca de una vaca lista abre la animación de ordeñe; la leche la
     // da el servidor.
     void startMilking();
@@ -69,6 +73,9 @@ private:
     uint8_t localPlayerId_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
+    // Tabla de traducción protocolo -> vista (convención §4: diccionario
+    // miembro, inicializado en el constructor).
+    std::map<ResourceDamage, world::ResourceState> resourceStates_;
 
     std::map<uint8_t, RemotePlayer> players_;
     // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).

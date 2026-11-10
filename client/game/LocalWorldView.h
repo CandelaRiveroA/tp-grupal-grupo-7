@@ -62,10 +62,15 @@ struct ViewEntity {
     CharacterAppearance appearance{};
 };
 
-// Recurso picable. La fuente decide tipo, celda y estado; al agotarse
-// sale del vector resources.
+// Recurso picable. La fuente decide contentId, celda y estado; al
+// agotarse sale del vector resources.
+//
+// contentId: clave estable del contenido, vocabulario compartido con el
+//            servidor (ej. "silver", "rock") y con resources.toml. El
+//            cliente resuelve contentId -> asset (world::ResourceCatalog);
+//            un id sin sección en el TOML no se dibuja.
 struct ViewResource {
-    world::ResourceKind kind;
+    std::string contentId;
     int cellX;
     int cellY;
     world::ResourceState state;

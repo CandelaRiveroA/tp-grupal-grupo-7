@@ -147,7 +147,7 @@ void Renderer::drawResource(const game::ViewResource& resource,
 			    const world::ScenePixelMapper& mapper,
 			    const Viewport& viewport) {
 	const world::ResourceVisual* found =
-		resources_.find(resource.kind, resource.state);
+		resources_.find(resource.contentId, resource.state);
 	if (found == nullptr) {
 		return;
 	}

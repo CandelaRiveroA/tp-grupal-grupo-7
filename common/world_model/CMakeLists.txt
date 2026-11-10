@@ -13,6 +13,9 @@ target_sources(taller_world_model
     WorldTomlReader.cpp
     WorldTomlWriter.cpp
     WorldSerializer.cpp
+    ScenarioTomlReader.cpp
+    ScenarioTomlWriter.cpp
+    ScenarioSerializer.cpp
     PUBLIC
     # .h files
     Geometry.h
@@ -32,5 +35,8 @@ target_sources(taller_world_model
     WorldTomlReader.h
     WorldTomlWriter.h
     WorldSerializer.h
+    ScenarioTomlReader.h
+    ScenarioTomlWriter.h
+    ScenarioSerializer.h
     ValidationIssue.h
     )

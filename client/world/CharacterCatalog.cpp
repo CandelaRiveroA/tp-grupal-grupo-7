@@ -55,4 +55,13 @@ int CharacterCatalog::drawnHeight(CreatureKind kind) const {
 	return entryFor(kind).drawnHeight;
 }
 
+bool CharacterCatalog::hasAppearance(CreatureKind kind) const {
+	return entryFor(kind).appearance.present;
+}
+
+const AppearanceData& CharacterCatalog::appearanceFor(
+	CreatureKind kind) const {
+	return entryFor(kind).appearance;
+}
+
 }

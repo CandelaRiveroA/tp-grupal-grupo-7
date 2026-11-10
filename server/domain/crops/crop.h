@@ -46,6 +46,9 @@ public:
     bool blocks_placement() const override;
     void update(World& w) override; 
     void interact(Player& p, ToolType tool, World& w) override;
+    // Un Take sobre un cultivo listo lo cosecha (ver World::take_item).
+    bool pickup_on_take() const override;
+    std::optional<CropSnapshot> crop_snapshot() const override;
 
     virtual void harvest(Player& p, World& w) = 0;
 };

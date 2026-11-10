@@ -7,8 +7,23 @@
 #include "../server/domain/inventory/item_types.h"
 #include "../server/domain/map/world.h"
 #include "../server/domain/minerals/coal_rock.h"
+#include "../server/commands/commands.h"
 #include "../server/domain/minerals/gold_rock.h"
 #include "../server/world_view.h"
+
+TEST(WorldInteractionTest, PicarConLaHerramientaDelSlotActivo) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.set_entity_at(2, 1, std::make_unique<CoalRock>(2, 1));
+
+    // Slot 1 = pala: no rompe la roca.
+    commands::apply(world, 1, protocol::PickMessage{Direction::RIGHT, 1});
+    EXPECT_FALSE(world.can_walk_to(2, 1));
+
+    // Slot 0 = pico: la rompe.
+    commands::apply(world, 1, protocol::PickMessage{Direction::RIGHT, 0});
+    EXPECT_TRUE(world.can_walk_to(2, 1));
+}
 
 TEST(WorldInteractionTest, MoversePicarYLevantarCarbonAutomaticamente) {
     World world(5, 5);
@@ -41,12 +56,12 @@ TEST(WorldInteractionTest, MoversePicarYLevantarCarbonAutomaticamente) {
     EXPECT_EQ(p_ref->get_y(), 1);
 
     // VERIFICACIÓN FINAL: El Inventario
-    // Los slots 0 a 3 están ocupados por herramientas
-    // El slot 4 debería tener nuestro flamante Orbe de Carbón.
+    // Los slots 0 a 3 están ocupados por herramientas y 4 a 7 por semillas
+    // El slot 8 debería tener nuestro flamante Orbe de Carbón.
     const Inventory& inv = p_ref->get_inventory();
 
-    ASSERT_FALSE(inv.is_slot_empty(4));
-    EXPECT_EQ(inv.peek_item(4)->get_id(), ItemID::COAL_ORB);
+    ASSERT_FALSE(inv.is_slot_empty(8));
+    EXPECT_EQ(inv.peek_item(8)->get_id(), ItemID::COAL_ORB);
 }
 
 TEST(WorldInteractionTest, PickupRecordsADomainEventDrainedByQuery) {

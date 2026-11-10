@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,6 +44,8 @@ private:
         world::Direction facing = world::Direction::Front;
         bool moving = false;
         int toolUseRemaining = 0;
+        // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
+        std::optional<world::ItemKind> activeTool;
         CharacterAppearance appearance;
     };
 
@@ -84,6 +87,8 @@ private:
     std::map<std::pair<int, int>, ViewResource> resources_;
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;
+    std::vector<ViewCrop> crops_;
+    std::vector<ViewGroundEffect> groundEffects_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;
     // Lote Reset…SyncEnd en curso: se acumula y se aplica de una al llegar

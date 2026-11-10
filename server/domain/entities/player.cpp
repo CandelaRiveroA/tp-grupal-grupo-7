@@ -7,6 +7,12 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y):
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::WATERING_CAN, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SWORD, false));
+    // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
+    // se compren o se cosechen semillas (hoy no hay tienda).
+    this->backpack.add_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::ONION_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::POTATO_SEED, false));
+    this->backpack.add_item(std::make_unique<Item>(ItemID::PUMPKIN_SEED, false));
 }
 uint8_t Player::get_id() const { return this->player_id; }
 

@@ -47,6 +47,8 @@ private:
     ServerMessage receive_day_message();
     ServerMessage receive_sleeping_players_message();
     ServerMessage receive_clock_message();
+    ServerMessage receive_crop_message();
+    ServerMessage receive_ground_effect_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);

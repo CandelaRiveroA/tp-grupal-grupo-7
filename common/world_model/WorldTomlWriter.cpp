@@ -4,81 +4,39 @@
 #include <optional>
 #include <sstream>
 #include <utility>
-#include <vector>
 
 #include <toml++/toml.hpp>
 
 #include "world_model/TileCodec.h"
+#include "world_model/FieldWriter.h"
 
 namespace worldmodel {
 
-toml::array WorldTomlWriter::writePair(int first, int second) const {
-	return toml::array{first, second};
+std::string WorldTomlWriter::write(const World& world) const {
+	toml::table table;
+	table.insert("format_version", world.formatVersion);
+	table.insert("world", writeWorld(world));
+	table.insert("tilesets", FieldWriter::writeTilesets(world.tilesets));
+
+	toml::table maps;
+	for (const auto& [id, map] : world.maps) {
+		maps.insert(id, writeMap(map));
+	}
+	table.insert("maps", std::move(maps));
+
+	std::ostringstream stream;
+	stream << table;
+	return stream.str();
 }
 
-toml::array WorldTomlWriter::writeBooleans(
-	const std::vector<bool>& values) const {
-	toml::array array;
-	for (const bool value : values) {
-		array.push_back(value);
+toml::table WorldTomlWriter::writeWorld(const World& world) const {
+	toml::table table;
+	table.insert("slug", world.slug);
+	table.insert("name", world.name);
+	if (!world.description.empty()) {
+		table.insert("description", world.description);
 	}
-	return array;
-}
-
-toml::array WorldTomlWriter::writeGrid(const TileGrid& grid) const {
-	toml::array array;
-	for (const std::optional<TileRef>& tile : grid) {
-		array.push_back(TileCodec::encode(tile));
-	}
-	return array;
-}
-
-toml::array WorldTomlWriter::writeObjects(const Map& map) const {
-	toml::array array;
-	for (const MapObject& object : map.objects) {
-		toml::table entry;
-		entry.insert("role", vocabulary_.toText(object.role));
-		entry.insert("tile", TileCodec::encode(object.tile));
-		entry.insert("cell",
-			     writePair(object.cell.column, object.cell.row));
-		entry.insert("size", writePair(object.width, object.height));
-		entry.insert("blocked", object.blocked);
-		if (object.door.has_value()) {
-			entry.insert(
-				"door",
-				writePair(object.door->column, object.door->row));
-		}
-		array.push_back(std::move(entry));
-	}
-	return array;
-}
-
-toml::array WorldTomlWriter::writeMarkers(const Map& map) const {
-	toml::array array;
-	for (const Marker& marker : map.markers) {
-		toml::table entry;
-		entry.insert("kind", vocabulary_.toText(marker.kind));
-		entry.insert("cell",
-			     writePair(marker.cell.column, marker.cell.row));
-		array.push_back(std::move(entry));
-	}
-	return array;
-}
-
-toml::array WorldTomlWriter::writePortals(const Map& map) const {
-	toml::array array;
-	for (const Portal& portal : map.portals) {
-		toml::table entry;
-		entry.insert("kind", vocabulary_.toText(portal.kind));
-		entry.insert("cell",
-			     writePair(portal.cell.column, portal.cell.row));
-		entry.insert("target_map", portal.targetMap);
-		entry.insert(
-			"target_cell",
-			writePair(portal.targetCell.column, portal.targetCell.row));
-		array.push_back(std::move(entry));
-	}
-	return array;
+	return table;
 }
 
 toml::table WorldTomlWriter::writeMap(const Map& map) const {
@@ -90,9 +48,11 @@ toml::table WorldTomlWriter::writeMap(const Map& map) const {
 	table.insert("width", map.width);
 	table.insert("height", map.height);
 	table.insert("tile_size", map.tileSize);
-	table.insert("base_collision", writeBooleans(map.baseCollision));
-	table.insert("collision", writeBooleans(map.collision));
-	table.insert("ground", writeGrid(map.ground));
+	table.insert("base_collision",
+		     FieldWriter::writeBooleans(map.baseCollision));
+	table.insert("collision",
+		     FieldWriter::writeBooleans(map.collision));
+	table.insert("ground", FieldWriter::writeGrid(map.ground));
 
 	const bool hasPaths =
 		std::any_of(map.paths.begin(), map.paths.end(),
@@ -100,7 +60,7 @@ toml::table WorldTomlWriter::writeMap(const Map& map) const {
 				    return tile.has_value();
 			    });
 	if (hasPaths) {
-		table.insert("paths", writeGrid(map.paths));
+		table.insert("paths", FieldWriter::writeGrid(map.paths));
 	}
 	if (!map.objects.empty()) {
 		table.insert("objects", writeObjects(map));
@@ -114,43 +74,59 @@ toml::table WorldTomlWriter::writeMap(const Map& map) const {
 	return table;
 }
 
-toml::table WorldTomlWriter::writeTilesets(const World& world) const {
-	toml::table table;
-	for (const auto& [name, tileset] : world.tilesets) {
+toml::array WorldTomlWriter::writeObjects(const Map& map) const {
+	toml::array array;
+	for (const MapObject& object : map.objects) {
 		toml::table entry;
-		entry.insert("image", tileset.image);
+		entry.insert("role", vocabulary_.toText(object.role));
+		entry.insert("tile", TileCodec::encode(object.tile));
 		entry.insert("cell",
-			     writePair(tileset.cellWidth, tileset.cellHeight));
-		table.insert(name, std::move(entry));
+			     FieldWriter::writePair(object.cell.column,
+							object.cell.row));
+		entry.insert("size",
+			     FieldWriter::writePair(object.width,
+							object.height));
+		entry.insert("blocked", object.blocked);
+		if (object.door.has_value()) {
+			entry.insert("door",
+				     FieldWriter::writePair(
+					     object.door->column,
+					     object.door->row));
+		}
+		array.push_back(std::move(entry));
 	}
-	return table;
+	return array;
 }
 
-toml::table WorldTomlWriter::writeWorld(const World& world) const {
-	toml::table table;
-	table.insert("slug", world.slug);
-	table.insert("name", world.name);
-	if (!world.description.empty()) {
-		table.insert("description", world.description);
+toml::array WorldTomlWriter::writeMarkers(const Map& map) const {
+	toml::array array;
+	for (const Marker& marker : map.markers) {
+		toml::table entry;
+		entry.insert("kind", vocabulary_.toText(marker.kind));
+		entry.insert("cell",
+			     FieldWriter::writePair(marker.cell.column,
+							marker.cell.row));
+		array.push_back(std::move(entry));
 	}
-	return table;
+	return array;
 }
 
-std::string WorldTomlWriter::write(const World& world) const {
-	toml::table table;
-	table.insert("format_version", world.formatVersion);
-	table.insert("world", writeWorld(world));
-	table.insert("tilesets", writeTilesets(world));
-
-	toml::table maps;
-	for (const auto& [id, map] : world.maps) {
-		maps.insert(id, writeMap(map));
+toml::array WorldTomlWriter::writePortals(const Map& map) const {
+	toml::array array;
+	for (const Portal& portal : map.portals) {
+		toml::table entry;
+		entry.insert("kind", vocabulary_.toText(portal.kind));
+		entry.insert("cell",
+			     FieldWriter::writePair(portal.cell.column,
+							portal.cell.row));
+		entry.insert("target_map", portal.targetMap);
+		entry.insert("target_cell",
+			     FieldWriter::writePair(
+				     portal.targetCell.column,
+				     portal.targetCell.row));
+		array.push_back(std::move(entry));
 	}
-	table.insert("maps", std::move(maps));
-
-	std::ostringstream stream;
-	stream << table;
-	return stream.str();
+	return array;
 }
 
 }

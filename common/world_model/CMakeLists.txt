@@ -7,6 +7,9 @@ target_sources(taller_world_model
     Map.cpp
     FormatError.cpp
     WorldVocabulary.cpp
+    FieldReader.cpp
+    FieldWriter.cpp
+    SerializerIO.cpp
     WorldTomlReader.cpp
     WorldTomlWriter.cpp
     WorldSerializer.cpp
@@ -23,6 +26,9 @@ target_sources(taller_world_model
     Scenario.h
     FormatError.h
     WorldVocabulary.h
+    FieldReader.h
+    FieldWriter.h
+    SerializerIO.h
     WorldTomlReader.h
     WorldTomlWriter.h
     WorldSerializer.h

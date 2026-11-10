@@ -74,6 +74,17 @@ Hecho: se borraron los stand-ins.
 
 El mecanismo (popups, transición, fades, re-indexado) no se tocó.
 
+> **Atajos de DIBUJO nuevos (temporales).** Mientras la sala no viaje en la
+> vista, las teclas **B / J / C / M / P** piden `changeTo(...)` a
+> `bedroom`, `garden`, `cavern_small`, `cavern_medium` y `coop`. Entran
+> como `InputCommand::Kind::ChangeScene` con el nombre en
+> `InputCommand::scene`; `PlaySession` los consume y `changeScene` guarda
+> la sala en `currentRoom_`. No tocan la posición del personaje: eso es
+> estado de la fuente. Se borran cuando el server mande la sala.
+> Archivos a limpiar: `InputCommand.h` (`Kind::ChangeScene` y `scene`),
+> `InputManager.cpp` (bindings `SDLK_b/j/c/m/p`) y `PlaySession.{h,cpp}`
+> (bloque `ChangeScene` y `currentRoom_`).
+
 ## 5. Reglas del lado SDL que conviene saber
 
 - **Los popups son modales**: mientras se muestra uno, no hay input del

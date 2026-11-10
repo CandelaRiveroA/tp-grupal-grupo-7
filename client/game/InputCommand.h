@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace game {
 
 // Intención one-shot del usuario sobre el juego (una por pulsación de
@@ -26,12 +28,20 @@ struct InputCommand {
         // mientras el server no manda la acción. Lo consume PlaySession;
         // NO viaja al GameClient.
         Faint,
+        // Atajo de DIBUJO (teclas B/J/C/M/P por ahora): pide cambiar de
+        // escena localmente para revisar el arte. Lo consume PlaySession
+        // con SceneTransition::changeTo; NO viaja al GameClient. Se borra
+        // cuando el server mande la sala en la vista.
+        ChangeScene,
     };
 
     Kind kind;
 
     // Índice de slot (0..slotCount-1). Solo es relevante para SelectSlot.
     int slot = 0;
+
+    // Nombre de la sala en scenes.toml. Solo es relevante para ChangeScene.
+    std::string scene{};
 };
 
 }  // namespace game

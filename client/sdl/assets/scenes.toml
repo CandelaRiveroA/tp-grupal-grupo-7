@@ -46,6 +46,24 @@ cell  = [16, 16]
 image = "Ambience/Houses.png"
 cell  = [16, 16]
 
+# Fondos de AMBIENTE (imágenes completas de sala). Se dibujan una sola vez
+# con mode="single": el tamaño de la sala sale de su grilla de 16px.
+[tilesets.gardenbg]
+image = "Ambience/Garden.png"
+cell  = [16, 16]
+
+[tilesets.cavernsmall]
+image = "Cavern/cavernSmall.png"
+cell  = [16, 16]
+
+[tilesets.cavernmedium]
+image = "Cavern/cavernMedium.png"
+cell  = [16, 16]
+
+[tilesets.coopbg]
+image = "Ambience/Coop/CoopDay.png"
+cell  = [16, 16]
+
 # --- Dormitorio --------------------------------------------------------
 # floor_color: fondo (lo que no cubre ningún tile).
 # grid: tamaño de la habitación en celdas lógicas (de cellW*scale px).
@@ -140,20 +158,17 @@ scale       = 2
   span    = [6, 4]
 
 # --- Jardín (segunda escena: al salir de la casa) ----------------------
-# Fondo de pasto (SpringOutdoors.png) + la casa compuesta (Houses.png).
+# Fondo de AMBIENTE (Garden.png) + la casa compuesta (Houses.png).
 # Las POBLACIONES de la sala (qué se puebla acá) son dato: ver
 # [rooms.garden.spawns]. La sala activa (hoy la elige quien arma la
 # partida; mañana el servidor) es la que decide qué se dibuja y qué se
 # puebla, sin acoplar el dibujo a la fuente de estado.
 [rooms.garden]
 floor_color = [0, 0, 0, 255]
-# El mundo es MÁS GRANDE que la ventana (40×60 celdas): la ventana no
-# cambia (sale de WindowConfig), la CÁMARA revela el resto al caminar.
-# El clamp de sdl::Camera a worldBounds(grid) hace el resto: §11. El
-# clamp del movimiento al tamaño de la grilla lo simula el "server
-# falso" (MockGameClient); mañana la dimensión y el límite los da el
-# servidor.
-grid        = [40, 60]
+# Garden.png mide 896×720 px = 56×45 celdas de 16px. La sala es del mismo
+# tamaño: el fondo la cubre exacta. Sigue siendo MÁS GRANDE que la ventana
+# (la cámara revela el resto al caminar).
+grid        = [56, 45]
 scale       = 2
 # Cues audibles en el jardín: los animales viven ACÁ (no en el
 # dormitorio). Si mañana aparece el granero, estos cues pasan a su sala.
@@ -167,25 +182,21 @@ sounds      = ["chicken_cluck", "cow_moo"]
   animals  = true
   minerals = true
 
-  # Piso de tierra: baldosa COMPUESTA 2×2 de SpringOutdoors.png (cuatro
-  # celdas NO contiguas de la hoja, fila por fila: arriba-izq, arriba-der,
-  # abajo-izq, abajo-der), tileada por TODO el jardín (40×60).
-  # Mismo mecanismo genérico que cualquier piso: piece+cells en modo tile
-  # (ElementPainter::paintTiled repite el bloque 2×2). La cámara revela
-  # el resto al caminar; el render emite solo lo visible.
+  # Fondo del jardín: Garden.png completa, dibujada UNA sola vez. scale=2
+  # → 896×720px = 56×45 celdas lógicas (cellPixelSize=32), igual que el
+  # dormitorio.
   [[rooms.garden.elements]]
-  tileset = "springoutdoors"
-  piece   = [2, 2]
-  cells   = [ [1,7],[3,6],
-              [1,9],[2,9] ]
-  draw    = { mode = "tile" }
+  tileset = "gardenbg"
+  region  = [0, 0, 56, 45]
+  draw    = { mode = "single", scale = 2 }
   at      = [0, 0]
-  span    = [40, 60]
+  span    = [56, 45]
 
   # La casa: un ÚNICO elemento de 9×9 celdas de Houses.png (cols 1-9,
   # filas 0-8). El techo es triangular, así que las posiciones vacías
   # del rectángulo apuntan a la celda transparente (0,0) de la hoja.
   # scale=2 → 288×288px = 9×9 celdas lógicas. Mover: cambiar `at`.
+  # `at` es un PLACEHOLDER: definí acá la ubicación final de la casa.
   [[rooms.garden.elements]]
   tileset = "houses"
   piece   = [9, 9]
@@ -200,5 +211,53 @@ sounds      = ["chicken_cluck", "cow_moo"]
               [1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],
               [1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8] ]
   draw    = { mode = "single", scale = 2 }
-  at      = [10, 0]
+  at      = [35, 7]
   span    = [9, 9]
+
+# --- Caverna chica -----------------------------------------------------
+# cavernSmall.png mide 320×320 px = 20×20 celdas de 16px. La sala es más
+# grande (30×20, el tamaño del dormitorio) para que el personaje, venga de
+# la celda que venga, siempre caiga dentro. El fondo va centrado.
+[rooms.cavern_small]
+floor_color = [0, 0, 0, 255]
+grid        = [30, 20]
+scale       = 2
+
+  [[rooms.cavern_small.elements]]
+  tileset = "cavernsmall"
+  region  = [0, 0, 20, 20]
+  draw    = { mode = "single", scale = 2 }
+  at      = [5, 0]
+  span    = [20, 20]
+
+# --- Caverna mediana ---------------------------------------------------
+# cavernMedium.png mide 720×560 px = 45×35 celdas de 16px. La sala es del
+# mismo tamaño: el fondo la cubre exacta.
+[rooms.cavern_medium]
+floor_color = [0, 0, 0, 255]
+grid        = [45, 35]
+scale       = 2
+
+  [[rooms.cavern_medium.elements]]
+  tileset = "cavernmedium"
+  region  = [0, 0, 45, 35]
+  draw    = { mode = "single", scale = 2 }
+  at      = [0, 0]
+  span    = [45, 35]
+
+# --- Gallinero (coop) --------------------------------------------------
+# CoopDay.png mide 192×160 px = 12×10 celdas de 16px. scale=3 → 576×480 px
+# = 18×15 celdas lógicas (misma escala que el fondo del dormitorio). La
+# sala es 30×20 (igual que el dormitorio) y el fondo va centrado:
+# at.x = (30-18)/2 = 6, at.y = (20-15)/2 = 2.5 → 2.
+[rooms.coop]
+floor_color = [0, 0, 0, 255]
+grid        = [30, 20]
+scale       = 2
+
+  [[rooms.coop.elements]]
+  tileset = "coopbg"
+  region  = [0, 0, 12, 10]
+  draw    = { mode = "single", scale = 3 }
+  at      = [6, 2]
+  span    = [18, 15]

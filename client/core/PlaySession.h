@@ -119,6 +119,10 @@ private:
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
+    // Nombre de la sala cargada (para no repetir un cambio pedido). El
+    // atajo de dibujo lo usa para ignorar la tecla de la sala actual;
+    // cuando el server mande la sala, sale de la vista.
+    std::string currentRoom_;
     game::GameClient& gameClient_;
     const world::CharacterCatalog& characters_;
 

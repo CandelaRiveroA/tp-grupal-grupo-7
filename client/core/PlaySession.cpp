@@ -30,6 +30,7 @@ PlaySession::PlaySession(
         const world::FontCatalog& font, const world::PromptLayout& prompt,
         const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
         scene_(scenario.scene()),
+        currentRoom_(core::kInitialRoom),
         gameClient_(gameClient),
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
@@ -216,6 +217,16 @@ void PlaySession::tick(int iteration) {
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ChangeScene) {
+            // Atajo de dibujo (temporal): pide la transición a otra sala.
+            // Una transición a la vez: SceneTransition ignora el pedido si
+            // ya hay una en curso. La posición del personaje NO se toca:
+            // eso es estado de la fuente de estado.
+            if (command.scene != currentRoom_) {
+                sceneTransition_.changeTo(command.scene);
+            }
             continue;
         }
         if (const auto spend = statSpends_.find(command.kind);
@@ -477,6 +488,7 @@ void PlaySession::changeScene(const std::string& room) {
     // pinta (el dibujo es el mismo). La posición del personaje y todo
     // lo demás lo sigue mandando la fuente de estado por la vista.
     scene_ = world::SceneConfigLoader().loadFromFile(core::assetPath(core::kScenesFile), room);
+    currentRoom_ = room;
     renderer_.prepareScene(scene_);
     enterSelection_.reindex(scene_, scene_.cellPixelSize);
     camera_.setWorldBounds(world::ScenePixelMapper(scene_.cellPixelSize).worldBounds(scene_.grid));

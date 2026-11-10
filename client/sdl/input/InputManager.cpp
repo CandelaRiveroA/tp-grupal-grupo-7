@@ -102,6 +102,15 @@ auto InputManager::defaultCommandBindings() const
     // Faint + el diálogo de las Z. Cuando el server mande la acción,
     // esta tecla se puede quitar sin tocar el dibujo.
     bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
+    // Atajos de DIBUJO para revisar los ambientes (temporales): piden a
+    // PlaySession cambiar de escena con la transición. No son acciones de
+    // juego ni viajan al GameClient; se borran cuando la fuente de estado
+    // (el server) mande la sala en la vista.
+    bindings.insert({SDLK_b, game::InputCommand{Kind::ChangeScene, 0, "bedroom"}});
+    bindings.insert({SDLK_j, game::InputCommand{Kind::ChangeScene, 0, "garden"}});
+    bindings.insert({SDLK_c, game::InputCommand{Kind::ChangeScene, 0, "cavern_small"}});
+    bindings.insert({SDLK_m, game::InputCommand{Kind::ChangeScene, 0, "cavern_medium"}});
+    bindings.insert({SDLK_p, game::InputCommand{Kind::ChangeScene, 0, "coop"}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

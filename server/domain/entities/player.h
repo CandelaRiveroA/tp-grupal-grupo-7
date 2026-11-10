@@ -22,6 +22,12 @@ private:
     uint8_t selected_slot;
     Inventory backpack;
 
+    uint16_t gold;
+    float energy;
+    float max_energy;
+    uint16_t hp;
+    uint16_t max_hp;
+
 public:
     Player(uint8_t id, uint16_t x, uint16_t y);
     ~Player() override = default;
@@ -44,6 +50,10 @@ public:
     std::pair<uint16_t, uint16_t> get_target_tile() const;
     void consume_equipped_item();
     const Item* peek_equipped_item() const;
+
+    //Energia y salud
+    void consume_energy(float amount);
+    bool is_exhausted() const;
 
     // Interacción con herramientas e inventario
     void select_slot(uint8_t slot_idx);

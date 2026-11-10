@@ -7,7 +7,7 @@
 Strawberry::Strawberry(uint16_t x, uint16_t y) 
     : Crop(x, y, 4, 2, ItemID::STRAWBERRY, 25) {}
 
-void Strawberry::harvest(Player& p, World& w) {
+void Strawberry::harvest(Player& p, World& /*w*/) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);
     
     // 2. Intentamos dársela al jugador

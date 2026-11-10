@@ -56,7 +56,7 @@ bool Crop::blocks_placement() const {
     return true; 
 }
 
-void Crop::update(World& w) {
+void Crop::update(World& /*w*/) {
     // Si ya está lista, ya no crece ni consume agua, solo se pudre esperando
     if (this->is_ready_to_harvest) {
         this->degrade_quality_over_time();

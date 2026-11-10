@@ -11,7 +11,6 @@ class ScenarioLibrary {
 public:
 	void add(Scenario scenario);
 	const Scenario* find(const std::string& id) const;
-	std::vector<const Scenario*> byKind(MapKind kind) const;
 	const std::vector<Scenario>& all() const;
 
 private:

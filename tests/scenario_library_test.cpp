@@ -55,19 +55,4 @@ TEST(ScenarioLibraryTest, RejectsEmptyId) {
 	}
 }
 
-TEST(ScenarioLibraryTest, FiltersByKind) {
-	ScenarioLibrary library;
-	library.add(makeScenario("farm_a", MapKind::Farm));
-	library.add(makeScenario("farm_b", MapKind::Farm));
-	library.add(makeScenario("town_a", MapKind::Town));
-
-	const std::vector<const Scenario*> farms =
-		library.byKind(MapKind::Farm);
-	ASSERT_EQ(farms.size(), 2u);
-	EXPECT_EQ(farms[0]->id, "farm_a");
-	EXPECT_EQ(farms[1]->id, "farm_b");
-	EXPECT_EQ(library.byKind(MapKind::Town).size(), 1u);
-	EXPECT_TRUE(library.byKind(MapKind::Dungeon).empty());
-}
-
 }

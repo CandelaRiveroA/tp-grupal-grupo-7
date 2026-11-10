@@ -18,6 +18,11 @@ std::string content_id_for(ItemID id) {
             {ItemID::LAPIS_ORB, "lapis"},
             {ItemID::GOLD_ORB, "gold"},
             {ItemID::ROCK, "rock"},
+            {ItemID::ROCK_2, "rock_2"},
+            {ItemID::ROCK_3, "rock_3"},
+            {ItemID::ROCK_4, "rock_4"},
+            {ItemID::ROCK_5, "rock_5"},
+            {ItemID::ROCK_6, "rock_6"},
             {ItemID::EGG, "egg"},
             {ItemID::MILK, "milk"},
             {ItemID::BED, "bed"}};

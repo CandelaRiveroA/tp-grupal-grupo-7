@@ -5,6 +5,8 @@
 
 // Roca de relleno de la sala: un solo golpe y no deja nada al romperse.
 class Rock: public Mineral {
+private:
+    ItemID visual_id;
 public:
     Rock(uint16_t x, uint16_t y);
     ~Rock() override = default;

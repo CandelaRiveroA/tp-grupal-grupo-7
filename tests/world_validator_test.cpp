@@ -1,0 +1,467 @@
+#include <algorithm>
+#include <cstddef>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "gtest/gtest.h"
+#include "world_model/ScenarioLibrary.h"
+#include "world_model/ValidationIssue.h"
+#include "world_model/WorldFactory.h"
+#include "world_model/WorldSerializer.h"
+#include "world_model/WorldValidator.h"
+
+namespace {
+
+using worldmodel::IssueCode;
+using worldmodel::Map;
+using worldmodel::MapKind;
+using worldmodel::MapObject;
+using worldmodel::Marker;
+using worldmodel::MarkerKind;
+using worldmodel::ObjectRole;
+using worldmodel::Portal;
+using worldmodel::PortalKind;
+using worldmodel::Scenario;
+using worldmodel::ScenarioChoice;
+using worldmodel::ScenarioLibrary;
+using worldmodel::TileRef;
+using worldmodel::TilesetDef;
+using worldmodel::ValidationIssue;
+using worldmodel::World;
+using worldmodel::WorldFactory;
+using worldmodel::WorldSerializer;
+using worldmodel::WorldValidator;
+
+constexpr int kWidth = 14;
+constexpr int kHeight = 12;
+
+Scenario scenarioOf(const std::string& id, MapKind kind, int width = kWidth,
+		    int height = kHeight) {
+	Scenario scenario;
+	scenario.id = id;
+	scenario.kind = kind;
+	scenario.width = width;
+	scenario.height = height;
+	scenario.tilesets.emplace("outdoors",
+				  TilesetDef{"outdoors.png", 16, 16});
+	scenario.collision.assign(
+		static_cast<std::size_t>(width) * height, false);
+	scenario.ground.assign(static_cast<std::size_t>(width) * height,
+			       TileRef{"outdoors", 0, 0});
+	return scenario;
+}
+
+ScenarioLibrary fullLibrary() {
+	ScenarioLibrary library;
+	library.add(scenarioOf("farm_a", MapKind::Farm));
+	library.add(scenarioOf("town_a", MapKind::Town));
+	library.add(scenarioOf("cabin_a", MapKind::Cabin));
+	library.add(scenarioOf("market_a", MapKind::Market));
+	library.add(scenarioOf("center_a", MapKind::CommunityCenter));
+	library.add(scenarioOf("cave_a", MapKind::Dungeon));
+	return library;
+}
+
+ScenarioChoice validChoice() {
+	ScenarioChoice choice;
+	choice.farm = "farm_a";
+	choice.town = "town_a";
+	choice.cabin = "cabin_a";
+	choice.market = "market_a";
+	choice.communityCenter = "center_a";
+	choice.dungeons.fill("cave_a");
+	return choice;
+}
+
+World defaultWorld() {
+	const ScenarioLibrary library = fullLibrary();
+	return WorldFactory().makeDefault("spring", "Primavera", library,
+					  validChoice());
+}
+
+Map& mapOf(World& world, const std::string& id) {
+	return world.maps.at(id);
+}
+
+MapObject& objectOf(Map& map, ObjectRole role) {
+	for (MapObject& object : map.objects) {
+		if (object.role == role) {
+			return object;
+		}
+	}
+	throw std::runtime_error("object not found");
+}
+
+Portal& portalOf(Map& map, PortalKind kind) {
+	for (Portal& portal : map.portals) {
+		if (portal.kind == kind) {
+			return portal;
+		}
+	}
+	throw std::runtime_error("portal not found");
+}
+
+Marker& markerOf(Map& map, MarkerKind kind) {
+	for (Marker& marker : map.markers) {
+		if (marker.kind == kind) {
+			return marker;
+		}
+	}
+	throw std::runtime_error("marker not found");
+}
+
+bool hasIssue(const World& world, IssueCode code) {
+	for (const ValidationIssue& issue :
+	     WorldValidator().validate(world)) {
+		if (issue.code == code) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void expectIssue(const World& world, IssueCode code) {
+	EXPECT_TRUE(hasIssue(world, code));
+}
+
+TEST(WorldValidatorTest, DefaultWorldHasNoIssues) {
+	EXPECT_TRUE(WorldValidator().validate(defaultWorld()).empty());
+}
+
+TEST(WorldValidatorTest, ExtraMapAndLinkValidateClean) {
+	World world = defaultWorld();
+	WorldFactory().addExtraMap(
+		world, scenarioOf("cave_extra", MapKind::Farm), "cave");
+	Map& farm = mapOf(world, "farm");
+	farm.portals.push_back(
+		Portal{PortalKind::Link, {1, 1}, "cave", {0, 0}});
+	Map& cave = mapOf(world, "cave");
+	cave.portals.push_back(
+		Portal{PortalKind::Link, {0, 0}, "farm", {1, 1}});
+
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+}
+
+TEST(WorldValidatorTest, FactoryWorldSurvivesRoundTripAndValidates) {
+	const WorldSerializer serializer;
+	const World loaded =
+		serializer.loadFromString(serializer.saveToString(defaultWorld()));
+
+	EXPECT_TRUE(WorldValidator().validate(loaded).empty());
+}
+
+TEST(WorldValidatorTest, ExtraMapWithLinkSurvivesRoundTripAndValidates) {
+	World world = defaultWorld();
+	WorldFactory().addExtraMap(
+		world, scenarioOf("cave_extra", MapKind::Dungeon), "cave");
+	mapOf(world, "farm").portals.push_back(
+		Portal{PortalKind::Link, {1, 1}, "cave", {0, 0}});
+	mapOf(world, "cave").portals.push_back(
+		Portal{PortalKind::Link, {0, 0}, "farm", {1, 1}});
+
+	const WorldSerializer serializer;
+	const World loaded =
+		serializer.loadFromString(serializer.saveToString(world));
+
+	EXPECT_TRUE(WorldValidator().validate(loaded).empty());
+}
+
+TEST(WorldValidatorTest, ExtraDungeonAcceptsAnyLevel) {
+	World world = defaultWorld();
+	WorldFactory().addExtraMap(
+		world, scenarioOf("cave_extra", MapKind::Dungeon), "cave");
+	mapOf(world, "cave").level = 5;
+
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+}
+
+TEST(WorldValidatorTest, ExtraNonDungeonRequiresZeroLevel) {
+	World world = defaultWorld();
+	WorldFactory().addExtraMap(
+		world, scenarioOf("extra_farm", MapKind::Farm), "extra");
+	mapOf(world, "extra").level = 3;
+
+	expectIssue(world, IssueCode::WrongDungeonLevel);
+}
+
+TEST(WorldValidatorTest, UnsupportedVersion) {
+	World world = defaultWorld();
+	world.formatVersion = 2;
+	expectIssue(world, IssueCode::UnsupportedVersion);
+}
+
+TEST(WorldValidatorTest, InvalidSlug) {
+	World world = defaultWorld();
+	world.slug = "Spring!";
+	expectIssue(world, IssueCode::InvalidSlug);
+}
+
+TEST(WorldValidatorTest, EmptyName) {
+	World world = defaultWorld();
+	world.name.clear();
+	expectIssue(world, IssueCode::EmptyName);
+}
+
+TEST(WorldValidatorTest, UnknownTilesetInGround) {
+	World world = defaultWorld();
+	mapOf(world, "farm").ground[0] = TileRef{"nope", 0, 0};
+	expectIssue(world, IssueCode::UnknownTileset);
+}
+
+TEST(WorldValidatorTest, MissingRequiredMap) {
+	World world = defaultWorld();
+	world.maps.erase("town");
+	expectIssue(world, IssueCode::MissingRequiredMap);
+}
+
+TEST(WorldValidatorTest, WrongMapKind) {
+	World world = defaultWorld();
+	mapOf(world, "farm").kind = MapKind::Town;
+	expectIssue(world, IssueCode::WrongMapKind);
+}
+
+TEST(WorldValidatorTest, WrongDungeonLevel) {
+	World world = defaultWorld();
+	mapOf(world, "dungeon_3").level = 2;
+	expectIssue(world, IssueCode::WrongDungeonLevel);
+}
+
+TEST(WorldValidatorTest, InvalidMapId) {
+	World world = defaultWorld();
+	mapOf(world, "farm").id = "Farm!";
+
+	const std::vector<ValidationIssue> issues =
+		WorldValidator().validate(world);
+	EXPECT_EQ(std::count_if(
+			  issues.begin(), issues.end(),
+			  [](const ValidationIssue& issue) {
+				  return issue.code == IssueCode::InvalidMapId;
+			  }),
+		  1);
+}
+
+TEST(WorldValidatorTest, InvalidDimensions) {
+	World world = defaultWorld();
+	mapOf(world, "farm").width = 0;
+	expectIssue(world, IssueCode::InvalidDimensions);
+}
+
+TEST(WorldValidatorTest, GridSizeMismatch) {
+	World world = defaultWorld();
+	mapOf(world, "farm").ground.pop_back();
+	expectIssue(world, IssueCode::GridSizeMismatch);
+}
+
+TEST(WorldValidatorTest, CollisionOutOfSync) {
+	World world = defaultWorld();
+	Map& farm = mapOf(world, "farm");
+	farm.collision[0] = !farm.collision[0];
+	expectIssue(world, IssueCode::CollisionOutOfSync);
+}
+
+TEST(WorldValidatorTest, MissingObject) {
+	World world = defaultWorld();
+	mapOf(world, "farm").objects.clear();
+	expectIssue(world, IssueCode::MissingObject);
+}
+
+TEST(WorldValidatorTest, DuplicateObject) {
+	World world = defaultWorld();
+	Map& farm = mapOf(world, "farm");
+	farm.objects.push_back(objectOf(farm, ObjectRole::Cabin));
+	expectIssue(world, IssueCode::DuplicateObject);
+}
+
+TEST(WorldValidatorTest, ObjectOutOfBounds) {
+	World world = defaultWorld();
+	objectOf(mapOf(world, "farm"), ObjectRole::Cabin).cell.column =
+		kWidth;
+	expectIssue(world, IssueCode::ObjectOutOfBounds);
+}
+
+TEST(WorldValidatorTest, ObjectDoorMissing) {
+	World world = defaultWorld();
+	objectOf(mapOf(world, "farm"), ObjectRole::Cabin).door.reset();
+	expectIssue(world, IssueCode::ObjectDoorMissing);
+}
+
+TEST(WorldValidatorTest, ObjectDoorOutOfBounds) {
+	World world = defaultWorld();
+	objectOf(mapOf(world, "farm"), ObjectRole::Cabin).door = {-1, 0};
+	expectIssue(world, IssueCode::ObjectDoorOutOfBounds);
+}
+
+TEST(WorldValidatorTest, ObjectDoorNotWalkable) {
+	World world = defaultWorld();
+	objectOf(mapOf(world, "farm"), ObjectRole::Cabin).door = {2, 2};
+	expectIssue(world, IssueCode::ObjectDoorNotWalkable);
+}
+
+TEST(WorldValidatorTest, RepeatedSpawnAndBedAreAllowed) {
+	World world = defaultWorld();
+	mapOf(world, "farm")
+		.markers.push_back(Marker{MarkerKind::PlayerSpawn, {4, 7}});
+	mapOf(world, "cabin")
+		.markers.push_back(Marker{MarkerKind::Bed, {2, 3}});
+
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+}
+
+TEST(WorldValidatorTest, MissingMarker) {
+	World world = defaultWorld();
+	mapOf(world, "farm").markers.clear();
+	expectIssue(world, IssueCode::MissingMarker);
+}
+
+TEST(WorldValidatorTest, MissingMerchantMarker) {
+	World world = defaultWorld();
+	Map& market = mapOf(world, "market");
+	market.markers.erase(
+		std::remove_if(market.markers.begin(), market.markers.end(),
+			       [](const Marker& marker) {
+				       return marker.kind ==
+					      MarkerKind::MerchantRobin;
+			       }),
+		market.markers.end());
+	expectIssue(world, IssueCode::MissingMarker);
+}
+
+TEST(WorldValidatorTest, DuplicateMarker) {
+	World world = defaultWorld();
+	Map& market = mapOf(world, "market");
+	market.markers.push_back(
+		markerOf(market, MarkerKind::MerchantMarnie));
+	expectIssue(world, IssueCode::DuplicateMarker);
+}
+
+TEST(WorldValidatorTest, UnexpectedMarker) {
+	World world = defaultWorld();
+	mapOf(world, "farm")
+		.markers.push_back(
+			Marker{MarkerKind::MerchantMarnie, {4, 6}});
+	expectIssue(world, IssueCode::UnexpectedMarker);
+}
+
+TEST(WorldValidatorTest, MarkerOutOfBounds) {
+	World world = defaultWorld();
+	markerOf(mapOf(world, "farm"), MarkerKind::PlayerSpawn).cell = {
+		-1, 0};
+	expectIssue(world, IssueCode::MarkerOutOfBounds);
+}
+
+TEST(WorldValidatorTest, MarkerNotWalkable) {
+	World world = defaultWorld();
+	markerOf(mapOf(world, "farm"), MarkerKind::PlayerSpawn).cell = {
+		2, 2};
+	expectIssue(world, IssueCode::MarkerNotWalkable);
+}
+
+TEST(WorldValidatorTest, MissingPortal) {
+	World world = defaultWorld();
+	mapOf(world, "cabin").portals.clear();
+	expectIssue(world, IssueCode::MissingPortal);
+}
+
+TEST(WorldValidatorTest, DuplicatePortal) {
+	World world = defaultWorld();
+	Map& town = mapOf(world, "town");
+	town.portals.push_back(
+		portalOf(town, PortalKind::FarmEntrance));
+	expectIssue(world, IssueCode::DuplicatePortal);
+}
+
+TEST(WorldValidatorTest, UnexpectedPortal) {
+	World world = defaultWorld();
+	mapOf(world, "dungeon_10")
+		.portals.push_back(Portal{PortalKind::StairsDown,
+					  {0, 0}, "dungeon_1", {0, 0}});
+	expectIssue(world, IssueCode::UnexpectedPortal);
+}
+
+TEST(WorldValidatorTest, PortalOutOfBounds) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance).cell = {
+		-1, 0};
+	expectIssue(world, IssueCode::PortalOutOfBounds);
+}
+
+TEST(WorldValidatorTest, PortalNotWalkable) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance).cell = {
+		2, 2};
+	expectIssue(world, IssueCode::PortalNotWalkable);
+}
+
+TEST(WorldValidatorTest, PortalTargetMissing) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance)
+		.targetMap = "nope";
+	expectIssue(world, IssueCode::PortalTargetMissing);
+}
+
+TEST(WorldValidatorTest, LinkTargetMissing) {
+	World world = defaultWorld();
+	mapOf(world, "farm").portals.push_back(
+		Portal{PortalKind::Link, {1, 1}, "nope", {0, 0}});
+	expectIssue(world, IssueCode::PortalTargetMissing);
+}
+
+TEST(WorldValidatorTest, PortalTargetOutOfBounds) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance)
+		.targetCell = {-1, 0};
+	expectIssue(world, IssueCode::PortalTargetOutOfBounds);
+}
+
+TEST(WorldValidatorTest, PortalTargetNotWalkable) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance)
+		.targetCell = {2, 7};
+	expectIssue(world, IssueCode::PortalTargetNotWalkable);
+}
+
+TEST(WorldValidatorTest, LinkTargetNotWalkable) {
+	World world = defaultWorld();
+	mapOf(world, "farm").portals.push_back(
+		Portal{PortalKind::Link, {1, 1}, "town", {2, 7}});
+	expectIssue(world, IssueCode::PortalTargetNotWalkable);
+}
+
+TEST(WorldValidatorTest, WrongPortalTarget) {
+	World world = defaultWorld();
+	Portal& portal =
+		portalOf(mapOf(world, "farm"), PortalKind::TownEntrance);
+	portal.targetMap = "cabin";
+	portal.targetCell = {0, 0};
+	expectIssue(world, IssueCode::WrongPortalTarget);
+}
+
+TEST(WorldValidatorTest, InteriorExitMustTargetBuildingDoor) {
+	World world = defaultWorld();
+	portalOf(mapOf(world, "cabin"), PortalKind::InteriorExit)
+		.targetCell = {0, 0};
+	expectIssue(world, IssueCode::WrongPortalTarget);
+}
+
+TEST(WorldValidatorTest, FixedPortalInExtraMapIsUnexpected) {
+	World world = defaultWorld();
+	WorldFactory().addExtraMap(
+		world, scenarioOf("cave_extra", MapKind::Dungeon), "cave");
+	mapOf(world, "cave").portals.push_back(
+		Portal{PortalKind::TownEntrance, {0, 0}, "town", {1, 6}});
+	expectIssue(world, IssueCode::UnexpectedPortal);
+}
+
+TEST(WorldValidatorTest, ReturnsAllIssues) {
+	World world = defaultWorld();
+	world.formatVersion = 2;
+	world.slug.clear();
+	world.name.clear();
+
+	const std::vector<ValidationIssue> issues =
+		WorldValidator().validate(world);
+	EXPECT_GE(issues.size(), 3u);
+}
+
+}

@@ -91,3 +91,5 @@ bool Player::pick_up_item(std::unique_ptr<Item> item) {
 bool Player::is_walkable() const { return true; }
 
 void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {}
+
+void Player::update(World& /*w*/) {}

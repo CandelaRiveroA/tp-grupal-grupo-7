@@ -24,11 +24,11 @@ void DroppedItem::interact(Player& p, ToolType tool, World& w) {
     // Dejamos la mano para los huevos
     // Pero tal bien se pueden levantar solo caminando.
     if (tool == ToolType::HAND && this->payload) {
-        uint16_t cx = this->pos_x;
-        uint16_t cy = this->pos_y;
 
         if (p.pick_up_item(std::move(this->payload))) {
-            w.remove_entity_at(cx, cy);
+            w.remove_entity(this);
         }
     }
 }
+
+void DroppedItem::update(World& /*w*/) {} 

@@ -47,6 +47,7 @@ public:
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
+    void update(World& w) override;
 };
 
 #endif  // PLAYER_H

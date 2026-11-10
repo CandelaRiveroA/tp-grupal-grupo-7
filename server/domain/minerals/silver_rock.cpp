@@ -19,7 +19,7 @@ void SilverRock::mine_mineral(World& w) {
     if (chance < 10) {
         // Regla del 10%: Spawnear manada de orcos
         // TODO: w.spawn_orc_pack(rx, ry);
-        w.remove_entity_at(rx, ry);
+        w.remove_entity(this);
     } else {
         auto orb = std::make_unique<Product>(ItemID::SILVER_ORB, 250, Quality::BASE);
         auto drop = std::make_unique<DroppedItem>(std::move(orb), rx, ry);

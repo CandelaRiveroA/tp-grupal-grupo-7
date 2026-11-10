@@ -19,6 +19,7 @@ public:
 
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
+    void update(World& w) override;
     std::optional<CellSnapshot> snapshot() const override;
 };
 

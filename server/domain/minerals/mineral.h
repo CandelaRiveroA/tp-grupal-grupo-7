@@ -24,6 +24,8 @@ public:
     // Item que deja al agotarse (identifica el tipo de mineral).
     virtual ItemID get_drop_id() const = 0;
 
+    void update(World& w) override;
+
 protected:
     virtual void mine_mineral(World& w) = 0;
     // En el futuro se puede agregar el jugador si es necesario para completar

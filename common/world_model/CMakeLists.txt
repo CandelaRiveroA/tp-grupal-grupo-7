@@ -18,6 +18,7 @@ target_sources(taller_world_model
     ScenarioSerializer.cpp
     ScenarioLibrary.cpp
     ScenarioLibraryLoader.cpp
+    WorldFactory.cpp
     PUBLIC
     # .h files
     Geometry.h
@@ -42,5 +43,6 @@ target_sources(taller_world_model
     ScenarioSerializer.h
     ScenarioLibrary.h
     ScenarioLibraryLoader.h
+    WorldFactory.h
     ValidationIssue.h
     )

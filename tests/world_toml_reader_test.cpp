@@ -79,7 +79,6 @@ TEST(WorldTomlReaderTest, ReadsWorldHeaderAndTilesets) {
 	EXPECT_EQ(world.formatVersion, 1);
 	EXPECT_EQ(world.slug, "spring");
 	EXPECT_EQ(world.name, "Primavera");
-	EXPECT_EQ(world.description, "Mundo de fixture");
 	ASSERT_EQ(world.tilesets.size(), 2u);
 	const auto& outdoors = world.tilesets.at("outdoors");
 	EXPECT_EQ(outdoors.image, "Farm/spring_outdoors.png");

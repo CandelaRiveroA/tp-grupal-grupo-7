@@ -25,9 +25,6 @@ World WorldTomlReader::read() const {
 void WorldTomlReader::readWorld(World& world) const {
 	world.slug = doc_.getString("world.slug");
 	world.name = doc_.getString("world.name");
-	if (doc_.hasKey("world.description")) {
-		world.description = doc_.getString("world.description");
-	}
 }
 
 Map WorldTomlReader::readMap(const World& world,

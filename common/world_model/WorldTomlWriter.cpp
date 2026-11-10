@@ -33,9 +33,6 @@ toml::table WorldTomlWriter::writeWorld(const World& world) const {
 	toml::table table;
 	table.insert("slug", world.slug);
 	table.insert("name", world.name);
-	if (!world.description.empty()) {
-		table.insert("description", world.description);
-	}
 	return table;
 }
 

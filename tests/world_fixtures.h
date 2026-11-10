@@ -15,7 +15,6 @@ inline const std::string kMinimalWorldToml = R"(format_version = 1
 [world]
 slug = "spring"
 name = "Primavera"
-description = "Mundo de fixture"
 
 [tilesets.outdoors]
 image = "Farm/spring_outdoors.png"

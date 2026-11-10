@@ -92,15 +92,19 @@ public:
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
+    void try_plant_seed(uint8_t player_id);
     // Personalizacion del personaje del jugador (indices de capa, sin validar).
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
-    void try_plant_seed(u_int8_t player_id);
     // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);
 
     // -- - Actualización de Entidades ---
     void dry_soil();
     void process_end_of_day_floor();
+
+    // Para tests
+    Cell& get_cell(uint16_t x, uint16_t y);
+    
     // --- Sueño (votación para dormir y pasar de día) ---
     // El jugador pisa la cama: entra en la votación y queda sin movimiento.
     void record_sleep_request(uint8_t player_id);

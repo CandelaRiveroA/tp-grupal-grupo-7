@@ -49,6 +49,7 @@ public:
     // DroppedItem podría sobrescribir esto para retornar 'true' si quieres que el
     // jugador pueda pararse en la misma casilla que un ítem tirado antes de recogerlo.
     virtual bool is_walkable() const = 0;
+    virtual bool blocks_placement() const;
 
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
 

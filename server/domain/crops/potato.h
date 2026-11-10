@@ -8,7 +8,7 @@ public:
     Potato(uint16_t x, uint16_t y);
     ~Potato() override = default;
     
-    void harvest(World& w) override;
+    void harvest(Player& p, World& w) override;
 };
 
 #endif // POTATO_H

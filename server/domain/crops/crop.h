@@ -44,7 +44,6 @@ public:
 
     bool is_walkable() const override;
     void update(World& w) override; 
-    bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
 
     virtual void harvest(Player& p, World& w) = 0;

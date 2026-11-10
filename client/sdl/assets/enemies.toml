@@ -41,6 +41,30 @@ cadence     = { step = 48, frame = 6 }
       [ [10, 0, 2, 2] ],
     ]
 
+    [characters.orc.front.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.front.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
   [characters.orc.back]
   mirrored = false
     [characters.orc.back.idle]
@@ -71,6 +95,30 @@ cadence     = { step = 48, frame = 6 }
       [ [6, 0, 2, 2] ],
       [ [8, 0, 2, 2] ],
       [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.back.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.back.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
     ]
 
   [characters.orc.left]
@@ -105,6 +153,30 @@ cadence     = { step = 48, frame = 6 }
       [ [10, 0, 2, 2] ],
     ]
 
+    [characters.orc.left.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.left.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
   [characters.orc.right]
   mirrored = false
     [characters.orc.right.idle]
@@ -135,6 +207,30 @@ cadence     = { step = 48, frame = 6 }
       [ [6, 0, 2, 2] ],
       [ [8, 0, 2, 2] ],
       [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.right.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.right.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
     ]
 
 [characters.skeleton]

@@ -26,6 +26,7 @@ struct Cell {
 
     bool is_empty() const;
     bool is_there_a_wall() const;
+    bool can_plant_seed() const;
 
     bool is_soil_normal() const;
     bool is_soil_tilled() const;

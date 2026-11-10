@@ -10,6 +10,19 @@ bool Cell::is_there_a_wall() const {
     return this->is_wall;
 }
 
+bool Cell::can_plant_seed() const {
+    if (!this->is_soil_tilled() && !this->is_soil_watered()) {
+        return false;
+    }
+
+    for (const auto& ent : this->entities) {
+        if (ent->blocks_placement()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Cell::is_soil_normal() const {
     return this->soil_state == SoilState::NORMAL;
 }

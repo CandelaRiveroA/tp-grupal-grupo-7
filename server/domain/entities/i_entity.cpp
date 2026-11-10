@@ -12,7 +12,11 @@ void IEntity::set_position(uint16_t x, uint16_t y) {
 }
 
 bool IEntity::is_walkable() const {
-    return false;  // Por defecto bloquean el paso
+    return false;  
+}
+
+bool IEntity::blocks_placement() const {
+    return false;  
 }
 
 bool IEntity::pickup_on_take() const { return false; }

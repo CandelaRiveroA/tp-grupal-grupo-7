@@ -276,6 +276,7 @@ void World::try_plant_seed(uint8_t player_id) {
 
     if (!target_cell.is_soil_tilled() && !target_cell.is_soil_watered()) return;
     if (!target_cell.is_empty()) return;
+    if (!target_cell.can_plant_seed()) return;
 
     const Item* active_item = p.peek_equipped_item();
     if (!active_item) return; 

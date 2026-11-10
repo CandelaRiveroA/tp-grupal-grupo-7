@@ -43,6 +43,7 @@ public:
     Crop& operator=(Crop&&) = default;
 
     bool is_walkable() const override;
+    bool blocks_placement() const override;
     void update(World& w) override; 
     void interact(Player& p, ToolType tool, World& w) override;
 

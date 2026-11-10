@@ -236,20 +236,22 @@ void World::use_tool(uint8_t player_id) {
         return;
     }
     Player& p = *this->players.at(player_id);
+    if (p.is_energy_depleted()) return;
     auto [tx, ty] = p.get_target_tile();
 
-    if (tx >= this->width || ty >= this->height)
-        return;
-
+    if (tx >= this->width || ty >= this->height) return;
     Cell& target_cell = this->grid[ty][tx];
-    
     ToolType tool = p.get_equipped_tool();
 
+    bool action_performed = false;
+
     if (tool == ToolType::SHOVEL) {
-        target_cell.till_soil(); 
+        target_cell.till_soil();
+        action_performed = true; 
     } 
     else if (tool == ToolType::WATERING_CAN) {
         target_cell.water_soil();
+        action_performed = true;
     }
 
     // Interactuar de frente (picar, levantar manual)
@@ -263,54 +265,51 @@ void World::use_tool(uint8_t player_id) {
         for (IEntity* ent: iteratable_entities) {
             ent->interact(p, p.get_equipped_tool(), *this);
         }
+        action_performed = true;
+    } else if (tool == ToolType::HAND) {
+        action_performed = this->try_plant_seed(player_id, tx, ty);
+    }
+
+}
+
+void World::apply_consume_energy(uint8_t player_id, float amount) {
+    Player& p = *this->players.at(player_id);
+    p.consume_energy(amount);
+    if (p.is_energy_depleted()) {
+        // TODO: Cambiar estado del jugador a INCONSCIENTE.
+        // Si es Single Player, forzar el process_end_of_day().
+        // Si es Multiplayer, notificar que este jugador ya no puede actuar hasta mañana.
     }
 }
 
-void World::try_plant_seed(uint8_t player_id) {
+bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
     // TODO: Se parece mucho a use_tool, refactorizar para no repetir código.
     Player& p = *this->players.at(player_id);
-    auto [tx, ty] = p.get_target_tile(); 
-
-    if (tx >= this->width || ty >= this->height) return;
-
     Cell& target_cell = this->grid[ty][tx];
 
-    if (!target_cell.is_soil_tilled() && !target_cell.is_soil_watered()) return;
-    if (!target_cell.is_empty()) return;
+    if (!target_cell.is_soil_tilled() || !target_cell.is_soil_watered()) return false;
 
     const Item* active_item = p.peek_equipped_item();
-    if (!active_item) return; 
-    
-    // Si el jugador equipó una herramienta real (Pico, Regadera, Pala), abortamos.
-    // Solo permitimos semillas, las cuales mapéan a HAND en tu player[cite: 8].
-    if (p.get_equipped_tool() != ToolType::HAND) return;
-
-    ItemID id = active_item->get_id();
-    std::unique_ptr<Crop> new_crop = nullptr;
+    if (!active_item) return false; 
 
     //TODO: Sacar este switch a un factory method en CropFactory para no tener que tocar World.cpp cada vez que agregamos un nuevo cultivo.
-
-    switch (id) {
-        case ItemID::STRAWBERRY_SEED:
-            new_crop = std::make_unique<Strawberry>(tx, ty);
-            break;
-        case ItemID::ONION_SEED:
-            new_crop = std::make_unique<GreenOnion>(tx, ty);
-            break;
-        case ItemID::POTATO_SEED:
-            new_crop = std::make_unique<Potato>(tx, ty);
-            break;
-        case ItemID::PUMPKIN_SEED:
-            new_crop = std::make_unique<Pumpkin>(tx, ty);
-            break;
-        default:
-            return; 
+    std::unique_ptr<Crop> new_crop = nullptr;
+    switch (active_item->get_id()) {
+        case ItemID::STRAWBERRY_SEED: new_crop = std::make_unique<Strawberry>(tx, ty); break;
+        case ItemID::ONION_SEED: new_crop = std::make_unique<GreenOnion>(tx, ty); break;
+        case ItemID::POTATO_SEED: new_crop = std::make_unique<Potato>(tx, ty); break;
+        case ItemID::PUMPKIN_SEED: new_crop = std::make_unique<Pumpkin>(tx, ty); break;
+        default: return false; 
     }
 
     if (new_crop) {
         p.consume_equipped_item(); 
-        target_cell.entities.push_back(std::move(new_crop)); 
+        target_cell.entities.push_back(std::move(new_crop));
+        // Si se planta una semilla, el suelo queda arado aunque se haya regado antes.
+        target_cell.till_soil();
+        return true; 
     }
+    return false;
 }
 
 void World::record_resource_hit(uint16_t x, uint16_t y, bool destroyed) {

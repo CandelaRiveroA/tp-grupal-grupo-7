@@ -43,7 +43,7 @@ private:
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
     std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
-
+    void apply_consume_energy(uint8_t player_id, float amount);
 public:
     World(uint16_t w, uint16_t h);
     ~World() = default;
@@ -94,7 +94,7 @@ public:
     void set_player_facing(uint8_t player_id, Direction dir);
     // Personalizacion del personaje del jugador (indices de capa, sin validar).
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
-    void try_plant_seed(u_int8_t player_id);
+    bool try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty);
     // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);
 

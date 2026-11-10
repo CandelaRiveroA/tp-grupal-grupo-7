@@ -18,6 +18,13 @@ int SpriteSheet::frameWidth() const { return frameWidth_; }
 
 int SpriteSheet::frameHeight() const { return frameHeight_; }
 
+SDL2pp::Surface& SpriteSheet::surface() {
+	if (!surface_.has_value()) {
+		surface_.emplace(path_);
+	}
+	return *surface_;
+}
+
 SDL2pp::Rect SpriteSheet::frameRect(int col, int row) const {
 	return SDL2pp::Rect(col * frameWidth_, row * frameHeight_,
 			    frameWidth_, frameHeight_);
@@ -70,11 +77,33 @@ SDL2pp::Rect SpriteSheet::contentRect(const int col, const int row) {
 	return rect;
 }
 
-SDL2pp::Rect SpriteSheet::scanContentRect(const int col, const int row) {
-	if (!surface_.has_value()) {
-		surface_.emplace(path_);
+int SpriteSheet::contentTop(const int col, const int row, const int cols,
+			    const int rows) {
+	int top = rows * frameHeight_;
+	for (int r = 0; r < rows; ++r) {
+		for (int c = 0; c < cols; ++c) {
+			const SDL2pp::Rect rect = contentRect(col + c, row + r);
+			top = std::min(top, rect.y - row * frameHeight_);
+		}
 	}
-	SDL2pp::Surface::LockHandle lock = surface_->Lock();
+	return top;
+}
+
+int SpriteSheet::contentBottom(const int col, const int row, const int cols,
+			       const int rows) {
+	int bottom = -1;
+	for (int r = 0; r < rows; ++r) {
+		for (int c = 0; c < cols; ++c) {
+			const SDL2pp::Rect rect = contentRect(col + c, row + r);
+			bottom = std::max(bottom,
+					  rect.y + rect.h - 1 - row * frameHeight_);
+		}
+	}
+	return bottom;
+}
+
+SDL2pp::Rect SpriteSheet::scanContentRect(const int col, const int row) {
+	SDL2pp::Surface::LockHandle lock = surface().Lock();
 	const SDL_PixelFormat& format = lock.GetFormat();
 	if (format.BytesPerPixel != 4) {
 		return frameRect(col, row);  // sin alfa consultable

@@ -54,6 +54,28 @@ broken  = [0, 0, 2, 2]
 	EXPECT_NE(catalog.find("boulder", world::ResourceState::Intact), nullptr);
 }
 
+TEST(ResourceConfigLoaderTest, LoadsSingleCellBlock) {
+	// Bloques 1x1 (rellenos rock*): cols/rows quedan en 1 y la hoja
+	// puede ser distinta de ore.png.
+	const std::string toml = R"(
+[resources.rock]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [8, 1, 1, 1]
+cracked = [8, 1, 1, 1]
+broken  = [8, 1, 1, 1]
+)";
+	const world::ResourceCatalog catalog = loadString(toml);
+	const world::ResourceVisual* visual =
+		catalog.find("rock", world::ResourceState::Intact);
+	ASSERT_NE(visual, nullptr);
+	EXPECT_EQ(visual->sprite.sheetImage, "Ambience/springobjects.png");
+	EXPECT_EQ(visual->sprite.col, 8);
+	EXPECT_EQ(visual->sprite.row, 1);
+	EXPECT_EQ(visual->cols, 1);
+	EXPECT_EQ(visual->rows, 1);
+}
+
 TEST(ResourceConfigLoaderTest, LoadsAllThreeStates) {
 	const world::ResourceCatalog catalog = loadString(kMineralsToml);
 	EXPECT_NE(catalog.find("silver", world::ResourceState::Intact), nullptr);

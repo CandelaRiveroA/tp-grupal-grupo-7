@@ -36,6 +36,14 @@ void MockGameClient::placeMinerals() {
             {"silver", cx, cy + 2, 0},
             {"gold", cx - 1, cy + 2, 0},
             {"lapis", cx + 3, cy, 0},
+            // Rellenos destructibles (1 golpe, sin drop): una fila de
+            // rocas 2 celdas arriba del jugador, para verlas de una.
+            {"rock", cx - 2, cy - 2, 0, 1, false},
+            {"rock_2", cx - 1, cy - 2, 0, 1, false},
+            {"rock_3", cx, cy - 2, 0, 1, false},
+            {"rock_4", cx + 1, cy - 2, 0, 1, false},
+            {"rock_5", cx + 2, cy - 2, 0, 1, false},
+            {"rock_6", cx + 3, cy - 2, 0, 1, false},
     };
     for (const MineralSpot& spot: spots) {
         if (spot.cellX < 0 || spot.cellX >= gridColumns_ || spot.cellY < 0 ||

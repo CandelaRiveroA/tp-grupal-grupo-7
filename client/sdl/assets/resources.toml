@@ -11,9 +11,9 @@
 # contentId es el contrato con el servidor: tiene que mandar ese string.
 #
 # Cada estado es un bloque [col, row, cols, rows]: celda origen (esquina
-# superior-izquierda) + tamaño en celdas. Los minerales son 2x2. Los tres
-# estados son obligatorios; si no hay sprite de daño, pueden apuntar todos
-# al mismo bloque.
+# superior-izquierda) + tamaño en celdas. Los minerales son 2x2; los
+# rellenos rock* son 1x1. Los tres estados son obligatorios; si no hay
+# sprite de daño, pueden apuntar todos al mismo bloque.
 #
 # Lo carga world::ResourceConfigLoader hacia un world::ResourceCatalog
 # (datos puros, sin SDL), y el sdl::Renderer lo consume. El servidor
@@ -59,12 +59,48 @@ intact  = [0, 6, 2, 2]
 cracked = [2, 6, 2, 2]
 broken  = [4, 6, 2, 2]
 
-# shortcut: reusa las celdas de [resources.silver] hasta que haya un sprite
-# de roca lisa en ore.png (la hoja está llena: 4 minerales x 3 estados). El
-# upgrade es meter un bloque nuevo en la hoja y apuntarlo acá.
+# Rellenos destructibles (1 golpe, sin drop): stones de
+# Ambience/springobjects.png. Bloques 1x1 (celdas de 16px); los tres
+# estados apuntan al MISMO bloque: se rompen de un golpe, así que el
+# daño intermedio nunca se dibuja.
 [resources.rock]
-sheet   = "Cavern/ore.png"
+sheet   = "Ambience/springobjects.png"
 cell    = [16, 16]
-intact  = [0, 0, 2, 2]
-cracked = [2, 0, 2, 2]
-broken  = [4, 0, 2, 2]
+intact  = [8, 1, 1, 1]
+cracked = [8, 1, 1, 1]
+broken  = [8, 1, 1, 1]
+
+[resources.rock_2]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [10, 1, 1, 1]
+cracked = [10, 1, 1, 1]
+broken  = [10, 1, 1, 1]
+
+[resources.rock_3]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [12, 1, 1, 1]
+cracked = [12, 1, 1, 1]
+broken  = [12, 1, 1, 1]
+
+[resources.rock_4]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [14, 1, 1, 1]
+cracked = [14, 1, 1, 1]
+broken  = [14, 1, 1, 1]
+
+[resources.rock_5]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [16, 1, 1, 1]
+cracked = [16, 1, 1, 1]
+broken  = [16, 1, 1, 1]
+
+[resources.rock_6]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [18, 1, 1, 1]
+cracked = [18, 1, 1, 1]
+broken  = [18, 1, 1, 1]

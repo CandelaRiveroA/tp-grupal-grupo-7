@@ -49,6 +49,9 @@ target_sources(taller_tests
     world_toml_reader_test.cpp
     world_toml_writer_test.cpp
     world_serializer_test.cpp
+    scenario_serializer_test.cpp
+    scenario_library_test.cpp
+    scenario_library_loader_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp

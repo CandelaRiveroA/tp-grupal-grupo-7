@@ -92,6 +92,7 @@ public:
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
     void set_player_facing(uint8_t player_id, Direction dir);
+    void select_slot(uint8_t player_id, uint8_t slot);
     // Personalizacion del personaje del jugador (indices de capa, sin validar).
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
     bool try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty);
@@ -104,6 +105,7 @@ public:
 
     // Para tests
     Cell& get_cell(uint16_t x, uint16_t y);
+    const Cell& get_cell(uint16_t x, uint16_t y) const;
     
     // --- Sueño (votación para dormir y pasar de día) ---
     // El jugador pisa la cama: entra en la votación y queda sin movimiento.

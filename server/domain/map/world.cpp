@@ -175,8 +175,8 @@ void World::add_animal(std::unique_ptr<Animal> animal) {
 
 void World::tick_day() {
     // Se copian los punteros: update puede poner huevos y cambiar las listas de celdas.
-    const std::vector<Animal*> today = animals;
-    for (Animal* animal: today) {
+    const std::vector<Animal*> AToday = animals;
+    for (Animal* animal: AToday) {
         animal->update(*this);
     }
 }
@@ -337,6 +337,10 @@ void World::set_player_facing(uint8_t player_id, Direction dir) {
     this->players.at(player_id)->set_facing(dir);
 }
 
+void World::select_slot(uint8_t player_id, uint8_t slot) {
+    this->players.at(player_id)->select_slot(slot);
+}
+
 void World::set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance) {
     this->players.at(player_id)->set_appearance(appearance);
 }
@@ -428,6 +432,13 @@ void World::process_end_of_day_floor() {
 }
 
 Cell& World::get_cell(uint16_t x, uint16_t y) {
+    if (x >= this->width || y >= this->height) {
+        throw std::out_of_range("Cell coordinates out of bounds");
+    }
+    return this->grid[y][x];
+}
+
+const Cell& World::get_cell(uint16_t x, uint16_t y) const {
     if (x >= this->width || y >= this->height) {
         throw std::out_of_range("Cell coordinates out of bounds");
     }

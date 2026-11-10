@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 
 #include "game/GameConstants.h"
+#include "world/ContentIds.h"
 #include "world/CreatureCatalog.h"
 #include "world/ResourceCatalog.h"
 
@@ -29,6 +30,12 @@ std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) {
         return std::nullopt;
     }
     return it->second;
+}
+
+// Contenido equipado (inventory.toml) -> herramienta. Sin fila = nullopt (manos o producto).
+std::optional<world::ItemKind> toolKindFor(const std::string& contentId) {
+    static const world::ContentIds contentIds;
+    return contentIds.itemKindFor(contentId);
 }
 
 }  // namespace
@@ -106,27 +113,42 @@ void NetworkGameClient::startPickup() {
         return;
     }
     const RemotePlayer& self = player->second;
-    for (std::size_t i = 0; i < dropped_.size(); ++i) {
-        const ViewDroppedItem& item = dropped_[i];
-        // Mismo alcance que el servidor: World::take_item levanta el huevo de las
-        // 8 vecinas.
-        if (!item.interactive || std::abs(item.cellX - self.cellX) > 1 ||
-            std::abs(item.cellY - self.cellY) > 1) {
-            continue;
-        }
+    // Abre la animación de recogida sobre el contenido de una celda.
+    const auto startAt = [&](const std::string& contentId, const int cellX, const int cellY,
+                             const int targetId) {
         InteractionTarget target;
         target.action = world::ActionKind::Pickup;
         target.cycles = kPickupCycles;
         // La recompensa la entrega el servidor (ServerObtained + el slot), por
         // eso esta sesión no llama mergeRewards: acá solo se anima.
-        target.reward = item.contentId;
-        target.heldContent = item.contentId;
-        target.targetId = static_cast<int>(i);
-        target.cellX = item.cellX;
-        target.cellY = item.cellY;
+        target.reward = contentId;
+        target.heldContent = contentId;
+        target.targetId = targetId;
+        target.cellX = cellX;
+        target.cellY = cellY;
         session_.start(target, self.cellX, self.cellY,
                        characters_->dataFor(world::CreatureKind::Player));
-        return;
+    };
+    // Mismo orden que World::take_item: las 8 vecinas fila por fila y, en cada
+    // una, primero el ítem del piso y después el cultivo listo.
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            const int cellX = self.cellX + dx;
+            const int cellY = self.cellY + dy;
+            for (std::size_t i = 0; i < dropped_.size(); ++i) {
+                const ViewDroppedItem& item = dropped_[i];
+                if (item.interactive && item.cellX == cellX && item.cellY == cellY) {
+                    startAt(item.contentId, cellX, cellY, static_cast<int>(i));
+                    return;
+                }
+            }
+            for (const ViewCrop& crop: crops_) {
+                if (crop.interactive && crop.cellX == cellX && crop.cellY == cellY) {
+                    startAt(crop.cropId, cellX, cellY, -1);  // los cultivos no usan targetId
+                    return;
+                }
+            }
+        }
     }
 }
 
@@ -159,8 +181,29 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // posiciones y ServerLeave ya borra a quien se fue.
         resources_.clear();
         dropped_.clear();
+        crops_.clear();
+        groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
+        return;
+    }
+    if (const auto* crop = std::get_if<ServerCrop>(&message)) {
+        ViewCrop view{crop->x, crop->y, crop->crop_id, crop->stage};
+        if (crop->needs_water) {
+            view.indication = world::Indication::ReadyToWater;
+        }
+        view.interactive = crop->interactive;
+        // Calidad 1..5 (BASE..PERFECT) del decoder -> el orden de
+        // world::CropQuality (0..4); es el mismo que qualities de crops.toml.
+        view.quality = static_cast<world::CropQuality>(crop->quality - 1);
+        crops_.push_back(view);
+        return;
+    }
+    if (const auto* ground = std::get_if<ServerGroundEffect>(&message)) {
+        groundEffects_.push_back(ViewGroundEffect{
+                ground->x, ground->y,
+                ground->effect == GroundEffect::Watered ? world::GroundConsequence::Watered
+                                                        : world::GroundConsequence::Dug});
         return;
     }
     if (const auto* animal = std::get_if<ServerAnimal>(&message)) {
@@ -249,6 +292,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         const auto it = players_.find(used->player_id);
         if (it != players_.end()) {
             it->second.toolUseRemaining = toolUseDurationTicks_;
+            it->second.activeTool = toolKindFor(used->content_id);
         }
     }
 }
@@ -284,7 +328,7 @@ void NetworkGameClient::update(int) {
         entity.appearance = player.appearance;
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
-            entity.activeTool = world::ItemKind::Pickaxe;
+            entity.activeTool = player.activeTool;
         }
         if (id == localPlayerId_) {
             view_.entities.insert(view_.entities.begin(), entity);
@@ -298,6 +342,8 @@ void NetworkGameClient::update(int) {
         view_.resources.push_back(resource);
     }
     view_.droppedItems = dropped_;
+    view_.plantedCrops = crops_;
+    view_.groundEffects = groundEffects_;
     for (const auto& entry: animals_) {
         view_.entities.push_back(entry.second);
     }

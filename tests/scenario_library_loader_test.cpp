@@ -1,11 +1,14 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "world_model/FormatError.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/ScenarioLibraryLoader.h"
 
 namespace {
 
+using worldmodel::FormatError;
+using worldmodel::FormatErrorKind;
 using worldmodel::MapKind;
 using worldmodel::ScenarioLibrary;
 using worldmodel::ScenarioLibraryLoader;
@@ -24,6 +27,17 @@ TEST(ScenarioLibraryLoaderTest, LoadsTomlFilesInOrder) {
 
 	ASSERT_NE(library.find("farm_a"), nullptr);
 	EXPECT_EQ(library.find("farm_a")->width, 2);
+}
+
+TEST(ScenarioLibraryLoaderTest, MissingDirectoryReportsUnreadableInput) {
+	try {
+		ScenarioLibraryLoader().loadFromDirectory(
+			"/no/existe/escenarios");
+		FAIL() << "expected FormatError";
+	} catch (const FormatError& error) {
+		EXPECT_EQ(error.kind(), FormatErrorKind::UnreadableInput);
+		EXPECT_EQ(error.path(), "/no/existe/escenarios");
+	}
 }
 
 }

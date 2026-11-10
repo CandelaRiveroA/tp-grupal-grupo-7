@@ -16,6 +16,8 @@ target_sources(taller_world_model
     ScenarioTomlReader.cpp
     ScenarioTomlWriter.cpp
     ScenarioSerializer.cpp
+    ScenarioLibrary.cpp
+    ScenarioLibraryLoader.cpp
     PUBLIC
     # .h files
     Geometry.h
@@ -38,5 +40,7 @@ target_sources(taller_world_model
     ScenarioTomlReader.h
     ScenarioTomlWriter.h
     ScenarioSerializer.h
+    ScenarioLibrary.h
+    ScenarioLibraryLoader.h
     ValidationIssue.h
     )

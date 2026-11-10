@@ -5,10 +5,10 @@
 #include <algorithm>
 
 Crop::Crop(uint16_t x, uint16_t y, uint16_t req_days, uint16_t req_water, ItemID p_id, uint16_t b_price)
-    : IEntity(x, y), days_alive(0), required_days_to_harvest(req_days),
-      required_water_per_day(req_water), times_watered_today(0), 
-      days_watered_successfully(0), is_ready_to_harvest(false), 
-      product_id(p_id), base_price(b_price), current_quality(Quality::BASE) {}
+    : IEntity(x, y), days_alive(0), required_days_to_harvest(req_days), 
+        is_ready_to_harvest(false), required_water_per_day(req_water),
+        times_watered_today(0), days_watered_successfully(0), 
+        product_id(p_id), base_price(b_price), current_quality(Quality::BASE) {}
 
 void Crop::degrade_quality_over_time() {
     if (this->current_quality > Quality::BASE) {
@@ -48,6 +48,10 @@ Quality Crop::calculate_quality() const {
     return this->map_score_to_quality(base_score + luck_score);
 }
 
+bool Crop::is_walkable() const {
+    return true; 
+}
+
 void Crop::update(World& w) {
     // Si ya está lista, ya no crece ni consume agua, solo se pudre esperando
     if (this->is_ready_to_harvest) {
@@ -79,6 +83,6 @@ void Crop::interact(Player& p, ToolType tool, World& w) {
         }
     } 
     else if (tool == ToolType::HAND && this->is_ready_to_harvest) {
-        this->harvest(w);
+        this->harvest(p, w);
     }
 }

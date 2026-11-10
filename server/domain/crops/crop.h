@@ -43,9 +43,10 @@ public:
     Crop& operator=(Crop&&) = default;
 
     void update(World& w) override; 
+    bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
 
-    virtual void harvest(World& w) = 0;
+    virtual void harvest(Player& p, World& w) = 0;
 };
 
 #endif // CROP_H

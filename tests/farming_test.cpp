@@ -172,7 +172,7 @@ TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
     ASSERT_FALSE(p_ref->get_inventory().is_slot_empty(4));
 
     // 3. Plantamos usando directamente tu método público
-    world.try_plant_seed(1);
+    world.try_plant_seed(1, 3, 2);
 
     // 4. Verificaciones Finales:
     // A) La semilla se consumió

@@ -288,7 +288,7 @@ bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
     Player& p = *this->players.at(player_id);
     Cell& target_cell = this->grid[ty][tx];
 
-    if (!target_cell.is_soil_tilled() || !target_cell.is_soil_watered()) return false;
+    if (!target_cell.is_soil_tilled() && !target_cell.is_soil_watered()) return false;
 
     const Item* active_item = p.peek_equipped_item();
     if (!active_item) return false; 

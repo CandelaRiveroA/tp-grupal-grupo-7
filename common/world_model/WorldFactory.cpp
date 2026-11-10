@@ -7,42 +7,6 @@
 
 namespace worldmodel {
 
-namespace {
-
-std::string dungeonId(int level) {
-	return "dungeon_" + std::to_string(level);
-}
-
-bool isExtraMapId(const std::string& id) {
-	if (id.empty()) {
-		return false;
-	}
-	for (const char character : id) {
-		const bool valid = (character >= 'a' && character <= 'z') ||
-				   (character >= '0' && character <= '9') ||
-				   character == '_' || character == '-';
-		if (!valid) {
-			return false;
-		}
-	}
-	return true;
-}
-
-bool isReservedMapId(const std::string& id) {
-	if (id == "farm" || id == "town" || id == "cabin" ||
-	    id == "market" || id == "community_center") {
-		return true;
-	}
-	for (int level = 1; level <= 10; ++level) {
-		if (id == dungeonId(level)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-}
-
 World WorldFactory::makeDefault(const std::string& slug,
 				const std::string& name,
 				const ScenarioLibrary& library,
@@ -79,7 +43,7 @@ World WorldFactory::makeDefault(const std::string& slug,
 	addMap("community_center", MapKind::CommunityCenter, 0,
 	       require(choice.communityCenter, MapKind::CommunityCenter));
 	for (int level = 1; level <= 10; ++level) {
-		addMap(dungeonId(level), MapKind::Dungeon, level,
+		addMap(rules_.dungeonId(level), MapKind::Dungeon, level,
 		       require(choice.dungeons[level - 1], MapKind::Dungeon));
 	}
 
@@ -96,7 +60,7 @@ World WorldFactory::makeDefault(const std::string& slug,
 
 void WorldFactory::addExtraMap(World& world, const Scenario& scenario,
 			       const std::string& id) const {
-	if (isReservedMapId(id) || !isExtraMapId(id) ||
+	if (rules_.find(id) != nullptr || !rules_.isValidMapId(id) ||
 	    world.maps.find(id) != world.maps.end()) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 	}
@@ -193,17 +157,17 @@ void WorldFactory::placePoints(World& world) const {
 		MarkerKind::MerchantMarnie, MarkerKind::MerchantClint,
 		MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
 	for (int i = 0; i < 4; ++i) {
-		addMarker(market, merchants[i], {3 + 3 * i, 2});
+		addMarker(market, merchants[i], {3 + 3 * i, 0});
 	}
 	addPortal(market, PortalKind::InteriorExit,
 		  {market.width / 2, market.height - 2});
 
 	Map& center = world.maps.at("community_center");
 	addPortal(center, PortalKind::InteriorExit,
-		  {center.width / 2, center.height - 2});
+		  {center.width / 2, center.height - 1});
 
 	for (int level = 1; level <= 10; ++level) {
-		Map& dungeon = world.maps.at(dungeonId(level));
+		Map& dungeon = world.maps.at(rules_.dungeonId(level));
 		addPortal(dungeon, PortalKind::DungeonExit, {2, 2});
 		if (level < 10) {
 			addPortal(dungeon, PortalKind::StairsDown,
@@ -292,12 +256,12 @@ void WorldFactory::wirePortals(World& world) const {
 		  portalCell("dungeon_1", PortalKind::DungeonExit));
 
 	for (int level = 1; level <= 10; ++level) {
-		setTarget(dungeonId(level), PortalKind::DungeonExit, "farm",
+		setTarget(rules_.dungeonId(level), PortalKind::DungeonExit, "farm",
 			  portalCell("farm", PortalKind::DungeonEntrance));
 		if (level < 10) {
-			setTarget(dungeonId(level), PortalKind::StairsDown,
-				  dungeonId(level + 1),
-				  portalCell(dungeonId(level + 1),
+			setTarget(rules_.dungeonId(level), PortalKind::StairsDown,
+				  rules_.dungeonId(level + 1),
+				  portalCell(rules_.dungeonId(level + 1),
 					     PortalKind::DungeonExit));
 		}
 	}

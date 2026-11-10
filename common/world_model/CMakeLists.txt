@@ -6,6 +6,7 @@ target_sources(taller_world_model
     TileCodec.cpp
     Map.cpp
     FormatError.cpp
+    MapRules.cpp
     WorldVocabulary.cpp
     FieldReader.cpp
     FieldWriter.cpp
@@ -31,6 +32,7 @@ target_sources(taller_world_model
     World.h
     Scenario.h
     FormatError.h
+    MapRules.h
     WorldVocabulary.h
     FieldReader.h
     FieldWriter.h

@@ -6,6 +6,7 @@
 
 #include "world_model/Geometry.h"
 #include "world_model/Map.h"
+#include "world_model/MapRules.h"
 #include "world_model/Scenario.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/Tile.h"
@@ -43,6 +44,8 @@ private:
 	void addMarker(Map& map, MarkerKind kind, TilePos cell) const;
 	void addPortal(Map& map, PortalKind kind, TilePos cell) const;
 	void wirePortals(World& world) const;
+
+	MapRules rules_;
 };
 
 }

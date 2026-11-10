@@ -101,6 +101,10 @@ public:
     // -- - Actualización de Entidades ---
     void dry_soil();
     void process_end_of_day_floor();
+
+    // Para tests
+    Cell& get_cell(uint16_t x, uint16_t y);
+    
     // --- Sueño (votación para dormir y pasar de día) ---
     // El jugador pisa la cama: entra en la votación y queda sin movimiento.
     void record_sleep_request(uint8_t player_id);

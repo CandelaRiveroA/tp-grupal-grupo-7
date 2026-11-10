@@ -8,7 +8,7 @@ public:
     Pumpkin(uint16_t x, uint16_t y);
     ~Pumpkin() override = default;
     
-    void harvest(World& w) override;
+    void harvest(Player& p, World& w) override;
 };
 
 #endif // PUMPKIN_H

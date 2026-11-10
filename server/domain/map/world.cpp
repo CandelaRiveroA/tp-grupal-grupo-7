@@ -270,6 +270,7 @@ void World::use_tool(uint8_t player_id) {
         action_performed = this->try_plant_seed(player_id, tx, ty);
     }
 
+    apply_consume_energy(player_id, action_performed ? 5.0f : 1.0f);
 }
 
 void World::apply_consume_energy(uint8_t player_id, float amount) {
@@ -425,6 +426,14 @@ void World::process_end_of_day_floor() {
         }
     }
 }
+
+Cell& World::get_cell(uint16_t x, uint16_t y) {
+    if (x >= this->width || y >= this->height) {
+        throw std::out_of_range("Cell coordinates out of bounds");
+    }
+    return this->grid[y][x];
+}
+
 void World::remove_player(uint8_t player_id) {
     this->players.erase(player_id);
     // Nadie queda esperando a un jugador que ya no está en la partida.

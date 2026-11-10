@@ -35,3 +35,5 @@ void DroppedItem::interact(Player& p, ToolType tool, World& w) {
         }
     }
 }
+
+void DroppedItem::update(World& /*w*/) {} 

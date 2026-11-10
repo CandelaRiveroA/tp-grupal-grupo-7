@@ -25,3 +25,7 @@ void Mineral::interact(Player& /*p*/, ToolType tool, World& w) {
         }
     }
 }
+
+void Mineral::update(World& /*w*/) {
+    // Implementación por defecto sin comportamiento
+}

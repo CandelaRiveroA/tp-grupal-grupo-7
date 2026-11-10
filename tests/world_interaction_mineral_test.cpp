@@ -99,10 +99,17 @@ TEST(WorldInteractionTest, WrongToolAndEmptyCellDoNotEmitResourceHits) {
     player->select_slot(1);  // Shovel.
     world.add_player(1, std::move(player));
     world.set_player_facing(1, Direction::RIGHT);
-    world.set_entity_at(1, 1, std::make_unique<GoldRock>(1, 1));
+    auto gold_rock = std::make_unique<GoldRock>(1, 1);
+    
+    IEntity* rock_ptr = gold_rock.get(); 
+    
+    world.set_entity_at(1, 1, std::move(gold_rock));
+    
     world.use_tool(1);
     EXPECT_TRUE(world.take_resource_hits().empty());
-    world.remove_entity_at(1, 1);
+    
+    world.remove_entity(rock_ptr); 
+    
     world.use_tool(1);
     EXPECT_TRUE(world.take_resource_hits().empty());
 }

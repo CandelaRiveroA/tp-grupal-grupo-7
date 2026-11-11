@@ -5,7 +5,6 @@
 
 #include "core/Constants.h"
 #include "game/LocalWorldView.h"
-#include "sdl/context/SdlContext.h"
 #include "sdl/render/SheetCache.h"
 #include "sdl/render/SpriteSheet.h"
 #include "world/CharacterCatalog.h"
@@ -20,15 +19,16 @@ namespace {
 // los cambia por la fila elegida de skinColors; las mangas se reemplazan
 // por tres tonos muestreados de la camisa; las pupilas por el color de
 // ojos. Son datos del arte, no reglas que el jugador pueda cambiar.
+constexpr int kSkinTones = 3;
 constexpr std::array<std::array<std::uint8_t, 3>, 3> kSleeveMarkers = {{
 	{{74, 12, 6}},
 	{{112, 23, 24}},
 	{{142, 31, 12}},
 }};
 constexpr int kSleeveSampleX = 0;
-constexpr int kSleeveDarkY = 0;
-constexpr int kSleeveMidY = 3;
-constexpr int kSleeveLightY = 1;
+// Tonos de la manga muestreados de la camisa, en el orden de los testigos:
+// oscuro, medio y claro.
+constexpr std::array<int, 3> kSleeveSampleY = {{0, 3, 1}};
 
 constexpr std::array<world::AppearanceSide, 4> kSides = {
 	world::AppearanceSide::Front,
@@ -43,8 +43,7 @@ PlayerAppearancePainter::PlayerAppearancePainter(
 	SdlContext& context, SheetCache& sheets,
 	const world::CharacterCatalog& characters,
 	const world::CharacterPalettes& palettes)
-	: context_(context)
-	, sheets_(sheets)
+	: sheets_(sheets)
 	, characters_(characters)
 	, palettes_(palettes)
 	, anchorBase_{
@@ -53,7 +52,8 @@ PlayerAppearancePainter::PlayerAppearancePainter(
 	      {world::AppearanceAnchor::Head,
 	       [](int crown, int) { return crown; }},
 	      {world::AppearanceAnchor::Feet,
-	       [](int, int feet) { return feet; }}} {}
+	       [](int, int feet) { return feet; }}}
+	, composer_(context) {}
 
 void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 				   const world::Pose& pose,
@@ -79,7 +79,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	if (canvasWidth <= 0 || canvasHeight <= 0) {
 		return;
 	}
-	clearCanvas(canvasWidth, canvasHeight);
+	composer_.reset(canvasWidth, canvasHeight);
 
 	const world::AppearanceSide side =
 		kSides[static_cast<std::size_t>(entity.facing)];
@@ -119,7 +119,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		}
 		const world::SheetRegion region(layer.frame, layer.cols,
 						layer.rows);
-		blit(baseSheet, region, 0, 0, skinRules);
+		composer_.drawRegion(baseSheet, region, 0, 0, skinRules);
 	}
 
 	// Ojos: sólo las pupilas que ya trae el cuerpo, antes de que el pelo
@@ -131,15 +131,14 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		const std::array<int, 3>& witness = palettes_.eyes.front();
 		const std::array<int, 3>& rgb = palettes_.eyes[index];
 		PixelRules rules;
-		rules.pupilRecolor = true;
-		rules.pupilFrom =
+		rules.recolors.push_back(PixelComposer::Recolor{
 			Rgba{static_cast<std::uint8_t>(witness[0]),
 			     static_cast<std::uint8_t>(witness[1]),
-			     static_cast<std::uint8_t>(witness[2]), 255};
-		rules.pupilTo = Rgba{static_cast<std::uint8_t>(rgb[0]),
-				     static_cast<std::uint8_t>(rgb[1]),
-				     static_cast<std::uint8_t>(rgb[2]), 255};
-		recolorCanvas(rules);
+			     static_cast<std::uint8_t>(witness[2]), 255},
+			Rgba{static_cast<std::uint8_t>(rgb[0]),
+			     static_cast<std::uint8_t>(rgb[1]),
+			     static_cast<std::uint8_t>(rgb[2]), 255}});
+		composer_.recolorCanvas(rules);
 	}
 
 	// Pantalón: la opción tiene tres cuadros por cara (idle + dos de
@@ -173,8 +172,9 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 			}
 			const std::array<int, 2> pantsPos =
 				placedAt(appearance.pants, sideIndex, crownY, feetY);
-			blit(layerSheet(appearance.pants), frames[frame],
-			     pantsPos[0], pantsPos[1], rules);
+			composer_.drawRegion(layerSheet(appearance.pants),
+					     frames[frame], pantsPos[0],
+					     pantsPos[1], rules);
 		}
 	}
 
@@ -183,8 +183,8 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	if (shirtRegion != nullptr) {
 		const std::array<int, 2> shirtPos =
 			placedAt(appearance.shirt, sideIndex, crownY, feetY);
-		blit(layerSheet(appearance.shirt), *shirtRegion,
-		     shirtPos[0], shirtPos[1], PixelRules{});
+		composer_.drawRegion(layerSheet(appearance.shirt), *shirtRegion,
+				     shirtPos[0], shirtPos[1], PixelRules{});
 	}
 
 	// Brazos: encima de la ropa (orden de Stardew). La piel se recolorea
@@ -198,11 +198,9 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		const world::SheetRegion region(layer.frame, layer.cols,
 						layer.rows);
 		PixelRules armsRules = skinRules;
-		armsRules.sleeveReplace = sleeveRules.sleeveReplace;
-		armsRules.sleeveMarker = sleeveRules.sleeveMarker;
-		armsRules.sleeveTone = sleeveRules.sleeveTone;
+		armsRules.merge(sleeveRules);
 		const int y = canvasHeight - layer.rows * cellHeight;
-		blit(baseSheet, region, 0, y, armsRules);
+		composer_.drawRegion(baseSheet, region, 0, y, armsRules);
 	}
 
 	// Accesorio: la opción 0 no tiene caras; espalda tampoco.
@@ -214,8 +212,9 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	if (accessoryRegion != nullptr) {
 		const std::array<int, 2> accessoryPos =
 			placedAt(appearance.accessory, sideIndex, crownY, feetY);
-		blit(layerSheet(appearance.accessory), *accessoryRegion,
-		     accessoryPos[0], accessoryPos[1], PixelRules{});
+		composer_.drawRegion(layerSheet(appearance.accessory),
+				     *accessoryRegion, accessoryPos[0],
+				     accessoryPos[1], PixelRules{});
 	}
 
 	// Pelo: va arriba de todo y se tiñe con el color elegido.
@@ -237,8 +236,8 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		}
 		const std::array<int, 2> hairPos =
 			placedAt(appearance.hair, sideIndex, crownY, feetY);
-		blit(layerSheet(appearance.hair), *hairRegion,
-		     hairPos[0], hairPos[1], rules);
+		composer_.drawRegion(layerSheet(appearance.hair), *hairRegion,
+				     hairPos[0], hairPos[1], rules);
 	}
 
 	// El lienzo es el cuerpo nativo (1x2 celdas = 16x32), no el box de la
@@ -251,222 +250,8 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		characters_.drawnHeight(entity.kind));
 	const world::PixelRect body = layout.layerRect(base, base);
 
-	texture_->Update(SDL2pp::NullOpt, canvas_.data(),
-			 canvasWidth_ * static_cast<int>(sizeof(std::uint32_t)));
-	context_.drawTexture(
-		*texture_,
-		SDL2pp::Rect(0, 0, canvasWidth_, canvasHeight_),
+	composer_.present(
 		SDL2pp::Rect(body.x, body.y, body.width, body.height), flip);
-}
-
-void PlayerAppearancePainter::clearCanvas(const int width,
-					  const int height) const {
-	canvasWidth_ = width;
-	canvasHeight_ = height;
-	canvas_.assign(static_cast<std::size_t>(width) *
-			       static_cast<std::size_t>(height),
-		       0);
-	if (!texture_.has_value() || textureWidth_ != width ||
-	    textureHeight_ != height) {
-		texture_.emplace(context_.createStreamingTexture(
-			width, height, SDL_PIXELFORMAT_ARGB8888));
-		texture_->SetBlendMode(SDL_BLENDMODE_BLEND);
-		textureWidth_ = width;
-		textureHeight_ = height;
-	}
-}
-
-void PlayerAppearancePainter::blit(SpriteSheet& sheet,
-				   const world::SheetRegion& region,
-				   const int offsetX, const int offsetY,
-				   const PixelRules& rules) const {
-	if (region.cols <= 0 || region.rows <= 0) {
-		return;
-	}
-	SDL2pp::Surface& surface = sheet.surface();
-	SDL2pp::Surface::LockHandle lock = surface.Lock();
-	const SDL_PixelFormat& format = lock.GetFormat();
-	if (format.BytesPerPixel != 4) {
-		return;
-	}
-
-	const int frameWidth = sheet.frameWidth();
-	const int frameHeight = sheet.frameHeight();
-	const int srcX = region.at.col * frameWidth;
-	const int srcY = region.at.row * frameHeight;
-	const int width = region.cols * frameWidth;
-	const int height = region.rows * frameHeight;
-	const int surfaceWidth = surface.GetWidth();
-	const int surfaceHeight = surface.GetHeight();
-	const auto* pixels =
-		static_cast<const std::uint32_t*>(lock.GetPixels());
-	const int pitch =
-		lock.GetPitch() / static_cast<int>(sizeof(std::uint32_t));
-
-	for (int y = 0; y < height; ++y) {
-		const int sourceY = srcY + y;
-		if (sourceY < 0 || sourceY >= surfaceHeight) {
-			continue;
-		}
-		for (int x = 0; x < width; ++x) {
-			const int sourceX = srcX + x;
-			if (sourceX < 0 || sourceX >= surfaceWidth) {
-				continue;
-			}
-			Rgba pixel;
-			SDL_GetRGBA(pixels[sourceY * pitch + sourceX], &format,
-				    &pixel.r, &pixel.g, &pixel.b, &pixel.a);
-			blendPixel(offsetX + x, offsetY + y,
-				   applyRules(pixel, rules));
-		}
-	}
-}
-
-void PlayerAppearancePainter::recolorCanvas(const PixelRules& rules) const {
-	for (std::uint32_t& pixel : canvas_) {
-		Rgba color = unpack(pixel);
-		if (color.a != 255 || !rules.pupilRecolor) {
-			continue;
-		}
-		if (color.r == rules.pupilFrom.r && color.g == rules.pupilFrom.g &&
-		    color.b == rules.pupilFrom.b) {
-			color.r = rules.pupilTo.r;
-			color.g = rules.pupilTo.g;
-			color.b = rules.pupilTo.b;
-			pixel = pack(color);
-		}
-	}
-}
-
-PlayerAppearancePainter::Rgba PlayerAppearancePainter::sample(
-	SpriteSheet& sheet, const int x, const int y) const {
-	SDL2pp::Surface& surface = sheet.surface();
-	if (x < 0 || y < 0 || x >= surface.GetWidth() ||
-	    y >= surface.GetHeight()) {
-		return Rgba{};
-	}
-	SDL2pp::Surface::LockHandle lock = surface.Lock();
-	const SDL_PixelFormat& format = lock.GetFormat();
-	if (format.BytesPerPixel != 4) {
-		return Rgba{};
-	}
-	const auto* pixels =
-		static_cast<const std::uint32_t*>(lock.GetPixels());
-	const int pitch =
-		lock.GetPitch() / static_cast<int>(sizeof(std::uint32_t));
-	Rgba color;
-	SDL_GetRGBA(pixels[y * pitch + x], &format, &color.r, &color.g,
-		    &color.b, &color.a);
-	return color;
-}
-
-PlayerAppearancePainter::Rgba PlayerAppearancePainter::applyRules(
-	Rgba pixel, const PixelRules& rules) const {
-	if (pixel.a == 255) {
-		if (rules.skinRecolor) {
-			for (std::size_t i = 0; i < rules.skinWitness.size();
-			     ++i) {
-				const Rgba& witness = rules.skinWitness[i];
-				if (pixel.r == witness.r &&
-				    pixel.g == witness.g &&
-				    pixel.b == witness.b) {
-					pixel.r = rules.skinTarget[i].r;
-					pixel.g = rules.skinTarget[i].g;
-					pixel.b = rules.skinTarget[i].b;
-					break;
-				}
-			}
-		}
-		if (rules.sleeveReplace) {
-			for (std::size_t i = 0; i < rules.sleeveMarker.size();
-			     ++i) {
-				const Rgba& marker = rules.sleeveMarker[i];
-				if (pixel.r == marker.r &&
-				    pixel.g == marker.g &&
-				    pixel.b == marker.b) {
-					const Rgba& tone = rules.sleeveTone[i];
-					if (tone.a == 255) {
-						pixel.r = tone.r;
-						pixel.g = tone.g;
-						pixel.b = tone.b;
-					}
-					break;
-				}
-			}
-		}
-		if (rules.pupilRecolor &&
-		    pixel.r == rules.pupilFrom.r &&
-		    pixel.g == rules.pupilFrom.g &&
-		    pixel.b == rules.pupilFrom.b) {
-			pixel.r = rules.pupilTo.r;
-			pixel.g = rules.pupilTo.g;
-			pixel.b = rules.pupilTo.b;
-		}
-	}
-	if (rules.tint) {
-		pixel.r = static_cast<std::uint8_t>(
-			static_cast<int>(pixel.r) * rules.tintColor.r / 255);
-		pixel.g = static_cast<std::uint8_t>(
-			static_cast<int>(pixel.g) * rules.tintColor.g / 255);
-		pixel.b = static_cast<std::uint8_t>(
-			static_cast<int>(pixel.b) * rules.tintColor.b / 255);
-	}
-	return pixel;
-}
-
-void PlayerAppearancePainter::blendPixel(const int x, const int y,
-					 const Rgba& color) const {
-	if (color.a == 0 || x < 0 || y < 0 || x >= canvasWidth_ ||
-	    y >= canvasHeight_) {
-		return;
-	}
-	std::uint32_t& destination =
-		canvas_[static_cast<std::size_t>(y) *
-				static_cast<std::size_t>(canvasWidth_) +
-			static_cast<std::size_t>(x)];
-	if (color.a == 255) {
-		destination = pack(color);
-		return;
-	}
-
-	const Rgba under = unpack(destination);
-	const int sourceAlpha = color.a;
-	const int underAlpha = under.a;
-	const int inverse = 255 - sourceAlpha;
-	const int outAlpha = sourceAlpha + underAlpha * inverse / 255;
-	if (outAlpha == 0) {
-		destination = 0;
-		return;
-	}
-	const auto blend = [&](const int source, const int base) {
-		return (source * sourceAlpha +
-			base * underAlpha * inverse / 255) /
-		       outAlpha;
-	};
-	const Rgba out{
-		static_cast<std::uint8_t>(blend(color.r, under.r)),
-		static_cast<std::uint8_t>(blend(color.g, under.g)),
-		static_cast<std::uint8_t>(blend(color.b, under.b)),
-		static_cast<std::uint8_t>(outAlpha),
-	};
-	destination = pack(out);
-}
-
-std::uint32_t PlayerAppearancePainter::pack(const Rgba& color) const {
-	return (static_cast<std::uint32_t>(color.a) << 24) |
-	       (static_cast<std::uint32_t>(color.r) << 16) |
-	       (static_cast<std::uint32_t>(color.g) << 8) |
-	       static_cast<std::uint32_t>(color.b);
-}
-
-PlayerAppearancePainter::Rgba PlayerAppearancePainter::unpack(
-	const std::uint32_t pixel) const {
-	return Rgba{
-		static_cast<std::uint8_t>((pixel >> 16) & 0xFF),
-		static_cast<std::uint8_t>((pixel >> 8) & 0xFF),
-		static_cast<std::uint8_t>(pixel & 0xFF),
-		static_cast<std::uint8_t>((pixel >> 24) & 0xFF),
-	};
 }
 
 const world::AppearanceOption* PlayerAppearancePainter::optionAt(
@@ -520,13 +305,11 @@ void PlayerAppearancePainter::readSkinRules(
 		core::assetPath(skin.paletteSheet), skin.cellWidth,
 		skin.cellHeight);
 	const int row = std::clamp(index, 0, skin.count - 1);
-	for (std::size_t i = 0; i < rules.skinWitness.size(); ++i) {
-		rules.skinWitness[i] =
-			sample(sheet, static_cast<int>(i), 0);
-		rules.skinTarget[i] =
-			sample(sheet, static_cast<int>(i), row);
+	for (int i = 0; i < kSkinTones; ++i) {
+		rules.recolors.push_back(PixelComposer::Recolor{
+			composer_.sample(sheet, i, 0),
+			composer_.sample(sheet, i, row)});
 	}
-	rules.skinRecolor = true;
 }
 
 void PlayerAppearancePainter::readSleeveRules(
@@ -535,20 +318,12 @@ void PlayerAppearancePainter::readSleeveRules(
 	const int originX = region.at.col * shirtSheet.frameWidth();
 	const int originY = region.at.row * shirtSheet.frameHeight();
 	for (std::size_t i = 0; i < kSleeveMarkers.size(); ++i) {
-		rules.sleeveMarker[i] = Rgba{kSleeveMarkers[i][0],
-					     kSleeveMarkers[i][1],
-					     kSleeveMarkers[i][2], 255};
+		rules.recolors.push_back(PixelComposer::Recolor{
+			Rgba{kSleeveMarkers[i][0], kSleeveMarkers[i][1],
+			     kSleeveMarkers[i][2], 255},
+			composer_.sample(shirtSheet, originX + kSleeveSampleX,
+					 originY + kSleeveSampleY[i])});
 	}
-	rules.sleeveTone[0] =
-		sample(shirtSheet, originX + kSleeveSampleX,
-		       originY + kSleeveDarkY);
-	rules.sleeveTone[1] =
-		sample(shirtSheet, originX + kSleeveSampleX,
-		       originY + kSleeveMidY);
-	rules.sleeveTone[2] =
-		sample(shirtSheet, originX + kSleeveSampleX,
-		       originY + kSleeveLightY);
-	rules.sleeveReplace = true;
 }
 
 }  // namespace sdl

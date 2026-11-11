@@ -73,6 +73,7 @@ target_sources(taller_client
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/PixelComposer.cpp
     sdl/render/PlayerAppearancePainter.cpp
     sdl/render/ToolOverlayPainter.cpp
     sdl/render/HeldItemPainter.cpp
@@ -250,6 +251,7 @@ target_sources(taller_client
     sdl/render/Viewport.h
     sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/PixelComposer.h
     sdl/render/PlayerAppearancePainter.h
     sdl/render/RenderConstants.h
     sdl/render/ToolOverlayPainter.h

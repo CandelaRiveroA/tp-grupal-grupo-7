@@ -28,7 +28,8 @@ PlaySession::PlaySession(
         const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
         const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
         const world::FontCatalog& font, const world::PromptLayout& prompt,
-        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
+        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting,
+        const world::CharacterPalettes& palettes):
         scene_(scenario.scene()),
         gameClient_(gameClient),
         characters_(characters),
@@ -40,7 +41,7 @@ PlaySession::PlaySession(
                         .worldBounds(scenario.scene().grid),
                 sdlContext_.width(), sdlContext_.height()),
         renderer_(sdlContext_, characters, toolOverlay, resources, inventory_.content,
-                  farm_.ground(), farm_.crops()),
+                  farm_.ground(), farm_.crops(), palettes),
         inventoryHud_(sdlContext_, inventory_, digits),
         bannerHud_(sdlContext_, banner, inventory_.slotDrawWidth()),
         textRenderer_(sdlContext_, font),

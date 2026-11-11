@@ -30,6 +30,11 @@ public:
 
 	SDL2pp::Texture createTexture(const std::string& path);
 
+	// Textura de escritura para composiciones por frame (la apariencia
+	// del jugador): se actualiza con Texture::Update sin recrearla.
+	SDL2pp::Texture createStreamingTexture(int width, int height,
+					       Uint32 format);
+
 	// Dibuja una superficie ya renderizada (p. ej. texto de una
 	// fuente): la convierte en textura y la pega en dest.
 	void drawSurface(SDL2pp::Surface& surface, const SDL2pp::Rect& dest);

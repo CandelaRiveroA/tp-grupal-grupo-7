@@ -516,6 +516,29 @@ TEST(CharacterCatalogLoaderTest, RealFileHasPickupFrontAndMilkBack) {
 	EXPECT_EQ(pickupBack.frames[3][1].rows, 2);
 }
 
+TEST(CharacterCatalogLoaderTest, RealFileHasTheFrontFaintSequence) {
+	CharacterCatalogLoader loader;
+	const CharacterCatalog catalog =
+		loader.loadFromFile(TALLER_CHARACTERS_TOML);
+
+	// Desmayo: 3 poses one-shot, solo de frente, y se queda tirado en la
+	// última (loops = false). Su duración es la ventana que usa la
+	// presentación para recién después mostrar las Z.
+	const world::ActionData& faint =
+		actionOf(catalog, Direction::Front, ActionKind::Faint);
+	EXPECT_FALSE(faint.loops);
+	EXPECT_EQ(faint.frameTicks, 10);
+	EXPECT_EQ(faint.frames.size(), 3u);
+
+	const world::CreatureData& data = catalog.dataFor(CreatureKind::Player);
+	EXPECT_EQ(data.actionCycleTicks(ActionKind::Faint), 30);
+
+	// Las otras direcciones no la declaran: caen a idle sin romper.
+	const world::DirectionAppearance& back =
+		data.directions[static_cast<int>(Direction::Back)];
+	EXPECT_EQ(back.actions.find(ActionKind::Faint), back.actions.end());
+}
+
 TEST(CharacterCatalogLoaderTest, RealFileLoadsChicken) {
 	CharacterCatalogLoader loader;
 	const CharacterCatalog catalog =

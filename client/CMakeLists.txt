@@ -74,10 +74,17 @@ target_sources(taller_client
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
     sdl/render/ToolOverlayPainter.cpp
+    sdl/render/HeldItemPainter.cpp
+    sdl/render/GroundEffectPainter.cpp
+    sdl/render/CropPainter.cpp
+    sdl/render/BuildPlacePainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
+    sdl/render/HudOverlayPainter.cpp
     sdl/render/CursorPainter.cpp
     sdl/render/DialogPainter.cpp
+    sdl/render/TextRenderer.cpp
+    sdl/render/PromptPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     sdl/audio/MusicPlayer.cpp
@@ -89,6 +96,8 @@ target_sources(taller_client
     core/MusicTrack.h
     core/SessionConfig.h
     core/PlaySession.h
+    core/FarmConstants.h
+    core/ToolUseSounds.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -153,6 +162,7 @@ target_sources(taller_client
     game/GameClient.h
     game/GameConstants.h
     game/InputCommand.h
+    game/FractionStat.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
@@ -161,6 +171,7 @@ target_sources(taller_client
     game/FloorItems.h
     game/InteractionSession.h
     game/AnimalSystem.h
+    game/CropSystem.h
     game/MockWorldClient.h
     game/DialogAnimator.h
     game/PlayerController.h
@@ -209,6 +220,12 @@ target_sources(taller_client
     world/ObtainedBannerConfigLoader.h
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
+    world/PixelBox.h
+    world/AnchorLayout.h
+    world/HudOverlayCatalog.h
+    world/HudOverlayTomlReader.h
+    world/HudFillLayout.h
+    world/HudOverlayConfigLoader.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
@@ -234,10 +251,17 @@ target_sources(taller_client
     sdl/render/CharacterSprite.h
     sdl/render/RenderConstants.h
     sdl/render/ToolOverlayPainter.h
+    sdl/render/HeldItemPainter.h
+    sdl/render/GroundEffectPainter.h
+    sdl/render/CropPainter.h
+    sdl/render/BuildPlacePainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
+    sdl/render/HudOverlayPainter.h
     sdl/render/CursorPainter.h
     sdl/render/DialogPainter.h
+    sdl/render/TextRenderer.h
+    sdl/render/PromptPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h

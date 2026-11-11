@@ -1,5 +1,6 @@
 #include "dropped_item.h"
 
+#include <set>
 #include <utility>
 
 #include "../map/world.h"
@@ -18,9 +19,12 @@ std::optional<CellSnapshot> DroppedItem::snapshot() const {
     return CellSnapshot{CellSnapshot::Kind::Dropped, payload->get_id(), 0, 0};
 }
 
+bool DroppedItem::pickup_on_take() const {
+    static const std::set<ItemID> kTakePickups = {ItemID::EGG};
+    return this->payload != nullptr && kTakePickups.count(this->payload->get_id()) > 0;
+}
+
 void DroppedItem::interact(Player& p, ToolType tool, World& w) {
-    // Dejamos la mano para los huevos
-    // Pero tal bien se pueden levantar solo caminando.
     if (tool == ToolType::HAND && this->payload) {
         // El payload se mueve al inventario: el item se lee antes.
         const ItemID picked = this->payload->get_id();
@@ -31,3 +35,5 @@ void DroppedItem::interact(Player& p, ToolType tool, World& w) {
         }
     }
 }
+
+void DroppedItem::update(World& /*w*/) {} 

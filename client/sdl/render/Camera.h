@@ -13,6 +13,10 @@ public:
 	Camera(const world::PixelRect& worldBounds, int viewportWidth,
 	       int viewportHeight);
 
+	// Nuevos bounds del mundo (al cambiar de escena): el clamp de la
+	// fórmula pasa a usarlos. El viewport conserva su tamaño.
+	void setWorldBounds(const world::PixelRect& worldBounds);
+
 	void follow(const world::PixelRect& target);
 
 	const Viewport& viewport() const;

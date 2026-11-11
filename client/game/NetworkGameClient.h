@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,13 +44,26 @@ private:
         world::Direction facing = world::Direction::Front;
         bool moving = false;
         int toolUseRemaining = 0;
+        // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
+        std::optional<world::ItemKind> activeTool;
+        CharacterAppearance appearance;
     };
 
     void apply(const ServerMessage& message);
+    // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
+    void applyNow(const ServerMessage& message);
 
-    // Un Take cerca de una vaca lista abre la animación de ordeñe. La
-    // leche la entrega el servidor: acá solo se anima.
+    // Estado de daño del protocolo -> estado visible de la vista. Lo que
+    // no llega a ser el golpe final cae en Intact (seguro ante wire roto).
+    world::ResourceState resourceStateFor(ResourceDamage damage) const;
+
+    // Un Take cerca de una vaca lista abre la animación de ordeñe; la leche la
+    // da el servidor.
     void startMilking();
+
+    // Un Take con un huevo en las 8 vecinas abre la animación de recogida, como
+    // un cultivo; el item lo entrega el servidor.
+    void startPickup();
 
     Socket socket_;
     ProtocolSender sender_;
@@ -62,14 +76,25 @@ private:
     uint8_t localPlayerId_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
+    // Tabla de traducción protocolo -> vista (convención §4: diccionario
+    // miembro, inicializado en el constructor).
+    std::map<ResourceDamage, world::ResourceState> resourceStates_;
 
     std::map<uint8_t, RemotePlayer> players_;
+    // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).
+    std::vector<uint8_t> sleepers_;
     std::map<uint8_t, ViewEntity> animals_;
     std::map<std::pair<int, int>, ViewResource> resources_;
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;
+    std::vector<ViewCrop> crops_;
+    std::vector<ViewGroundEffect> groundEffects_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;
+    // Lote Reset…SyncEnd en curso: se acumula y se aplica de una al llegar
+    // el cierre. Si se aplicara de a mensajes, un frame entre el Reset y las
+    // entidades dibujaría el mundo vacío (el parpadeo). Vacío = sin lote.
+    std::vector<ServerMessage> batch_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
     std::vector<ViewObtained> obtained_;
     LocalWorldView view_;

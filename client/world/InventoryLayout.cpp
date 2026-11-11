@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include "world/AnchorLayout.h"
+
 namespace world {
 
 int InventoryLayout::scaled(int basePx) const {
@@ -49,35 +51,45 @@ int InventoryLayout::totalHeight() const {
 int InventoryLayout::barWidth() const { return slotsWidth(); }
 
 PixelBox InventoryLayout::outerBox(int windowWidth, int windowHeight) const {
-	PixelBox box;
-	box.width = totalWidth();
-	box.height = totalHeight();
-	box.x = (windowWidth - box.width) / 2;
-	box.y = windowHeight - margin - box.height;
-	return box;
+	// La barra se ancla abajo-centro (el loader del inventario solo
+	// acepta "bottom_center"). La geometría la resuelve AnchorLayout:
+	// la MISMA fórmula de anclaje que overlays y banners (§9, una sola
+	// cuenta compartida; el render no reimplementa aritmética).
+	const AnchorLayout anchors;
+	return anchors.box(Anchor::BottomCenter, 0, margin, totalWidth(),
+			   totalHeight(), windowWidth, windowHeight);
 }
 
 std::vector<PixelBox> InventoryLayout::slotBoxes(int windowWidth,
 						 int windowHeight) const {
+	// El caso de la barra: una fila de `count` slots en su caja.
+	return slotBoxes(outerBox(windowWidth, windowHeight), count, 1);
+}
+
+std::vector<PixelBox> InventoryLayout::slotBoxes(const PixelBox& outer,
+						 const int columns,
+						 const int rows) const {
+	// La grilla general: slots fila por fila, con su separación,
+	// dentro del inset del marco. La barra es (count, 1); un panel 2x9
+	// o 3x4 es la misma cuenta con otras dimensiones.
 	std::vector<PixelBox> boxes;
-	if (count <= 0) {
+	if (columns <= 0 || rows <= 0) {
 		return boxes;
 	}
-	const PixelBox outer = outerBox(windowWidth, windowHeight);
 	const int off = slotInset();
 	const int w = slotDrawWidth();
 	const int h = slotDrawHeight();
 	const int g = gapPx();
-	const int startX = outer.x + off;
-	const int y = outer.y + off;
-	boxes.reserve(static_cast<std::size_t>(count));
-	for (int i = 0; i < count; ++i) {
-		PixelBox box;
-		box.x = startX + i * (w + g);
-		box.y = y;
-		box.width = w;
-		box.height = h;
-		boxes.push_back(box);
+	boxes.reserve(static_cast<std::size_t>(columns * rows));
+	for (int row = 0; row < rows; ++row) {
+		for (int column = 0; column < columns; ++column) {
+			PixelBox box;
+			box.x = outer.x + off + column * (w + g);
+			box.y = outer.y + off + row * (h + g);
+			box.width = w;
+			box.height = h;
+			boxes.push_back(box);
+		}
 	}
 	return boxes;
 }
@@ -89,12 +101,41 @@ std::vector<PixelBox> InventoryLayout::slotBoxesNatural(
 
 FrameLayout InventoryLayout::frameLayout(int windowWidth,
 					 int windowHeight) const {
+	// El caso de la barra: el marco sobre la caja que ocupa el
+	// inventario. El cálculo vive en frameLayout(box).
+	return frameLayout(outerBox(windowWidth, windowHeight));
+}
+
+PixelBox InventoryLayout::centeredBox(const int windowWidth,
+				      const int windowHeight,
+				      const int columns, const int rows) const {
+	// La caja de la grilla pedida, centrada en la ventana.
+	const PixelBox grid = gridBox(columns, rows);
+	PixelBox box;
+	box.width = grid.width;
+	box.height = grid.height;
+	box.x = (windowWidth - box.width) / 2;
+	box.y = (windowHeight - box.height) / 2;
+	return box;
+}
+
+PixelBox InventoryLayout::gridBox(const int columns, const int rows) const {
+	// Lo que ocupa una grilla columns×rows: los slots, sus
+	// separaciones y el inset del marco.
+	PixelBox box;
+	box.width = columns * slotDrawWidth() + (columns - 1) * gapPx() +
+		    2 * slotInset();
+	box.height = rows * slotDrawHeight() + (rows - 1) * gapPx() +
+		     2 * slotInset();
+	return box;
+}
+
+FrameLayout InventoryLayout::frameLayout(const PixelBox& box) const {
 	FrameLayout fl{};
-	const PixelBox outer = outerBox(windowWidth, windowHeight);
 	const int t = borderThickness();
 	const int n = frame.borderCells;
 
-	const PixelBox fb{outer.x, outer.y, outer.width, outer.height};
+	const PixelBox fb{box.x, box.y, box.width, box.height};
 	const int tb = t + overlapPx();
 
 	fl.corners[0] = {frame.topLeft, n, n, {fb.x, fb.y, tb, tb}, false};
@@ -185,7 +226,13 @@ std::vector<PixelBox> InventoryLayout::countBoxes(const PixelBox& slot,
 		return boxes;
 	}
 
-	const int margin = scaled(digitMargin);
+	const int marginY = scaled(digitMargin);
+	// marginX: usa digitMarginX si fue configurado; si no, digitMargin.
+	const int marginX = scaled(digitMarginX >= 0 ? digitMarginX
+						      : digitMargin);
+	// gap entre dígitos (negativo = solapamiento para compensar padding
+	// interno del sprite).
+	const int gap = scaled(digitGap);
 
 	// Lado nominal de un dígito como fracción del lado del slot.
 	int digit = static_cast<int>(slot.width * digitScale + 0.5);
@@ -193,25 +240,37 @@ std::vector<PixelBox> InventoryLayout::countBoxes(const PixelBox& slot,
 		digit = 1;
 	}
 
-	// El número se apoya arriba-derecha. Si N dígitos pegados no entran
-	// en el ancho disponible (slot menos márgenes), se achican en
-	// conjunto para que quepan sin desbordar.
-	const int available = slot.width - 2 * margin;
-	if (available > 0 && digit * digitCount > available) {
-		digit = available / digitCount;
+	// stride: avance horizontal entre el origen de un dígito y el
+	// siguiente. Con gap=0 es igual al ancho del dígito (pegados).
+	const int stride = digit + gap;
+
+	// Ancho total del bloque: N dígitos + (N-1) gaps entre ellos.
+	// El número se apoya abajo-derecha. Si no entra, se achica.
+	const int totalWidthPx =
+		(digitCount > 0) ? digit + (digitCount - 1) * stride : 0;
+	const int available = slot.width - marginX;
+	if (available > 0 && totalWidthPx > available && digitCount > 0) {
+		// Resuelve digit tal que digit + (digitCount-1)*(digit+gap) <=
+		// available  =>  digit * digitCount + (digitCount-1)*gap <=
+		// available  =>  digit <= (available - (digitCount-1)*gap) /
+		// digitCount
+		const int num = available - (digitCount - 1) * gap;
+		digit = (num > 0) ? num / digitCount : 1;
 		if (digit < 1) {
 			digit = 1;
 		}
 	}
 
-	const int totalWidthPx = digit * digitCount;
-	const int startX = slot.x + slot.width - margin - totalWidthPx;
-	const int y = slot.y + margin;
+	const int strideAdj = digit + gap;
+	const int totalAdj =
+		(digitCount > 0) ? digit + (digitCount - 1) * strideAdj : 0;
+	const int startX = slot.x + slot.width - marginX - totalAdj;
+	const int y = slot.y + slot.height - marginY - digit;
 
 	boxes.reserve(static_cast<std::size_t>(digitCount));
 	for (int i = 0; i < digitCount; ++i) {
 		PixelBox box;
-		box.x = startX + i * digit;
+		box.x = startX + i * strideAdj;
 		box.y = y;
 		box.width = digit;
 		box.height = digit;

@@ -17,12 +17,16 @@ private:
     void send_uint16(uint16_t value);
     // cppcheck-suppress unusedPrivateFunction
     void send_string(const std::string& value);
+    // Los 8 indices de la personalizacion, siempre en el mismo orden.
+    void send_appearance(const CharacterAppearance& appearance);
 
     static void validate_direction(Direction direction);
 
     void send_message(const protocol::MoveMessage& message);
     void send_message(const protocol::PickMessage& message);
     void send_message(const protocol::TakeMessage& message);
+    void send_message(const protocol::SleepMessage& message);
+    void send_message(const protocol::WakeMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -32,7 +36,16 @@ private:
     void send_message(const ServerToolUsed& used);
     void send_message(const ServerResourceHit& hit);
     void send_message(const ServerReset& reset);
+    void send_message(const ServerSyncEnd& end);
     void send_message(const ServerAnimal& animal);
+    void send_message(const ServerSleep& sleep);
+    void send_message(const ServerFurniture& furniture);
+    void send_message(const ServerDayEnd& day);
+    void send_message(const ServerDay& day);
+    void send_message(const ServerSleepingPlayers& sleepers);
+    void send_message(const ServerClock& clock);
+    void send_message(const ServerCrop& crop);
+    void send_message(const ServerGroundEffect& ground);
 
 public:
     explicit ProtocolSender(Socket& socket);

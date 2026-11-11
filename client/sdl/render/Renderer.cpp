@@ -16,12 +16,17 @@ Renderer::Renderer(SdlContext& context,
 		   const world::CharacterCatalog& characters,
 		   const world::ToolOverlayCatalog& toolOverlay,
 		   const world::ResourceCatalog& resources,
-		   const world::ContentCatalog& content)
+		   const world::ContentCatalog& content,
+		   const world::GroundCatalog& ground,
+		   const world::CropCatalog& crops)
 	: context_(context)
 	, resources_(resources)
 	, content_(content)
+	, ground_(ground)
 	, sheetCache_(context)
-	, entityRenderer_(sheetCache_, characters, toolOverlay) {}
+	, entityRenderer_(sheetCache_, characters, toolOverlay, content)
+	, groundPainter_(sheetCache_, ground)
+	, cropPainter_(sheetCache_, crops) {}
 
 void Renderer::prepareScene(const world::SceneDescription& scene) {
 	const world::ScenePixelMapper mapper(scene.cellPixelSize);
@@ -34,7 +39,8 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 			 const game::ViewMotion& motion,
 			 const game::ActionResolver& actionResolver,
 			 const int animationTick,
-			 const Viewport& viewport) {
+			 const Viewport& viewport,
+			 const world::TimeOfDay timeOfDay) {
 	const world::Color& background = scene.floorColor;
 	context_.clear(SDL2pp::Color(background.r, background.g,
 				     background.b, background.a));
@@ -60,8 +66,25 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
 
 	for (const std::uint32_t index : visibleElements_) {
-		drawElement(scene, scene.elements[index], mapper, viewport);
+		const world::ElementPlacement& element = scene.elements[index];
+		// El momento del día filtra: lo que solo se dibuja en su
+		// momento (key `when` de scenes.toml) no pasa de acá; el
+		// índice espacial y el resto del frame no se enteran.
+		if (!element.visibleAt(timeOfDay)) {
+			continue;
+		}
+		drawElement(scene, element, mapper, viewport);
 	}
+
+	// El terreno con consecuencias (tierra tratada por la pala, regada
+	// por la regadera): cada celda dibuja la pieza que arma su zona
+	// (auto-tiling por vecinos). QUÉ hay en cada celda lo dice la
+	// vista; esto solo lo pinta.
+	groundPainter_.draw(view.groundEffects, mapper, viewport);
+
+	// Los cultivos plantados (el crecimiento que mandó la fuente):
+	// encima del terreno de su celda y debajo de las entidades.
+	cropPainter_.draw(view.plantedCrops, mapper, viewport);
 
 	// Recursos antes que las entidades: el personaje se dibuja encima.
 	for (const std::uint32_t index : visibleResources_) {
@@ -84,6 +107,25 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 			   const world::ElementPlacement& element,
 			   const world::ScenePixelMapper& mapper,
 			   const Viewport& viewport) {
+	// El pase normal: la pieza entera del elemento.
+	drawElementRange(scene, element, mapper, viewport, 0,
+			 element.pieceSize.rows - 1);
+}
+
+void Renderer::drawElementFront(const world::SceneDescription& scene,
+				const world::ElementPlacement& element,
+				const world::ScenePixelMapper& mapper,
+				const Viewport& viewport, const int firstRow,
+				const int lastRow) {
+	drawElementRange(scene, element, mapper, viewport, firstRow,
+			 lastRow);
+}
+
+void Renderer::drawElementRange(const world::SceneDescription& scene,
+				const world::ElementPlacement& element,
+				const world::ScenePixelMapper& mapper,
+				const Viewport& viewport, const int firstRow,
+				const int lastRow) {
 	const world::TileSetDef& tileset =
 		scene.tilesets.at(element.tileset);
 
@@ -98,14 +140,14 @@ void Renderer::drawElement(const world::SceneDescription& scene,
 	if (!viewport.intersects(painter.bounds())) {
 		return;
 	}
-	painter.paint(sheet, viewport.screenRect());
+	painter.paint(sheet, viewport.screenRect(), firstRow, lastRow);
 }
 
 void Renderer::drawResource(const game::ViewResource& resource,
 			    const world::ScenePixelMapper& mapper,
 			    const Viewport& viewport) {
 	const world::ResourceVisual* found =
-		resources_.find(resource.kind, resource.state);
+		resources_.find(resource.contentId, resource.state);
 	if (found == nullptr) {
 		return;
 	}

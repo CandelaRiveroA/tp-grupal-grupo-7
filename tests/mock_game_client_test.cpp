@@ -24,7 +24,7 @@ protocol::ClientMessage walk(world::Direction direction) {
 }
 
 protocol::ClientMessage pick(world::Direction direction) {
-    return protocol::PickMessage{world::wireDirectionFrom(direction)};
+    return protocol::PickMessage{world::wireDirectionFrom(direction), 0};
 }
 
 protocol::ClientMessage take(world::Direction direction) {

@@ -71,4 +71,8 @@ int SpriteVisual::displayHeight() const {
 	return drawnHeight > 0 ? drawnHeight : cellHeight;
 }
 
+SheetRegion::SheetRegion(const SheetCell& topLeft, int colsValue,
+			 int rowsValue)
+	: at(topLeft), cols(colsValue), rows(rowsValue) {}
+
 }

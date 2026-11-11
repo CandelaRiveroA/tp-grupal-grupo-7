@@ -41,6 +41,19 @@ PickTarget ObjectPicker::pick(const world::PixelPoint& worldPoint,
 		}
 	}
 
+	// Cultivos plantados al fondo (orden de dibujo): su caja es la
+	// celda de tierra donde se dibuja la planta.
+	for (std::size_t i = view.plantedCrops.size(); i > 0; --i) {
+		const std::size_t index = i - 1;
+		const ViewCrop& crop = view.plantedCrops[index];
+		const world::PixelRect box = mapper.toPixels(
+			world::GridCell{crop.cellX, crop.cellY},
+			world::kUnitCellSpan);
+		if (contains(box, worldPoint)) {
+			return PickTarget{PickTarget::Kind::Crop, index};
+		}
+	}
+
 	return PickTarget{};
 }
 

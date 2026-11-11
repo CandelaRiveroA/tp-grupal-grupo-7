@@ -11,10 +11,16 @@
 namespace {
 
 using game::ActionResolver;
+using game::CarrySelection;
 using game::LocalWorldView;
 using game::ViewEntity;
 using game::ViewMotion;
 using world::ActionKind;
+
+// Sin rasgos de contenido, nunca se sostiene nada: el resolver de estas
+// pruebas sigue solo lo que dice la fuente de estado.
+const world::ContentTraits kEmptyTraits;
+const CarrySelection kNoCarry(kEmptyTraits);
 
 const char* const kPlayerToml = R"(
 [characters.player]
@@ -183,7 +189,7 @@ LocalWorldView viewWith(const ViewEntity& first) {
 TEST(ActionResolverTest, QuietEntityDrawsTheViewAction) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	EXPECT_EQ(resolver.actionFor(entity(), kPlayerIndex, 100),
 		  ActionKind::Idle);
@@ -196,7 +202,7 @@ TEST(ActionResolverTest, FollowsUseToolFromTheSource) {
 	ViewMotion motion(catalog());
 	// La fuente reporta UseTool: el resolver lo sigue.
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.actionFor(entity(ActionKind::UseTool), kPlayerIndex,
 				     100),
 		  ActionKind::UseTool);
@@ -207,16 +213,49 @@ TEST(ActionResolverTest, BackToIdleWhenTheSourceStopsUseTool) {
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
 	// La fuente vuelve a Idle: el resolver deja de mostrar UseTool.
 	motion.observe(viewWith(entity(ActionKind::Idle)), 130);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.actionFor(entity(ActionKind::Idle), kPlayerIndex,
 				     130),
 		  ActionKind::Idle);
 }
 
+TEST(ActionResolverTest, WateringCanUseToolAnimatesAsWater) {
+	ViewMotion motion(catalog());
+	ViewEntity watering = entity(ActionKind::UseTool);
+	watering.activeTool = world::ItemKind::WateringCan;
+	motion.observe(viewWith(watering), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(watering, kPlayerIndex, 100),
+		  ActionKind::Water);
+}
+
+TEST(ActionResolverTest, ToolWithoutRowKeepsUseTool) {
+	ViewMotion motion(catalog());
+	ViewEntity picking = entity(ActionKind::UseTool);
+	picking.activeTool = world::ItemKind::Pickaxe;
+	motion.observe(viewWith(picking), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(picking, kPlayerIndex, 100),
+		  ActionKind::UseTool);
+}
+
+TEST(ActionResolverTest, ConcreteActionFromTheSourceIsRespected) {
+	ViewMotion motion(catalog());
+	ViewEntity milking = entity(ActionKind::Milk);
+	milking.activeTool = world::ItemKind::WateringCan;
+	motion.observe(viewWith(milking), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(milking, kPlayerIndex, 100),
+		  ActionKind::Milk);
+}
+
 TEST(ActionResolverTest, WalkingBeatsUseTool) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	ViewEntity moving = entity(ActionKind::UseTool);
 	moving.moving = true;
@@ -224,10 +263,25 @@ TEST(ActionResolverTest, WalkingBeatsUseTool) {
 		  ActionKind::Walk);
 }
 
+TEST(ActionResolverTest, FaintBeatsWalkingAndUsesTheActionClock) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::Faint)), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	// Aunque el jugador siga moviéndose, la pose es Faint.
+	ViewEntity moving = entity(ActionKind::Faint);
+	moving.moving = true;
+	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
+		  ActionKind::Faint);
+	// La fase corre con el reloj de la acción, desde su arranque.
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 100), 0);
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 112), 12);
+}
+
 TEST(ActionResolverTest, ToolPhaseStartsAtZeroWhenTheSourceBeginsUseTool) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::UseTool), kPlayerIndex,
 				    100),
 		  0);
@@ -245,7 +299,7 @@ TEST(ActionResolverTest, WalkKeepsTheStepAnchoredPhase) {
 		       100);
 	ViewEntity moving = entity();
 	moving.moving = true;
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 105),
 		  ActionKind::Walk);
@@ -255,7 +309,7 @@ TEST(ActionResolverTest, WalkKeepsTheStepAnchoredPhase) {
 TEST(ActionResolverTest, ToolHitPlaysEveryFrameInOrder) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	const world::CreatureData& creature =
 		catalog().dataFor(world::CreatureKind::Player);
@@ -282,7 +336,7 @@ TEST(ActionResolverTest, PickupAnimatesOnTheActionClock) {
 	// arranque de la acción, así los cuadros salen 1-2-3-4.
 	motion.observe(viewWith(entity()), 0);
 	motion.observe(viewWith(entity(ActionKind::Pickup)), 100);
-	const ActionResolver resolver(motion);
+	const ActionResolver resolver(motion, kNoCarry);
 
 	EXPECT_EQ(resolver.phaseFor(entity(ActionKind::Pickup), kPlayerIndex,
 				    100),

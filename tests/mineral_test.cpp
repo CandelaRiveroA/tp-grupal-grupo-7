@@ -4,6 +4,7 @@
 #include "../server/domain/entities/player.h"
 #include "../server/domain/minerals/coal_rock.h"
 #include "../server/domain/minerals/gold_rock.h"
+#include "../server/domain/minerals/rock.h"
 #include "../common/common_constants.h"
 
 // ---------------------------------------------------------
@@ -51,4 +52,23 @@ TEST(MineralTest, OroRequiereCuatroGolpesParaRomperse) {
 
     //Ahora se rompió y el ítem es pisable
     EXPECT_TRUE(world.can_walk_to(1, 1));
+}
+
+// ---------------------------------------------------------
+// TEST 3: La roca de relleno se rompe de un golpe y no deja nada
+// ---------------------------------------------------------
+TEST(MineralTest, RocaSeRompeDeUnGolpeSinDejarDrop) {
+    World world(3, 3);
+    auto p = std::make_unique<Player>(1, 0, 1);
+    world.add_player(1, std::move(p));
+
+    world.set_entity_at(1, 1, std::make_unique<Rock>(1, 1));
+    EXPECT_FALSE(world.can_walk_to(1, 1));
+
+    world.move_player(1, Direction::RIGHT);
+    world.use_tool(1);
+
+    EXPECT_TRUE(world.can_walk_to(1, 1));
+    // Nada en el piso: ni drop ni resto de la roca.
+    EXPECT_TRUE(world.get_entity_at(1, 1).empty());
 }

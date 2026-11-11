@@ -260,7 +260,9 @@ void CharacterScreen::submit() {
 	if (mode_ == Mode::JoinGame) {
 		submitting_ = true;
 		showState(ScreenState::Loading, "Uniéndose a la partida...");
-		session_->joinGame(selection_.gameName, username(), selection_.characterName);
+		selection_.appearance = editor_->appearance();
+		session_->joinGame(selection_.gameName, username(), selection_.characterName,
+				   selection_.appearance);
 		return;
 	}
 

@@ -9,6 +9,7 @@ namespace sdl {
 
 SdlContext::SdlContext(const core::WindowConfig& config)
 	: sdl_(SDL_INIT_VIDEO)
+	, sdlTtf_()
 	, window_(config.title(),
 		  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		  config.width(), config.height(),
@@ -16,6 +17,14 @@ SdlContext::SdlContext(const core::WindowConfig& config)
 	, renderer_(window_, -1, SDL_RENDERER_ACCELERATED) {
 
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, kNearestScaleQuality);
+
+	// Ventana de tamaño FIJO: no se puede agrandar ni achicar (ni
+	// estirar ni maximizar). El viewport, la cámara y los HUDs se
+	// calculan para este tamaño y no siguen un resize.
+	SDL_SetWindowMinimumSize(window_.Get(), config.width(),
+				 config.height());
+	SDL_SetWindowMaximumSize(window_.Get(), config.width(),
+				 config.height());
 
 	// El puntero se dibuja con el asset del juego (CursorPainter): el
 	// del sistema se oculta para no tener dos cursores.
@@ -37,6 +46,14 @@ void SdlContext::fillRect(const SDL2pp::Rect& rect, const SDL2pp::Color& color) 
 	renderer_.FillRect(rect);
 }
 
+void SdlContext::fillRectMultiply(const SDL2pp::Rect& rect,
+				  const SDL2pp::Color& color) {
+	renderer_.SetDrawBlendMode(SDL_BLENDMODE_MOD);
+	renderer_.SetDrawColor(color);
+	renderer_.FillRect(rect);
+	renderer_.SetDrawBlendMode(SDL_BLENDMODE_BLEND);
+}
+
 void SdlContext::present() { renderer_.Present(); }
 
 int SdlContext::width() const { return window_.GetSize().x; }
@@ -45,6 +62,12 @@ int SdlContext::height() const { return window_.GetSize().y; }
 
 SDL2pp::Texture SdlContext::createTexture(const std::string& path) {
 	return SDL2pp::Texture(renderer_, path);
+}
+
+void SdlContext::drawSurface(SDL2pp::Surface& surface,
+			     const SDL2pp::Rect& dest) {
+	SDL2pp::Texture texture(renderer_, surface);
+	renderer_.Copy(texture, SDL2pp::NullOpt, dest);
 }
 
 void SdlContext::drawTexture(SDL2pp::Texture& texture,

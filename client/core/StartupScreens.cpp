@@ -23,13 +23,14 @@ StartupScreens::StartupScreens(sdl::SdlContext& context,
 bool StartupScreens::draw(GamePhase phase, int it,
 			  const game::LocalWorldView& state,
 			  const game::ViewMotion& motion,
-			  const game::ActionResolver& actionResolver) const {
+			  const game::ActionResolver& actionResolver,
+			  const world::TimeOfDay timeOfDay) const {
 	switch (phase) {
 	case GamePhase::Intro:
 		drawIntro(it);
 		return true;
 	case GamePhase::FadeIn:
-		drawFadeIn(it, state, motion, actionResolver);
+		drawFadeIn(it, state, motion, actionResolver, timeOfDay);
 		return true;
 	case GamePhase::Playing:
 		break;
@@ -48,9 +49,10 @@ void StartupScreens::drawIntro(int it) const {
 void StartupScreens::drawFadeIn(
 	int it, const game::LocalWorldView& state,
 	const game::ViewMotion& motion,
-	const game::ActionResolver& actionResolver) const {
+	const game::ActionResolver& actionResolver,
+	const world::TimeOfDay timeOfDay) const {
 	renderer_.drawWorld(scenario_.scene(), state, motion,
-			    actionResolver, it, viewport_);
+			    actionResolver, it, viewport_, timeOfDay);
 	const int alpha = fadeOutAlphaFor(it);
 	context_.fillRect(
 		SDL2pp::Rect(0, 0, context_.width(), context_.height()),

@@ -8,9 +8,11 @@ target_sources(taller_tests
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
+    mine_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    furniture_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
     ../server/match.cpp
@@ -18,23 +20,35 @@ target_sources(taller_tests
     ../server/commands/move_command.cpp
     ../server/commands/pick_command.cpp
     ../server/commands/take_command.cpp
+    ../server/commands/sleep_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
+    ../server/domain/inventory/decoration_item.cpp
     ../server/domain/inventory/slot.cpp
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp
+    ../server/domain/furniture/furniture.cpp
+    ../server/domain/furniture/bed.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
     ../server/domain/minerals/mineral.cpp
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp
     ../server/domain/minerals/silver_rock.cpp
-    ../server/domain/minerals/gold_rock.cpp    
+    ../server/domain/minerals/gold_rock.cpp
+    ../server/domain/minerals/rock.cpp
+    ../server/domain/minerals/mine_controller.cpp
+    ../server/domain/crops/crop.cpp
+    ../server/domain/crops/strawberry.cpp
+    ../server/domain/crops/green_onion.cpp
+    ../server/domain/crops/potato.cpp
+    ../server/domain/crops/pumpkin.cpp
     toml_document_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
@@ -50,6 +64,7 @@ target_sources(taller_tests
     camera_test.cpp
     viewport_test.cpp
     element_layout_test.cpp
+    enter_selection_test.cpp
     character_layout_test.cpp
     chunk_grid_test.cpp
     scene_element_index_test.cpp
@@ -81,6 +96,9 @@ target_sources(taller_tests
     obtained_banner_queue_test.cpp
     obtained_banner_layout_test.cpp
     action_resolver_test.cpp
+    farm_catalogs_test.cpp
+    farm_selection_test.cpp
+    tool_use_sounds_test.cpp
     tool_overlay_loader_test.cpp
     tool_overlay_layout_test.cpp
     resource_config_loader_test.cpp
@@ -89,6 +107,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
+    farming_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

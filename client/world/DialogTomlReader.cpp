@@ -16,6 +16,7 @@ constexpr const char* kAnimation = "animation";
 constexpr const char* kFrames = "frames";
 constexpr const char* kFrameTicks = "frame_ticks";
 constexpr const char* kLoops = "loops";
+constexpr const char* kHideAtEnd = "hide_at_end";
 constexpr const char* kContent = "content";
 constexpr const char* kAnchorOffset = "anchor_offset";
 constexpr const char* kContentOffset = "offset";
@@ -28,8 +29,10 @@ struct IndicationBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<IndicationBinding, 1> kIndicationBindings = {{
+constexpr std::array<IndicationBinding, 3> kIndicationBindings = {{
 	{Indication::ReadyToMilk, "ready_to_milk"},
+	{Indication::ReadyToWater, "ready_to_water"},
+	{Indication::NoEnergy, "no_energy"},
 }};
 
 }
@@ -72,20 +75,30 @@ DialogAnimation DialogTomlReader::readAnimation(
 
 	const std::string loopsPath = join(base, kLoops);
 	animation.loops = doc_.hasKey(loopsPath) && doc_.getBool(loopsPath);
+
+	// Opcional: desaparecer al terminar (las Z del desmayo). Default
+	// false: el aviso se queda informando.
+	const std::string hidePath = join(base, kHideAtEnd);
+	animation.hideAtEnd = doc_.hasKey(hidePath) && doc_.getBool(hidePath);
 	return animation;
 }
 
 DialogData DialogTomlReader::readDialog(const std::string& base) const {
 	DialogData data;
 	data.animation = readAnimation(join(base, kAnimation));
-	data.content = SpriteVisual(doc_, join(base, kContent), kAt);
 	data.anchorOffset = readOffset(join(base, kAnchorOffset));
 
-	// Corrección del contenido: opcional (default: centrado).
-	const std::string contentOffsetPath =
-		join(join(base, kContent), kContentOffset);
-	if (doc_.hasKey(contentOffsetPath)) {
-		data.contentOffset = readOffset(contentOffsetPath);
+	// Contenido adentro: OPCIONAL (hay diálogos cuyo elemento ya
+	// viene en el último frame de la animación). Con contenido, su
+	// corrección también es opcional (default: centrado).
+	const std::string contentPath = join(base, kContent);
+	if (doc_.hasKey(contentPath)) {
+		data.content = SpriteVisual(doc_, contentPath, kAt);
+		const std::string contentOffsetPath =
+			join(contentPath, kContentOffset);
+		if (doc_.hasKey(contentOffsetPath)) {
+			data.contentOffset = readOffset(contentOffsetPath);
+		}
 	}
 	return data;
 }

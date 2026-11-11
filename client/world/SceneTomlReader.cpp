@@ -7,11 +7,22 @@
 
 #include "world/ConfigError.h"
 #include "world/SceneKeys.h"
+#include "world/SpriteVisual.h"
 
 namespace world {
 
 SceneTomlReader::SceneTomlReader(const tomlcfg::TomlDocument& doc)
-	: doc_(doc) {}
+	: directionsByName_{
+		  {"front", Direction::Front},
+		  {"back", Direction::Back},
+		  {"left", Direction::Left},
+		  {"right", Direction::Right},
+	  }
+	, timeOfDayByName_{
+		  {kTimeOfDayDay, TimeOfDay::Day},
+		  {kTimeOfDayNight, TimeOfDay::Night},
+	  }
+	, doc_(doc) {}
 
 SceneDescription SceneTomlReader::readRoom(
 	const std::string& roomName) const {
@@ -47,6 +58,8 @@ SceneDescription SceneTomlReader::readRoom(
 			doc_.getStringArray(join(roomBase, kKeySounds));
 	}
 
+	readSpawns(roomBase, scene);
+
 	readElements(roomBase, defaultScale, scene);
 
 	const TileSetDef& referenceTileset =
@@ -75,6 +88,25 @@ void SceneTomlReader::readTileSets(SceneDescription& scene) const {
 	}
 }
 
+void SceneTomlReader::readSpawns(const std::string& roomBase,
+				 SceneDescription& scene) const {
+	// Poblaciones de la sala (OPCIONAL, cada bandera OPCIONAL): sin la
+	// subtabla la sala no puebla nada (el caso del dormitorio). El dato
+	// vive donde el servidor lo mandará mañana; el dibujo no lo mira.
+	const std::string base = join(roomBase, kKeySpawns);
+	if (!doc_.hasKey(base)) {
+		return;
+	}
+	const std::string animals = join(base, kKeySpawnAnimals);
+	if (doc_.hasKey(animals)) {
+		scene.spawns.animals = doc_.getBool(animals);
+	}
+	const std::string minerals = join(base, kKeySpawnMinerals);
+	if (doc_.hasKey(minerals)) {
+		scene.spawns.minerals = doc_.getBool(minerals);
+	}
+}
+
 void SceneTomlReader::readElements(const std::string& roomBase,
 				   int defaultScale,
 				   SceneDescription& scene) const {
@@ -100,10 +132,7 @@ void SceneTomlReader::readElements(const std::string& roomBase,
 					  join(context, kKeyTileset));
 		}
 
-		const std::array<int, 4> region =
-			element.getIntArray<4>(kKeyRegion);
-		placement.region.origin = {region[0], region[1]};
-		placement.region.size = {region[2], region[3]};
+		readPiece(element, context, placement);
 
 		const std::array<int, 2> at =
 			element.getIntArray<2>(kKeyAt);
@@ -116,8 +145,68 @@ void SceneTomlReader::readElements(const std::string& roomBase,
 		placement.draw = readDrawSpec(element.getSubtable(kKeyDraw),
 					      defaultScale, context);
 
+		readEnter(element, context, placement);
+
+		readWhen(element, context, placement);
+
 		scene.elements.push_back(std::move(placement));
 		++elementIndex;
+	}
+}
+
+void SceneTomlReader::readPiece(const tomlcfg::TomlDocument& element,
+				const std::string& context,
+				ElementPlacement& placement) const {
+	// Dos formas de describir la pieza, exactamente una:
+	//   region = [col, row, cols, rows]  -> bloque contiguo de la hoja
+	//   piece  = [cols, rows] + cells = [[col, row], ...] -> composición
+	//        explícita, celda por celda (fila por fila): cualquier
+	//        pieza de cualquier hoja, de cualquier tamaño.
+	// Ambas se normalizan a tamaño + una celda de hoja por posición:
+	// el dibujo tiene un solo camino y el formato escala solo.
+	const bool hasRegion = element.hasKey(kKeyRegion);
+	const bool hasCells = element.hasKey(kKeyCells);
+	if (hasRegion == hasCells) {
+		// ni una forma ni la otra (o las dos a la vez): error
+		throw ConfigError(ConfigErrorKind::MissingStructure,
+				  join(context, kKeyRegion));
+	}
+
+	if (hasCells) {
+		const std::array<int, 2> piece =
+			element.getIntArray<2>(kKeyPiece);
+		if (piece[0] <= 0 || piece[1] <= 0) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  join(context, kKeyPiece));
+		}
+		placement.pieceSize = {piece[0], piece[1]};
+		const std::size_t count = element.arraySize(kKeyCells);
+		if (count !=
+		    static_cast<std::size_t>(piece[0] * piece[1])) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  join(context, kKeyCells));
+		}
+		for (std::size_t i = 0; i < count; ++i) {
+			const SheetCell cell(element, idx(kKeyCells, i));
+			placement.pieceCells.push_back(
+				{cell.col, cell.row});
+		}
+		return;
+	}
+
+	const std::array<int, 4> region =
+		element.getIntArray<4>(kKeyRegion);
+	if (region[0] < 0 || region[1] < 0 || region[2] <= 0 ||
+	    region[3] <= 0) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(context, kKeyRegion));
+	}
+	placement.pieceSize = {region[2], region[3]};
+	for (int row = 0; row < region[3]; ++row) {
+		for (int column = 0; column < region[2]; ++column) {
+			placement.pieceCells.push_back(
+				{region[0] + column, region[1] + row});
+		}
 	}
 }
 
@@ -151,9 +240,88 @@ DrawMode SceneTomlReader::parseDrawMode(
 			  join(context, kKeyMode));
 }
 
+void SceneTomlReader::readEnter(const tomlcfg::TomlDocument& element,
+				const std::string& context,
+				ElementPlacement& placement) const {
+	// "Entrar" al elemento (OPCIONAL): sin la subtabla el elemento es
+	// decoración pura. Con ella, el jugador puede meterse: las filas
+	// `rows` de la pieza se dibujan encima de las entidades y él queda
+	// en `lie`, mirando `facing` (presentación local, ver
+	// ElementEnter).
+	if (!element.hasKey(kKeyEnter)) {
+		return;
+	}
+	const std::string enterPath = join(context, kKeyEnter);
+	const tomlcfg::TomlDocument enter = element.getSubtable(kKeyEnter);
+
+	const std::array<int, 2> rows =
+		enter.getIntArray<2>(kKeyEnterRows);
+	if (rows[0] < 0 || rows[1] < rows[0] ||
+	    rows[1] >= placement.pieceSize.rows) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(enterPath, kKeyEnterRows));
+	}
+
+	// La celda donde se mete el jugador está dentro del área que
+	// ocupa el elemento en la grilla lógica.
+	const std::array<int, 2> lie = enter.getIntArray<2>(kKeyEnterLie);
+	if (lie[0] < placement.at.column ||
+	    lie[0] >= placement.at.column + placement.span.columns ||
+	    lie[1] < placement.at.row ||
+	    lie[1] >= placement.at.row + placement.span.rows) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(enterPath, kKeyEnterLie));
+	}
+
+	placement.enter =
+		ElementEnter{rows[0], rows[1], {lie[0], lie[1]},
+			     parseFacing(enter.getString(kKeyEnterFacing),
+					 enterPath)};
+}
+
+Direction SceneTomlReader::parseFacing(const std::string& name,
+				       const std::string& context) const {
+	const std::map<std::string, Direction>::const_iterator found =
+		directionsByName_.find(name);
+	if (found == directionsByName_.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  join(context, kKeyEnterFacing));
+	}
+	return found->second;
+}
+
+void SceneTomlReader::readWhen(const tomlcfg::TomlDocument& element,
+			       const std::string& context,
+			       ElementPlacement& placement) const {
+	// Momento del día (OPCIONAL): sin la key el elemento se dibuja
+	// en cualquier momento (el caso de toda sala hasta ahora). Con
+	// ella, el render lo filtra con visibleAt.
+	if (!element.hasKey(kKeyWhen)) {
+		return;
+	}
+	placement.when =
+		parseTimeOfDay(element.getString(kKeyWhen),
+			       join(context, kKeyWhen));
+}
+
+TimeOfDay SceneTomlReader::parseTimeOfDay(const std::string& name,
+					  const std::string& context) const {
+	const std::map<std::string, TimeOfDay>::const_iterator found =
+		timeOfDayByName_.find(name);
+	if (found == timeOfDayByName_.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, context);
+	}
+	return found->second;
+}
+
 std::string SceneTomlReader::join(const std::string& base,
 				  const std::string& key) const {
 	return base + "." + key;
+}
+
+std::string SceneTomlReader::idx(const std::string& base,
+				 const std::size_t i) const {
+	return base + "[" + std::to_string(i) + "]";
 }
 
 }

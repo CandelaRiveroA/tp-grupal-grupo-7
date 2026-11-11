@@ -15,7 +15,6 @@ public:
 
     bool is_walkable() const override;
     std::string kind_name() const override;
-    bool ready_to_milk() const;
 
     std::optional<AnimalSnapshot> animal_snapshot() const override;
 
@@ -23,6 +22,10 @@ public:
     void produce(World& w) override;
 
     void interact(Player& p, ToolType tool, World& w) override;
+
+    // La mano solo sirve si la vaca está con leche lista; el mundo no consulta
+    // ese estado, le pide a la vaca que actúe.
+    bool try_hand_action(Player& p, World& w) override;
 };
 
 #endif  // COW_H

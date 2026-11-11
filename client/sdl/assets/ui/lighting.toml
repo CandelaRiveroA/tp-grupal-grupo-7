@@ -1,0 +1,14 @@
+# Luz nocturna. Usa el MISMO esquema que hud.toml (ver ese archivo para
+# los campos), pero se dibuja ANTES de los HUD fijos y modulada por la
+# intensidad de noche que entrega game::DayPhase::nightFactor(): de día
+# (0.0) no se ve nada; de noche (1.0) se ve con toda su fuerza.
+#
+# Velo multiplicativo: `color = [r, g, b]` + `blend = "multiply"`. Cada
+# píxel del mundo se multiplica por el color: el negro sigue negro y solo
+# se tiñe lo que tiene luz. Más oscuro/azul = canales más bajos (rojo y
+# verde más bajos que el azul). `alpha` (0..255, default 255) es la
+# fuerza máxima del efecto.
+
+[[overlay]]
+color = [30, 50, 140]
+blend = "multiply"

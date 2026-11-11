@@ -1,0 +1,79 @@
+# Consecuencias sobre el terreno: cómo se ve cada una sobre la celda
+# afectada (el sprite cubre la celda lógica entera). La TIERRA TRATADA
+# la deja la pala cuando el servidor aprueba el golpe (hoy el "server
+# falso" de game/MockWorldClient).
+#
+# Escalar: agregar una consecuencia nueva (regar) = su entrada acá
+# ([ground.watered]) + un valor en world::GroundConsequence + la fila
+# que la conecta a su herramienta en el "server falso". El dibujo y el
+# loader NO se tocan: cada consecuencia se pinta encima de la anterior
+# (el orden de aplicación lo manda la fuente de estado).
+
+# Hoja de sprites y tamaño de su celda (16px = 1 celda lógica a scale 2).
+# hoeDirt.png trae DOS sets de las 16 piezas: cols 0-3 = tono claro
+# (seco, la tierra tratada) y cols 4-7 = tono oscuro (regado, para el
+# futuro [ground.watered]: misma tabla con las celdas +4 en columna).
+[sheet]
+image = "Farm/hoeDirt.png"
+cell  = [16, 16]
+
+# La consecuencia: su sprite simple (fallback) y las PIEZAS con que se
+# arma la zona cavada.
+[ground.dug]
+sprite = [0, 0]
+
+# Auto-tiling: cada celda cavada dibuja la pieza que le corresponde por
+# sus VECINOS cavados (world::CellPatch arma la máscara). El nombre de
+# la pieza es su POSICIÓN dentro de la zona armada y su máscara son los
+# vecinos que tiene en el parche:
+#
+#   isolated: sin vecinos (1 celda)     h_left/right: punta de fila
+#   h_middle: medio de fila             v_top/bottom: punta de columna
+#   v_middle: medio de columna          corner_*: esquina de zona
+#   edge_*: borde de zona               interior: centro de zona
+#
+# Cada pieza admite varias versiones dibujadas (variantes): se alternan
+# por la posición de la celda (estable, sin parpadeos). Son [col, row]
+# en la hoja.
+[ground.dug.tiles]
+isolated            = [ [0, 0] ]
+corner_top_left     = [ [1, 0] ]
+edge_top            = [ [2, 0] ]
+corner_top_right    = [ [3, 0] ]
+v_top               = [ [0, 1] ]
+edge_left           = [ [1, 1] ]
+interior            = [ [2, 1] ]
+edge_right          = [ [3, 1] ]
+v_middle            = [ [0, 2] ]
+corner_bottom_left  = [ [1, 2] ]
+edge_bottom         = [ [2, 2] ]
+corner_bottom_right = [ [3, 2] ]
+v_bottom            = [ [0, 3] ]
+h_left              = [ [1, 3] ]
+h_middle            = [ [2, 3] ]
+h_right             = [ [3, 3] ]
+
+# Regada: la tierra tratada queda regada. Mismo mecanismo de piezas que
+# `dug`, con el set OSCURO de hoeDirt (cols 4-7): la misma tabla corrida
+# +4 en columna. Se dibuja encima de la cavada (el orden de la vista es
+# el de pintado).
+[ground.watered]
+sprite = [4, 0]
+
+[ground.watered.tiles]
+isolated            = [ [4, 0] ]
+corner_top_left     = [ [5, 0] ]
+edge_top            = [ [6, 0] ]
+corner_top_right    = [ [7, 0] ]
+v_top               = [ [4, 1] ]
+edge_left           = [ [5, 1] ]
+interior            = [ [6, 1] ]
+edge_right          = [ [7, 1] ]
+v_middle            = [ [4, 2] ]
+corner_bottom_left  = [ [5, 2] ]
+edge_bottom         = [ [6, 2] ]
+corner_bottom_right = [ [7, 2] ]
+v_bottom            = [ [4, 3] ]
+h_left              = [ [5, 3] ]
+h_middle            = [ [6, 3] ]
+h_right             = [ [7, 3] ]

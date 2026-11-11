@@ -28,3 +28,40 @@ anchor_offset = [0, -40]
   drawn = [13, 16]
   # Corrección óptica del centrado (4 px más arriba).
   offset = [0, -4]
+
+[ready_to_water]
+# El aviso de "lista para regar" sobre el cultivo: misma estructura que
+# la vaca, pero sin contenido adentro — el último frame ya trae la
+# gota (el contenido es opcional: se usa cuando el elemento va encima).
+# Cerca del cultivo: la punta de la gota roza el borde de su celda.
+anchor_offset = [0, -28]
+
+  [ready_to_water.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  # La burbuja crece y el último frame informa: el agua como tal.
+  frames      = [ [0, 0], [1, 0], [2, 0], [2, 7] ]
+
+[no_energy]
+# Sin energía: el personaje se desmaya y las Z aparecen sobre su cabeza.
+anchor_offset = [0, -40]
+
+  [no_energy.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  # Al terminar, el diálogo desaparece (no se queda informando): la
+  # secuencia ya hizo su trabajo.
+  hide_at_end = true
+  # La burbuja aparece, las Z parpadean dos veces y se va al revés.
+  frames      = [
+    [0, 0], [1, 0], [2, 0], [3, 0],
+    [0, 6], [1, 6], [2, 6], [3, 6],
+    [0, 6], [1, 6], [2, 6], [3, 6],
+    [3, 0], [2, 0], [1, 0], [0, 0],
+  ]

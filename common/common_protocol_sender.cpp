@@ -32,6 +32,17 @@ void ProtocolSender::send_string(const std::string& value) {
     }
 }
 
+void ProtocolSender::send_appearance(const CharacterAppearance& appearance) {
+    send_uint8(appearance.skin);
+    send_uint8(appearance.eyes);
+    send_uint8(appearance.hair);
+    send_uint8(appearance.hairColor);
+    send_uint8(appearance.shirt);
+    send_uint8(appearance.pants);
+    send_uint8(appearance.pantsColor);
+    send_uint8(appearance.accessory);
+}
+
 void ProtocolSender::validate_direction(Direction direction) {
     const uint8_t raw_direction = static_cast<uint8_t>(direction);
     if (raw_direction > static_cast<uint8_t>(Direction::RIGHT)) {
@@ -51,6 +62,7 @@ void ProtocolSender::send_message(const protocol::PickMessage& message) {
 
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Pick));
     send_uint8(static_cast<uint8_t>(message.direction));
+    send_uint8(message.slot);
 }
 
 void ProtocolSender::send_message(const protocol::TakeMessage& message) {
@@ -58,6 +70,15 @@ void ProtocolSender::send_message(const protocol::TakeMessage& message) {
 
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Take));
     send_uint8(static_cast<uint8_t>(message.direction));
+}
+
+void ProtocolSender::send_message(const protocol::SleepMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Sleep));
+    send_uint8(message.accept ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const protocol::WakeMessage& /*message*/) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Wake));
 }
 
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
@@ -72,6 +93,7 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.x);
     send_uint16(status.y);
     send_uint8(static_cast<uint8_t>(status.direction));
+    send_appearance(status.appearance);
 }
 
 void ProtocolSender::send_message(const ServerLeave& leave) {
@@ -92,6 +114,7 @@ void ProtocolSender::send_message(const ServerDropped& dropped) {
     send_uint16(dropped.x);
     send_uint16(dropped.y);
     send_string(dropped.content_id);
+    send_uint8(dropped.interactive ? 1 : 0);
 }
 
 void ProtocolSender::send_message(const ServerInventorySlot& slot) {
@@ -109,6 +132,7 @@ void ProtocolSender::send_message(const ServerObtained& obtained) {
 void ProtocolSender::send_message(const ServerToolUsed& used) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::ToolUsed));
     send_uint8(used.player_id);
+    send_string(used.content_id);
 }
 
 void ProtocolSender::send_message(const ServerResourceHit& hit) {
@@ -122,6 +146,10 @@ void ProtocolSender::send_message(const ServerReset& /*reset*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Reset));
 }
 
+void ProtocolSender::send_message(const ServerSyncEnd& /*end*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SyncEnd));
+}
+
 void ProtocolSender::send_message(const ServerAnimal& animal) {
     validate_direction(animal.direction);
 
@@ -132,6 +160,59 @@ void ProtocolSender::send_message(const ServerAnimal& animal) {
     send_uint16(animal.y);
     send_uint8(static_cast<uint8_t>(animal.direction));
     send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerSleep& sleep) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Sleep));
+    send_uint8(sleep.sleeping);
+    send_uint8(sleep.total);
+}
+
+void ProtocolSender::send_message(const ServerFurniture& furniture) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Furniture));
+    send_uint16(furniture.x);
+    send_uint16(furniture.y);
+    send_string(furniture.content_id);
+}
+
+void ProtocolSender::send_message(const ServerDayEnd& /*day*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::DayEnd));
+}
+
+void ProtocolSender::send_message(const ServerDay& /*day*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Day));
+}
+
+void ProtocolSender::send_message(const ServerSleepingPlayers& sleepers) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SleepingPlayers));
+    send_uint8(static_cast<uint8_t>(sleepers.players.size()));
+    for (const uint8_t id: sleepers.players) {
+        send_uint8(id);
+    }
+}
+
+void ProtocolSender::send_message(const ServerClock& clock) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Clock));
+    send_uint8(clock.day);
+    send_uint16(clock.minutes);
+}
+
+void ProtocolSender::send_message(const ServerCrop& crop) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Crop));
+    send_uint16(crop.x);
+    send_uint16(crop.y);
+    send_string(crop.crop_id);
+    send_uint8(crop.stage);
+    send_uint8(crop.needs_water ? 1 : 0);
+    send_uint8(crop.interactive ? 1 : 0);
+    send_uint8(crop.quality);
+}
+
+void ProtocolSender::send_message(const ServerGroundEffect& ground) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GroundEffect));
+    send_uint16(ground.x);
+    send_uint16(ground.y);
+    send_uint8(static_cast<uint8_t>(ground.effect));
 }
 
 void ProtocolSender::send_server_message(const ServerMessage& message) {
@@ -149,6 +230,7 @@ void ProtocolSender::send_match_request(const MatchRequest& request) {
     send_string(request.nameMatch);
     send_string(request.username);
     send_string(request.characterName);
+    send_appearance(request.appearance);
 }
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {

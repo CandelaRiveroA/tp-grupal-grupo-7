@@ -19,8 +19,9 @@ public:
 
 	enum class Action { Up, Down, Left, Right, Count };
 
-	// slotCount: cuántas teclas numéricas (1..slotCount) seleccionan slots.
-	// Debe coincidir con core::kInventorySlots; lo pasa quien construye.
+	// slotCount: cuántos slots seleccionan las teclas de la tabla
+	// slotKeys_ (una tecla por slot, en orden). Lo pasa quien construye
+	// desde los datos del layout (InventoryLayout::count).
 	explicit InputManager(int slotCount);
 
 	void handleEvent(const SDL_Event& event);
@@ -71,6 +72,12 @@ private:
 	std::unordered_map<SDL_Keycode, Action> keymap_;
 
 	std::unordered_map<SDL_Keycode, game::InputCommand> commandBindings_;
+
+	// Tabla de teclas que seleccionan slot (una por slot, en orden):
+	// se enlazan las primeras slotCount. Agregar un slot es sumar una
+	// tecla acá (hoy los dígitos 1..9 y 0); no hay fórmulas que rompan
+	// fuera de rango.
+	std::array<SDL_Keycode, 10> slotKeys_;
 
 	std::array<bool, static_cast<std::size_t>(Action::Count)> flags_{};
 

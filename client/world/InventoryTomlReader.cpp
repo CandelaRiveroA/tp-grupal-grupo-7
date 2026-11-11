@@ -46,9 +46,12 @@ constexpr const char* kAnchorBottomCenter = "bottom_center";
 constexpr const char* kItems = "items";
 constexpr const char* kItemAt = "at";
 constexpr const char* kSlotDrawn = "slot_drawn";
+constexpr const char* kDroppable = "droppable";
 
 constexpr const char* kBarDigitScale = "bar.digit_scale";
 constexpr const char* kBarDigitMargin = "bar.digit_margin";
+constexpr const char* kBarDigitMarginX = "bar.digit_margin_x";
+constexpr const char* kBarDigitGap = "bar.digit_gap";
 
 }
 
@@ -113,9 +116,19 @@ InventoryLayout InventoryTomlReader::read() const {
 
 	if (doc_.hasKey(kBarDigitMargin)) {
 		layout.digitMargin = doc_.getInt(kBarDigitMargin);
-		if (layout.digitMargin < 0) {
-			throw ConfigError(Kind::InvalidValue, kBarDigitMargin);
-		}
+	}
+
+	// digit_margin_x: margen solo para el eje X, admite negativos para
+	// empujar el número hacia afuera del borde derecho del slot.
+	// Si no se declara, countBoxes usa digitMargin como fallback.
+	if (doc_.hasKey(kBarDigitMarginX)) {
+		layout.digitMarginX = doc_.getInt(kBarDigitMarginX);
+	}
+
+	// digit_gap: separación extra entre dígitos (admite negativos para
+	// solapar y compensar el padding interno del sprite).
+	if (doc_.hasKey(kBarDigitGap)) {
+		layout.digitGap = doc_.getInt(kBarDigitGap);
 	}
 
 	if (doc_.hasKey(kFrame)) {
@@ -146,6 +159,14 @@ void InventoryTomlReader::readItems(world::InventoryLayout& layout) const {
 		// con el lector compartido (sheet/cell/at/drawn).
 		layout.content.visuals.emplace(
 			name, world::SpriteVisual(doc_, base, kItemAt));
+		// droppable (opcional, default false): rasgo del contenido
+		// (¿se puede soltar del inventario?). Vive en la tabla de
+		// rasgos, no en la apariencia.
+		const std::string droppablePath = join(base, kDroppable);
+		layout.traits.set(name,
+				  world::ContentTrait{doc_.hasKey(droppablePath) &&
+						      doc_.getBool(
+							      droppablePath)});
 		// slot_drawn (opcional): el tamaño en la celda del
 		// inventario, que puede diferir del `drawn` del mapa.
 		const std::string slotPath = join(base, kSlotDrawn);

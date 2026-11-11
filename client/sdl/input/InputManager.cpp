@@ -102,6 +102,13 @@ auto InputManager::defaultCommandBindings() const
     // Faint + el diálogo de las Z. Cuando el server mande la acción,
     // esta tecla se puede quitar sin tocar el dibujo.
     bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
+    // Demo de regalos: R simula "regalo enviado / el server confirma"
+    // (abre el popup de espera) y T simula "me llega un regalo" (abre
+    // el popup del receptor). Cuando exista la conexión, estos eventos
+    // llegarán del server y las teclas se pueden quitar sin tocar el
+    // dibujo.
+    bindings.insert({SDLK_r, game::InputCommand{Kind::GiftSent, 0}});
+    bindings.insert({SDLK_t, game::InputCommand{Kind::GiftReceived, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

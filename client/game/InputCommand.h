@@ -26,6 +26,11 @@ struct InputCommand {
         // mientras el server no manda la acción. Lo consume PlaySession;
         // NO viaja al GameClient.
         Faint,
+        // Demo del flujo de regalos (teclas R/T por ahora): simulan
+        // eventos que mandará el server, no intenciones del jugador.
+        // Los consume PlaySession; NO viajan al GameClient.
+        GiftSent,
+        GiftReceived,
     };
 
     Kind kind;

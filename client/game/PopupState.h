@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+
+#include "world/PromptLayout.h"
+
 namespace game {
 
 // Qué muestra el popup del HUD.
@@ -11,6 +15,12 @@ enum class PopupView {
     // La pregunta del cambio de día ("¿Avanzamos al siguiente día?")
     // con su botón OK, sobre la pantalla en negro.
     NextDay,
+    // El que da un regalo: "¿Queres darle este regalo?".
+    GiftOffer,
+    // El que espera la respuesta del otro jugador.
+    GiftWaiting,
+    // El que recibe un regalo: "[jugador] te quiere hacer un regalo...".
+    GiftReceived,
     // Sin popup.
     Hidden,
 };
@@ -35,8 +45,15 @@ public:
     // PlaySession cuando la pantalla quedó en negro.
     void showNextDay();
 
-    // Sin popup (cualquier opción de la pregunta lo cierra: es un
-    // voto; la consecuencia la decidirá la fuente de estado).
+    // Punto de ENTRADA del flujo de regalos. GiftOffer lo dispara el
+    // click sobre otro jugador; GiftWaiting y GiftReceived llegarán
+    // del server (hoy los simulan las teclas demo).
+    void showGiftOffer();
+    void showGiftWaiting();
+    void showGiftReceived(const std::string& senderName);
+
+    // Sin popup (cualquier opción lo cierra: es una respuesta; la
+    // consecuencia la decidirá la fuente de estado).
     void hide();
 
     // ¿Mientras se muestra, el mundo está bloqueado? El popup espera
@@ -47,14 +64,24 @@ public:
 
     PopupView view() const;
 
+    // La copia del popup actual en ui/text.toml. El painter y el
+    // hit-testing usan la MISMA, así lo que se ve y lo que se toca no
+    // se desincronizan.
+    world::PromptId promptId() const;
+
+    // Nombre que manda la fuente para el popup del receptor ({0}).
+    const std::string& giftSenderName() const;
+
     int waitingReady() const;
 
     int waitingTotal() const;
 
 private:
     PopupView view_ = PopupView::Hidden;
+    world::PromptId promptId_ = world::PromptId::SleepQuestion;
     int waitingReady_ = 0;
     int waitingTotal_ = 0;
+    std::string giftSenderName_;
 };
 
 }  // namespace game

@@ -50,4 +50,9 @@ constexpr const char* kHudLifeKey = "vida";
 constexpr double kEnergyCostPerAction = 0.02;
 constexpr double kLifeCostPerAction = 0.02;
 
+// Valor DEMO de {0} en el popup del receptor: el server lo reemplazará
+// por el nombre real del jugador que regala (el copy solo tiene el
+// token, nunca el nombre escrito a mano).
+constexpr const char* kDemoGiftSenderName = "Jugador";
+
 }

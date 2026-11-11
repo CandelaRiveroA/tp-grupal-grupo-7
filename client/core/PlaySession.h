@@ -116,6 +116,10 @@ private:
     // decide); esto solo lo lee para elegir la variante del cursor.
     bool isInteractive(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
+    // ¿El objetivo es OTRO jugador (no el local)? Lo decide la vista:
+    // mismo tipo Player y un índice distinto de kLocalPlayerIndex.
+    bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
+
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
@@ -179,6 +183,11 @@ private:
     // para recién entonces mostrar las Z.
     bool faintRequested_ = false;
     int faintFallTicks_ = 0;
+    // Regalo aceptado: el diálogo de agradecimiento es presentación
+    // local hasta que el server mande la indicación. El reloj dura lo
+    // que la animación (dato del catálogo), así se puede repetir.
+    bool giftThanksActive_ = false;
+    int giftThanksTicks_ = 0;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

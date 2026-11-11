@@ -32,6 +32,11 @@ struct DialogAnimation {
 	// ¿La animación no repetitiva ya mostró todos sus frames? Con
 	// hideAtEnd el painter deja de dibujarla.
 	bool finishedAt(int animationTick) const;
+
+	// Duración total de la secuencia (frames x ticks por frame). Es el
+	// MISMO dato que usa el avance de cuadros: quien necesite saber
+	// cuándo termina no duplica la cuenta.
+	int durationTicks() const;
 };
 
 // Un diálogo del juego como DATOS: cómo aparece (animación), qué

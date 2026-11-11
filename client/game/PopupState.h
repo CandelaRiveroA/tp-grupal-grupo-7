@@ -8,6 +8,9 @@ enum class PopupView {
     Question,
     // El avance de "dormir" ("Esperando al resto de jugadores...").
     Waiting,
+    // La pregunta del cambio de día ("¿Avanzamos al siguiente día?")
+    // con su botón OK, sobre la pantalla en negro.
+    NextDay,
     // Sin popup.
     Hidden,
 };
@@ -27,6 +30,10 @@ public:
     // La llama PlaySession con los conteos de ServerSleep. No hay red
     // ni protocolo acá: solo llegan los números.
     void showWaiting(int ready, int total);
+
+    // Punto de ENTRADA: la pregunta del cambio de día. La llama
+    // PlaySession cuando la pantalla quedó en negro.
+    void showNextDay();
 
     // Sin popup (cualquier opción de la pregunta lo cierra: es un
     // voto; la consecuencia la decidirá la fuente de estado).

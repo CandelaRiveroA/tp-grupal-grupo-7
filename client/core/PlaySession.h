@@ -7,10 +7,13 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
+#include "game/FractionStat.h"
+#include "game/InputCommand.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -26,6 +29,7 @@
 #include "sdl/render/Camera.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
+#include "sdl/render/HudOverlayPainter.h"
 #include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
@@ -69,13 +73,20 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt);
+                const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
+                const world::HudOverlayCatalog& lighting);
 
     // Corre el game loop hasta que se pida salir.
     void run();
 
 private:
     void tick(int iteration);
+
+    // Vista de presentación del tick: la de "meterse" (EnterSelection)
+    // más el override LOCAL del desmayo (pose, frente y, al terminar la
+    // caída, la indicación de las Z). La consumen el movimiento, el
+    // renderer y los diálogos; el estado de juego queda intacto.
+    game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
@@ -122,6 +133,14 @@ private:
     sdl::Renderer renderer_;
     sdl::InventoryHud inventoryHud_;
     sdl::ObtainedBannerHud bannerHud_;
+    // La herramienta única de texto: la comparten el popup y los HUD
+    // (etiquetas de hud.toml), por eso se declara antes que ellos.
+    sdl::TextRenderer textRenderer_;
+    sdl::HudOverlayPainter hudOverlayPainter_;
+    // Luz nocturna: mismo painter que el HUD fijo, con otro catálogo
+    // (ui/lighting.toml) y dibujado antes de los HUD, modulado por la
+    // intensidad de DayPhase.
+    sdl::HudOverlayPainter lightingPainter_;
     game::ObtainedBannerQueue bannerQueue_;
     sdl::InputManager input_;
     sdl::AudioPlayer audio_;
@@ -138,7 +157,28 @@ private:
     int lastSleeping_ = 0;
     int lastTotal_ = 0;
     bool voted_ = false;
+    // Día terminado: ya apretó OK y espera a que despierten los demás.
+    bool woke_ = false;
     game::SceneTransition sceneTransition_;
+    // El momento del día (filtra los elementos `when` y gradúa la luz) y
+    // el reloj del HUD. Entrada: el reloj del server (setClock en cada
+    // tick).
+    game::DayPhase dayPhase_;
+    // Stats simulados del jugador: hoy los simula el cliente y el server
+    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
+    // qué comando gasta cuál. La traducción a las claves del HUD queda en
+    // el borde de dibujo, no en el estado.
+    struct StatSpend {
+        game::StatKind stat;
+        double cost = 0.0;
+    };
+    std::map<game::StatKind, game::FractionStat> stats_;
+    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Demo del desmayo (tecla F): presentación local mientras el server
+    // no manda la acción. El reloj cuenta desde el inicio de la caída
+    // para recién entonces mostrar las Z.
+    bool faintRequested_ = false;
+    int faintFallTicks_ = 0;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
@@ -149,7 +189,6 @@ private:
     world::DialogCatalog dialogCatalog_;
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
-    sdl::TextRenderer textRenderer_;
     sdl::PromptPainter promptPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una

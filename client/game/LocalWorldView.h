@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/model/draft/CharacterAppearance.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
@@ -54,12 +55,22 @@ struct ViewEntity {
     // selección del HUD (otra pose, otra fuente). Va al final del
     // struct para no romper los aggregate-init posicionales.
     std::optional<std::string> activeContent = std::nullopt;
+
+    // Personalización del personaje (índices de capa, tal cual los manda el
+    // server). El render los acota contra characters.toml y cae al 0 si
+    // están fuera de rango. Va al final por los aggregate-init posicionales.
+    CharacterAppearance appearance{};
 };
 
-// Recurso picable. La fuente decide tipo, celda y estado; al agotarse
-// sale del vector resources.
+// Recurso picable. La fuente decide contentId, celda y estado; al
+// agotarse sale del vector resources.
+//
+// contentId: clave estable del contenido, vocabulario compartido con el
+//            servidor (ej. "silver", "rock") y con resources.toml. El
+//            cliente resuelve contentId -> asset (world::ResourceCatalog);
+//            un id sin sección en el TOML no se dibuja.
 struct ViewResource {
-    world::ResourceKind kind;
+    std::string contentId;
     int cellX;
     int cellY;
     world::ResourceState state;
@@ -126,11 +137,10 @@ struct ViewGroundEffect {
 };
 
 // Cultivo plantado en una celda: es estado PERSISTENTE del mundo, lo
-// manda la fuente (el servidor decidirá qué está plantado, en qué
-// etapa, qué pide, con qué calidad se cosecha y si se puede levantar;
-// hoy el "server falso"). El cliente solo lo dibuja y lo levanta donde
-// la fuente lo permite (resolviendo cropId -> cultivo en
-// world::CropCatalog).
+// manda la fuente (el servidor: qué está plantado, en qué etapa, qué
+// pide, con qué calidad se cosecha y si se puede levantar). El cliente
+// solo lo dibuja y lo levanta donde la fuente lo permite (resolviendo
+// cropId -> cultivo en world::CropCatalog).
 struct ViewCrop {
     int cellX;
     int cellY;
@@ -146,9 +156,8 @@ struct ViewCrop {
     // agua). Lo decide la FUENTE DE ESTADO; el cliente solo lo anima y
     // lo dibuja (el mismo mecanismo que las entidades).
     std::optional<world::Indication> indication = std::nullopt;
-    // Calidad de la cosecha (hoy la fuente manda la base; mañana el
-    // servidor decidirá cuándo es increíble). Solo hace falta en la
-    // etapa final.
+    // Calidad de la cosecha (la manda la fuente en ServerCrop.quality; 1..5
+    // BASE..PERFECT). Solo hace falta en la etapa final.
     world::CropQuality quality = world::CropQuality::Base;
     // ¿Se puede levantar (como el huevo)? Lo decide la FUENTE DE
     // ESTADO (el servidor dirá si se puede; hoy la demo lo permite en
@@ -175,11 +184,10 @@ struct LocalWorldView {
     world::GridSpan grid{0, 0};
     std::vector<ViewResourceHit> resourceHits;
     // El terreno con consecuencias aplicadas (persistente; ver
-    // ViewGroundEffect). Hoy lo llena el "server falso"; mañana el
-    // servidor.
+    // ViewGroundEffect). Lo manda el servidor (ServerGroundEffect).
     std::vector<ViewGroundEffect> groundEffects;
-    // Los cultivos plantados (persistente; ver ViewCrop). Hoy los llena
-    // el "server falso"; mañana el servidor.
+    // Los cultivos plantados (persistente; ver ViewCrop). Los manda el
+    // servidor (ServerCrop).
     std::vector<ViewCrop> plantedCrops;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
@@ -189,8 +197,10 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
-    // Amaneció (ServerDay). Evento: vale solo en el tick en que llega.
-    // Presentación (fase pendiente): changeTo(kInitialRoom) + gallo.
+    // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
+    // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
+    // amanecer se levanta el negro con el gallo.
+    bool dayEnded = false;
     bool dayChanged = false;
 
     // Suma un contenido al inventario (la regla genérica: apila por

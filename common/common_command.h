@@ -8,16 +8,18 @@
 
 namespace protocol {
 
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5 };
 
 // Move: camina en la dirección dada (y la fija como facing).
 struct MoveMessage {
     Direction direction;
 };
 
-// Pick: usa la herramienta equipada sobre la celda que el jugador tiene enfrente.
+// Pick: usa la herramienta del casillero `slot` sobre la celda enfrentada.
+// La selección del inventario es local; viaja solo al usar.
 struct PickMessage {
     Direction direction;
+    uint8_t slot;
 };
 
 // Take: recoge el item caído sobre la celda propia del jugador.
@@ -32,7 +34,11 @@ struct SleepMessage {
     bool accept;
 };
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage>;
+// Wake: apretó OK en el popup del nuevo día. El día arranca cuando todos lo mandaron.
+struct WakeMessage {};
+
+using ClientMessage =
+        std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage>;
 
 }  // namespace protocol
 

@@ -20,6 +20,10 @@ constexpr int kFadeTicks = kFadeDurationMs * kTargetFps / 1000;
 
 constexpr int kFadeOpaqueAlpha = 255;
 
+// Lo que tarda la luz en ir de día pleno a noche plena (y a la inversa).
+constexpr int kLightTransitionMs = 3000;
+constexpr int kLightTransitionTicks = kLightTransitionMs * kTargetFps / 1000;
+
 #ifndef TALLER_ASSET_DIR
 #define TALLER_ASSET_DIR "assets"
 #endif
@@ -51,6 +55,10 @@ constexpr const char* kCursorsFile = "ui/cursors.toml";
 constexpr const char* kDialogsFile = "ui/dialogs.toml";
 
 constexpr const char* kTextFile = "ui/text.toml";
+
+constexpr const char* kHudOverlaysFile = "ui/hud.toml";
+
+constexpr const char* kLightingFile = "ui/lighting.toml";
 
 // Cantidad de slots del inventario ocupados por el mock (pico, pala,
 // regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.

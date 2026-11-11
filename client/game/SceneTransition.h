@@ -19,13 +19,20 @@ public:
     explicit SceneTransition(int fadeTicks);
 
     // Pide el cambio a la escena destino. Se ignora si ya hay una
-    // transición en curso (una a la vez).
-    void changeTo(const std::string& scene);
+    // transición en curso (una a la vez). Con holdAtBlack, al llegar al
+    // negro se queda ahí (sin cambiar los datos) hasta release().
+    void changeTo(const std::string& scene, bool holdAtBlack = false);
 
     // Avanza el reloj de la transición (una vez por tick).
     void tick(int iteration);
 
     bool active() const;
+
+    // ¿Está sostenida en negro esperando release()?
+    bool holding() const;
+
+    // Suelta el negro sostenido: cambian los datos y vuelve el fade.
+    void release();
 
     // El negro a dibujar sobre todo lo demás: 0 = nada, 255 = negro
     // total (el instante en que cambian los datos).
@@ -44,10 +51,12 @@ private:
     enum class Phase {
         Idle,
         FadingOut,
+        Holding,
         FadingIn,
     };
 
     int fadeTicks_;
+    bool holdAtBlack_ = false;
     Phase phase_ = Phase::Idle;
     std::string scene_;
     int startIteration_ = -1;

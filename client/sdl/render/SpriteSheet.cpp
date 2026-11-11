@@ -51,6 +51,14 @@ void SpriteSheet::drawContentCentered(const int col, const int row,
 		Flip::None);
 }
 
+void SpriteSheet::drawContentStretched(const int col, const int row,
+				       const SDL2pp::Rect& dest) {
+	if (dest.w <= 0 || dest.h <= 0) {
+		return;
+	}
+	context_.drawTexture(texture_, contentRect(col, row), dest, Flip::None);
+}
+
 SDL2pp::Rect SpriteSheet::contentRect(const int col, const int row) {
 	const auto key = std::make_pair(col, row);
 	const auto cached = contentRects_.find(key);

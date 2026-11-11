@@ -21,15 +21,14 @@
 
 namespace core {
 
-PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
-                         game::GameClient& gameClient, const world::CharacterCatalog& characters,
-                         const world::InventoryLayout& inventory,
-                         const world::ToolOverlayCatalog& toolOverlay,
-                         const world::ResourceCatalog& resources,
-                         const world::ObtainedBannerCatalog& banner,
-                         const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
-                         const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                         const world::PromptLayout& prompt):
+PlaySession::PlaySession(
+        const WindowConfig& config, const world::Scenario& scenario, game::GameClient& gameClient,
+        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
+        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
+        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
+        const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
+        const world::FontCatalog& font, const world::PromptLayout& prompt,
+        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
         scene_(scenario.scene()),
         gameClient_(gameClient),
         characters_(characters),
@@ -44,6 +43,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                   farm_.ground(), farm_.crops()),
         inventoryHud_(sdlContext_, inventory_, digits),
         bannerHud_(sdlContext_, banner, inventory_.slotDrawWidth()),
+        textRenderer_(sdlContext_, font),
+        hudOverlayPainter_(sdlContext_, textRenderer_, hudOverlays),
+        lightingPainter_(sdlContext_, textRenderer_, lighting),
         bannerQueue_(banner.durationTicks, banner.maxVisible),
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
@@ -52,6 +54,17 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
         sceneTransition_(core::kFadeTicks),
+        dayPhase_(core::kLightTransitionTicks),
+        stats_{
+                {game::StatKind::Energy, game::FractionStat{}},
+                {game::StatKind::Life, game::FractionStat{}},
+        },
+        statSpends_{
+                {game::InputCommand::Kind::SpendEnergy,
+                 {game::StatKind::Energy, game::kEnergyCostPerAction}},
+                {game::InputCommand::Kind::SpendLife,
+                 {game::StatKind::Life, game::kLifeCostPerAction}},
+        },
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -62,7 +75,6 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         dialogCatalog_(dialogs),
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
-        textRenderer_(sdlContext_, font),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
@@ -84,11 +96,40 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    motion_.observe(state, iteration);
-    updateCamera(state, motion_, iteration);
+    if (faintRequested_) {
+        ++faintFallTicks_;
+    }
+    // La presentación local del tick (desmayo incluido) es la que ven
+    // el movimiento, el renderer y los diálogos.
+    const game::LocalWorldView presentation = presentationView(state);
+    motion_.observe(presentation, iteration);
+    updateCamera(presentation, motion_, iteration);
+    // El reloj del server decide la etapa del día y lo que muestra el HUD.
+    dayPhase_.setClock(state.dayNumber, state.clockMinutes);
+    dayPhase_.advance();
+
+    // Se terminó el día: se cierra todo y la pantalla se funde a negro y SE
+    // QUEDA ahí con el popup del nuevo día hasta que despierten todos. Ahí
+    // (ServerDay) cambia la escena (dormitorio), vuelve el fade y suena el gallo.
+    // Va ANTES de la secuencia de inicio: un jugador que se une durante el
+    // popup recibe el evento mientras todavía está en la intro.
+    if (state.dayEnded) {
+        voted_ = false;
+        woke_ = false;
+        popupState_.hide();
+        sceneTransition_.changeTo(core::kInitialRoom, true);
+    }
+    if (state.dayChanged) {
+        sceneTransition_.release();
+        audio_.play(sdl::SoundId::RoosterCrow);
+        // Día nuevo: los stats simulados arrancan llenos (lo dirá el server).
+        for (auto& entry : stats_) {
+            entry.second.reset();
+        }
+    }
 
     const GamePhase phase = phaseForIteration(iteration);
-    if (screens_.draw(phase, iteration, state, motion_, actionResolver_)) {
+    if (screens_.draw(phase, iteration, state, motion_, actionResolver_, dayPhase_.phase())) {
         return;
     }
 
@@ -101,13 +142,49 @@ void PlaySession::tick(int iteration) {
         changeScene(sceneTransition_.scene());
         sceneTransition_.consumeSwap();
     }
+    // La caja del popup (figura del inventario centrada, en la grilla
+    // que digan sus datos): donde se dibuja y donde se tocan sus cosas.
+    const world::PixelBox popupBox =
+            inventory_.centeredBox(sdlContext_.width(), sdlContext_.height(),
+                                   promptLayout_.grid.columns, promptLayout_.grid.rows);
     if (sceneTransition_.active()) {
         input_.takeCommands();
-        input_.takeClicks();
-        renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_, actionResolver_,
-                            iteration, camera_.viewport());
+        const std::vector<game::PointerClick> clicks = input_.takeClicks();
+        const bool holding = sceneTransition_.holding();
+        if (holding) {
+            // Sostenida en negro: el popup del nuevo día es lo único que
+            // se puede tocar (como el de la cama, es modal). Sin cancelar.
+            if (!woke_) {
+                popupState_.showNextDay();
+            }
+            for (const game::PointerClick& click: clicks) {
+                if (woke_ || !promptLayout_.buttonAt(world::kPromptOkButton, popupBox,
+                                                     world::PixelPoint{click.x, click.y})) {
+                    continue;
+                }
+                // OK: el server espera a que despierten todos; el negro se
+                // suelta cuando llega ServerDay.
+                woke_ = true;
+                popupState_.hide();
+                gameClient_.sendCommand(protocol::WakeMessage{});
+                break;
+            }
+        } else {
+            renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+                                camera_.viewport(), dayPhase_.phase());
+            lightingPainter_.draw({}, dayPhase_.nightFactor());
+        }
         sdlContext_.fillRect(SDL2pp::Rect(0, 0, sdlContext_.width(), sdlContext_.height()),
                              SDL2pp::Color(0, 0, 0, static_cast<Uint8>(sceneTransition_.alpha())));
+        if (holding) {
+            drawPopup(popupBox);
+            const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
+            cursorPainter_.draw(cursorCatalog_,
+                                promptLayout_.buttonAt(world::kPromptOkButton, popupBox, mouse) ?
+                                        world::CursorKind::Interactive :
+                                        world::CursorKind::Normal,
+                                input_.mousePosition());
+        }
         sdlContext_.present();
         return;
     }
@@ -119,14 +196,7 @@ void PlaySession::tick(int iteration) {
     // INTENCIONES (cliente dummy): la fuente decide si hay algo y, si lo
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
-    // que se reacciona a la transición y no a cada tick. Amaneció: se
-    // cierra todo, se cambia la escena y suena el gallo.
-    if (state.dayChanged) {
-        voted_ = false;
-        popupState_.hide();
-        sceneTransition_.changeTo(core::kInitialRoom);
-        audio_.play(sdl::SoundId::RoosterCrow);
-    }
+    // que se reacciona a la transición y no a cada tick.
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
@@ -148,6 +218,23 @@ void PlaySession::tick(int iteration) {
             // (no se encolan para cuando cierre).
             continue;
         }
+        if (const auto spend = statSpends_.find(command.kind);
+            spend != statSpends_.end()) {
+            // Simulación local del gasto: no es una intención para el
+            // GameClient, la consumen los stats del cliente.
+            stats_.at(spend->second.stat).spend(spend->second.cost);
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::Faint) {
+            // Demo local: la primera pulsación dispara la caída; con el
+            // personaje ya desmayado no se reinicia.
+            if (!faintRequested_) {
+                faintRequested_ = true;
+                faintFallTicks_ = 0;
+                audio_.play(sdl::SoundId::Death);
+            }
+            continue;
+        }
         playerCommands.push_back(command);
     }
     // Mientras el popup es modal no hay input manual: la auto-caminata
@@ -165,11 +252,6 @@ void PlaySession::tick(int iteration) {
     const world::ScenePixelMapper cells(scene_.cellPixelSize);
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
-    // La caja del popup (figura del inventario centrada, en la grilla
-    // que digan sus datos): donde se dibuja y donde se tocan sus cosas.
-    const world::PixelBox popupBox =
-            inventory_.centeredBox(sdlContext_.width(), sdlContext_.height(),
-                                   promptLayout_.grid.columns, promptLayout_.grid.rows);
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
 
     if (!state.entities.empty()) {
@@ -214,17 +296,17 @@ void PlaySession::tick(int iteration) {
     // El mundo se dibuja con la vista "puesta": si el jugador está
     // metido en un elemento, en su pose (presentación local; ver
     // EnterSelection). Encima, la capa frontal que lo tapa.
-    renderer_.drawWorld(scene_, enterSelection_.displayView(state), motion_, actionResolver_,
-                        iteration, camera_.viewport());
-    drawEnteredFront(state, cells);
+    renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+                        camera_.viewport(), dayPhase_.phase());
+    drawEnteredFront(presentation, cells);
     drawPlantingMarker(cells);
 
     // Diálogos de las entidades (lo que "dicen"): la indicación viene en
     // el estado y el catálogo dice cómo se ve. Sobre el mundo, después
     // de las entidades.
-    dialogAnimator_.observe(state, iteration);
-    for (std::size_t i = 0; i < state.entities.size(); ++i) {
-        const game::ViewEntity& entity = state.entities[i];
+    dialogAnimator_.observe(presentation, iteration);
+    for (std::size_t i = 0; i < presentation.entities.size(); ++i) {
+        const game::ViewEntity& entity = presentation.entities[i];
         if (!entity.indication.has_value()) {
             continue;
         }
@@ -236,7 +318,7 @@ void PlaySession::tick(int iteration) {
     }
     // Y los de los cultivos (p. ej. piden agua): mismo mecanismo, el
     // dueño es la celda de tierra donde se dibuja la planta.
-    for (const game::ViewCrop& crop: state.plantedCrops) {
+    for (const game::ViewCrop& crop: presentation.plantedCrops) {
         if (!crop.indication.has_value()) {
             continue;
         }
@@ -246,8 +328,20 @@ void PlaySession::tick(int iteration) {
                             dialogAnimator_.animationTickFor(crop, iteration), camera_.viewport());
     }
 
+    // Luz nocturna: es el corte mundo/HUD. Todo lo anterior es mundo
+    // (queda tintado); todo lo posterior es interfaz fija (no).
+    lightingPainter_.draw({}, dayPhase_.nightFactor());
     inventoryHud_.draw(state.inventory, player_.activeSlot());
     bannerHud_.draw(bannerQueue_.active());
+    // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
+    // antes del popup y del puntero para que queden encima.
+    std::map<std::string, double> hudFillValues;
+    hudFillValues[game::kHudEnergyKey] =
+            stats_.at(game::StatKind::Energy).fraction();
+    hudFillValues[game::kHudLifeKey] =
+            stats_.at(game::StatKind::Life).fraction();
+    hudOverlayPainter_.draw(hudFillValues);
+    hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
     drawPopup(popupBox);
 
     // El puntero: la variante la decide el estado de juego (si hay algo
@@ -266,7 +360,8 @@ void PlaySession::tick(int iteration) {
         // El botón de cancelar del popup "Esperando..." sale de la cama
         // (el server borra el OK de este jugador).
         if (popupState_.view() == game::PopupView::Waiting &&
-            promptLayout_.cancelAt(popupBox, world::PixelPoint{click.x, click.y})) {
+            promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
+                                   world::PixelPoint{click.x, click.y})) {
             gameClient_.sendCommand(protocol::SleepMessage{false});
             voted_ = false;
             popupState_.hide();
@@ -326,12 +421,33 @@ void PlaySession::tick(int iteration) {
         interactive = (popupState_.view() == game::PopupView::Question &&
                        promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
                       (popupState_.view() == game::PopupView::Waiting &&
-                       promptLayout_.cancelAt(popupBox, mousePoint));
+                       promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
     }
     cursorPainter_.draw(cursorCatalog_,
                         interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
                         input_.mousePosition());
     sdlContext_.present();
+}
+
+game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
+    // Primero la pose de "meterse" (EnterSelection) y encima el override
+    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    game::LocalWorldView display = enterSelection_.displayView(view);
+    if (!faintRequested_ || display.entities.empty()) {
+        return display;
+    }
+    game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
+    local.action = world::ActionKind::Faint;
+    local.facing = world::Direction::Front;
+    local.moving = false;
+    // Las Z aparecen recién cuando la caída mostró todas sus poses. La
+    // duración sale de los MISMOS datos de la acción (contrato §10), no
+    // de una constante duplicada.
+    const world::CreatureData& creature = characters_.dataFor(local.kind);
+    if (faintFallTicks_ >= creature.actionCycleTicks(world::ActionKind::Faint)) {
+        local.indication = world::Indication::NoEnergy;
+    }
+    return display;
 }
 
 void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {

@@ -39,7 +39,8 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 			 const game::ViewMotion& motion,
 			 const game::ActionResolver& actionResolver,
 			 const int animationTick,
-			 const Viewport& viewport) {
+			 const Viewport& viewport,
+			 const world::TimeOfDay timeOfDay) {
 	const world::Color& background = scene.floorColor;
 	context_.clear(SDL2pp::Color(background.r, background.g,
 				     background.b, background.a));
@@ -65,7 +66,14 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
 
 	for (const std::uint32_t index : visibleElements_) {
-		drawElement(scene, scene.elements[index], mapper, viewport);
+		const world::ElementPlacement& element = scene.elements[index];
+		// El momento del día filtra: lo que solo se dibuja en su
+		// momento (key `when` de scenes.toml) no pasa de acá; el
+		// índice espacial y el resto del frame no se enteran.
+		if (!element.visibleAt(timeOfDay)) {
+			continue;
+		}
+		drawElement(scene, element, mapper, viewport);
 	}
 
 	// El terreno con consecuencias (tierra tratada por la pala, regada
@@ -139,7 +147,7 @@ void Renderer::drawResource(const game::ViewResource& resource,
 			    const world::ScenePixelMapper& mapper,
 			    const Viewport& viewport) {
 	const world::ResourceVisual* found =
-		resources_.find(resource.kind, resource.state);
+		resources_.find(resource.contentId, resource.state);
 	if (found == nullptr) {
 		return;
 	}

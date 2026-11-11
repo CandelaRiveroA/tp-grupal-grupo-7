@@ -23,6 +23,11 @@ public:
 	void clear(const SDL2pp::Color& color);
 	void fillRect(const SDL2pp::Rect& rect, const SDL2pp::Color& color);
 
+	// Rellena multiplicando lo ya dibujado por el color (SDL_BLENDMODE_MOD):
+	// el negro sigue negro, el resto se tiñe. Restaura la mezcla normal.
+	void fillRectMultiply(const SDL2pp::Rect& rect,
+			      const SDL2pp::Color& color);
+
 	SDL2pp::Texture createTexture(const std::string& path);
 
 	// Dibuja una superficie ya renderizada (p. ej. texto de una

@@ -175,15 +175,21 @@ TEST(FurnitureTest, TodosLosJugadoresDebenAceptarParaDormir) {
 
     // El primero acepta: falta el segundo.
     world.answer_sleep(1, true);
-    EXPECT_FALSE(world.take_sleep_advanced());
+    EXPECT_FALSE(world.take_day_ended());
 
-    // El segundo acepta: avanzan todos.
+    // El segundo acepta: termina el día, pero todavía no arranca.
     world.answer_sleep(2, true);
-    EXPECT_TRUE(world.take_sleep_advanced());
-    // Consumido: no avanza dos veces.
-    EXPECT_FALSE(world.take_sleep_advanced());
-
+    EXPECT_TRUE(world.take_day_ended());
+    EXPECT_FALSE(world.take_day_ended());
+    EXPECT_FALSE(world.take_day_started());
     EXPECT_EQ(world.sleeping_count(), 0);
+
+    // Arranca recién cuando despiertan los dos; ahí produce la gallina.
+    world.answer_wake(1);
+    EXPECT_FALSE(world.take_day_started());
+    world.answer_wake(2);
+    EXPECT_TRUE(world.take_day_started());
+    EXPECT_FALSE(world.take_day_started());
     EXPECT_TRUE(cell_has_item(world, 0, 0, ItemID::EGG));
 }
 
@@ -205,20 +211,20 @@ TEST(FurnitureTest, CancelarSoloBorraSuOK) {
 
     world.answer_sleep(1, true);
     world.answer_sleep(2, true);
-    EXPECT_FALSE(world.take_sleep_advanced());
+    EXPECT_FALSE(world.take_day_ended());
 
     // El tercero cancela: sale de la cama, pero los OK de los otros se mantienen.
     world.answer_sleep(3, false);
     EXPECT_EQ(world.sleeping_count(), 2);
 
     // El tercero reentra (está parado en la cama: con la mano se vuelve a
-    // pedir dormir) y acepta: con los OK de 1 y 2 intactos, el día avanza.
+    // pedir dormir) y acepta: con los OK de 1 y 2 intactos, el día termina.
     world.take_item(3);
     ASSERT_EQ(world.sleeping_count(), 3);
-    EXPECT_FALSE(world.take_sleep_advanced());
+    EXPECT_FALSE(world.take_day_ended());
 
     world.answer_sleep(3, true);
-    EXPECT_TRUE(world.take_sleep_advanced());
+    EXPECT_TRUE(world.take_day_ended());
 }
 
 // ---------------------------------------------------------
@@ -240,7 +246,7 @@ TEST(FurnitureTest, DesconectarUnJugadorNoDejaLaVotacionColgada) {
     EXPECT_EQ(world.sleeping_count(), 1);
 
     world.answer_sleep(1, true);
-    EXPECT_TRUE(world.take_sleep_advanced());
+    EXPECT_TRUE(world.take_day_ended());
 }
 
 // ---------------------------------------------------------
@@ -261,10 +267,35 @@ TEST(FurnitureTest, SiSeVaElQueFaltabaAceptarAvanzaElDia) {
 
     world.answer_sleep(1, true);
     world.answer_sleep(2, true);
-    EXPECT_FALSE(world.take_sleep_advanced());
+    EXPECT_FALSE(world.take_day_ended());
 
     world.remove_player(3);
-    EXPECT_TRUE(world.take_sleep_advanced());
+    EXPECT_TRUE(world.take_day_ended());
+}
+
+// ---------------------------------------------------------
+// El día terminado (por timeout) espera a que todos despierten; si uno se
+// va mientras tanto, los demás no quedan trabados.
+// ---------------------------------------------------------
+TEST(FurnitureTest, DiaTerminadoEsperaQueDespiertenTodos) {
+    World world(6, 6);
+    world.add_player(1, std::make_unique<Player>(1, 3, 2));
+    world.add_player(2, std::make_unique<Player>(2, 3, 4));
+    world.add_player(3, std::make_unique<Player>(3, 5, 3));
+
+    world.end_day();
+    EXPECT_TRUE(world.take_day_ended());
+    EXPECT_TRUE(world.is_waking());
+
+    world.answer_wake(1);
+    EXPECT_FALSE(world.take_day_started());
+
+    world.remove_player(3);
+    EXPECT_FALSE(world.take_day_started());
+
+    world.answer_wake(2);
+    EXPECT_TRUE(world.take_day_started());
+    EXPECT_FALSE(world.is_waking());
 }
 
 }  // namespace

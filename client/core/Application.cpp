@@ -25,6 +25,7 @@
 #include "world/CreatureCatalog.h"
 #include "world/CursorConfigLoader.h"
 #include "world/DialogConfigLoader.h"
+#include "world/HudOverlayConfigLoader.h"
 #include "world/DigitCatalog.h"
 #include "world/DigitConfigLoader.h"
 #include "world/FontCatalog.h"
@@ -129,6 +130,12 @@ int Application::runGame(SessionConfig session) {
                 world::CursorConfigLoader().loadFromFile(core::assetPath(core::kCursorsFile));
         const world::DialogCatalog dialogs =
                 world::DialogConfigLoader().loadFromFile(core::assetPath(core::kDialogsFile));
+        const world::HudOverlayCatalog hudOverlays =
+                world::HudOverlayConfigLoader().loadFromFile(
+                        core::assetPath(core::kHudOverlaysFile));
+        const world::HudOverlayCatalog lighting =
+                world::HudOverlayConfigLoader().loadFromFile(
+                        core::assetPath(core::kLightingFile));
         // La fuente de texto y el prompt del popup: datos puros cuya
         // traducción vive en su constructor (mismo ConfigError del
         // catch único de este borde).
@@ -139,7 +146,7 @@ int Application::runGame(SessionConfig session) {
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs, font, prompt);
+                                resources, banner, digits, cursors, dialogs, font, prompt, hudOverlays, lighting);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

@@ -44,6 +44,11 @@ enum class ActionKind {
     // Variante de Walk para el mismo caso local (ver
     // ActionResolver::carryVariants_).
     CarryWalk,
+    // Desmayo: secuencia one-shot que termina tirado en el piso y se
+    // queda en la última pose. La acción la enciende la fuente de
+    // estado; mientras dure manda sobre Walk y Carry (el personaje
+    // puede seguir moviéndose, pero la pose no cambia).
+    Faint,
 };
 
 struct ActionData {

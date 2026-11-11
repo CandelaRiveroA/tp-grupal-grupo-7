@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 #include "game/PopupState.h"
 #include "sdl/render/SpriteSheet.h"
@@ -39,12 +40,14 @@ private:
 			  const world::PixelBox& panel);
 	void drawWaiting(const game::PopupState& state, int hoveredOption,
 			 const world::PixelBox& panel);
+	void drawNextDay(const game::PopupState& state, int hoveredOption,
+			 const world::PixelBox& panel);
 	void drawHidden(const game::PopupState& state, int hoveredOption,
 			const world::PixelBox& panel);
 
-	// El botón de cancelar, abajo a la derecha del panel: las piezas
+	// Un botón del popup (por nombre) en su lugar del panel: las piezas
 	// de su 9-slice estiradas a su caja.
-	void drawCancel(const world::PixelBox& panel);
+	void drawButton(const std::string& name, const world::PixelBox& panel);
 
 	// El template `waiting` con {0}/{1} reemplazados por el avance que
 	// manda la fuente de estado.
@@ -53,7 +56,7 @@ private:
 	std::map<game::PopupView, DrawMethod> drawMethods_;
 	TextRenderer& text_;
 	const world::PromptLayout& layout_;
-	SpriteSheet cancelSheet_;
+	std::map<std::string, SpriteSheet> buttonSheets_;
 };
 
 }  // namespace sdl

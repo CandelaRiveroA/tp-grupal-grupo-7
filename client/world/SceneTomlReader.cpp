@@ -18,6 +18,10 @@ SceneTomlReader::SceneTomlReader(const tomlcfg::TomlDocument& doc)
 		  {"left", Direction::Left},
 		  {"right", Direction::Right},
 	  }
+	, timeOfDayByName_{
+		  {kTimeOfDayDay, TimeOfDay::Day},
+		  {kTimeOfDayNight, TimeOfDay::Night},
+	  }
 	, doc_(doc) {}
 
 SceneDescription SceneTomlReader::readRoom(
@@ -142,6 +146,8 @@ void SceneTomlReader::readElements(const std::string& roomBase,
 					      defaultScale, context);
 
 		readEnter(element, context, placement);
+
+		readWhen(element, context, placement);
 
 		scene.elements.push_back(std::move(placement));
 		++elementIndex;
@@ -280,6 +286,30 @@ Direction SceneTomlReader::parseFacing(const std::string& name,
 	if (found == directionsByName_.end()) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
 				  join(context, kKeyEnterFacing));
+	}
+	return found->second;
+}
+
+void SceneTomlReader::readWhen(const tomlcfg::TomlDocument& element,
+			       const std::string& context,
+			       ElementPlacement& placement) const {
+	// Momento del día (OPCIONAL): sin la key el elemento se dibuja
+	// en cualquier momento (el caso de toda sala hasta ahora). Con
+	// ella, el render lo filtra con visibleAt.
+	if (!element.hasKey(kKeyWhen)) {
+		return;
+	}
+	placement.when =
+		parseTimeOfDay(element.getString(kKeyWhen),
+			       join(context, kKeyWhen));
+}
+
+TimeOfDay SceneTomlReader::parseTimeOfDay(const std::string& name,
+					  const std::string& context) const {
+	const std::map<std::string, TimeOfDay>::const_iterator found =
+		timeOfDayByName_.find(name);
+	if (found == timeOfDayByName_.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, context);
 	}
 	return found->second;
 }

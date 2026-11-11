@@ -36,7 +36,7 @@ TEST(MoveCommandTest, ProposeMapsFrontToDown) {
 TEST(MoveCommandTest, UseBuildsPickWithFacingDirection) {
 	const MoveCommand move;
 	const protocol::ClientMessage message =
-		move.use(world::Direction::Left);
+		move.use(world::Direction::Left, 0);
 	const auto* pick = std::get_if<protocol::PickMessage>(&message);
 	ASSERT_NE(pick, nullptr);
 	EXPECT_EQ(pick->direction, ::Direction::LEFT);

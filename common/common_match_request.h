@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+#include "common/model/draft/CharacterAppearance.h"
+
 // Primer mensaje de cada conexion del lobby: crear o unirse a un match.
 enum class MatchRequestType : uint8_t { Create = 1, Join = 2 };
 
@@ -16,6 +18,9 @@ struct MatchRequest {
     std::string nameMatch;
     std::string username;
     std::string characterName;
+    // Personalizacion del personaje: indices de capa tal cual los eligio el
+    // cliente, sin validar (el server no conoce los counts de characters.toml).
+    CharacterAppearance appearance;
 };
 
 // Respuesta al pedido del lobby. Si es Ok, la conexion queda como jugador del match.

@@ -21,4 +21,33 @@ constexpr int kPickupCycles = 1;
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
 
+// --- Reloj de juego (ServerClock) ---------------------------------------
+
+// El server manda los minutos desde esta hora (0 = 6:00).
+constexpr int kClockStartHour = 6;
+constexpr int kMinutesPerHour = 60;
+// El día 1 es lunes: el día de la semana es (día - 1) % 7, 0 = lunes.
+constexpr int kFirstDayNumber = 1;
+constexpr int kDaysPerWeek = 7;
+
+// Claves de los valores crudos del reloj que leen las etiquetas del HUD
+// (los {token} / `source` de ui/hud.toml).
+constexpr const char* kClockWeekdayKey = "dia_semana";
+constexpr const char* kClockDayKey = "dia";
+constexpr const char* kClockHourKey = "hora";
+constexpr const char* kClockMinuteKey = "minuto";
+
+// --- Stats simulados (energía y vida) ----------------------------------
+
+// Claves de los valores 0..1 que llenan las barras del HUD
+// (`[overlay.fill].value` en ui/hud.toml).
+constexpr const char* kHudEnergyKey = "energia";
+constexpr const char* kHudLifeKey = "vida";
+
+// Costo de UNA acción simulada por tecla (hoy G para energía y H para
+// vida; mañana el gasto que mande el server por acción). 2% => unas 50
+// acciones para vaciar una barra en una partida de 14 minutos.
+constexpr double kEnergyCostPerAction = 0.02;
+constexpr double kLifeCostPerAction = 0.02;
+
 }

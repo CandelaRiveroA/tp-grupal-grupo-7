@@ -44,3 +44,24 @@ anchor_offset = [0, -28]
   loops       = false
   # La burbuja crece y el último frame informa: el agua como tal.
   frames      = [ [0, 0], [1, 0], [2, 0], [2, 7] ]
+
+[no_energy]
+# Sin energía: el personaje se desmaya y las Z aparecen sobre su cabeza.
+anchor_offset = [0, -40]
+
+  [no_energy.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  # Al terminar, el diálogo desaparece (no se queda informando): la
+  # secuencia ya hizo su trabajo.
+  hide_at_end = true
+  # La burbuja aparece, las Z parpadean dos veces y se va al revés.
+  frames      = [
+    [0, 0], [1, 0], [2, 0], [3, 0],
+    [0, 6], [1, 6], [2, 6], [3, 6],
+    [0, 6], [1, 6], [2, 6], [3, 6],
+    [3, 0], [2, 0], [1, 0], [0, 0],
+  ]

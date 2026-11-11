@@ -44,12 +44,13 @@ NetworkSessionService::~NetworkSessionService() {
 
 void NetworkSessionService::createGame(const GameSelection& selection) {
     sendRequest(MatchRequest{MatchRequestType::Create, selection.gameName, selection.gameName,
-                             selection.username, selection.characterName});
+                             selection.username, selection.characterName, selection.appearance});
 }
 
 void NetworkSessionService::joinGame(const std::string& code, const std::string& username,
-                                     const std::string& characterName) {
-    sendRequest(MatchRequest{MatchRequestType::Join, code, "", username, characterName});
+                                     const std::string& characterName,
+                                     const CharacterAppearance& appearance) {
+    sendRequest(MatchRequest{MatchRequestType::Join, code, "", username, characterName, appearance});
 }
 
 void NetworkSessionService::loadGame(std::uint32_t) {

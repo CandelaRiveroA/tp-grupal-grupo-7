@@ -42,11 +42,14 @@ public:
 	// entra a una escena o cuando cambia su contenido, no por frame.
 	void prepareScene(const world::SceneDescription& scene);
 
+	// `timeOfDay` filtra los elementos con `when` (scenes.toml):
+	// qué momento es lo dice el dueño de DayPhase, no esto.
 	void drawWorld(const world::SceneDescription& scene,
 		       const game::LocalWorldView& view,
 		       const game::ViewMotion& motion,
 		       const game::ActionResolver& actionResolver,
-		       int animationTick, const Viewport& viewport);
+		       int animationTick, const Viewport& viewport,
+		       world::TimeOfDay timeOfDay);
 
 	// Capa frontal de un elemento: solo el rango de filas de su pieza,
 	// ya sobre las entidades (lo que "tapa" al jugador metido adentro).

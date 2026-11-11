@@ -6,8 +6,8 @@ protocol::ClientMessage MoveCommand::propose(world::Direction direction) const {
     return protocol::MoveMessage{world::wireDirectionFrom(direction)};
 }
 
-protocol::ClientMessage MoveCommand::use(world::Direction direction) const {
-    return protocol::PickMessage{world::wireDirectionFrom(direction)};
+protocol::ClientMessage MoveCommand::use(world::Direction direction, int slot) const {
+    return protocol::PickMessage{world::wireDirectionFrom(direction), static_cast<uint8_t>(slot)};
 }
 
 protocol::ClientMessage MoveCommand::take(world::Direction direction) const {

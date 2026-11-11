@@ -4,6 +4,8 @@
 
 #include "../server/domain/enemies/orc.h"
 #include "../server/domain/enemies/skeleton.h"
+#include "../server/domain/enemies/vampire.h"
+#include "../server/domain/enemies/vampiress.h"
 #include "../server/domain/entities/player.h"
 #include "../server/domain/map/world.h"
 
@@ -257,4 +259,181 @@ TEST(EnemyTest, AgregarUnEnemigoFueraDelMapaNoRompe) {
 
     EXPECT_EQ(skeleton->get_x(), 0);  // el válido sigue funcionando: baja un paso
     EXPECT_EQ(skeleton->get_y(), 1);
+}
+
+// ---------------------------------------------------------
+// Vampiro: sangre, revive y frenesí de pareja
+// ---------------------------------------------------------
+TEST(VampireTest, ElGolpeGraveDejaCharcoYElVampiroReviveUnaVez) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 0, 0));
+    Player attacker(1, 0, 0);
+    world.damage_player(1, 85);  // 100 -> 15: por debajo del 20 %, deja sangre
+
+    auto owned = std::make_unique<Vampire>(3, 3);
+    Vampire* vampire = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int hit = 0; hit < 30; ++hit) {  // el vampiro tiene 30 de vida
+        vampire->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(vampire->get_health(), 0);
+
+    for (int tick = 0; tick < 10; ++tick) {  // 10 ticks: contador a 0 y revive
+        world.tick_enemies();
+    }
+    EXPECT_EQ(vampire->get_health(), 30);  // revivió consumiendo el charco
+
+    // El charco se consumió: la segunda muerte no revive.
+    for (int hit = 0; hit < 30; ++hit) {
+        vampire->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(vampire->get_health(), 0);
+    for (int tick = 0; tick < 15; ++tick) {
+        world.tick_enemies();
+    }
+    EXPECT_EQ(vampire->get_health(), 0);
+}
+
+TEST(VampireTest, LaMuerteDelJugadorTambienDejaCharco) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 0, 0));
+    Player attacker(1, 0, 0);
+    world.damage_player(1, 100);  // mata al jugador: también deja sangre
+
+    auto owned = std::make_unique<Vampire>(3, 3);
+    Vampire* vampire = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int hit = 0; hit < 30; ++hit) {
+        vampire->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(vampire->get_health(), 0);
+
+    for (int tick = 0; tick < 10; ++tick) {
+        world.tick_enemies();
+    }
+    EXPECT_EQ(vampire->get_health(), 30);  // revivió con el charco de la muerte
+}
+
+TEST(VampireTest, UnGolpeNoGraveNoDejaCharcoYElVampiroNoRevive) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 0, 0));
+    Player attacker(1, 0, 0);
+    world.damage_player(1, 40);  // queda en 60: no es grave, no hay sangre
+
+    auto owned = std::make_unique<Vampire>(3, 3);
+    Vampire* vampire = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int hit = 0; hit < 30; ++hit) {
+        vampire->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(vampire->get_health(), 0);
+
+    for (int tick = 0; tick < 20; ++tick) {  // pasó el plazo de revive
+        world.tick_enemies();
+    }
+    EXPECT_EQ(vampire->get_health(), 0);
+}
+
+TEST(VampireTest, AlMorirLaVampiraElVampiroEnfureceYPegaElDoble) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 5, 5));
+    Player attacker(1, 0, 0);
+    auto male = std::make_unique<Vampire>(6, 5);  // al lado del jugador
+    auto female = std::make_unique<Vampiress>(8, 8);
+    Vampire* male_ptr = male.get();
+    Vampiress* female_ptr = female.get();
+    male_ptr->set_partner(female_ptr);
+    female_ptr->set_partner(male_ptr);
+    world.add_enemy(std::move(male));
+    world.add_enemy(std::move(female));
+
+    EXPECT_EQ(male_ptr->get_damage(), 15);  // sin frenesí
+    for (int hit = 0; hit < 20; ++hit) {  // la vampira tiene 20 de vida
+        female_ptr->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(female_ptr->get_health(), 0);
+    EXPECT_EQ(male_ptr->get_damage(), 30);  // muerte de la pareja: daño x2
+
+    world.tick_enemies();
+    EXPECT_EQ(world.get_player(1).get_health(), 70);  // 30 del golpe frenético
+}
+
+TEST(VampireTest, AlMorirElVampiroLaVampiraEnfureceYCorreElDoble) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 0, 0));
+    Player attacker(1, 0, 0);
+    auto male = std::make_unique<Vampire>(8, 0);
+    auto female = std::make_unique<Vampiress>(5, 0);  // a 5 del jugador
+    Vampire* male_ptr = male.get();
+    Vampiress* female_ptr = female.get();
+    male_ptr->set_partner(female_ptr);
+    female_ptr->set_partner(male_ptr);
+    world.add_enemy(std::move(male));
+    world.add_enemy(std::move(female));
+
+    for (int hit = 0; hit < 30; ++hit) {  // el vampiro tiene 30 de vida
+        male_ptr->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(male_ptr->get_health(), 0);
+
+    world.tick_enemies();
+    // 2 de speed x 2 de frenesí = 4 pasos: de 5 a 1 (sin frenesí serían 2).
+    EXPECT_EQ(female_ptr->get_x(), 1);
+    EXPECT_EQ(female_ptr->get_y(), 0);
+}
+
+TEST(VampireTest, SpawnVampirePairDejaLaParejaEnlazada) {
+    World world(10, 10);
+    world.spawn_vampire_pair(5, 5);
+
+    Vampire* male = nullptr;
+    Vampiress* female = nullptr;
+    for (uint16_t y = 0; y < world.get_height(); ++y) {
+        for (uint16_t x = 0; x < world.get_width(); ++x) {
+            for (IEntity* ent: world.get_entity_at(x, y)) {
+                if (auto* vampiress = dynamic_cast<Vampiress*>(ent)) {
+                    female = vampiress;
+                } else if (auto* vampire = dynamic_cast<Vampire*>(ent)) {
+                    male = vampire;
+                }
+            }
+        }
+    }
+    ASSERT_NE(male, nullptr);
+    ASSERT_NE(female, nullptr);
+
+    // El enlace mutuo se proba por el frenesí: al morir la vampira, el
+    // vampiro pasa a pegar el doble.
+    Player attacker(1, 0, 0);
+    EXPECT_EQ(male->get_damage(), 15);
+    for (int hit = 0; hit < 20; ++hit) {
+        female->interact(attacker, ToolType::SWORD, world);
+    }
+    EXPECT_EQ(female->get_health(), 0);
+    EXPECT_EQ(male->get_damage(), 30);
+}
+
+TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 0, 0));
+    Player attacker(1, 0, 0);
+    world.damage_player(1, 85);  // deja un charco...
+    world.process_end_of_day_floor();  // ...que el fin de día seca
+
+    auto owned = std::make_unique<Vampire>(3, 3);
+    Vampire* vampire = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int hit = 0; hit < 30; ++hit) {
+        vampire->interact(attacker, ToolType::SWORD, world);
+    }
+    ASSERT_EQ(vampire->get_health(), 0);
+
+    for (int tick = 0; tick < 15; ++tick) {  // sin sangre no revive
+        world.tick_enemies();
+    }
+    EXPECT_EQ(vampire->get_health(), 0);
 }

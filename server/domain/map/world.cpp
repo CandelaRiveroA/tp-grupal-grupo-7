@@ -14,6 +14,8 @@
 #include "../animals/animal.h"
 #include "../enemies/enemy.h"
 #include "../enemies/orc.h"
+#include "../enemies/vampire.h"
+#include "../enemies/vampiress.h"
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -249,6 +251,42 @@ void World::spawn_orc_pack(uint16_t x, uint16_t y) {
     }
 }
 
+void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
+    // Pareja en dos celdas caminables con radio <= 1 del punto (hasta 9
+    // candidatas): con menos de 2 no hay pareja.
+    std::vector<std::pair<uint16_t, uint16_t>> cells;
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            const int cell_x = static_cast<int>(x) + dx;
+            const int cell_y = static_cast<int>(y) + dy;
+            if (cell_x < 0 || cell_y < 0 || cell_x >= this->width || cell_y >= this->height) {
+                continue;
+            }
+            const uint16_t new_x = static_cast<uint16_t>(cell_x);
+            const uint16_t new_y = static_cast<uint16_t>(cell_y);
+            if (this->can_walk_to(new_x, new_y)) {
+                cells.emplace_back(new_x, new_y);
+            }
+        }
+    }
+    if (cells.size() < 2) {
+        return;
+    }
+    // Arranque al azar para que no aparezca siempre en el mismo orden.
+    const size_t start = static_cast<size_t>(std::rand()) % cells.size();
+    const auto& [first_x, first_y] = cells[start];
+    const auto& [second_x, second_y] = cells[(start + 1) % cells.size()];
+    // Los dos se construyen antes de agregar: nadie bloquea la celda del otro.
+    auto vampire = std::make_unique<Vampire>(first_x, first_y);
+    auto vampiress = std::make_unique<Vampiress>(second_x, second_y);
+    Vampire* vampire_ptr = vampire.get();
+    Vampiress* vampiress_ptr = vampiress.get();
+    vampire_ptr->set_partner(vampiress_ptr);
+    vampiress_ptr->set_partner(vampire_ptr);
+    this->add_enemy(std::move(vampire));
+    this->add_enemy(std::move(vampiress));
+}
+
 void World::tick_enemies() {
     // Se copian los punteros: update puede agregar enemigos (spawn) y rearmar el vector.
     const std::vector<Enemy*> today = enemies;
@@ -258,7 +296,23 @@ void World::tick_enemies() {
 }
 
 bool World::damage_player(uint8_t player_id, uint8_t damage) {
-    return this->players.at(player_id)->take_damage(damage);
+    Player& player = *this->players.at(player_id);
+    const uint16_t hp_before = player.get_health();
+    const bool killed = player.take_damage(damage);
+    // Charco de sangre: solo el golpe que dejó al jugador por debajo del 20 %
+    // (incluida la muerte) deja sangre; golpear a un ya caído no suma.
+    if (player.get_health() < hp_before && player.is_gravely_wounded()) {
+        this->blood_puddles.emplace_back(player.get_x(), player.get_y());
+    }
+    return killed;
+}
+
+bool World::consume_blood_puddle() {
+    if (this->blood_puddles.empty()) {
+        return false;
+    }
+    this->blood_puddles.pop_back();
+    return true;
 }
 
 void World::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
@@ -473,6 +527,9 @@ void World::dry_soil() {
 }
 
 void World::process_end_of_day_floor() {
+    // La sangre se seca al terminar el día: los vampiros no revive con
+    // charcos viejos.
+    this->blood_puddles.clear();
     for (uint16_t y = 0; y < this->height; ++y) {
         for (uint16_t x = 0; x < this->width; ++x) {
             Cell& current_cell = this->grid[y][x];

@@ -47,6 +47,10 @@ public:
     const Inventory& get_inventory() const;
     uint16_t get_health() const;
 
+    // true si la vida quedó por debajo del 20 % del tope (herido grave o
+    // muerto): con eso World decide si queda un charco de sangre.
+    bool is_gravely_wounded() const;
+
     // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
     bool take_damage(uint8_t incoming) override;
 

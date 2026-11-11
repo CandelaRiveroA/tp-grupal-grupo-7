@@ -27,6 +27,8 @@ Enemy::Enemy(uint16_t x, uint16_t y, uint8_t health, uint8_t damage, uint8_t gol
 
 uint8_t Enemy::get_health() const { return this->health; }
 
+uint8_t Enemy::get_damage() const { return this->damage; }
+
 bool Enemy::take_damage(uint8_t incoming) {
     // Un muerto no recibe más golpes.
     if (this->health == 0) {
@@ -111,7 +113,7 @@ void Enemy::chase_player(World& w) {
 
     // Cuerpo a cuerpo: golpea a quien esté en las 8 vecinas.
     if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
-        w.damage_player(target->get_id(), this->damage);
+        w.damage_player(target->get_id(), this->get_damage());
         return;
     }
 

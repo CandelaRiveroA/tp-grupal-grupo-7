@@ -35,6 +35,9 @@ public:
 
     uint8_t get_health() const;
 
+    // Daño del próximo golpe: las especies con frenesí lo multiplican.
+    virtual uint8_t get_damage() const;
+
     // IAttackable: false si ya estaba muerto; true = murió con este golpe.
     bool take_damage(uint8_t incoming) override;
 

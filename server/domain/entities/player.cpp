@@ -31,6 +31,8 @@ const Inventory& Player::get_inventory() const { return this->backpack; }
 
 uint16_t Player::get_health() const { return this->hp; }
 
+bool Player::is_gravely_wounded() const { return this->hp * 5 < this->max_hp; }
+
 bool Player::take_damage(uint8_t incoming) {
     // shortcut: llegar a 0 vida no tiene consecuencia todavía (el jugador
     // sigue jugando); la muerte y el respawn quedan para cuando exista ese

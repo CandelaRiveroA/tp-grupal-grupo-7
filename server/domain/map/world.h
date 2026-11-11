@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "../entities/player.h"
@@ -31,6 +32,10 @@ private:
     std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
+    // Charcos de sangre (globales para todo el mapa): los deja damage_player
+    // cuando un jugador queda por debajo del 20 % de vida y los consumen los
+    // vampiros al morir. La posición queda para un futuro render.
+    std::vector<std::pair<uint16_t, uint16_t>> blood_puddles;
 
     // Sueño: jugadores en la cama (sleepers) y los que ya dieron OK
     // (accepted). accepted ⊆ sleepers, así que vaciar sleepers vacía
@@ -82,6 +87,10 @@ public:
     // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 de (x, y).
     void spawn_orc_pack(uint16_t x, uint16_t y);
 
+    // Pareja enlazada de vampiros (1 vampiro + 1 vampira) en celdas
+    // caminables con radio <= 1 de (x, y).
+    void spawn_vampire_pair(uint16_t x, uint16_t y);
+
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
     // Pasa al día siguiente (contador de día) y corre tick_day. Lo llaman el
@@ -99,6 +108,10 @@ public:
 
     // Golpe de un enemigo al jugador. Devuelve true si quedó sin vida.
     bool damage_player(uint8_t player_id, uint8_t damage);
+
+    // Consume el último charco de sangre: true = quedaba sangre (la usa el
+    // vampiro que murió para programar su revive).
+    bool consume_blood_puddle();
 
     // Mueve una entidad a otra celda; no hace nada si el destino está bloqueado.
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);

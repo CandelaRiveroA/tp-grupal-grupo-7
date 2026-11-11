@@ -128,6 +128,8 @@ void Match::place_enemies() {
     world.add_enemy(std::make_unique<Skeleton>(27, 17));
     // Manada de orcos de prueba (3 a 6), lejos del spawn (15, 10).
     world.spawn_orc_pack(15, 4);
+    // Pareja de vampiros de prueba, lejos del spawn y de los orcos.
+    world.spawn_vampire_pair(24, 12);
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):

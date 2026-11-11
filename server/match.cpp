@@ -11,6 +11,7 @@
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
 #include "domain/enemies/skeleton.h"
+#include "domain/enemies/skull.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
 
@@ -130,6 +131,8 @@ void Match::place_enemies() {
     world.spawn_orc_pack(15, 4);
     // Pareja de vampiros de prueba, lejos del spawn y de los orcos.
     world.spawn_vampire_pair(24, 12);
+    // Un solo Skull: hoy hay un solo cuarto; el EnemyController repartirá uno por cuarto.
+    world.add_enemy(std::make_unique<Skull>(5, 3));
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):

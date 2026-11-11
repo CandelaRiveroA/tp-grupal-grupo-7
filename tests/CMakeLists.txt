@@ -36,6 +36,7 @@ target_sources(taller_tests
     ../server/domain/enemies/orc.cpp
     ../server/domain/enemies/vampire.cpp
     ../server/domain/enemies/vampiress.cpp
+    ../server/domain/enemies/skull.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp

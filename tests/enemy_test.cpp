@@ -4,6 +4,7 @@
 
 #include "../server/domain/enemies/orc.h"
 #include "../server/domain/enemies/skeleton.h"
+#include "../server/domain/enemies/skull.h"
 #include "../server/domain/enemies/vampire.h"
 #include "../server/domain/enemies/vampiress.h"
 #include "../server/domain/entities/player.h"
@@ -436,4 +437,55 @@ TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {
         world.tick_enemies();
     }
     EXPECT_EQ(vampire->get_health(), 0);
+}
+
+// ---------------------------------------------------------
+// Skull: invulnerable y de llamas a distancia
+// ---------------------------------------------------------
+TEST(SkullTest, NoPuedeSerAsesinadoNiSueltaOro) {
+    World world(10, 10);
+    Player attacker(1, 0, 0);
+    auto owned = std::make_unique<Skull>(3, 3);
+    Skull* skull = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int hit = 0; hit < 30; ++hit) {
+        skull->interact(attacker, ToolType::SWORD, world);
+    }
+    EXPECT_EQ(skull->get_health(), 50);
+    EXPECT_FALSE(world.can_walk_to(3, 3));  // sigue bloqueando la celda
+    EXPECT_EQ(world.get_entity_at(3, 3).size(), 1u);  // solo el skull, sin orbe
+}
+
+TEST(SkullTest, LanzaLlamaAzulSinMoverseDentroDeRango) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 3, 6));  // a distancia 3
+    auto owned = std::make_unique<Skull>(3, 3);
+    Skull* skull = owned.get();
+    world.add_enemy(std::move(owned));
+
+    world.tick_enemies();
+    EXPECT_EQ(world.get_player(1).get_health(), 95);
+    EXPECT_EQ(skull->get_x(), 3);
+    EXPECT_EQ(skull->get_y(), 3);
+}
+
+TEST(SkullTest, FueraDeRangoNoDaniaAlJugador) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 3, 7));  // a distancia 4
+    world.add_enemy(std::make_unique<Skull>(3, 3));
+
+    world.tick_enemies();
+    EXPECT_EQ(world.get_player(1).get_health(), 100);
+}
+
+TEST(SkullTest, LaLlamaVerdeHaceElDobleCadaDosTicks) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 3, 6));
+    world.add_enemy(std::make_unique<Skull>(3, 3));
+
+    world.tick_enemies();  // tick 1: solo azul
+    EXPECT_EQ(world.get_player(1).get_health(), 95);
+    world.tick_enemies();  // tick 2: azul + verde (10)
+    EXPECT_EQ(world.get_player(1).get_health(), 80);
 }

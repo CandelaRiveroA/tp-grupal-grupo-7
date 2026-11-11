@@ -89,12 +89,9 @@ void Enemy::drop_orb(World& w, ItemID item, uint16_t price, uint8_t percent) {
                     std::make_unique<DroppedItem>(std::move(orb), this->pos_x, this->pos_y));
 }
 
-void Enemy::chase_player(World& w) {
-    // Al jugador vivo más cercano dentro del radio de persecución.
+const Player* Enemy::find_nearest_player(World& w, int range) const {
     const Player* target = nullptr;
-    int dx = 0;
-    int dy = 0;
-    int best_distance = kAggroRange + 1;
+    int best_distance = range + 1;
     for (const uint8_t id: w.get_player_ids()) {
         const Player& player = w.get_player(id);
         const int player_dx = static_cast<int>(player.get_x()) - static_cast<int>(this->pos_x);
@@ -103,13 +100,18 @@ void Enemy::chase_player(World& w) {
         if (distance < best_distance) {
             best_distance = distance;
             target = &player;
-            dx = player_dx;
-            dy = player_dy;
         }
     }
+    return target;
+}
+
+void Enemy::chase_player(World& w) {
+    const Player* target = this->find_nearest_player(w, kAggroRange);
     if (target == nullptr) {
         return;
     }
+    const int dx = static_cast<int>(target->get_x()) - static_cast<int>(this->pos_x);
+    const int dy = static_cast<int>(target->get_y()) - static_cast<int>(this->pos_y);
 
     // Cuerpo a cuerpo: golpea a quien esté en las 8 vecinas.
     if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {

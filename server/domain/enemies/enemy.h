@@ -58,6 +58,9 @@ protected:
     // llama mientras esté con vida.
     virtual void behave(World& w) = 0;
 
+    // Jugador más cercano dentro del radio dado, o nullptr.
+    const Player* find_nearest_player(World& w, int range) const;
+
     // Persecución cuerpo a cuerpo compartida: persigue al jugador vivo más
     // cercano dentro de kAggroRange y le pega si está en las 8 vecinas.
     void chase_player(World& w);

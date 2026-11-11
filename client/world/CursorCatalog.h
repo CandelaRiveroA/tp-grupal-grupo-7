@@ -12,6 +12,8 @@ namespace world {
 enum class CursorKind {
 	Normal,
 	Interactive,
+	// Otro jugador (no el local): apunta a "darle un regalo".
+	Gift,
 };
 
 // Cursores del puntero como DATOS: qué sprite dibuja cada estado y

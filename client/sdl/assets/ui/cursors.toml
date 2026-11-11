@@ -20,3 +20,10 @@ sheet = "ui/cursors.png"
 cell  = [16, 16]
 at    = [2, 0]
 drawn = [32, 32]
+
+# Otro jugador bajo el puntero: ofrecer un regalo.
+[gift]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+at    = [3, 0]
+drawn = [32, 32]

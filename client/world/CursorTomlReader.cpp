@@ -21,11 +21,15 @@ constexpr const char* kAt = "at";
 struct CursorBinding {
 	CursorKind kind;
 	const char* tableKey;
+	// Las variantes nuevas son opcionales: un TOML viejo sigue cargando
+	// (y el painter cae a otra variante). Las históricas son obligatorias.
+	bool required;
 };
 
-constexpr std::array<CursorBinding, 2> kCursorBindings = {{
-	{CursorKind::Normal, "normal"},
-	{CursorKind::Interactive, "interactive"},
+constexpr std::array<CursorBinding, 3> kCursorBindings = {{
+	{CursorKind::Normal, "normal", true},
+	{CursorKind::Interactive, "interactive", true},
+	{CursorKind::Gift, "gift", false},
 }};
 
 }
@@ -38,6 +42,9 @@ CursorCatalog CursorTomlReader::read() const {
 	// Cada variante es un sprite completo (sheet/cell/at[/drawn]) que
 	// lee el parser compartido; pueden venir de hojas distintas.
 	for (const CursorBinding& binding : kCursorBindings) {
+		if (!binding.required && !doc_.hasKey(binding.tableKey)) {
+			continue;
+		}
 		catalog.visuals.emplace(binding.kind,
 					SpriteVisual(doc_, binding.tableKey,
 						     kAt));

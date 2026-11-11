@@ -17,11 +17,14 @@
 namespace sdl {
 
 EntityRenderer::EntityRenderer(
-	SheetCache& sheets, const world::CharacterCatalog& characters,
+	SdlContext& context, SheetCache& sheets,
+	const world::CharacterCatalog& characters,
 	const world::ToolOverlayCatalog& toolOverlay,
-	const world::ContentCatalog& content)
+	const world::ContentCatalog& content,
+	const world::CharacterPalettes& palettes)
 	: sheets_(sheets)
 	, characters_(characters)
+	, appearancePainter_(context, sheets, characters, palettes)
 	, toolOverlay_(sheets, toolOverlay, characters, content)
 	, heldItem_(sheets, content, characters) {}
 
@@ -58,18 +61,25 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const world::EntityAppearance appearance =
 		resolver.appearanceFor(entity.facing, action, phase);
 
-	SpriteSheet& sheet = sheets_.sheet(
-		characters_.sheetFile(entity.kind),
-		core::assetPath(characters_.sheetFile(entity.kind)),
-		characters_.sheetCellWidth(entity.kind),
-		characters_.sheetCellHeight(entity.kind));
-	CharacterSprite sprite(sheet, characters_.drawnWidth(entity.kind),
-			      characters_.drawnHeight(entity.kind));
-
 	const Flip flip =
 		appearance.mirrored ? Flip::Horizontal : Flip::None;
 	const SDL2pp::Rect drawBox(box.x, box.y, box.width, box.height);
-	sprite.draw(*appearance.pose, drawBox, flip);
+	if (characters_.hasAppearance(entity.kind)) {
+		const int frame =
+			resolver.frameIndexFor(entity.facing, action, phase);
+		appearancePainter_.draw(entity, *appearance.pose, action,
+					frame, drawBox, flip);
+	} else {
+		SpriteSheet& sheet = sheets_.sheet(
+			characters_.sheetFile(entity.kind),
+			core::assetPath(characters_.sheetFile(entity.kind)),
+			characters_.sheetCellWidth(entity.kind),
+			characters_.sheetCellHeight(entity.kind));
+		CharacterSprite sprite(
+			sheet, characters_.drawnWidth(entity.kind),
+			characters_.drawnHeight(entity.kind));
+		sprite.draw(*appearance.pose, drawBox, flip);
+	}
 	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose);
 
 	// El contenido sostenido (poses "sosteniendo", una por variante de

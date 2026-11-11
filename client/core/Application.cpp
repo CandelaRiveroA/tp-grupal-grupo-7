@@ -60,6 +60,14 @@ void Application::loadFonts() {
     }
 }
 
+world::CharacterPalettes Application::loadPalettes() const {
+    QFile paletteFile(core::kPalettesResource);
+    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
+    }
+    return world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+}
+
 void Application::loadStyleSheet() {
     QFile file(":/ui.qss");
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -88,12 +96,7 @@ int Application::run() {
 std::optional<SessionConfig> Application::runLobby() {
     const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
             core::assetPath(core::kCharactersFile));
-    QFile paletteFile(core::kPalettesResource);
-    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
-    }
-    const world::CharacterPalettes palettes =
-            world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+    const world::CharacterPalettes palettes = loadPalettes();
 
     sdl::MusicPlayer music;
     LobbyWindow lobby(config_, characters, palettes, &music);
@@ -115,6 +118,7 @@ int Application::runGame(SessionConfig session) {
         world::Scenario scenario(config_, std::move(scene));
         const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
+        const world::CharacterPalettes palettes = loadPalettes();
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -146,7 +150,8 @@ int Application::runGame(SessionConfig session) {
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs, font, prompt, hudOverlays, lighting);
+                                resources, banner, digits, cursors, dialogs, font, prompt, hudOverlays, lighting,
+                                palettes);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

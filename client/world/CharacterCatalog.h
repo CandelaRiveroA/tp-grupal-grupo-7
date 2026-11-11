@@ -21,6 +21,7 @@ public:
 		int drawnHeight = 0;
 
 		CreatureData data;
+		AppearanceData appearance;
 	};
 
 	CharacterCatalog() = default;
@@ -37,6 +38,9 @@ public:
 	int sheetCellHeight(CreatureKind kind) const;
 	int drawnWidth(CreatureKind kind) const;
 	int drawnHeight(CreatureKind kind) const;
+
+	bool hasAppearance(CreatureKind kind) const;
+	const AppearanceData& appearanceFor(CreatureKind kind) const;
 
 private:
 	std::size_t indexOf(CreatureKind kind) const;

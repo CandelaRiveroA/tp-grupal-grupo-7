@@ -33,6 +33,7 @@ target_sources(taller_tests
     ../server/domain/entities/dropped_item.cpp
     ../server/domain/enemies/enemy.cpp
     ../server/domain/enemies/skeleton.cpp
+    ../server/domain/enemies/orc.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp

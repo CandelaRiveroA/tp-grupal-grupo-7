@@ -13,6 +13,7 @@
 
 #include "../animals/animal.h"
 #include "../enemies/enemy.h"
+#include "../enemies/orc.h"
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -211,6 +212,41 @@ void World::add_enemy(std::unique_ptr<Enemy> enemy) {
     set_entity_at(x, y, std::move(enemy));
     // set_entity_at agrega al final de la celda: el puntero es el de la celda, no el del parámetro.
     enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
+}
+
+void World::spawn_orc_pack(uint16_t x, uint16_t y) {
+    // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 del punto:
+    // 25 candidatas, así que casi siempre entra la manada completa.
+    const int pack_size = 3 + std::rand() % 4;
+    std::vector<std::pair<uint16_t, uint16_t>> cells;
+    for (int radius = 0; radius <= 2; ++radius) {
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dy)) != radius) {
+                    continue;  // Solo el anillo de este radio (evita repetir).
+                }
+                const int cell_x = static_cast<int>(x) + dx;
+                const int cell_y = static_cast<int>(y) + dy;
+                if (cell_x < 0 || cell_y < 0 || cell_x >= this->width || cell_y >= this->height) {
+                    continue;
+                }
+                const uint16_t new_x = static_cast<uint16_t>(cell_x);
+                const uint16_t new_y = static_cast<uint16_t>(cell_y);
+                if (this->can_walk_to(new_x, new_y)) {
+                    cells.emplace_back(new_x, new_y);
+                }
+            }
+        }
+    }
+    // Arranque al azar para que la manada no aparezca siempre en el mismo orden.
+    const size_t start = cells.empty() ? 0 : static_cast<size_t>(std::rand()) % cells.size();
+    for (int i = 0; i < pack_size && static_cast<size_t>(i) < cells.size(); ++i) {
+        const auto& [orc_x, orc_y] = cells[(start + i) % cells.size()];
+        // Se re-chequea: el primer orco ya bloquea su propia celda.
+        if (this->can_walk_to(orc_x, orc_y)) {
+            this->add_enemy(std::make_unique<Orc>(orc_x, orc_y));
+        }
+    }
 }
 
 void World::tick_enemies() {

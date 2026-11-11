@@ -1,9 +1,13 @@
 #include "player.h"
 #include <cstdlib>
 
+// Vida máxima del jugador. La baja enemiga es 5-10 por golpe (kDamage de
+// esqueleto y orco), así que un esqueleto mata en 20 golpes y un orco en 10.
+#define kMaxHealth 100
+
 Player::Player(uint8_t id, uint16_t x, uint16_t y)
         : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
-          energy(100.0f), max_energy(100.0f), hp(100), max_hp(100) {
+          energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
@@ -25,17 +29,17 @@ const CharacterAppearance& Player::get_appearance() const { return this->appeara
 
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
-uint8_t Player::get_health() const { return this->health; }
+uint16_t Player::get_health() const { return this->hp; }
 
 bool Player::take_damage(uint8_t incoming) {
     // shortcut: llegar a 0 vida no tiene consecuencia todavía (el jugador
     // sigue jugando); la muerte y el respawn quedan para cuando exista ese
     // sistema.
-    if (this->health == 0) {
+    if (this->hp == 0) {
         return false;  // ya estaba sin vida: este golpe no fue el que lo mató
     }
-    this->health = incoming >= this->health ? 0 : this->health - incoming;
-    return this->health == 0;
+    this->hp = incoming >= this->hp ? 0 : this->hp - incoming;
+    return this->hp == 0;
 }
 
 void Player::set_facing(Direction dir) { this->facing = dir; }

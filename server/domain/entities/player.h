@@ -22,11 +22,11 @@ private:
     CharacterAppearance appearance;
     uint8_t selected_slot;
     Inventory backpack;
-    uint8_t health;
 
     uint16_t gold;
     float energy;
     float max_energy;
+    // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
 
@@ -45,7 +45,7 @@ public:
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;
-    uint8_t get_health() const;
+    uint16_t get_health() const;
 
     // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
     bool take_damage(uint8_t incoming) override;

@@ -55,8 +55,12 @@ protected:
     // llama mientras esté con vida.
     virtual void behave(World& w) = 0;
 
-    // Suelta un orbe de oro en la celda con la probabilidad de la especie.
-    void drop_gold(World& w);
+    // Persecución cuerpo a cuerpo compartida: persigue al jugador vivo más
+    // cercano dentro de kAggroRange y le pega si está en las 8 vecinas.
+    void chase_player(World& w);
+
+    // Suelta un orbe de `item` en la celda con la probabilidad dada.
+    void drop_orb(World& w, ItemID item, uint16_t price, uint8_t percent);
 };
 
 #endif  // ENEMY_H

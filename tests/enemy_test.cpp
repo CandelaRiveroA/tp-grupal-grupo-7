@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "../server/domain/enemies/orc.h"
 #include "../server/domain/enemies/skeleton.h"
 #include "../server/domain/entities/player.h"
 #include "../server/domain/map/world.h"
@@ -49,10 +50,10 @@ TEST(EnemyTest, SoloLaEspadaHaceDanioYMata) {
 TEST(EnemyTest, ElJugadorRecibeDanioYPisaEnCero) {
     Player player(1, 0, 0);
 
-    EXPECT_EQ(player.get_health(), 20);
-    EXPECT_FALSE(player.take_damage(15));
-    EXPECT_EQ(player.get_health(), 5);
-    EXPECT_TRUE(player.take_damage(5));
+    EXPECT_EQ(player.get_health(), 100);
+    EXPECT_FALSE(player.take_damage(60));
+    EXPECT_EQ(player.get_health(), 40);
+    EXPECT_TRUE(player.take_damage(40));
     EXPECT_EQ(player.get_health(), 0);
     EXPECT_FALSE(player.take_damage(3));  // ya sin vida
     EXPECT_EQ(player.get_health(), 0);
@@ -128,7 +129,7 @@ TEST(EnemyTest, ElEsqueletoGolpeaAlJugadorAdyacente) {
 
     world.tick_enemies();
 
-    EXPECT_EQ(world.get_player(1).get_health(), 19);  // 1 de daño cuerpo a cuerpo
+    EXPECT_EQ(world.get_player(1).get_health(), 95);  // 5 de daño cuerpo a cuerpo
 }
 
 TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
@@ -142,7 +143,77 @@ TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
 
     EXPECT_EQ(skeleton->get_x(), 0);  // fuera de rango (distancia 9 > 5)
     EXPECT_EQ(skeleton->get_y(), 0);
-    EXPECT_EQ(world.get_player(1).get_health(), 20);
+    EXPECT_EQ(world.get_player(1).get_health(), 100);
+}
+
+// ---------------------------------------------------------
+// Orc
+// ---------------------------------------------------------
+TEST(OrcTest, AlMorirSueltaPlataSegunLaProbabilidad) {
+    World world(5, 5);
+    Player attacker(1, 0, 0);
+    auto sure = std::make_unique<Orc>(2, 2, 100);
+    auto never = std::make_unique<Orc>(3, 3, 0);
+    Orc* sure_ptr = sure.get();
+    Orc* never_ptr = never.get();
+    world.add_enemy(std::move(sure));
+    world.add_enemy(std::move(never));
+
+    for (int hit = 0; hit < 15; ++hit) {  // el orco tiene 15 de vida
+        sure_ptr->interact(attacker, ToolType::SWORD, world);
+        never_ptr->interact(attacker, ToolType::SWORD, world);
+    }
+
+    const auto silver_at = [&world](uint16_t x, uint16_t y) {
+        int silver = 0;
+        for (const IEntity* ent: world.get_entity_at(x, y)) {
+            const auto snap = ent->snapshot();
+            if (snap && snap->item == ItemID::SILVER_ORB) {
+                ++silver;
+            }
+        }
+        return silver;
+    };
+    EXPECT_EQ(silver_at(2, 2), 1);  // 100 %: sí suelta plata
+    EXPECT_EQ(silver_at(3, 3), 0);  // 0 %: nunca
+}
+
+TEST(OrcTest, SpawnOrcPackDejaEntreTresYSeisOrcos) {
+    World world(10, 10);
+    world.spawn_orc_pack(5, 5);
+
+    int orcs = 0;
+    for (uint16_t y = 0; y < world.get_height(); ++y) {
+        for (uint16_t x = 0; x < world.get_width(); ++x) {
+            for (const IEntity* ent: world.get_entity_at(x, y)) {
+                if (dynamic_cast<const Orc*>(ent) != nullptr) {
+                    // cppcheck-suppress useStlAlgorithm; además de contar, valida que sea un Orc.
+                    ++orcs;
+                }
+            }
+        }
+    }
+    EXPECT_GE(orcs, 3);
+    EXPECT_LE(orcs, 6);
+}
+
+TEST(OrcTest, SpawnOrcPackEnLaEsquinaNoSeSaleDelMapa) {
+    World world(4, 4);
+    world.spawn_orc_pack(0, 0);  // 9 celdas disponibles: entra la manada completa
+
+    int orcs = 0;
+    for (uint16_t y = 0; y < world.get_height(); ++y) {
+        for (uint16_t x = 0; x < world.get_width(); ++x) {
+            for (const IEntity* ent: world.get_entity_at(x, y)) {
+                if (dynamic_cast<const Orc*>(ent) != nullptr) {
+                    // cppcheck-suppress useStlAlgorithm; además de contar, valida que sea un Orc.
+                    ++orcs;
+                }
+            }
+        }
+    }
+    EXPECT_GE(orcs, 3);
+    EXPECT_LE(orcs, 6);
 }
 
 // Enemigo de prueba sin IA ni consecuencias: solo fija la probabilidad de oro.

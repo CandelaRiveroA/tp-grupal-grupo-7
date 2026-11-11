@@ -79,6 +79,9 @@ public:
     void add_animal(std::unique_ptr<Animal> animal);
     void add_enemy(std::unique_ptr<Enemy> enemy);
 
+    // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 de (x, y).
+    void spawn_orc_pack(uint16_t x, uint16_t y);
+
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
     // Pasa al día siguiente (contador de día) y corre tick_day. Lo llaman el

@@ -126,6 +126,8 @@ void Match::place_enemies() {
     // de mundo. Lejos del spawn para que no ataque nada al entrar.
     world.add_enemy(std::make_unique<Skeleton>(2, 16));
     world.add_enemy(std::make_unique<Skeleton>(27, 17));
+    // Manada de orcos de prueba (3 a 6), lejos del spawn (15, 10).
+    world.spawn_orc_pack(15, 4);
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
@@ -156,7 +158,6 @@ void Match::handle(const CreatureTick& /*tick*/) {
         world.tick_animals();
         world.tick_enemies();
     }
-    
     sync_all();
 }
 

@@ -23,6 +23,7 @@ target_sources(taller_server
     domain/entities/dropped_item.cpp
     domain/enemies/enemy.cpp
     domain/enemies/skeleton.cpp
+    domain/enemies/orc.cpp
     domain/animals/animal.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp

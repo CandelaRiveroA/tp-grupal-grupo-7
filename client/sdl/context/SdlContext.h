@@ -30,6 +30,10 @@ public:
 
 	SDL2pp::Texture createTexture(const std::string& path);
 
+	// Igual, pero desde una superficie ya renderizada (p. ej. texto):
+	// la convierte en textura sin dibujarla todavía.
+	SDL2pp::Texture createTexture(SDL2pp::Surface& surface);
+
 	// Dibuja una superficie ya renderizada (p. ej. texto de una
 	// fuente): la convierte en textura y la pega en dest.
 	void drawSurface(SDL2pp::Surface& surface, const SDL2pp::Rect& dest);

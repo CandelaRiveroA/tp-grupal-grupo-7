@@ -68,6 +68,10 @@ SDL2pp::Texture SdlContext::createTexture(const std::string& path) {
 	return SDL2pp::Texture(renderer_, path);
 }
 
+SDL2pp::Texture SdlContext::createTexture(SDL2pp::Surface& surface) {
+	return SDL2pp::Texture(renderer_, surface);
+}
+
 void SdlContext::drawSurface(SDL2pp::Surface& surface,
 			     const SDL2pp::Rect& dest) {
 	SDL2pp::Texture texture(renderer_, surface);

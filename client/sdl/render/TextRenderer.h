@@ -39,6 +39,10 @@ public:
 	// Ancho en px del texto con esa fuente (wrap y cursor).
 	int textWidth(const std::string& text, int size);
 
+	// Texto envuelto a maxWidth como textura, el wrap lo hace SDL_ttf
+	SDL2pp::Texture renderWrapped(const std::string& text, int size,
+				      const world::Color& color, int maxWidth);
+
 private:
 	SDL2pp::Font& fontFor(int size);
 

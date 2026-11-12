@@ -1,7 +1,6 @@
 #include "sdl/render/ChatPainter.h"
 
 #include <algorithm>
-#include <cstddef>
 
 #include "core/Constants.h"
 #include "sdl/context/SdlContext.h"
@@ -35,22 +34,42 @@ int ChatPainter::contentWidth() const {
 				  2 * textInset());
 }
 
-world::TextMeasure ChatPainter::measure() const {
-	return [this](const std::string& text) {
-		return text_.textWidth(text, layout_.fontSize);
-	};
+const std::vector<std::unique_ptr<SDL2pp::Texture>>& ChatPainter::
+	historyTextures(const std::vector<game::ViewChatLine>& log) {
+	std::vector<std::string> key;
+	key.reserve(log.size());
+	for (const game::ViewChatLine& line: log) {
+		key.push_back(withSender(line));
+	}
+	if (key != historyKey_) {
+		historyKey_ = std::move(key);
+		history_.clear();
+		history_.reserve(historyKey_.size());
+		for (const std::string& text: historyKey_) {
+			history_.push_back(std::make_unique<SDL2pp::Texture>(
+				text_.renderWrapped(text, layout_.fontSize,
+						    layout_.textColor,
+						    contentWidth())));
+		}
+	}
+	return history_;
 }
 
-std::vector<std::vector<std::string>> ChatPainter::wrapMessages(
-	const std::vector<game::ViewChatLine>& log) const {
-	const world::TextMeasure measureText = measure();
-	const int width = contentWidth();
-	std::vector<std::vector<std::string>> messages;
-	messages.reserve(log.size());
-	for (const game::ViewChatLine& line: log) {
-		messages.push_back(world::wrapChatText(withSender(line), width, measureText));
+SDL2pp::Texture& ChatPainter::inputTexture(const std::string& inputText,
+					   const bool cursorOn) {
+	// El cursor es un carácter más: el blink es renderizar con/sin él.
+	// Con texto vacío, un espacio mantiene la caja de una línea.
+	std::string shown = inputText.empty() ? " " : inputText;
+	if (cursorOn) {
+		shown += "|";
 	}
-	return messages;
+	if (shown != inputKey_) {
+		inputKey_ = shown;
+		input_ = std::make_unique<SDL2pp::Texture>(
+			text_.renderWrapped(shown, layout_.fontSize,
+					    layout_.textColor, contentWidth()));
+	}
+	return *input_;
 }
 
 void ChatPainter::drawBox(const world::PixelBox& box) {
@@ -61,92 +80,90 @@ void ChatPainter::drawBox(const world::PixelBox& box) {
 			     SDL2pp::Rect(box.x, box.y, box.width, box.height));
 }
 
-void ChatPainter::drawLine(const world::PixelBox& panel, const int row,
-			   const std::string& text, const std::uint8_t textAlpha) {
-	world::PixelBox line;
-	line.x = panel.x + textInset();
-	line.y = panel.y + layout_.textPad + row * layout_.lineHeight();
-	line.width = panel.width - 2 * textInset();
-	line.height = layout_.lineHeight();
-	world::Color color = layout_.textColor;
-	color.a = textAlpha;
-	text_.drawLeft(text, line, color, layout_.fontSize);
-}
-
-void ChatPainter::drawLines(const std::vector<std::string>& inputLines,
-			    const std::vector<std::string>& historyLines,
-			    const bool cursorOn, const std::uint8_t textAlpha) {
-	const world::ChatPanel panels = world::chatPanels(
-		context_.width(), context_.height(),
-		static_cast<int>(inputLines.size()),
-		static_cast<int>(historyLines.size()), layout_);
-
-	if (panels.history.height > 0) {
-		drawBox(panels.history);
-		for (std::size_t i = 0; i < historyLines.size(); ++i) {
-			drawLine(panels.history, static_cast<int>(i), historyLines[i],
-				 textAlpha);
-		}
+void ChatPainter::drawHistory(const world::PixelBox& box,
+			      const std::uint8_t textAlpha) {
+	if (history_.empty()) {
+		return;
 	}
-
-	if (panels.input.height > 0) {
-		// Si el tipeo excede la caja se ven los ÚLTIMOS renglones (los
-		// del cursor).
-		const std::size_t rows =
-			static_cast<std::size_t>(panels.inputVisibleRows);
-		const std::size_t first =
-			inputLines.size() > rows ? inputLines.size() - rows : 0;
-		drawBox(panels.input);
-		for (std::size_t i = first; i < inputLines.size(); ++i) {
-			drawLine(panels.input, static_cast<int>(i - first),
-				 inputLines[i], textAlpha);
+	const int x = box.x + textInset();
+	const int ceiling = box.y + layout_.textPad;
+	int bottom = box.y + box.height - layout_.textPad;
+	// De abajo hacia arriba: el más nuevo pegado a la caja de tipeo.
+	for (std::size_t i = history_.size(); i-- > 0;) {
+		SDL2pp::Texture& tex = *history_[i];
+		tex.SetAlphaMod(textAlpha);
+		const SDL2pp::Point size = tex.GetSize();
+		if (bottom - size.y < ceiling) {
+			if (i + 1 == history_.size() && bottom > ceiling) {
+				// El recién llegado no desaparece: sus
+				// primeros renglones, recortados al tope
+				// (así hace el preview).
+				const int fit =
+					std::min(size.y, bottom - ceiling);
+				context_.drawTexture(
+					tex, SDL2pp::Rect(0, 0, size.x, fit),
+					SDL2pp::Rect(x, ceiling, size.x, fit));
+			}
+			break;
 		}
-
-		if (cursorOn && !inputLines.empty()) {
-			const int row =
-				static_cast<int>(inputLines.size() - 1 - first);
-			const int x = panels.input.x + textInset() +
-				      text_.textWidth(inputLines.back(),
-						      layout_.fontSize);
-			const int y = panels.input.y + layout_.textPad +
-				      row * layout_.lineHeight() +
-				      (layout_.lineHeight() - layout_.fontSize) / 2;
-			context_.fillRect(
-				SDL2pp::Rect(x, y, 2, layout_.fontSize),
-				SDL2pp::Color(
-					static_cast<Uint8>(layout_.textColor.r),
-					static_cast<Uint8>(layout_.textColor.g),
-					static_cast<Uint8>(layout_.textColor.b),
-					textAlpha));
-		}
+		context_.drawTexture(tex, SDL2pp::Rect(0, 0, size.x, size.y),
+				     SDL2pp::Rect(x, bottom - size.y, size.x,
+						  size.y));
+		bottom -= size.y;
 	}
 }
 
 void ChatPainter::drawOpen(const std::string& inputText,
 			   const std::vector<game::ViewChatLine>& log,
 			   const bool cursorOn) {
-	const std::vector<std::string> inputLines =
-		world::wrapChatText(inputText, contentWidth(), measure());
-	const int maxRows = world::maxHistoryRows(
-		context_.height(), static_cast<int>(inputLines.size()), layout_);
-	const std::vector<std::string> historyLines =
-		world::visibleHistory(wrapMessages(log), maxRows);
-	drawLines(inputLines, historyLines, cursorOn, 255);
+	SDL2pp::Texture& input = inputTexture(inputText, cursorOn);
+	const std::vector<std::unique_ptr<SDL2pp::Texture>>& history =
+		historyTextures(log);
+
+	std::vector<int> heights;
+	heights.reserve(history.size());
+	for (const auto& tex: history) {
+		heights.push_back(tex->GetSize().y);
+	}
+	const world::ChatPanel panels = world::chatPanels(
+		context_.width(), context_.height(), input.GetSize().y,
+		heights, layout_);
+
+	if (panels.history.height > 0) {
+		drawBox(panels.history);
+		drawHistory(panels.history, 255);
+	}
+
+	if (panels.input.height > 0) {
+		drawBox(panels.input);
+		// Si el tipeo excede la caja se ven los ÚLTIMOS renglones
+		const SDL2pp::Point size = input.GetSize();
+		const int shown = std::min(
+			size.y, panels.input.height - 2 * layout_.textPad);
+		context_.drawTexture(
+			input,
+			SDL2pp::Rect(0, size.y - shown, size.x, shown),
+			SDL2pp::Rect(panels.input.x + textInset(),
+				     panels.input.y + layout_.textPad,
+				     size.x, shown));
+	}
 }
 
 void ChatPainter::drawPreview(const std::vector<game::ViewChatLine>& log) {
 	if (log.empty()) {
 		return;
 	}
-	// El preview muestra el PRINCIPIO del último mensaje, no el final.
-	const std::vector<std::string> wrapped =
-		world::wrapChatText(withSender(log.back()), contentWidth(), measure());
-	const std::size_t rows = std::min<std::size_t>(
-		static_cast<std::size_t>(layout_.previewRows), wrapped.size());
-	const std::vector<std::string> preview(wrapped.begin(),
-					      wrapped.begin() + rows);
-	drawLines({}, preview, false,
-		  static_cast<std::uint8_t>(layout_.previewAlpha));
+	historyTextures(log);
+	const SDL2pp::Point size = history_.back()->GetSize();
+	const int budget = layout_.previewRows * layout_.lineHeight();
+	const world::ChatPanel panels = world::chatPanels(
+		context_.width(), context_.height(), 0,
+		{std::min(size.y, budget)}, layout_);
+	if (panels.history.height > 0) {
+		drawBox(panels.history);
+		drawHistory(panels.history,
+			    static_cast<std::uint8_t>(layout_.previewAlpha));
+	}
 }
 
 }

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "game/LocalWorldView.h"
 #include "sdl/render/SpriteSheet.h"
 #include "world/ChatLayout.h"
-#include "world/ChatWrap.h"
 #include "world/PixelBox.h"
 
 namespace sdl {
@@ -18,6 +17,7 @@ class TextRenderer;
 namespace sdl {
 
 // Dibuja el chatbox abierto (historial + tipeo) o su preview atenuado.
+// Cada mensaje es una textura envuelta por SDL_ttf
 class ChatPainter {
 public:
 	ChatPainter(SdlContext& context, TextRenderer& text,
@@ -30,15 +30,19 @@ public:
 	void drawPreview(const std::vector<game::ViewChatLine>& log);
 
 private:
-	// Un solo camino de dibujo: textAlpha es del TEXTO (la caja ya viene
-	// semitransparente) e inputLines vacío = sin caja de tipeo (preview).
-	void drawLines(const std::vector<std::string>& inputLines,
-		       const std::vector<std::string>& historyLines, bool cursorOn,
-		       std::uint8_t textAlpha);
+	// Texturas del historial (de la vieja a la nueva), reconstruidas
+	// si el log cambió.
+	const std::vector<std::unique_ptr<SDL2pp::Texture>>& historyTextures(
+		const std::vector<game::ViewChatLine>& log);
+
+	// Textura del tipeo, cacheada por texto (con o sin cursor).
+	SDL2pp::Texture& inputTexture(const std::string& inputText,
+				      bool cursorOn);
+
+	// Apilado de abajo hacia arriba
+	void drawHistory(const world::PixelBox& box, std::uint8_t textAlpha);
 
 	void drawBox(const world::PixelBox& box);
-	void drawLine(const world::PixelBox& panel, int row,
-		      const std::string& text, std::uint8_t textAlpha);
 
 	// Firma del historial: el nombre del personaje o, si no llegó, el id.
 	static std::string withSender(const game::ViewChatLine& line);
@@ -48,15 +52,15 @@ private:
 
 	int contentWidth() const;
 
-	world::TextMeasure measure() const;
-
-	std::vector<std::vector<std::string>> wrapMessages(
-		const std::vector<game::ViewChatLine>& log) const;
-
 	SdlContext& context_;
 	TextRenderer& text_;
 	world::ChatLayout layout_;
 	SpriteSheet sheet_;
+
+	std::vector<std::unique_ptr<SDL2pp::Texture>> history_;
+	std::vector<std::string> historyKey_;
+	std::unique_ptr<SDL2pp::Texture> input_;
+	std::string inputKey_;
 };
 
 }

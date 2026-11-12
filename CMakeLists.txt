@@ -199,6 +199,13 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/AnchorLayout.cpp
         client/world/HudOverlayCatalog.cpp
         client/world/HudOverlayTomlReader.cpp
+
+        # Chatbox: layout como datos + wrap y geometría de las cajas (sin SDL).
+        client/world/ChatTomlReader.cpp
+        client/world/ChatConfigLoader.cpp
+        client/world/ChatWrap.cpp
+        client/world/ChatPanel.cpp
+
         client/world/HudFillLayout.cpp
         client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp

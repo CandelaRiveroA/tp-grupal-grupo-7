@@ -4,12 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utf8.h>
 #include <vector>
 
 #include "core/Constants.h"
 #include "core/FarmConstants.h"
 #include "core/StartupSequence.h"
-#include "world/ChatWrap.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
 #include "game/LocalWorldView.h"
@@ -242,10 +242,10 @@ void PlaySession::tick(int iteration) {
         chatInput_ += input_.takeText();
         // Tope del texto tipeado: un paste largo encarece el wrap.
         while (chatInput_.size() > core::kChatMaxLength) {
-            world::eraseLastCodepoint(chatInput_);
+            eraseLastCodepoint(chatInput_);
         }
         for (int i = input_.takeBackspaces(); i > 0; --i) {
-            world::eraseLastCodepoint(chatInput_);
+            eraseLastCodepoint(chatInput_);
         }
     }
 
@@ -580,6 +580,15 @@ void PlaySession::closeChat() {
     chatInput_.clear();
     input_.setTextMode(false);
     sdlContext_.stopTextInput();
+}
+
+void PlaySession::eraseLastCodepoint(std::string& text) {
+    if (text.empty()) {
+        return;
+    }
+    auto it = text.end();
+    utf8::unchecked::prior(it);
+    text.erase(it, text.end());
 }
 
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,

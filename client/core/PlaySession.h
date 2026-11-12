@@ -107,6 +107,9 @@ private:
     // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
     void closeChat();
 
+    // Borra el último caracter UTF-8 escrito
+    void eraseLastCodepoint(std::string& text);
+
     // Cambia la escena actual (en el negro de la transición): carga la
     // sala pedida, reconstruye el índice del renderer y la cámara. El
     // dibujo no cambia: solo QUÉ escena se pinta.

@@ -56,6 +56,10 @@ void SdlContext::fillRectMultiply(const SDL2pp::Rect& rect,
 
 void SdlContext::present() { renderer_.Present(); }
 
+void SdlContext::startTextInput() { SDL_StartTextInput(); }
+
+void SdlContext::stopTextInput() { SDL_StopTextInput(); }
+
 int SdlContext::width() const { return window_.GetSize().x; }
 
 int SdlContext::height() const { return window_.GetSize().y; }

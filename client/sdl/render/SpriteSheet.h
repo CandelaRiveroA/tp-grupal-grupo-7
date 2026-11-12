@@ -32,6 +32,11 @@ public:
 	void draw(int col, int row, const SDL2pp::Rect& dest,
 		  Flip flip = Flip::None);
 
+	// Las esquinas quedan de border×border (1:1) y los bordes y el
+	// centro se estiran
+	void drawNineSlice(int col, int row, int border,
+			   const SDL2pp::Rect& dest);
+
 	// Dibuja el CONTENIDO de la celda (sin su aire transparente) a la
 	// MISMA escala que tendría la celda entera (multiplicada por
 	// `scale`) y centrado en dest: el sprite conserva su proporción y

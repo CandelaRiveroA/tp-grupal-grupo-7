@@ -42,6 +42,11 @@ public:
 
 	void present();
 
+	// Dictado de texto (chat): lo prenden/apagan la sesión, dueña de la
+	// ventana.
+	void startTextInput();
+	void stopTextInput();
+
 	int width() const;
 	int height() const;
 

@@ -32,6 +32,13 @@ public:
 	void draw(const std::string& text, const world::PixelBox& box,
 		  const world::Color& color, int size);
 
+	
+	void drawLeft(const std::string& text, const world::PixelBox& box,
+		      const world::Color& color, int size);
+
+	// Ancho en px del texto con esa fuente (wrap y cursor).
+	int textWidth(const std::string& text, int size);
+
 private:
 	SDL2pp::Font& fontFor(int size);
 

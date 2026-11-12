@@ -85,6 +85,7 @@ target_sources(taller_client
     sdl/render/DialogPainter.cpp
     sdl/render/TextRenderer.cpp
     sdl/render/PromptPainter.cpp
+    sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
     sdl/audio/MusicPlayer.cpp
@@ -262,6 +263,7 @@ target_sources(taller_client
     sdl/render/DialogPainter.h
     sdl/render/TextRenderer.h
     sdl/render/PromptPainter.h
+    sdl/render/ChatPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h

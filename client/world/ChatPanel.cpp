@@ -11,25 +11,6 @@ int inputTop(const int windowHeight, const ChatLayout& layout) {
 				layout.inputFraction);
 }
 
-// 0 renglones = sin caja (el preview) el alto es 0, sin padding.
-struct InputBox {
-	int rows = 0;
-	int height = 0;
-};
-
-InputBox inputBox(const int windowHeight, const int inputRows,
-		  const ChatLayout& layout) {
-	if (inputRows <= 0) {
-		return InputBox{};
-	}
-	const int room =
-		windowHeight - layout.marginBottom - inputTop(windowHeight, layout);
-	const int maxRows =
-		std::max(1, (room - 2 * layout.textPad) / layout.lineHeight());
-	const int rows = std::min(inputRows, maxRows);
-	return InputBox{rows, rows * layout.lineHeight() + 2 * layout.textPad};
-}
-
 }
 
 int chatBoxWidth(const int windowWidth, const ChatLayout& layout) {
@@ -38,40 +19,37 @@ int chatBoxWidth(const int windowWidth, const ChatLayout& layout) {
 	return std::min(fraction, maxWidth);
 }
 
-int maxHistoryRows(const int windowHeight, const int inputRows,
-		   const ChatLayout& layout) {
-	// Solo renglones enteros: si no cabe ninguno, no hay caja.
-	const int room =
-		inputTop(windowHeight, layout) - inputBox(windowHeight, inputRows, layout).height;
-	const int pad = layout.textPad;
-	return room >= 2 * pad ? (room - 2 * pad) / layout.lineHeight() : 0;
-}
-
 ChatPanel chatPanels(const int windowWidth, const int windowHeight,
-		     const int inputRows, const int historyRows,
+		     const int inputSurfaceHeight,
+		     const std::vector<int>& historySurfaceHeights,
 		     const ChatLayout& layout) {
-	const int lineH = layout.lineHeight();
 	const int pad = layout.textPad;
 	const int boxWidth = chatBoxWidth(windowWidth, layout);
-	const InputBox typing = inputBox(windowHeight, inputRows, layout);
-	const int boxX = layout.marginX;
 	const int typingTop = inputTop(windowHeight, layout);
 
-	const int maxRows = maxHistoryRows(windowHeight, inputRows, layout);
-	const int visibleRows = std::min(std::max(0, historyRows), maxRows);
-	const int historyHeight = visibleRows > 0 ? visibleRows * lineH + 2 * pad : 0;
-
-	PixelBox history;
-	if (visibleRows > 0) {
-		history = PixelBox{boxX, typingTop - historyHeight, boxWidth, historyHeight};
-	}
-
+	// Crece hacia abajo el inputBox
 	PixelBox input;
-	if (typing.rows > 0) {
-		input = PixelBox{boxX, typingTop, boxWidth, typing.height};
+	if (inputSurfaceHeight > 0) {
+		const int room =
+			windowHeight - layout.marginBottom - typingTop;
+		const int height =
+			std::min(inputSurfaceHeight + 2 * pad, room);
+		input = PixelBox{layout.marginX, typingTop, boxWidth, height};
 	}
 
-	return ChatPanel{history, input, typing.rows};
+	// El history crece hacia arriba
+	PixelBox history;
+	int used = 0;
+	for (const int height: historySurfaceHeights) {
+		used += height;
+	}
+	if (used > 0) {
+		const int height = std::min(used + 2 * pad, typingTop);
+		history = PixelBox{layout.marginX, typingTop - height,
+				   boxWidth, height};
+	}
+
+	return ChatPanel{history, input};
 }
 
 }

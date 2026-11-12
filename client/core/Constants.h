@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 
 namespace core {
@@ -56,9 +57,23 @@ constexpr const char* kDialogsFile = "ui/dialogs.toml";
 
 constexpr const char* kTextFile = "ui/text.toml";
 
+constexpr const char* kChatFile = "ui/chatbox.toml";
+
 constexpr const char* kHudOverlaysFile = "ui/hud.toml";
 
 constexpr const char* kLightingFile = "ui/lighting.toml";
+
+// ==== Chat ====
+
+// Ticks del parpadeo del cursor en la línea de tipeo.
+constexpr int kChatBlinkTicks = 20;
+
+// Tope del texto tipeado: un paste largo encarece el wrap.
+constexpr std::size_t kChatMaxLength = 256;
+
+// Cuánto se queda el preview del chat cerrado después de un mensaje.
+constexpr int kChatPreviewMs = 3000;
+constexpr int kChatPreviewTicks = kChatPreviewMs * kTargetFps / 1000;
 
 // Cantidad de slots del inventario ocupados por el mock (pico, pala,
 // regadera, espada). Las teclas 1..kInventorySlots seleccionan cada uno.

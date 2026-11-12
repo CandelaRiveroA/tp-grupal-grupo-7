@@ -1,12 +1,15 @@
 #include "core/PlaySession.h"
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
 #include "core/Constants.h"
 #include "core/FarmConstants.h"
 #include "core/StartupSequence.h"
+#include "world/ChatWrap.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
 #include "game/LocalWorldView.h"
@@ -19,6 +22,23 @@
 #include "world/ViewDirection.h"
 #include "world/WorldConstants.h"
 
+namespace {
+
+// Mensajes de la demo (tecla M): corto, con wrap y sin espacios.
+struct DemoChatMessage {
+    std::uint8_t playerId;
+    const char* name;
+    const char* text;
+};
+
+constexpr std::array<DemoChatMessage, 3> kDemoChatMessages{{
+        {1, "Juan", "¡Hola!"},
+        {2, "Maria", "Nos vemos en la granja en un rato, llevo las semillas"},
+        {1, "Juan", "jajajajajajajajajajajajajajajajajajajajajajajajajajajajajajajaja"},
+}};
+
+}  // namespace
+
 namespace core {
 
 PlaySession::PlaySession(
@@ -28,7 +48,8 @@ PlaySession::PlaySession(
         const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
         const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
         const world::FontCatalog& font, const world::PromptLayout& prompt,
-        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
+        const world::ChatLayout& chat, const world::HudOverlayCatalog& hudOverlays,
+        const world::HudOverlayCatalog& lighting):
         scene_(scenario.scene()),
         gameClient_(gameClient),
         characters_(characters),
@@ -76,6 +97,7 @@ PlaySession::PlaySession(
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
+        chatPainter_(sdlContext_, textRenderer_, chat),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
@@ -149,6 +171,11 @@ void PlaySession::tick(int iteration) {
                                    promptLayout_.grid.columns, promptLayout_.grid.rows);
     if (sceneTransition_.active()) {
         input_.takeCommands();
+        // El amanecer manda: con el chat abierto el OK queda intocable
+        // (los comandos se drenan y el modo texto come los clicks).
+        if (input_.chatOpen()) {
+            closeChat();
+        }
         const std::vector<game::PointerClick> clicks = input_.takeClicks();
         const bool holding = sceneTransition_.holding();
         if (holding) {
@@ -210,12 +237,57 @@ void PlaySession::tick(int iteration) {
         }
     }
 
+    // Lo tipeado y los backspaces del frame entran al buffer.
+    if (input_.chatOpen()) {
+        chatInput_ += input_.takeText();
+        // Tope del texto tipeado: un paste largo encarece el wrap.
+        while (chatInput_.size() > core::kChatMaxLength) {
+            world::eraseLastCodepoint(chatInput_);
+        }
+        for (int i = input_.takeBackspaces(); i > 0; --i) {
+            world::eraseLastCodepoint(chatInput_);
+        }
+    }
+
+    // Llegó un mensaje: el preview arranca su cuenta desde acá.
+    if (state.chatVersion != seenChatVersion_) {
+        seenChatVersion_ = state.chatVersion;
+        chatPreviewUntilTick_ = iteration + core::kChatPreviewTicks;
+    }
+
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     for (const game::InputCommand& command: commands) {
+        // Enter manda y deja el chat ABIERTO; ESC lo cierra. Los dos
+        // pasan aunque el popup sea modal.
+        if (command.kind == game::InputCommand::Kind::ChatSubmit) {
+            if (!chatInput_.empty()) {
+                gameClient_.sendChat(chatInput_);
+                chatInput_.clear();
+            }
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ChatCancel) {
+            closeChat();
+            continue;
+        }
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::OpenChat) {
+            input_.setTextMode(true);
+            sdlContext_.startTextInput();
+            continue;
+        }
+        // Demo (tecla M): el mensaje entra por el mismo embudo que usará
+        // la red; esta rama se borra sin tocar el resto.
+        if (command.kind == game::InputCommand::Kind::SimulateChatMessage) {
+            const DemoChatMessage& demo =
+                    kDemoChatMessages[demoChatNext_ % kDemoChatMessages.size()];
+            ++demoChatNext_;
+            gameClient_.receiveChat(demo.playerId, demo.name, demo.text);
             continue;
         }
         if (const auto spend = statSpends_.find(command.kind);
@@ -342,6 +414,14 @@ void PlaySession::tick(int iteration) {
             stats_.at(game::StatKind::Life).fraction();
     hudOverlayPainter_.draw(hudFillValues);
     hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
+    // Abierto: historial + tipeo (el cursor parpadea con el tick).
+    // Cerrado: el preview atenuado, que se apaga solo.
+    if (input_.chatOpen()) {
+        chatPainter_.drawOpen(chatInput_, state.chatLog,
+                              (iteration / core::kChatBlinkTicks) % 2 == 0);
+    } else if (iteration < chatPreviewUntilTick_) {
+        chatPainter_.drawPreview(state.chatLog);
+    }
     drawPopup(popupBox);
 
     // El puntero: la variante la decide el estado de juego (si hay algo
@@ -494,6 +574,12 @@ void PlaySession::drawPopup(const world::PixelBox& panel) {
     inventoryHud_.drawPanel(panel, promptLayout_.grid.columns, promptLayout_.grid.rows);
     const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
     promptPainter_.draw(popupState_, promptLayout_.optionAt(panel, mouse), panel);
+}
+
+void PlaySession::closeChat() {
+    chatInput_.clear();
+    input_.setTextMode(false);
+    sdlContext_.stopTextInput();
 }
 
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,

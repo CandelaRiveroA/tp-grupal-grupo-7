@@ -21,6 +21,7 @@
 #include "world/CharacterCatalogLoader.h"
 #include "world/CharacterPaletteLoader.h"
 #include "world/CharacterPalettes.h"
+#include "world/ChatConfigLoader.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
 #include "world/CursorConfigLoader.h"
@@ -141,12 +142,15 @@ int Application::runGame(SessionConfig session) {
         // catch único de este borde).
         const world::FontCatalog font(core::assetPath(core::kTextFile));
         const world::PromptLayout prompt(core::assetPath(core::kTextFile));
+        const world::ChatLayout chat =
+                world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs, font, prompt, hudOverlays, lighting);
+                                resources, banner, digits, cursors, dialogs, font, prompt, chat,
+                                hudOverlays, lighting);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

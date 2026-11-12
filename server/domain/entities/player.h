@@ -22,6 +22,12 @@ private:
     uint8_t selected_slot;
     Inventory backpack;
 
+    uint16_t gold;
+    float energy;
+    float max_energy;
+    uint16_t hp;
+    uint16_t max_hp;
+
 public:
     Player(uint8_t id, uint16_t x, uint16_t y);
     ~Player() override = default;
@@ -45,6 +51,11 @@ public:
     void consume_equipped_item();
     const Item* peek_equipped_item() const;
 
+    //Energia y salud
+    void consume_energy(float amount);
+    bool is_exhausted() const; //Caso debajo 10% energia
+    bool is_energy_depleted() const; //Caso debajo 0% energia
+
     // Interacción con herramientas e inventario
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
@@ -53,6 +64,7 @@ public:
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
+    void update(World& w) override;
 };
 
 #endif  // PLAYER_H

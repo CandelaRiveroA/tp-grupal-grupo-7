@@ -44,6 +44,8 @@ private:
     void send_message(const ServerDay& day);
     void send_message(const ServerSleepingPlayers& sleepers);
     void send_message(const ServerClock& clock);
+    void send_message(const ServerCrop& crop);
+    void send_message(const ServerGroundEffect& ground);
 
 public:
     explicit ProtocolSender(Socket& socket);

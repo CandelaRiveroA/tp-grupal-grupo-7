@@ -4,11 +4,13 @@
 #include <random>
 #include <algorithm>
 
+#define kHarvestStage 6
+
 Crop::Crop(uint16_t x, uint16_t y, uint16_t req_days, uint16_t req_water, ItemID p_id, uint16_t b_price)
-    : IEntity(x, y), days_alive(0), required_days_to_harvest(req_days),
-      is_ready_to_harvest(false), required_water_per_day(req_water), 
-      times_watered_today(0), days_watered_successfully(0), 
-      product_id(p_id), base_price(b_price), current_quality(Quality::BASE) {}
+    : IEntity(x, y), days_alive(0), required_days_to_harvest(req_days), 
+        is_ready_to_harvest(false), required_water_per_day(req_water),
+        times_watered_today(0), days_watered_successfully(0), 
+        product_id(p_id), base_price(b_price), current_quality(Quality::BASE) {}
 
 void Crop::degrade_quality_over_time() {
     if (this->current_quality > Quality::BASE) {
@@ -48,7 +50,13 @@ Quality Crop::calculate_quality() const {
     return this->map_score_to_quality(base_score + luck_score);
 }
 
-bool Crop::is_walkable() const { return false; }
+bool Crop::is_walkable() const {
+    return true; 
+}
+
+bool Crop::blocks_placement() const {
+    return true; 
+}
 
 void Crop::update(World& /*w*/) {
     // Si ya está lista, ya no crece ni consume agua, solo se pudre esperando
@@ -69,10 +77,25 @@ void Crop::update(World& /*w*/) {
 
     if (this->days_alive >= this->required_days_to_harvest) {
         this->is_ready_to_harvest = true;
+        // La calidad se decide al llegar la cosecha (riego + suerte) y mientras
+        // espera se pudre (degrade_quality_over_time).
+        this->current_quality = this->calculate_quality();
     }
 }
 
-void Crop::interact(Player& /*p*/, ToolType tool, World& w) {
+bool Crop::pickup_on_take() const { return this->is_ready_to_harvest; }
+
+std::optional<CropSnapshot> Crop::crop_snapshot() const {
+    const bool ready = this->is_ready_to_harvest;
+    const uint16_t days = std::max<uint16_t>(this->required_days_to_harvest, 1);
+    const auto growing = static_cast<uint8_t>(std::min<uint16_t>(5, this->days_alive * 6 / days));
+    return CropSnapshot{this->product_id,
+                        static_cast<uint8_t>(ready ? kHarvestStage : growing),
+                        !ready && this->times_watered_today < this->required_water_per_day, ready,
+                        this->current_quality};
+}
+
+void Crop::interact(Player& p, ToolType tool, World& w) {
     if (tool == ToolType::WATERING_CAN) {
         // Para que el jugador no pase el limite de la cantidad de regadas por dia
         // Podria causar un error donde siempre saca maxima calidad si maxea el primer dia
@@ -81,6 +104,6 @@ void Crop::interact(Player& /*p*/, ToolType tool, World& w) {
         }
     } 
     else if (tool == ToolType::HAND && this->is_ready_to_harvest) {
-        this->harvest(w);
+        this->harvest(p, w);
     }
 }

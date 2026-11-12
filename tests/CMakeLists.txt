@@ -107,6 +107,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
+    farming_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

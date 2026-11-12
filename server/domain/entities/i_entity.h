@@ -30,6 +30,17 @@ struct AnimalSnapshot {
     Direction facing;
 };
 
+// Estado visible de un cultivo: el producto que da y la etapa (0 semilla,
+// 1..5 crecimiento, 6 cosecha), si pide agua, si ya se puede cosechar y la
+// calidad de esa cosecha (BASE..PERFECT).
+struct CropSnapshot {
+    ItemID product;
+    uint8_t stage;
+    bool needs_water;
+    bool ready;
+    Quality quality;
+};
+
 class IEntity {
 protected:
     uint16_t pos_x;
@@ -49,6 +60,7 @@ public:
     // DroppedItem podría sobrescribir esto para retornar 'true' si quieres que el
     // jugador pueda pararse en la misma casilla que un ítem tirado antes de recogerlo.
     virtual bool is_walkable() const = 0;
+    virtual bool blocks_placement() const;
 
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
 
@@ -60,6 +72,9 @@ public:
 
     // Nullopt si la entidad no es un animal.
     virtual std::optional<AnimalSnapshot> animal_snapshot() const;
+
+    // Nullopt si la entidad no es un cultivo.
+    virtual std::optional<CropSnapshot> crop_snapshot() const;
 
     // Método para que las entidades se actualicen en cada frame del GameLoop.
     // Por defecto no hace nada (útil para minerales).

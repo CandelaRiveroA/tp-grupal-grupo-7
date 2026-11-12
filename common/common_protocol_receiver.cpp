@@ -35,6 +35,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::SleepingPlayers,
                  &ProtocolReceiver::receive_sleeping_players_message},
                 {ServerMessageType::Clock, &ProtocolReceiver::receive_clock_message},
+                {ServerMessageType::Crop, &ProtocolReceiver::receive_crop_message},
+                {ServerMessageType::GroundEffect, &ProtocolReceiver::receive_ground_effect_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -105,7 +107,8 @@ protocol::ClientMessage ProtocolReceiver::receive_move_message() {
 
 protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
     const Direction direction = direction_from_byte(receive_uint8());
-    return protocol::PickMessage{direction};
+    const uint8_t slot = receive_uint8();
+    return protocol::PickMessage{direction, slot};
 }
 
 protocol::ClientMessage ProtocolReceiver::receive_take_message() {
@@ -190,7 +193,8 @@ ServerMessage ProtocolReceiver::receive_resource_hit_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_tool_used_message() {
-    return ServerToolUsed{receive_uint8()};
+    const uint8_t player_id = receive_uint8();
+    return ServerToolUsed{player_id, receive_string()};
 }
 
 ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
@@ -240,6 +244,33 @@ ServerMessage ProtocolReceiver::receive_clock_message() {
     const uint8_t day = receive_uint8();
     const uint16_t minutes = receive_uint16();
     return ServerClock{day, minutes};
+}
+
+ServerMessage ProtocolReceiver::receive_crop_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string crop_id = receive_string();
+    const uint8_t stage = receive_uint8();
+    const uint8_t needs_water = receive_uint8();
+    const uint8_t interactive = receive_uint8();
+    const uint8_t quality = receive_uint8();
+    if (needs_water > 1 || interactive > 1) {
+        throw std::invalid_argument("Los indicadores del cultivo no son validos.");
+    }
+    if (quality < 1 || quality > 5) {
+        throw std::invalid_argument("La calidad del cultivo no es valida.");
+    }
+    return ServerCrop{x, y, std::move(crop_id), stage, needs_water == 1, interactive == 1, quality};
+}
+
+ServerMessage ProtocolReceiver::receive_ground_effect_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const uint8_t effect = receive_uint8();
+    if (effect > 1) {
+        throw std::invalid_argument("El efecto de suelo no es valido.");
+    }
+    return ServerGroundEffect{x, y, static_cast<GroundEffect>(effect)};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {

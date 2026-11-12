@@ -27,6 +27,10 @@ public:
 	int frameWidth() const;
 	int frameHeight() const;
 
+	// Superficie de la hoja para leer píxeles (recoloreo/tinte por capa).
+	// Se carga una sola vez, igual que para escanear el contenido.
+	SDL2pp::Surface& surface();
+
 	SDL2pp::Rect frameRect(int col, int row) const;
 
 	void draw(int col, int row, const SDL2pp::Rect& dest,
@@ -64,6 +68,16 @@ public:
 		       double angle = 0.0,
 		       SDL2pp::Optional<SDL2pp::Point> center =
 			       SDL2pp::NullOpt);
+
+	// Fila del primer píxel opaco de la región de celdas (col,row,cols,rows),
+	// relativa a su borde superior (cacheado). Es la "coronilla" del cuerpo:
+	// sirve de ancla para lo que va sobre la cabeza y la sigue cuando se mueve.
+	int contentTop(int col, int row, int cols = 1, int rows = 1);
+
+	// Fila del último píxel opaco de la región de celdas, relativa a su borde
+	// superior (cacheado). Son los "pies" del cuerpo: sirve de ancla para lo
+	// que va sobre las piernas y las sigue cuando se mueven.
+	int contentBottom(int col, int row, int cols = 1, int rows = 1);
 
 private:
 	// Rectángulo del contenido con alfa dentro de la celda (en píxeles

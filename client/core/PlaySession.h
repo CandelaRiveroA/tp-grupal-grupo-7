@@ -52,6 +52,7 @@ namespace world {
 class Scenario;
 class ScenePixelMapper;
 class CharacterCatalog;
+struct CharacterPalettes;
 struct DigitCatalog;
 struct InventoryLayout;
 struct ObtainedBannerCatalog;
@@ -76,7 +77,8 @@ public:
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
                 const world::PromptLayout& prompt, const world::ChatLayout& chat,
                 const world::HudOverlayCatalog& hudOverlays,
-                const world::HudOverlayCatalog& lighting);
+                const world::HudOverlayCatalog& lighting,
+                const world::CharacterPalettes& palettes);
 
     // Corre el game loop hasta que se pida salir.
     void run();

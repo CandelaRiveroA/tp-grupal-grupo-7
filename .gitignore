@@ -1,6 +1,8 @@
 build/
 build-tests/
+build-client/
 build-harness/
 tags.*
 harness-out/
 client/qt/harness/
+.vscode/

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 
+#include "game/GameConstants.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 
@@ -87,6 +88,17 @@ void MockGameClient::update(int) {
 }
 
 const LocalWorldView& MockGameClient::worldState() const { return view_; }
+
+void MockGameClient::sendChat(const std::string& text) {
+    // Eco del "server": el id 0 es el jugador local (el de rebuildView).
+    view_.addChatLine(ViewChatLine{0, kLocalPlayerName, text});
+}
+
+void MockGameClient::receiveChat(const std::uint8_t playerId,
+                                 const std::string& characterName,
+                                 const std::string& text) {
+    view_.addChatLine(ViewChatLine{playerId, characterName, text});
+}
 
 void MockGameClient::frontCell(::Direction direction, int& cellX, int& cellY) const {
     cellX = playerCellX_;

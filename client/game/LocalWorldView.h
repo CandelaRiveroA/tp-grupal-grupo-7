@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -124,6 +125,13 @@ struct ViewResourceHit {
     bool destroyed;
 };
 
+struct ViewChatLine {
+    // Si el nombre está vacío, el que dibuja usa el id.
+    std::uint8_t playerId;
+    std::string characterName;
+    std::string text;
+};
+
 // Consecuencia aplicada al terreno de una celda (tierra tratada, mañana
 // regada): es estado PERSISTENTE del mundo, lo manda la fuente (el
 // servidor decidirá qué piso tiene consecuencia; hoy el "server
@@ -206,11 +214,22 @@ struct LocalWorldView {
     bool dayEnded = false;
     bool dayChanged = false;
 
+    // Historial del chat
+    std::vector<ViewChatLine> chatLog;
+
+    // Sube con cada mensaje: el tope del historial impide usar su tamaño
+    // para detectar uno nuevo.
+    int chatVersion = 0;
+
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve
     // el slot en el que quedó. El dueño de la vista (fuente de estado)
     // lo usa al entregar cosas.
     int addInventoryContent(const std::string& contentId);
+
+    // Suma una línea al historial, descartando la más vieja si se pasa
+    // del tope.
+    void addChatLine(const ViewChatLine& line);
 
     // Coloca un contenido en un slot concreto con su conteo: para que el
     // que ya tenía slot lo mantenga merge tras merge (el inventario no

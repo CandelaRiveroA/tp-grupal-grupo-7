@@ -50,4 +50,12 @@ constexpr const char* kHudLifeKey = "vida";
 constexpr double kEnergyCostPerAction = 0.02;
 constexpr double kLifeCostPerAction = 0.02;
 
+// --- Chat --------------------------------------------------------------
+
+// Mensajes que guarda el historial; el más viejo se descarta.
+constexpr std::size_t kChatHistoryMax = 10;
+
+// Nombre del jugador local: el lobby todavía no lo pasa al cliente.
+constexpr const char* kLocalPlayerName = "Vos";
+
 }

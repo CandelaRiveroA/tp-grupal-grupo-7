@@ -26,4 +26,14 @@ const std::vector<Scenario>& ScenarioLibrary::all() const {
 	return scenarios_;
 }
 
+std::vector<const Scenario*> ScenarioLibrary::byKind(MapKind kind) const {
+	std::vector<const Scenario*> matching;
+	for (const Scenario& scenario : scenarios_) {
+		if (scenario.kind == kind) {
+			matching.push_back(&scenario);
+		}
+	}
+	return matching;
+}
+
 }

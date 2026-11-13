@@ -12,6 +12,7 @@ public:
 	void add(Scenario scenario);
 	const Scenario* find(const std::string& id) const;
 	const std::vector<Scenario>& all() const;
+	std::vector<const Scenario*> byKind(MapKind kind) const;
 
 private:
 	std::vector<Scenario> scenarios_;

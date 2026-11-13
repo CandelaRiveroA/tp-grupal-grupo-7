@@ -34,13 +34,11 @@ public:
 	const std::vector<MapRule>& all() const;
 	const MapRule* find(const std::string& id) const;
 	bool isValidMapId(const std::string& id) const;
-	bool isValidSlug(const std::string& slug) const;
+	bool isValidWorldName(const std::string& name) const;
 	std::string dungeonId(int level) const;
 	std::optional<int> dungeonLevel(const std::string& id) const;
 
 private:
-	bool isBareId(const std::string& text, bool allowUnderscore) const;
-
 	std::vector<MapRule> rules_;
 };
 

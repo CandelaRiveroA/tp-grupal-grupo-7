@@ -23,7 +23,6 @@ using worldmodel::WorldSerializer;
 const std::string kSmallWorld = R"(format_version = 1
 
 [world]
-slug = "x"
 name = "X"
 
 [tilesets.outdoors]
@@ -77,7 +76,6 @@ void expectError(const std::string& toml, FormatErrorKind kind,
 TEST(WorldTomlReaderTest, ReadsWorldHeaderAndTilesets) {
 	const World world = worldfixtures::loadMinimalWorld();
 	EXPECT_EQ(world.formatVersion, 1);
-	EXPECT_EQ(world.slug, "spring");
 	EXPECT_EQ(world.name, "Primavera");
 	ASSERT_EQ(world.tilesets.size(), 2u);
 	const auto& outdoors = world.tilesets.at("outdoors");

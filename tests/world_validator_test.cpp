@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "world_fixtures.h"
+#include "world_model/IssueFormatter.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/ValidationIssue.h"
 #include "world_model/WorldFactory.h"
@@ -13,7 +15,14 @@
 
 namespace {
 
+using worldfixtures::defaultWorld;
+using worldfixtures::fullLibrary;
+using worldfixtures::kHeight;
+using worldfixtures::kWidth;
+using worldfixtures::scenarioOf;
+using worldfixtures::validChoice;
 using worldmodel::IssueCode;
+using worldmodel::IssueFormatter;
 using worldmodel::Map;
 using worldmodel::MapKind;
 using worldmodel::MapObject;
@@ -32,53 +41,6 @@ using worldmodel::World;
 using worldmodel::WorldFactory;
 using worldmodel::WorldSerializer;
 using worldmodel::WorldValidator;
-
-constexpr int kWidth = 14;
-constexpr int kHeight = 12;
-
-Scenario scenarioOf(const std::string& id, MapKind kind, int width = kWidth,
-		    int height = kHeight) {
-	Scenario scenario;
-	scenario.id = id;
-	scenario.kind = kind;
-	scenario.width = width;
-	scenario.height = height;
-	scenario.tilesets.emplace("outdoors",
-				  TilesetDef{"outdoors.png", 16, 16});
-	scenario.collision.assign(
-		static_cast<std::size_t>(width) * height, false);
-	scenario.ground.assign(static_cast<std::size_t>(width) * height,
-			       TileRef{"outdoors", 0, 0});
-	return scenario;
-}
-
-ScenarioLibrary fullLibrary() {
-	ScenarioLibrary library;
-	library.add(scenarioOf("farm_a", MapKind::Farm));
-	library.add(scenarioOf("town_a", MapKind::Town));
-	library.add(scenarioOf("cabin_a", MapKind::Cabin));
-	library.add(scenarioOf("market_a", MapKind::Market));
-	library.add(scenarioOf("center_a", MapKind::CommunityCenter));
-	library.add(scenarioOf("cave_a", MapKind::Dungeon));
-	return library;
-}
-
-ScenarioChoice validChoice() {
-	ScenarioChoice choice;
-	choice.farm = "farm_a";
-	choice.town = "town_a";
-	choice.cabin = "cabin_a";
-	choice.market = "market_a";
-	choice.communityCenter = "center_a";
-	choice.dungeons.fill("cave_a");
-	return choice;
-}
-
-World defaultWorld() {
-	const ScenarioLibrary library = fullLibrary();
-	return WorldFactory().makeDefault("spring", "Primavera", library,
-					  validChoice());
-}
 
 Map& mapOf(World& world, const std::string& id) {
 	return world.maps.at(id);
@@ -191,10 +153,10 @@ TEST(WorldValidatorTest, UnsupportedVersion) {
 	expectIssue(world, IssueCode::UnsupportedVersion);
 }
 
-TEST(WorldValidatorTest, InvalidSlug) {
+TEST(WorldValidatorTest, InvalidName) {
 	World world = defaultWorld();
-	world.slug = "Spring!";
-	expectIssue(world, IssueCode::InvalidSlug);
+	world.name = "granja/secretos";
+	expectIssue(world, IssueCode::InvalidName);
 }
 
 TEST(WorldValidatorTest, EmptyName) {
@@ -456,12 +418,37 @@ TEST(WorldValidatorTest, FixedPortalInExtraMapIsUnexpected) {
 TEST(WorldValidatorTest, ReturnsAllIssues) {
 	World world = defaultWorld();
 	world.formatVersion = 2;
-	world.slug.clear();
 	world.name.clear();
 
 	const std::vector<ValidationIssue> issues =
 		WorldValidator().validate(world);
-	EXPECT_GE(issues.size(), 3u);
+	EXPECT_GE(issues.size(), 2u);
+}
+
+TEST(IssueFormatterTest, FormatsWorldMapAndCellIssues) {
+	const IssueFormatter formatter;
+	EXPECT_EQ(formatter.format(
+			  ValidationIssue{worldmodel::IssueCode::EmptyName, "",
+					  {-1, -1}}),
+		  "el nombre del mundo no puede ser vacio");
+	EXPECT_EQ(
+		formatter.format(ValidationIssue{
+			worldmodel::IssueCode::MissingObject, "farm", {-1, -1}}),
+		"falta un objeto requerido (mapa: farm)");
+	EXPECT_EQ(formatter.format(
+			  ValidationIssue{worldmodel::IssueCode::MarkerOutOfBounds,
+					  "farm", {3, 4}}),
+		  "marcador fuera de los limites (mapa: farm) (celda: 3, 4)");
+}
+
+TEST(IssueFormatterTest, EveryIssueCodeHasADescription) {
+	const IssueFormatter formatter;
+	const int last = static_cast<int>(worldmodel::IssueCode::WrongPortalTarget);
+	for (int code = 0; code <= last; ++code) {
+		const std::string text = formatter.format(ValidationIssue{
+			static_cast<worldmodel::IssueCode>(code), "", {-1, -1}});
+		EXPECT_NE(text, "problema desconocido") << "codigo " << code;
+	}
 }
 
 }

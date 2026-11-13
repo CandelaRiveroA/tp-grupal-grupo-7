@@ -2,13 +2,21 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "world_fixtures.h"
 #include "world_model/FormatError.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/WorldFactory.h"
 #include "world_model/WorldSerializer.h"
+#include "world_model/WorldValidator.h"
 
 namespace {
 
+using worldfixtures::defaultWorld;
+using worldfixtures::fullLibrary;
+using worldfixtures::kHeight;
+using worldfixtures::kWidth;
+using worldfixtures::scenarioOf;
+using worldfixtures::validChoice;
 using worldmodel::FormatError;
 using worldmodel::FormatErrorKind;
 using worldmodel::Map;
@@ -26,53 +34,6 @@ using worldmodel::TilesetDef;
 using worldmodel::World;
 using worldmodel::WorldFactory;
 using worldmodel::WorldSerializer;
-
-constexpr int kWidth = 14;
-constexpr int kHeight = 12;
-
-Scenario scenarioOf(const std::string& id, MapKind kind, int width = kWidth,
-		    int height = kHeight) {
-	Scenario scenario;
-	scenario.id = id;
-	scenario.kind = kind;
-	scenario.width = width;
-	scenario.height = height;
-	scenario.tilesets.emplace("outdoors",
-				  TilesetDef{"outdoors.png", 16, 16});
-	scenario.collision.assign(
-		static_cast<std::size_t>(width) * height, false);
-	scenario.ground.assign(static_cast<std::size_t>(width) * height,
-			       TileRef{"outdoors", 0, 0});
-	return scenario;
-}
-
-ScenarioLibrary fullLibrary() {
-	ScenarioLibrary library;
-	library.add(scenarioOf("farm_a", MapKind::Farm));
-	library.add(scenarioOf("town_a", MapKind::Town));
-	library.add(scenarioOf("cabin_a", MapKind::Cabin));
-	library.add(scenarioOf("market_a", MapKind::Market));
-	library.add(scenarioOf("center_a", MapKind::CommunityCenter));
-	library.add(scenarioOf("cave_a", MapKind::Dungeon));
-	return library;
-}
-
-ScenarioChoice validChoice() {
-	ScenarioChoice choice;
-	choice.farm = "farm_a";
-	choice.town = "town_a";
-	choice.cabin = "cabin_a";
-	choice.market = "market_a";
-	choice.communityCenter = "center_a";
-	choice.dungeons.fill("cave_a");
-	return choice;
-}
-
-World defaultWorld() {
-	const ScenarioLibrary library = fullLibrary();
-	return WorldFactory().makeDefault(
-		"spring", "Primavera", library, validChoice());
-}
 
 const Portal* findPortal(const Map& map, PortalKind kind) {
 	for (const Portal& portal : map.portals) {
@@ -113,7 +74,6 @@ template <typename Action> void expectInvalid(Action action) {
 
 TEST(WorldFactoryTest, MakeDefaultBuildsTheFifteenMaps) {
 	const World world = defaultWorld();
-	EXPECT_EQ(world.slug, "spring");
 	EXPECT_EQ(world.name, "Primavera");
 	ASSERT_EQ(world.maps.size(), 15u);
 	for (const char* id :
@@ -259,12 +219,30 @@ TEST(WorldFactoryTest, WorldSurvivesRoundTrip) {
 	EXPECT_EQ(loaded.maps.at("dungeon_10").portals.size(), 1u);
 }
 
+TEST(WorldFactoryTest, FirstOfEachKindPicksOnePerKindAndLeavesMissingEmpty) {
+	const WorldFactory factory;
+	const worldmodel::ScenarioChoice full =
+		factory.firstOfEachKind(worldfixtures::fullLibrary());
+	EXPECT_EQ(full.farm, "farm_a");
+	EXPECT_EQ(full.communityCenter, "center_a");
+	EXPECT_EQ(full.dungeons[9], "cave_a");
+
+	worldmodel::ScenarioLibrary onlyFarm;
+	onlyFarm.add(scenarioOf("farm_a", MapKind::Farm));
+	const worldmodel::ScenarioChoice partial =
+		factory.firstOfEachKind(onlyFarm);
+	EXPECT_EQ(partial.farm, "farm_a");
+	EXPECT_TRUE(partial.town.empty());
+	EXPECT_THROW(factory.makeDefault("W", onlyFarm, partial),
+		     FormatError);
+}
+
 TEST(WorldFactoryTest, MissingScenarioIsInvalid) {
 	const ScenarioLibrary library = fullLibrary();
 	ScenarioChoice choice = validChoice();
 	choice.farm.clear();
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("s", "n", library, choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
@@ -273,7 +251,7 @@ TEST(WorldFactoryTest, WrongScenarioKindIsInvalid) {
 	ScenarioChoice choice = validChoice();
 	choice.farm = "town_a";
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("s", "n", library, choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
@@ -283,7 +261,7 @@ TEST(WorldFactoryTest, TooSmallScenarioIsInvalid) {
 	ScenarioChoice choice = validChoice();
 	choice.farm = "tiny_farm";
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("s", "n", library, choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
@@ -324,6 +302,106 @@ TEST(WorldFactoryTest, AddExtraMapRejectsTilesetConflict) {
 	extra.tilesets["outdoors"] = TilesetDef{"other.png", 16, 16};
 	expectInvalid([&] {
 		WorldFactory().addExtraMap(world, extra, "cave_b");
+	});
+	EXPECT_EQ(world.maps.size(), 15u);
+}
+
+TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
+	World world = defaultWorld();
+	const Scenario bigFarm = scenarioOf("farm_b", MapKind::Farm, 16, 20);
+
+	WorldFactory().replaceMapScenario(world, "farm", bigFarm);
+
+	const Map& farm = world.maps.at("farm");
+	EXPECT_EQ(farm.width, 16);
+	EXPECT_EQ(farm.height, 20);
+	const MapObject* cabin = findObject(farm, ObjectRole::Cabin);
+	ASSERT_NE(cabin, nullptr);
+	EXPECT_TRUE(cabin->door.has_value());
+	EXPECT_EQ(countMarkers(farm, MarkerKind::PlayerSpawn), 1);
+	const Portal* townEntrance = findPortal(farm, PortalKind::TownEntrance);
+	const Portal* dungeonEntrance =
+		findPortal(farm, PortalKind::DungeonEntrance);
+	ASSERT_NE(townEntrance, nullptr);
+	ASSERT_NE(dungeonEntrance, nullptr);
+
+	// Portales hacia/desde farm recableados contra el nuevo escenario.
+	EXPECT_EQ(findPortal(world.maps.at("town"), PortalKind::FarmEntrance)
+			  ->targetMap,
+		  "farm");
+	EXPECT_EQ(
+		findPortal(world.maps.at("town"), PortalKind::FarmEntrance)
+			->targetCell,
+		townEntrance->cell);
+	EXPECT_EQ(
+		findPortal(world.maps.at("dungeon_5"), PortalKind::DungeonExit)
+			->targetCell,
+		dungeonEntrance->cell);
+	EXPECT_EQ(findPortal(world.maps.at("cabin"), PortalKind::InteriorExit)
+			  ->targetCell,
+		  cabin->door);
+	EXPECT_TRUE(farm.isWalkable(townEntrance->cell));
+	EXPECT_TRUE(farm.isWalkable(dungeonEntrance->cell));
+
+	worldmodel::WorldValidator validator;
+	EXPECT_TRUE(validator.validate(world).empty());
+}
+
+TEST(WorldFactoryTest, ReplaceMapScenarioResetsExtraMap) {
+	World world = defaultWorld();
+	const Scenario extra = scenarioOf("cave_b", MapKind::Dungeon);
+	WorldFactory().addExtraMap(world, extra, "cave_b");
+
+	const Scenario other = scenarioOf("field_b", MapKind::Town, 9, 7);
+	WorldFactory().replaceMapScenario(world, "cave_b", other);
+
+	const Map& map = world.maps.at("cave_b");
+	EXPECT_EQ(map.kind, MapKind::Town);
+	EXPECT_EQ(map.level, 0);
+	EXPECT_EQ(map.width, 9);
+	EXPECT_EQ(map.height, 7);
+	EXPECT_TRUE(map.objects.empty());
+	EXPECT_TRUE(map.markers.empty());
+	EXPECT_TRUE(map.portals.empty());
+	EXPECT_EQ(world.maps.size(), 16u);
+	EXPECT_TRUE(worldmodel::WorldValidator().validate(world).empty());
+}
+
+TEST(WorldFactoryTest, ReplaceMapScenarioRejectsWrongKindAndUnknownId) {
+	World world = defaultWorld();
+	const Scenario town = scenarioOf("town_b", MapKind::Town);
+	expectInvalid([&] {
+		WorldFactory().replaceMapScenario(world, "farm", town);
+	});
+	expectInvalid([&] {
+		WorldFactory().replaceMapScenario(world, "big_world",
+						  scenarioOf("n", MapKind::Town));
+	});
+	// Un escenario demasiado chico no pisa el mundo actual.
+	const Scenario tinyFarm = scenarioOf("tiny_farm", MapKind::Farm, 3, 2);
+	expectInvalid([&] {
+		WorldFactory().replaceMapScenario(world, "farm", tinyFarm);
+	});
+	EXPECT_EQ(world.maps.at("farm").width, kWidth);
+	EXPECT_EQ(world.maps.at("farm").objects.size(), 1u);
+}
+
+TEST(WorldFactoryTest, RemoveExtraMapDeletesOnlyExtraMaps) {
+	World world = defaultWorld();
+	const Scenario extra = scenarioOf("cave_b", MapKind::Dungeon);
+	WorldFactory().addExtraMap(world, extra, "cave_b");
+	WorldFactory().removeExtraMap(world, "cave_b");
+	EXPECT_EQ(world.maps.size(), 15u);
+	EXPECT_FALSE(world.maps.contains("cave_b"));
+
+	expectInvalid([&] {
+		WorldFactory().removeExtraMap(world, "farm");
+	});
+	expectInvalid([&] {
+		WorldFactory().removeExtraMap(world, "dungeon_10");
+	});
+	expectInvalid([&] {
+		WorldFactory().removeExtraMap(world, "no_such_map");
 	});
 	EXPECT_EQ(world.maps.size(), 15u);
 }

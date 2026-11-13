@@ -142,11 +142,10 @@ void WorldValidator::checkWorld(const World& world, std::vector<ValidationIssue>
     if (world.formatVersion != 1) {
         addIssue(issues, IssueCode::UnsupportedVersion, "");
     }
-    if (!rules_.isValidSlug(world.slug)) {
-        addIssue(issues, IssueCode::InvalidSlug, "");
-    }
     if (world.name.empty()) {
         addIssue(issues, IssueCode::EmptyName, "");
+    } else if (!rules_.isValidWorldName(world.name)) {
+        addIssue(issues, IssueCode::InvalidName, "");
     }
 }
 

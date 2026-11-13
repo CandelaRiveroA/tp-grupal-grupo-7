@@ -23,7 +23,6 @@ World WorldTomlReader::read() const {
 }
 
 void WorldTomlReader::readWorld(World& world) const {
-	world.slug = doc_.getString("world.slug");
 	world.name = doc_.getString("world.name");
 }
 

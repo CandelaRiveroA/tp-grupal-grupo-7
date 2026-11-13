@@ -8,7 +8,7 @@ namespace worldmodel {
 
 enum class IssueCode {
 	UnsupportedVersion,
-	InvalidSlug,
+	InvalidName,
 	EmptyName,
 	UnknownTileset,
 	MissingRequiredMap,

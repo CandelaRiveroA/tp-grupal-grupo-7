@@ -1,8 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 
+#include "world_model/Scenario.h"
+#include "world_model/ScenarioLibrary.h"
 #include "world_model/World.h"
+#include "world_model/WorldFactory.h"
 #include "world_model/WorldSerializer.h"
 
 namespace worldfixtures {
@@ -13,7 +17,6 @@ namespace worldfixtures {
 inline const std::string kMinimalWorldToml = R"(format_version = 1
 
 [world]
-slug = "spring"
 name = "Primavera"
 
 [tilesets.outdoors]
@@ -102,6 +105,58 @@ ground = ["interiors:0,0"]
 
 inline worldmodel::World loadMinimalWorld() {
 	return worldmodel::WorldSerializer().loadFromString(kMinimalWorldToml);
+}
+
+constexpr int kWidth = 14;
+constexpr int kHeight = 12;
+
+// Escenario liso, todo transitable, con un unico tileset "outdoors".
+inline worldmodel::Scenario scenarioOf(const std::string& id,
+				       worldmodel::MapKind kind,
+				       int width = kWidth,
+				       int height = kHeight) {
+	worldmodel::Scenario scenario;
+	scenario.id = id;
+	scenario.kind = kind;
+	scenario.width = width;
+	scenario.height = height;
+	scenario.tilesets.emplace("outdoors",
+				  worldmodel::TilesetDef{"outdoors.png", 16, 16});
+	const std::size_t cells = static_cast<std::size_t>(width) * height;
+	scenario.collision.assign(cells, false);
+	scenario.ground.assign(cells, worldmodel::TileRef{"outdoors", 0, 0});
+	return scenario;
+}
+
+// Un escenario por tipo: farm_a, town_a, cabin_a, market_a, center_a y
+// cave_a (este ultimo para las 10 mazmorras).
+inline worldmodel::ScenarioLibrary fullLibrary() {
+	worldmodel::ScenarioLibrary library;
+	library.add(scenarioOf("farm_a", worldmodel::MapKind::Farm));
+	library.add(scenarioOf("town_a", worldmodel::MapKind::Town));
+	library.add(scenarioOf("cabin_a", worldmodel::MapKind::Cabin));
+	library.add(scenarioOf("market_a", worldmodel::MapKind::Market));
+	library.add(scenarioOf("center_a",
+			       worldmodel::MapKind::CommunityCenter));
+	library.add(scenarioOf("cave_a", worldmodel::MapKind::Dungeon));
+	return library;
+}
+
+inline worldmodel::ScenarioChoice validChoice() {
+	worldmodel::ScenarioChoice choice;
+	choice.farm = "farm_a";
+	choice.town = "town_a";
+	choice.cabin = "cabin_a";
+	choice.market = "market_a";
+	choice.communityCenter = "center_a";
+	choice.dungeons.fill("cave_a");
+	return choice;
+}
+
+// Mundo "Primavera" generado por WorldFactory con fullLibrary.
+inline worldmodel::World defaultWorld() {
+	return worldmodel::WorldFactory().makeDefault(
+		"Primavera", fullLibrary(), validChoice());
 }
 
 }

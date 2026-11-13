@@ -2,71 +2,107 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "world_model/FormatError.h"
 
 namespace worldmodel {
 
-World WorldFactory::makeDefault(const std::string& slug,
-				const std::string& name,
+World WorldFactory::makeDefault(const std::string& name,
 				const ScenarioLibrary& library,
 				const ScenarioChoice& choice) const {
-	const auto require = [&](const std::string& id,
-				 MapKind kind) -> const Scenario& {
-		const Scenario* scenario = id.empty() ? nullptr : library.find(id);
-		if (scenario == nullptr || scenario->kind != kind) {
-			throw FormatError(FormatErrorKind::InvalidValue,
-					  "scenario");
+	const auto require = [&](const std::string& id) -> const Scenario& {
+		const Scenario* scenario = library.find(id);
+		if (!scenario) {
+			throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 		}
 		return *scenario;
 	};
 
 	World world;
 	world.formatVersion = 1;
-	world.slug = slug;
 	world.name = name;
 
-	const auto addMap = [&](const std::string& id, MapKind kind, int level,
-				const Scenario& scenario) {
-		mergeTilesets(world, scenario);
-		world.maps.emplace(id, copyScenario(scenario, id, kind, level));
-	};
-
-	addMap("farm", MapKind::Farm, 0,
-	       require(choice.farm, MapKind::Farm));
-	addMap("town", MapKind::Town, 0,
-	       require(choice.town, MapKind::Town));
-	addMap("cabin", MapKind::Cabin, 0,
-	       require(choice.cabin, MapKind::Cabin));
-	addMap("market", MapKind::Market, 0,
-	       require(choice.market, MapKind::Market));
-	addMap("community_center", MapKind::CommunityCenter, 0,
-	       require(choice.communityCenter, MapKind::CommunityCenter));
+	addMandatoryMap(world, "farm", require(choice.farm));
+	addMandatoryMap(world, "town", require(choice.town));
+	addMandatoryMap(world, "cabin", require(choice.cabin));
+	addMandatoryMap(world, "market", require(choice.market));
+	addMandatoryMap(world, "community_center",
+			require(choice.communityCenter));
 	for (int level = 1; level <= 10; ++level) {
-		addMap(rules_.dungeonId(level), MapKind::Dungeon, level,
-		       require(choice.dungeons[level - 1], MapKind::Dungeon));
+		addMandatoryMap(world, rules_.dungeonId(level),
+				require(choice.dungeons[level - 1]));
 	}
-
-	placeObjects(world);
-
-	for (auto& [id, map] : world.maps) {
-		map.rebuildCollision();
-	}
-
-	placePoints(world);
 	wirePortals(world);
 	return world;
+}
+
+ScenarioChoice WorldFactory::firstOfEachKind(
+	const ScenarioLibrary& library) const {
+	const auto firstId = [&](MapKind kind) -> std::string {
+		const std::vector<const Scenario*> options =
+			library.byKind(kind);
+		return options.empty() ? std::string{} : options.front()->id;
+	};
+	ScenarioChoice choice;
+	choice.farm = firstId(MapKind::Farm);
+	choice.town = firstId(MapKind::Town);
+	choice.cabin = firstId(MapKind::Cabin);
+	choice.market = firstId(MapKind::Market);
+	choice.communityCenter = firstId(MapKind::CommunityCenter);
+	choice.dungeons.fill(firstId(MapKind::Dungeon));
+	return choice;
 }
 
 void WorldFactory::addExtraMap(World& world, const Scenario& scenario,
 			       const std::string& id) const {
 	if (rules_.find(id) != nullptr || !rules_.isValidMapId(id) ||
-	    world.maps.find(id) != world.maps.end()) {
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
+	    world.maps.contains(id)) {
+		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}
 	mergeTilesets(world, scenario);
 	world.maps.emplace(id,
 			   copyScenario(scenario, id, scenario.kind, 0));
+}
+
+void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
+				      const Scenario& scenario) const {
+	if (!world.maps.contains(mapId)) {
+		throw FormatError(FormatErrorKind::InvalidValue, "maps");
+	}
+	// Etapa sobre una copia: si algo falla, world queda intacto.
+	World staged = world;
+	staged.maps.erase(mapId);
+	if (rules_.find(mapId) == nullptr) {
+		addExtraMap(staged, scenario, mapId);
+	} else {
+		addMandatoryMap(staged, mapId, scenario);
+		wirePortals(staged);
+	}
+	world = std::move(staged);
+}
+
+void WorldFactory::removeExtraMap(World& world, const std::string& mapId) const {
+	if (rules_.find(mapId) != nullptr || !world.maps.contains(mapId)) {
+		throw FormatError(FormatErrorKind::InvalidValue, "maps");
+	}
+	world.maps.erase(mapId);
+}
+
+void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
+				   const Scenario& scenario) const {
+	const MapRule& rule = *rules_.find(mapId);
+	if (scenario.kind != rule.kind) {
+		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
+	}
+	mergeTilesets(world, scenario);
+	world.maps.emplace(mapId,
+			   copyScenario(scenario, mapId, rule.kind,
+					rules_.dungeonLevel(mapId).value_or(0)));
+	placeMapObjects(world, mapId);
+	world.maps.at(mapId).rebuildCollision();
+	placeMapPoints(world, mapId);
 }
 
 Map WorldFactory::copyScenario(const Scenario& scenario,
@@ -117,63 +153,81 @@ void WorldFactory::mergeTilesets(World& world,
 	}
 }
 
-void WorldFactory::placeObjects(World& world) const {
+TileRef WorldFactory::defaultObjectTile(const World& world) const {
 	if (world.tilesets.empty()) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 	}
-	const TileRef tile{world.tilesets.begin()->first, 0, 0};
-
-	Map& farm = world.maps.at("farm");
-	addObject(farm, ObjectRole::Cabin, tile, {2, 2}, 4, 3, true,
-		  TilePos{4, 5});
-
-	Map& town = world.maps.at("town");
-	const TilePos marketCell{town.width / 2, 2};
-	addObject(town, ObjectRole::Market, tile, marketCell, 5, 4, true,
-		  TilePos{marketCell.column + 2, marketCell.row + 4});
-	const TilePos centerCell{2, town.height - 5};
-	addObject(town, ObjectRole::CommunityCenter, tile, centerCell, 6, 4,
-		  true, TilePos{centerCell.column + 3, centerCell.row + 4});
+	return TileRef{world.tilesets.begin()->first, 0, 0};
 }
 
-void WorldFactory::placePoints(World& world) const {
-	Map& farm = world.maps.at("farm");
-	addMarker(farm, MarkerKind::PlayerSpawn, {4, 6});
-	addPortal(farm, PortalKind::TownEntrance,
-		  {farm.width - 2, farm.height / 2});
-	addPortal(farm, PortalKind::DungeonEntrance,
-		  {farm.width - 3, 2});
-
-	Map& town = world.maps.at("town");
-	addPortal(town, PortalKind::FarmEntrance, {1, town.height / 2});
-
-	Map& cabin = world.maps.at("cabin");
-	addMarker(cabin, MarkerKind::Bed, {2, 2});
-	addPortal(cabin, PortalKind::InteriorExit,
-		  {cabin.width / 2, cabin.height - 2});
-
-	Map& market = world.maps.at("market");
-	const MarkerKind merchants[] = {
-		MarkerKind::MerchantMarnie, MarkerKind::MerchantClint,
-		MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
-	for (int i = 0; i < 4; ++i) {
-		addMarker(market, merchants[i], {3 + 3 * i, 0});
+void WorldFactory::placeMapObjects(World& world,
+				   const std::string& mapId) const {
+	Map& map = world.maps.at(mapId);
+	switch (map.kind) {
+	case MapKind::Farm:
+		addObject(map, ObjectRole::Cabin, defaultObjectTile(world),
+			  {2, 2}, 4, 3, true, TilePos{4, 5});
+		break;
+	case MapKind::Town: {
+		const TileRef tile = defaultObjectTile(world);
+		const TilePos marketCell{map.width / 2, 2};
+		addObject(map, ObjectRole::Market, tile, marketCell, 5, 4,
+			  true, TilePos{marketCell.column + 2,
+					marketCell.row + 4});
+		const TilePos centerCell{2, map.height - 5};
+		addObject(map, ObjectRole::CommunityCenter, tile, centerCell,
+			  6, 4, true,
+			  TilePos{centerCell.column + 3, centerCell.row + 4});
+		break;
 	}
-	addPortal(market, PortalKind::InteriorExit,
-		  {market.width / 2, market.height - 2});
+	default:
+		break;
+	}
+}
 
-	Map& center = world.maps.at("community_center");
-	addPortal(center, PortalKind::InteriorExit,
-		  {center.width / 2, center.height - 1});
-
-	for (int level = 1; level <= 10; ++level) {
-		Map& dungeon = world.maps.at(rules_.dungeonId(level));
-		addPortal(dungeon, PortalKind::DungeonExit, {2, 2});
-		if (level < 10) {
-			addPortal(dungeon, PortalKind::StairsDown,
-				  {dungeon.width - 3,
-				   dungeon.height - 3});
+void WorldFactory::placeMapPoints(World& world,
+				  const std::string& mapId) const {
+	Map& map = world.maps.at(mapId);
+	switch (map.kind) {
+	case MapKind::Farm:
+		addMarker(map, MarkerKind::PlayerSpawn, {4, 6});
+		addPortal(map, PortalKind::TownEntrance,
+			  {map.width - 2, map.height / 2});
+		addPortal(map, PortalKind::DungeonEntrance,
+			  {map.width - 3, 2});
+		break;
+	case MapKind::Town:
+		addPortal(map, PortalKind::FarmEntrance, {1, map.height / 2});
+		break;
+	case MapKind::Cabin:
+		addMarker(map, MarkerKind::Bed, {2, 2});
+		addPortal(map, PortalKind::InteriorExit,
+			  {map.width / 2, map.height - 2});
+		break;
+	case MapKind::Market: {
+		const MarkerKind merchants[] = {
+			MarkerKind::MerchantMarnie, MarkerKind::MerchantClint,
+			MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
+		for (int i = 0; i < 4; ++i) {
+			addMarker(map, merchants[i], {3 + 3 * i, 0});
 		}
+		addPortal(map, PortalKind::InteriorExit,
+			  {map.width / 2, map.height - 2});
+		break;
+	}
+	case MapKind::CommunityCenter:
+		addPortal(map, PortalKind::InteriorExit,
+			  {map.width / 2, map.height - 1});
+		break;
+	case MapKind::Dungeon:
+		addPortal(map, PortalKind::DungeonExit, {2, 2});
+		if (map.level < 10) {
+			addPortal(map, PortalKind::StairsDown,
+				  {map.width - 3, map.height - 3});
+		}
+		break;
+	default:
+		break;
 	}
 }
 

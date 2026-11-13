@@ -75,11 +75,26 @@ const MapRule* MapRules::find(const std::string& id) const {
 }
 
 bool MapRules::isValidMapId(const std::string& id) const {
-	return isBareId(id, true);
+	if (id.empty()) {
+		return false;
+	}
+	for (const char character : id) {
+		const bool valid = (character >= 'a' && character <= 'z') ||
+				   (character >= '0' && character <= '9') ||
+				   character == '-' || character == '_';
+		if (!valid) {
+			return false;
+		}
+	}
+	return true;
 }
 
-bool MapRules::isValidSlug(const std::string& slug) const {
-	return isBareId(slug, false);
+// El nombre es tambien el nombre de archivo (<nombre>.toml), asi que se
+// rechaza lo que romperia el path.
+bool MapRules::isValidWorldName(const std::string& name) const {
+	return !name.empty() && name != "." && name != ".." &&
+	       name.find('/') == std::string::npos &&
+	       name.find('\0') == std::string::npos;
 }
 
 std::string MapRules::dungeonId(int level) const {
@@ -93,22 +108,6 @@ std::optional<int> MapRules::dungeonLevel(const std::string& id) const {
 		}
 	}
 	return std::nullopt;
-}
-
-bool MapRules::isBareId(const std::string& text, bool allowUnderscore) const {
-	if (text.empty()) {
-		return false;
-	}
-	for (const char character : text) {
-		const bool valid = (character >= 'a' && character <= 'z') ||
-				   (character >= '0' && character <= '9') ||
-				   character == '-' ||
-				   (allowUnderscore && character == '_');
-		if (!valid) {
-			return false;
-		}
-	}
-	return true;
 }
 
 }

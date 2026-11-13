@@ -21,7 +21,6 @@ TEST(WorldSerializerTest, RoundTripPreservesWorld) {
 		serializer.loadFromString(serializer.saveToString(first));
 
 	EXPECT_EQ(second.formatVersion, first.formatVersion);
-	EXPECT_EQ(second.slug, first.slug);
 	EXPECT_EQ(second.name, first.name);
 	ASSERT_EQ(second.tilesets.size(), first.tilesets.size());
 	ASSERT_EQ(second.maps.size(), first.maps.size());

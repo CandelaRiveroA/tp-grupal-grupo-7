@@ -31,7 +31,6 @@ std::string WorldTomlWriter::write(const World& world) const {
 
 toml::table WorldTomlWriter::writeWorld(const World& world) const {
 	toml::table table;
-	table.insert("slug", world.slug);
 	table.insert("name", world.name);
 	return table;
 }

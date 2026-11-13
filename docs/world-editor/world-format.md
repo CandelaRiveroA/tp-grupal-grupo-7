@@ -38,14 +38,12 @@ format_version = 1
 
 ```toml
 [world]
-slug = "spring"
 name = "Primavera"
 ```
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
-| `slug` | string | sí | Identificador del mundo. Validación semántica: `[a-z0-9-]+`. |
-| `name` | string | sí | Nombre visible. Validación semántica: no vacío. |
+| `name` | string | sí | Nombre visible y, a la vez, nombre del archivo (`<name>.toml`). Validación semántica: no vacío, sin `/`, distinto de `.` y `..`. |
 
 No hay campo `description` en el modelo actual.
 
@@ -324,7 +322,6 @@ sección 4 indica qué contenido mínimo necesita cada uno.
 format_version = 1
 
 [world]
-slug = "spring"
 name = "Primavera"
 
 [tilesets.outdoors]

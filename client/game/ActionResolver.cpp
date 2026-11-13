@@ -17,6 +17,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		  {world::ActionKind::Pickup, PhaseClock::Action},
 		  {world::ActionKind::Carry, PhaseClock::Action},
 		  {world::ActionKind::CarryWalk, PhaseClock::Step},
+		  {world::ActionKind::Faint, PhaseClock::Action},
 	  }
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},
@@ -40,6 +41,12 @@ world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
 
 world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 					    std::size_t index, int it) const {
+	// El desmayo manda sobre la caminata y el carry: el personaje puede
+	// seguir moviéndose (no se bloquea el input), pero la pose es la
+	// última del desmayo hasta que la fuente la apague.
+	if (entity.action == world::ActionKind::Faint) {
+		return world::ActionKind::Faint;
+	}
 	// La caminata es presentación local (la interpolación del paso).
 	const world::ActionKind base = motion_.isWalking(index, it, entity.moving)
 					       ? world::ActionKind::Walk

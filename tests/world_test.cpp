@@ -15,7 +15,8 @@ public:
     
     // Lo más importante para el test: NO es caminable
     bool is_walkable() const override { return false; }
-    void interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) override {}};
+    void interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) override {}
+    void update(World& /*w*/) override {}};
 
 TEST(WorldTest, JugadorSeMueveHaciaCeldaVacia) {
     World world(5, 5);

@@ -17,9 +17,23 @@ std::string content_id_for(ItemID id) {
             {ItemID::COAL_ORB, "coal"},
             {ItemID::LAPIS_ORB, "lapis"},
             {ItemID::GOLD_ORB, "gold"},
+            {ItemID::ROCK, "rock"},
+            {ItemID::ROCK_2, "rock_2"},
+            {ItemID::ROCK_3, "rock_3"},
+            {ItemID::ROCK_4, "rock_4"},
+            {ItemID::ROCK_5, "rock_5"},
+            {ItemID::ROCK_6, "rock_6"},
             {ItemID::EGG, "egg"},
             {ItemID::MILK, "milk"},
-            {ItemID::BED, "bed"}};
+            {ItemID::BED, "bed"},
+            {ItemID::STRAWBERRY, "strawberry"},
+            {ItemID::GREEN_ONION, "onion"},
+            {ItemID::POTATO, "potato"},
+            {ItemID::PUMPKIN, "pumpkin"},
+            {ItemID::STRAWBERRY_SEED, "strawberry_seeds"},
+            {ItemID::ONION_SEED, "onion_seeds"},
+            {ItemID::POTATO_SEED, "potato_seeds"},
+            {ItemID::PUMPKIN_SEED, "pumpkin_seeds"}};
 
     const auto it = content_ids.find(id);
     return it != content_ids.end() ? it->second : "";
@@ -45,15 +59,30 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
 
     for (const uint8_t id: world.get_player_ids()) {
         const Player& player = world.get_player(id);
-        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing()));
+        out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
+                                   player.get_appearance()));
     }
 
     for (uint16_t y = 0; y < world.get_height(); ++y) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
+            // El suelo no es entidad: su estado es la celda misma (Cell::soil_state).
+            const SoilState soil = world.get_cell(x, y).soil_state;
+            if (soil != SoilState::NORMAL) {
+                out.push_back(ServerGroundEffect{x, y, GroundEffect::Dug});
+            }
+            if (soil == SoilState::WATERED) {
+                out.push_back(ServerGroundEffect{x, y, GroundEffect::Watered});
+            }
             for (const IEntity* entity: world.get_entity_at(x, y)) {
                 if (const auto animal = entity->animal_snapshot()) {
                     out.push_back(ServerAnimal{animal->id, animal->kind, x, y, animal->facing,
                                                animal->ready_to_milk});
+                    continue;
+                }
+                if (const auto crop = entity->crop_snapshot()) {
+                    out.push_back(ServerCrop{x, y, content_id_for(crop->product), crop->stage,
+                                             crop->needs_water, crop->ready,
+                                             static_cast<uint8_t>(crop->quality)});
                     continue;
                 }
                 const auto snap = entity->snapshot();
@@ -85,5 +114,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               content_id_for(item->get_id())});
         }
     }
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
+    out.push_back(ServerSyncEnd{});
     return out;
 }

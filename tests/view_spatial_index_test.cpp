@@ -15,14 +15,13 @@ using game::ViewSpatialIndex;
 using world::CreatureKind;
 using world::Direction;
 using world::PixelRect;
-using world::ResourceKind;
 using world::ResourceState;
 using world::ScenePixelMapper;
 
 TEST(ViewSpatialIndexTest, QueriesEachCollectionIndependently) {
 	LocalWorldView view;
 	view.resources.push_back(
-		ViewResource{ResourceKind::Coal, 0, 0, ResourceState::Intact});
+		ViewResource{"coal", 0, 0, ResourceState::Intact});
 	view.droppedItems.push_back(ViewDroppedItem{"coal", 50, 50});
 	ViewEntity entity{};
 	entity.kind = CreatureKind::Player;
@@ -51,7 +50,7 @@ TEST(ViewSpatialIndexTest, QueriesEachCollectionIndependently) {
 TEST(ViewSpatialIndexTest, RebuildDropsOldSnapshotEntries) {
 	LocalWorldView view;
 	view.resources.push_back(
-		ViewResource{ResourceKind::Coal, 0, 0, ResourceState::Intact});
+		ViewResource{"coal", 0, 0, ResourceState::Intact});
 
 	ViewSpatialIndex index;
 	index.rebuild(view, ScenePixelMapper{32});

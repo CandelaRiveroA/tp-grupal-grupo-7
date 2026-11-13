@@ -18,7 +18,8 @@ public:
 
 	void createGame(const GameSelection& selection) override;
 	void joinGame(const std::string& code, const std::string& username,
-		      const std::string& characterName) override;
+		      const std::string& characterName,
+		      const CharacterAppearance& appearance) override;
 	void loadGame(std::uint32_t saveId) override;
 
 private:

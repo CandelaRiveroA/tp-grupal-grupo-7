@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "domain/animals/chicken.h"
+#include "domain/crops/potato.h"
 #include "domain/entities/player.h"
 #include "domain/map/world.h"
 #include "domain/minerals/coal_rock.h"
@@ -49,14 +50,44 @@ TEST(WorldViewTest, EverySyncStartsWithAResetAndDescribesTheWholeState) {
     EXPECT_EQ(resources[0].content_id, "coal");
     EXPECT_EQ(resources[0].damage, ResourceDamage::Intact);
     // Solo los slots ocupados: el reset ya borró los vacíos del cliente.
-    EXPECT_EQ(only<ServerInventorySlot>(messages).size(), 4u);
+    EXPECT_EQ(only<ServerInventorySlot>(messages).size(), 8u);
     // El inventario inicial no es una obtención: eso lo emite Match.
     EXPECT_TRUE(only<ServerObtained>(messages).empty());
+    // Cierra el lote: el cliente aplica todo recién al ver este mensaje
+    // (sin el cierre podría dibujar un frame sin entidades = parpadeo).
+    ASSERT_GT(messages.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(messages.back()));
 
     // Sin memoria entre llamadas: sin cambios, el mismo estado sale otra vez.
     const std::vector<ServerMessage> again = view.sync(world, 1);
     EXPECT_EQ(again.size(), messages.size());
     EXPECT_TRUE(std::holds_alternative<ServerReset>(again.front()));
+    EXPECT_TRUE(std::holds_alternative<ServerSyncEnd>(again.back()));
+}
+
+TEST(WorldViewTest, StatusCarriesEachPlayersAppearance) {
+    World world(5, 5);
+    populate(world);
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));
+    CharacterAppearance look;
+    look.skin = 2;
+    look.hair = 5;
+    look.accessory = 7;
+    world.set_player_appearance(2, look);
+    WorldView view;
+
+    // Cada joiner recibe la apariencia de todos en el mismo lote.
+    const auto statuses = only<ServerStatus>(view.sync(world, 1));
+    ASSERT_EQ(statuses.size(), 2u);
+    for (const ServerStatus& status: statuses) {
+        if (status.player_id == 2) {
+            EXPECT_EQ(status.appearance.skin, 2);
+            EXPECT_EQ(status.appearance.hair, 5);
+            EXPECT_EQ(status.appearance.accessory, 7);
+        } else {
+            EXPECT_EQ(status.appearance.skin, 0);
+        }
+    }
 }
 
 TEST(WorldViewTest, BlockedMoveKeepsSendingTheSameState) {
@@ -104,11 +135,11 @@ TEST(WorldViewTest, WalkingOntoTheDropFreesTheCellAndFillsTheSlot) {
     // El inventario es propio de cada jugador: el carbón sale solo en el sync
     // de quien lo levantó.
     const auto own = only<ServerInventorySlot>(view.sync(world, 1));
-    ASSERT_EQ(own.size(), 5u);
-    EXPECT_EQ(own[4].slot, 4);
-    EXPECT_EQ(own[4].count, 1);
-    EXPECT_EQ(own[4].content_id, "coal");
-    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 2)).size(), 4u);
+    ASSERT_EQ(own.size(), 9u);
+    EXPECT_EQ(own[8].slot, 8);
+    EXPECT_EQ(own[8].count, 1);
+    EXPECT_EQ(own[8].content_id, "coal");
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 2)).size(), 8u);
 }
 
 TEST(WorldViewTest, StackedPickupRaisesTheSlotCount) {
@@ -123,9 +154,9 @@ TEST(WorldViewTest, StackedPickupRaisesTheSlotCount) {
     world.move_player(1, Direction::RIGHT);
 
     const auto slots = only<ServerInventorySlot>(view.sync(world, 1));
-    ASSERT_EQ(slots.size(), 5u);
-    EXPECT_EQ(slots[4].slot, 4);
-    EXPECT_EQ(slots[4].count, 2);
+    ASSERT_EQ(slots.size(), 9u);
+    EXPECT_EQ(slots[8].slot, 8);
+    EXPECT_EQ(slots[8].count, 2);
 }
 
 TEST(WorldViewTest, HitsAdvanceTheDamageInTheSentState) {
@@ -180,15 +211,15 @@ TEST(WorldViewTest, TheEggWaitsForTakeInsteadOfPickingItselfUp) {
 
     // Sigue en la celda, junto a la gallina: caminar no lo levanta.
     EXPECT_EQ(world.get_entity_at(2, 1).size(), 2u);
-    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 4u);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 8u);
 
     world.take_item(1);
 
     // El Take de la celda propia sí lo levanta y sale del estado.
     const auto own = only<ServerInventorySlot>(view.sync(world, 1));
-    ASSERT_EQ(own.size(), 5u);
-    EXPECT_EQ(own[4].slot, 4);
-    EXPECT_EQ(own[4].content_id, "egg");
+    ASSERT_EQ(own.size(), 9u);
+    EXPECT_EQ(own[8].slot, 8);
+    EXPECT_EQ(own[8].content_id, "egg");
     EXPECT_TRUE(only<ServerDropped>(view.sync(world, 1)).empty());
 }
 
@@ -201,13 +232,107 @@ TEST(WorldViewTest, TakeReachesAnEggInAnAdjacentCellButNotFartherOne) {
 
     // El huevo está a dos celdas: el Take no lo alcanza.
     world.take_item(1);
-    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 4u);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 8u);
 
     // Desde la celda de al lado sí.
     world.move_player(1, Direction::RIGHT);
     world.take_item(1);
-    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 5u);
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 9u);
     EXPECT_TRUE(only<ServerDropped>(view.sync(world, 1)).empty());
+}
+
+// Jugador 1 en (1,1) mirando a la derecha con la semilla de frutilla en el slot 4.
+Player* populateWithStrawberrySeed(World& world) {
+    auto player = std::make_unique<Player>(1, 1, 1);
+    Player* ref = player.get();
+    world.add_player(1, std::move(player));
+    world.set_player_facing(1, Direction::RIGHT);
+    world.get_cell(2, 1).till_soil();
+    ref->select_slot(4);
+    return ref;
+}
+
+TEST(WorldViewTest, PlantedSeedIsSentAsAGrowingCropThatAsksForWater) {
+    World world(5, 5);
+    populateWithStrawberrySeed(world);
+    WorldView view;
+
+    world.use_tool(1);
+
+    const auto crops = only<ServerCrop>(view.sync(world, 1));
+    ASSERT_EQ(crops.size(), 1u);
+    EXPECT_EQ(crops[0].x, 2);
+    EXPECT_EQ(crops[0].y, 1);
+    EXPECT_EQ(crops[0].crop_id, "strawberry");
+    EXPECT_EQ(crops[0].stage, 0);
+    EXPECT_TRUE(crops[0].needs_water);
+    EXPECT_FALSE(crops[0].interactive);
+    // La semilla se gasta y la tierra arada sale como efecto del suelo.
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 7u);
+    const auto ground = only<ServerGroundEffect>(view.sync(world, 1));
+    ASSERT_EQ(ground.size(), 1u);
+    EXPECT_EQ(ground[0].effect, GroundEffect::Dug);
+}
+
+TEST(WorldViewTest, CropGrowsDayByDayAndIsReadyToHarvestAfterItsDays) {
+    World world(5, 5);
+    populateWithStrawberrySeed(world);
+    WorldView view;
+    world.use_tool(1);
+
+    // La frutilla tarda 4 días: a mitad de camino ya creció.
+    world.process_end_of_day_floor();
+    const auto growing = only<ServerCrop>(view.sync(world, 1));
+    ASSERT_EQ(growing.size(), 1u);
+    EXPECT_EQ(growing[0].stage, 1);
+    EXPECT_FALSE(growing[0].interactive);
+
+    for (int day = 0; day < 3; ++day) {
+        world.process_end_of_day_floor();
+    }
+    const auto ready = only<ServerCrop>(view.sync(world, 1));
+    ASSERT_EQ(ready.size(), 1u);
+    EXPECT_EQ(ready[0].stage, 6);
+    EXPECT_TRUE(ready[0].interactive);
+    EXPECT_FALSE(ready[0].needs_water);
+}
+
+TEST(WorldViewTest, TakeHarvestsAReadyCropInAnAdjacentCell) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.set_entity_at(2, 1, std::make_unique<Potato>(2, 1));
+    WorldView view;
+    for (int day = 0; day < 3; ++day) {
+        world.process_end_of_day_floor();  // la papa tarda 3 días
+    }
+
+    world.take_item(1);
+
+    // La cosecha sale en el banner (pickup) y en el inventario, y el cultivo desaparece.
+    const auto taken = world.take_pickups();
+    ASSERT_EQ(taken.size(), 1u);
+    EXPECT_EQ(taken[0].item, ItemID::POTATO);
+    EXPECT_TRUE(only<ServerCrop>(view.sync(world, 1)).empty());
+    EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 1)).size(), 9u);
+}
+
+TEST(WorldViewTest, WateredSoilIsSentAsDugThenWatered) {
+    World world(5, 5);
+    populate(world);
+    world.get_cell(3, 3).till_soil();
+    world.get_cell(3, 3).water_soil();
+    WorldView view;
+
+    const auto ground = only<ServerGroundEffect>(view.sync(world, 1));
+    ASSERT_EQ(ground.size(), 2u);
+    EXPECT_EQ(ground[0].effect, GroundEffect::Dug);
+    EXPECT_EQ(ground[1].effect, GroundEffect::Watered);
+}
+
+TEST(WorldViewTest, CropsAndSeedsUseTheSharedContentIds) {
+    EXPECT_EQ(content_id_for(ItemID::POTATO), "potato");
+    EXPECT_EQ(content_id_for(ItemID::GREEN_ONION), "onion");
+    EXPECT_EQ(content_id_for(ItemID::PUMPKIN_SEED), "pumpkin_seeds");
 }
 
 }  // namespace

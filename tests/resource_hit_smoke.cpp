@@ -71,7 +71,7 @@ TEST(ResourceHitSmoke, PipelineCompletoDelGolpeLocal) {
     // la ventana, y resourceHits dura un tick en la vista.
     game::MockGameClient mock(30, 20, 15, 10, 1);
     for (int n = 1; n <= 3; ++n) {
-        mock.sendCommand(protocol::PickMessage{Direction::RIGHT});
+        mock.sendCommand(protocol::PickMessage{Direction::RIGHT, 0});
         mock.update(0);
         ASSERT_EQ(mock.worldState().resourceHits.size(), 1u);
         EXPECT_EQ(mock.worldState().resourceHits[0].destroyed, n == 3);

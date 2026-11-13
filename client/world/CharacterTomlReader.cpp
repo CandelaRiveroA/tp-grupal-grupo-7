@@ -25,6 +25,28 @@ constexpr const char* kHold = "hold";
 constexpr const char* kOffsetY = "offset_y";
 constexpr const char* kScale = "scale";
 
+// Apariencia personalizable.
+constexpr const char* kAppearance = "appearance";
+constexpr const char* kSkin = "skin";
+constexpr const char* kHair = "hair";
+constexpr const char* kShirt = "shirt";
+constexpr const char* kPants = "pants";
+constexpr const char* kAccessory = "accessory";
+constexpr const char* kOption = "option";
+constexpr const char* kOffset = "offset";
+constexpr const char* kCount = "count";
+constexpr const char* kFront = "front";
+constexpr const char* kSide = "side";
+constexpr const char* kBack = "back";
+constexpr const char* kAnchor = "anchor";
+
+constexpr std::array<const char*, 3> kAppearanceSideKeys = {
+	kFront, kSide, kBack};
+
+// Anclas de dibujo de una capa, en el orden del enum AppearanceAnchor.
+constexpr std::array<const char*, 3> kAppearanceAnchorKeys = {
+	"body", "head", "feet"};
+
 // Criatura lógica -> tabla del TOML que la describe.
 struct CreatureBinding {
 	CreatureKind kind;
@@ -163,6 +185,7 @@ CharacterCatalog::CreatureEntry CharacterTomlReader::readCreature(
 	entry.data.cadence = readCadence(base);
 	entry.data.hold = readHold(base);
 	entry.data.directions = readDirections(base, entry.data.cadence);
+	entry.appearance = readAppearance(join(base, kAppearance));
 	return entry;
 }
 
@@ -188,6 +211,160 @@ HoldPresentation CharacterTomlReader::readHold(const std::string& base) const {
 		hold.scale = scale;
 	}
 	return hold;
+}
+
+std::vector<int> CharacterTomlReader::readInts(
+	const std::string& path) const {
+	const std::size_t count = doc_.arraySize(path);
+	std::vector<int> values;
+	values.reserve(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		values.push_back(doc_.getInt(idx(path, i)));
+	}
+	return values;
+}
+
+std::vector<SheetRegion> CharacterTomlReader::readAppearanceRegions(
+	const std::string& path) const {
+	const std::vector<int> values = readInts(path);
+	if (values.empty() || values.size() % 4 != 0) {
+		throw ConfigError(Kind::InvalidValue, path);
+	}
+	std::vector<SheetRegion> regions;
+	for (std::size_t i = 0; i < values.size(); i += 4) {
+		const int col = values[i];
+		const int row = values[i + 1];
+		const int cols = values[i + 2];
+		const int rows = values[i + 3];
+		requireNonNegative(col, path);
+		requireNonNegative(row, path);
+		requirePositive(cols, path);
+		requirePositive(rows, path);
+		regions.push_back(
+			SheetRegion(SheetCell(col, row), cols, rows));
+	}
+	return regions;
+}
+
+AppearanceOption CharacterTomlReader::readAppearanceOption(
+	const std::string& optionPath) const {
+	AppearanceOption option;
+	for (std::size_t i = 0; i < kAppearanceSideKeys.size(); ++i) {
+		const std::string sidePath =
+			join(optionPath, kAppearanceSideKeys[i]);
+		if (doc_.hasKey(sidePath)) {
+			option.sides[i] = readAppearanceRegions(sidePath);
+		}
+	}
+	return option;
+}
+
+AppearanceLayerData CharacterTomlReader::readAppearanceLayer(
+	const std::string& base) const {
+	AppearanceLayerData layer;
+
+	const std::string sheetPath = join(base, kSheet);
+	layer.sheetImage = doc_.getString(sheetPath);
+	if (layer.sheetImage.empty()) {
+		throw ConfigError(Kind::InvalidValue, sheetPath);
+	}
+
+	const std::string gridPath = join(base, kGrid);
+	const std::array<int, 2> grid = doc_.getIntArray<2>(gridPath);
+	requirePositive(grid[0], gridPath);
+	requirePositive(grid[1], gridPath);
+	layer.cellWidth = grid[0];
+	layer.cellHeight = grid[1];
+
+	const std::string offsetPath = join(base, kOffset);
+	if (doc_.hasKey(offsetPath)) {
+		// Con signo: las capas ancladas a la coronilla se posicionan
+		// sobre ella (offset.y negativo = sobre la cabeza).
+		const std::array<int, 2> offset =
+			doc_.getIntArray<2>(offsetPath);
+		for (std::array<int, 2>& face : layer.offset) {
+			face = offset;
+		}
+	}
+	// Override por cara (opcional): `offset_front/side/back` ajustan una
+	// dirección concreta sobre el offset base.
+	for (std::size_t face = 0; face < kAppearanceSideKeys.size(); ++face) {
+		const std::string path = join(
+			base, std::string(kOffset) + "_" + kAppearanceSideKeys[face]);
+		if (doc_.hasKey(path)) {
+			layer.offset[face] = doc_.getIntArray<2>(path);
+		}
+	}
+
+	// Ancla de dibujo del offset: `body` (por defecto) o `head`.
+	const std::string anchorPath = join(base, kAnchor);
+	if (doc_.hasKey(anchorPath)) {
+		const std::string value = doc_.getString(anchorPath);
+		bool found = false;
+		for (std::size_t i = 0; i < kAppearanceAnchorKeys.size(); ++i) {
+			if (value == kAppearanceAnchorKeys[i]) {
+				layer.anchor = static_cast<AppearanceAnchor>(i);
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			throw ConfigError(Kind::InvalidValue, anchorPath);
+		}
+	}
+
+	const std::string optionsPath = join(base, kOption);
+	if (!doc_.hasKey(optionsPath)) {
+		throw ConfigError(Kind::MissingStructure, optionsPath);
+	}
+	const std::size_t count = doc_.arraySize(optionsPath);
+	if (count == 0) {
+		throw ConfigError(Kind::InvalidValue, optionsPath);
+	}
+	for (std::size_t i = 0; i < count; ++i) {
+		layer.options.push_back(
+			readAppearanceOption(idx(optionsPath, i)));
+	}
+	return layer;
+}
+
+SkinAppearanceData CharacterTomlReader::readSkinAppearance(
+	const std::string& base) const {
+	SkinAppearanceData skin;
+
+	const std::string sheetPath = join(base, kSheet);
+	skin.paletteSheet = doc_.getString(sheetPath);
+	if (skin.paletteSheet.empty()) {
+		throw ConfigError(Kind::InvalidValue, sheetPath);
+	}
+
+	const std::string gridPath = join(base, kGrid);
+	const std::array<int, 2> grid = doc_.getIntArray<2>(gridPath);
+	requirePositive(grid[0], gridPath);
+	requirePositive(grid[1], gridPath);
+	skin.cellWidth = grid[0];
+	skin.cellHeight = grid[1];
+
+	const std::string countPath = join(base, kCount);
+	skin.count = doc_.getInt(countPath);
+	requirePositive(skin.count, countPath);
+	return skin;
+}
+
+AppearanceData CharacterTomlReader::readAppearance(
+	const std::string& base) const {
+	AppearanceData appearance;
+	if (!doc_.hasKey(base)) {
+		return appearance;
+	}
+	appearance.present = true;
+	appearance.skin = readSkinAppearance(join(base, kSkin));
+	appearance.hair = readAppearanceLayer(join(base, kHair));
+	appearance.shirt = readAppearanceLayer(join(base, kShirt));
+	appearance.pants = readAppearanceLayer(join(base, kPants));
+	appearance.accessory =
+		readAppearanceLayer(join(base, kAccessory));
+	return appearance;
 }
 
 MoveCadence CharacterTomlReader::readCadence(const std::string& base) const {

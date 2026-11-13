@@ -48,6 +48,58 @@ anchor = "top_right"
 margin = [12, 12]
 scale  = 2
 
+# Barras de estado (energía y vida): abajo a la derecha, siempre visibles
+# y sin cámara, igual que el HUD de tiempo. Cada barra es una columna de
+# ui/bars.png de 4 celdas de alto (16x64 px). La hoja tiene la energía en
+# la columna 0 y la vida en la columna 1.
+#
+# Se dibujan lado a lado: la vida queda pegada al borde derecho y la
+# energía a su izquierda. El margen X de la energía es
+#   margin_vida_x + (16 * scale) + gap
+# así que al cambiar `scale` hay que recalcularlo (con scale = 3:
+# 12 + 48 + 8 = 68).
+[[overlay]]
+# Energía: columna 0, 4 celdas de alto.
+sheet  = "ui/bars.png"
+cell   = [16, 16]
+region = [0, 0, 1, 4]
+anchor = "bottom_right"
+margin = [68, 12]
+scale  = 3
+
+[overlay.fill]
+# Relleno dinámico de la energía: se estira desde abajo según la
+# fracción 0..1 que manda el estado (hoy el simulador local; mañana el
+# server). Se usa UNA sola celda de bars_fill.png estirada: sus filas son
+# idénticas, así la fracción es continua y no quedan costuras.
+value  = "energia"
+sheet  = "ui/bars_fill.png"
+cell   = [16, 16]
+region = [0, 0, 1, 1]        # celda verde
+# Ventana interior del tubo en px de la hoja, relativa a la región:
+# [x, y, ancho, alto]. Deja afuera el borde y el icono.
+cavity = [5, 13, 6, 41]
+
+[[overlay]]
+# Vida: columna 1, 4 celdas de alto. Pegada al borde derecho.
+sheet  = "ui/bars.png"
+cell   = [16, 16]
+region = [1, 0, 1, 4]
+anchor = "bottom_right"
+margin = [12, 12]
+scale  = 3
+
+[overlay.fill]
+# Relleno dinámico de la vida: mismo mecanismo que la energía, con la
+# celda roja de la hoja. Se estira desde abajo según la fracción 0..1 que
+# manda el estado (hoy el simulador local; mañana el server).
+value  = "vida"
+sheet  = "ui/bars_fill.png"
+cell   = [16, 16]
+region = [1, 0, 1, 1]        # celda roja
+# Misma ventana interior del tubo que la energía (por px de la hoja).
+cavity = [5, 13, 6, 41]
+
 [[label]]
 # Día de la semana y número de día en el panel de madera del reloj
 # (ej. "Lun. 1"). Valores crudos: dia_semana (0 = Lun.) y dia.

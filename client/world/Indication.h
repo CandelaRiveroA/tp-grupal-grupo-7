@@ -9,6 +9,8 @@ namespace world {
 enum class Indication {
 	ReadyToMilk,
 	ReadyToWater,
+	// Sin energía: el personaje se desmaya y muestra las Z.
+	NoEnergy,
 };
 
 }

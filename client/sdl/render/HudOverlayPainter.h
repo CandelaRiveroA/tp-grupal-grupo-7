@@ -6,6 +6,7 @@
 #include "sdl/render/SheetCache.h"
 #include "world/AnchorLayout.h"
 #include "world/HudOverlayCatalog.h"
+#include "world/PixelBox.h"
 
 namespace sdl {
 class SdlContext;
@@ -29,7 +30,12 @@ public:
 	// dibuja a su opacidad plena (el HUD fijo) y 0.0 no dibuja nada
 	// (la luz nocturna de día). Quién decide la intensidad es el dueño
 	// del concepto (game::DayPhase), no este painter.
-	void draw(double intensity = 1.0);
+	//
+	// `fillValues` son las fracciones 0..1 de los rellenos dinámicos,
+	// por clave (`HudFill::value`). El painter no decide el valor: solo
+	// dibuja la fracción que le entrega el estado.
+	void draw(const std::map<std::string, double>& fillValues = {},
+		  double intensity = 1.0);
 
 	// Escribe las etiquetas de texto del catálogo. `values` son los
 	// valores CRUDOS que manda la fuente de estado, por clave; el
@@ -42,6 +48,11 @@ private:
 	void fillVeil(const world::HudOverlay& overlay, double intensity);
 	void fillAlpha(const world::HudOverlay& overlay, double intensity);
 	void fillMultiply(const world::HudOverlay& overlay, double intensity);
+
+	// Dibuja el relleno dinámico de un overlay, si lo declara.
+	void drawFill(const world::HudOverlay& overlay,
+		      const world::PixelBox& shell,
+		      const std::map<std::string, double>& values);
 
 	// Cómo se rellena cada BlendMode. Tabla miembro (§9: mapa sobre
 	// switch), inicializada en el constructor.

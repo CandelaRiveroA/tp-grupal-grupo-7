@@ -49,9 +49,11 @@ que el flujo actual de la vista.
    - **Quedan jugadores activos** → `showWaiting(hechos, total)`. El
      popup se cierra con el **botón de cancelar** (esa cancelación también
      es una intención hacia el server).
-   - **Todos durmieron → nuevo día** → `changeTo("bedroom")` **y el cue
-     del gallo** por `soundEvents`. La vista, además, trae el estado del
-     nuevo día (el jugador en la celda que diga, minerales, etc.).
+   - **Todos durmieron → fin del día** → `ServerDayEnd`: la pantalla queda
+     en negro con el popup de OK (sin cancelar) y el reloj queda congelado.
+     Cada cliente manda `WakeMessage` al apretar OK.
+   - **Despertaron todos** → `ServerDay`: `changeTo("bedroom")` **y el cue
+     del gallo**. El reloj vuelve a las 6:00 y todos quedan en la cama.
 
 ### El "reinicio del día" NO arma nada
 

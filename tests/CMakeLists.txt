@@ -8,6 +8,7 @@ target_sources(taller_tests
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
+    mine_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
@@ -27,6 +28,7 @@ target_sources(taller_tests
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
@@ -39,7 +41,14 @@ target_sources(taller_tests
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp
     ../server/domain/minerals/silver_rock.cpp
-    ../server/domain/minerals/gold_rock.cpp    
+    ../server/domain/minerals/gold_rock.cpp
+    ../server/domain/minerals/rock.cpp
+    ../server/domain/minerals/mine_controller.cpp
+    ../server/domain/crops/crop.cpp
+    ../server/domain/crops/strawberry.cpp
+    ../server/domain/crops/green_onion.cpp
+    ../server/domain/crops/potato.cpp
+    ../server/domain/crops/pumpkin.cpp
     toml_document_test.cpp
     tile_ref_test.cpp
     tile_codec_test.cpp
@@ -112,6 +121,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
+    farming_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

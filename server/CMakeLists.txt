@@ -18,6 +18,7 @@ target_sources(taller_server
     domain/map/cell.cpp
     domain/map/world.cpp
     domain/entities/i_entity.cpp
+    domain/entities/entity_controller.cpp
     domain/entities/player.cpp
     domain/entities/dropped_item.cpp
     domain/animals/animal.cpp
@@ -35,6 +36,13 @@ target_sources(taller_server
     domain/minerals/lapis_rock.cpp
     domain/minerals/silver_rock.cpp
     domain/minerals/gold_rock.cpp
+    domain/minerals/rock.cpp
+    domain/minerals/mine_controller.cpp
+    domain/crops/crop.cpp
+    domain/crops/strawberry.cpp
+    domain/crops/green_onion.cpp
+    domain/crops/potato.cpp
+    domain/crops/pumpkin.cpp
     PUBLIC
     # .h files
     server.h

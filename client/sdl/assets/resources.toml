@@ -3,12 +3,17 @@
 #
 # Mapea cada recurso LÓGICO (lo que el servidor pone en el mundo) y su
 # ESTADO de daño a la APARIENCIA: de qué hoja sale y qué bloque lo dibuja.
-# El servidor manda "mineral X en celda (c,r) en estado Y"; el cliente
-# resuelve cómo se ve acá, sin hardcodear. Agregar un recurso o estado es
-# editar este archivo; no hace falta recompilar.
+# El servidor manda "mineral <contentId> en celda (c,r) en estado Y"; el
+# cliente resuelve cómo se ve acá, sin hardcodear.
+#
+# VOCABULARIO ABIERTO: agregar un recurso = una sección
+# [resources.<contentId>] + su sprite. No hace falta recompilar. El
+# contentId es el contrato con el servidor: tiene que mandar ese string.
 #
 # Cada estado es un bloque [col, row, cols, rows]: celda origen (esquina
-# superior-izquierda) + tamaño en celdas. Los minerales son 2x2.
+# superior-izquierda) + tamaño en celdas. Los minerales son 2x2; los
+# rellenos rock* son 1x1. Los tres estados son obligatorios; si no hay
+# sprite de daño, pueden apuntar todos al mismo bloque.
 #
 # Lo carga world::ResourceConfigLoader hacia un world::ResourceCatalog
 # (datos puros, sin SDL), y el sdl::Renderer lo consume. El servidor
@@ -26,30 +31,76 @@ offset_y = 8
 # a la altura del golpe). Crece hacia arriba, apoyado abajo. 1.0 = base.
 scale = 1.3
 
-[silver]
+[resources.silver]
 sheet   = "Cavern/ore.png"
 cell    = [16, 16]
 intact  = [0, 0, 2, 2]
 cracked = [2, 0, 2, 2]
 broken  = [4, 0, 2, 2]
 
-[coal]
+[resources.coal]
 sheet   = "Cavern/ore.png"
 cell    = [16, 16]
 intact  = [0, 2, 2, 2]
 cracked = [2, 2, 2, 2]
 broken  = [4, 2, 2, 2]
 
-[lapis]
+[resources.lapis]
 sheet   = "Cavern/ore.png"
 cell    = [16, 16]
 intact  = [0, 4, 2, 2]
 cracked = [2, 4, 2, 2]
 broken  = [4, 4, 2, 2]
 
-[gold]
+[resources.gold]
 sheet   = "Cavern/ore.png"
 cell    = [16, 16]
 intact  = [0, 6, 2, 2]
 cracked = [2, 6, 2, 2]
 broken  = [4, 6, 2, 2]
+
+# Rellenos destructibles (1 golpe, sin drop): stones de
+# Ambience/springobjects.png. Bloques 1x1 (celdas de 16px); los tres
+# estados apuntan al MISMO bloque: se rompen de un golpe, así que el
+# daño intermedio nunca se dibuja.
+[resources.rock]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [8, 1, 1, 1]
+cracked = [8, 1, 1, 1]
+broken  = [8, 1, 1, 1]
+
+[resources.rock_2]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [10, 1, 1, 1]
+cracked = [10, 1, 1, 1]
+broken  = [10, 1, 1, 1]
+
+[resources.rock_3]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [12, 1, 1, 1]
+cracked = [12, 1, 1, 1]
+broken  = [12, 1, 1, 1]
+
+[resources.rock_4]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [14, 1, 1, 1]
+cracked = [14, 1, 1, 1]
+broken  = [14, 1, 1, 1]
+
+[resources.rock_5]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [16, 1, 1, 1]
+cracked = [16, 1, 1, 1]
+broken  = [16, 1, 1, 1]
+
+[resources.rock_6]
+sheet   = "Ambience/springobjects.png"
+cell    = [16, 16]
+intact  = [18, 1, 1, 1]
+cracked = [18, 1, 1, 1]
+broken  = [18, 1, 1, 1]

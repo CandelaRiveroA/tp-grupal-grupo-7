@@ -73,6 +73,8 @@ target_sources(taller_client
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
     sdl/render/CharacterSprite.cpp
+    sdl/render/PixelComposer.cpp
+    sdl/render/PlayerAppearancePainter.cpp
     sdl/render/ToolOverlayPainter.cpp
     sdl/render/HeldItemPainter.cpp
     sdl/render/GroundEffectPainter.cpp
@@ -162,6 +164,7 @@ target_sources(taller_client
     game/GameClient.h
     game/GameConstants.h
     game/InputCommand.h
+    game/FractionStat.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
     game/MockGameClient.h
@@ -223,6 +226,7 @@ target_sources(taller_client
     world/AnchorLayout.h
     world/HudOverlayCatalog.h
     world/HudOverlayTomlReader.h
+    world/HudFillLayout.h
     world/HudOverlayConfigLoader.h
     world/SceneConfigLoader.h
     world/SceneDescription.h
@@ -246,6 +250,8 @@ target_sources(taller_client
     sdl/render/Viewport.h
     sdl/render/Camera.h
     sdl/render/CharacterSprite.h
+    sdl/render/PixelComposer.h
+    sdl/render/PlayerAppearancePainter.h
     sdl/render/RenderConstants.h
     sdl/render/ToolOverlayPainter.h
     sdl/render/HeldItemPainter.h

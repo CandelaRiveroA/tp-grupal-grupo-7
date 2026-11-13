@@ -4,3 +4,5 @@ build-harness/
 tags.*
 harness-out/
 client/qt/harness/
+worlds/*
+!worlds/.gitkeep

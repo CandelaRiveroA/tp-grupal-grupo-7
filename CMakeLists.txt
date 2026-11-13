@@ -69,7 +69,7 @@ target_include_directories(taller_common PUBLIC . common)
 
 # Install libSDL2 and libSDL2pp (for client or editor)
 # HEY!! TODO XXX: add more dependendies (either for client, server or editor)
-if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+if(TALLER_CLIENT OR TALLER_TILE_INSPECTOR)
     include(FetchContent)
 
     # libsdl2pp, al traerse vía FetchContent, no declara sus propias
@@ -398,20 +398,11 @@ if(TALLER_EDITOR)
     # HEY!! TODO XXX: Change the name of the executable to the one you like!
     add_executable(taller_editor)
 
-    # Make them depend on taller_common lib
-    add_dependencies(taller_editor taller_common SDL2pp::SDL2pp)
-
     # Add source files and enable warnings
     # HEY!! TODO XXX: add more subfolders here
     add_subdirectory(editor)
 
     set_project_warnings(taller_editor ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
-
-    # add libSDL2pp's headers
-    target_include_directories(taller_editor PRIVATE ${libSDL2pp_SOURCE_DIR})
-
-    # Link the taller_common lib target
-    target_link_libraries(taller_editor taller_common SDL2pp::SDL2pp)
 endif()
 
 

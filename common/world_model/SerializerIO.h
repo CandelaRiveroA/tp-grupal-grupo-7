@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "toml/TomlDocument.h"
 #include "world_model/FormatError.h"
@@ -24,6 +25,9 @@ public:
 	}
 
 	static void save(const std::string& text, const std::string& path);
+
+	// Rutas .toml ordenadas del directorio (o UnreadableInput si no se lee).
+	static std::vector<std::string> tomlFilesIn(const std::string& directory);
 };
 
 }

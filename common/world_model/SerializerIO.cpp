@@ -1,5 +1,7 @@
 #include "world_model/SerializerIO.h"
 
+#include <algorithm>
+#include <filesystem>
 #include <fstream>
 
 namespace worldmodel {
@@ -15,6 +17,23 @@ void SerializerIO::save(const std::string& text,
 	if (!stream) {
 		throw FormatError(FormatErrorKind::UnwritableOutput, path);
 	}
+}
+
+std::vector<std::string> SerializerIO::tomlFilesIn(
+	const std::string& directory) {
+	std::vector<std::string> files;
+	try {
+		for (const auto& entry :
+		     std::filesystem::directory_iterator(directory)) {
+			if (entry.path().extension() == ".toml") {
+				files.push_back(entry.path().string());
+			}
+		}
+	} catch (const std::filesystem::filesystem_error&) {
+		throw FormatError(FormatErrorKind::UnreadableInput, directory);
+	}
+	std::sort(files.begin(), files.end());
+	return files;
 }
 
 }

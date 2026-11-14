@@ -30,8 +30,8 @@ public:
     ~Enemy() override = default;
     Enemy(const Enemy&) = delete;
     Enemy& operator=(const Enemy&) = delete;
-    Enemy(Enemy&&) = default;
-    Enemy& operator=(Enemy&&) = default;
+    Enemy(Enemy&&) = delete;
+    Enemy& operator=(Enemy&&) = delete;
 
     uint8_t get_health() const;
 

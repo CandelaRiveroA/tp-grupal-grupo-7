@@ -30,6 +30,7 @@ target_sources(taller_tests
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/i_movable.cpp
     ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
     ../server/domain/enemies/enemy.cpp

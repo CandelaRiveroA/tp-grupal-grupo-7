@@ -32,27 +32,6 @@ static Direction random_direction() {
     return static_cast<Direction>(std::uniform_int_distribution<int>(0, 3)(rng()));
 }
 
-// Casilla vecina en esa dirección, sin pisar el borde del mapa.
-static std::pair<uint16_t, uint16_t> step_from(uint16_t x, uint16_t y, Direction dir) {
-    switch (dir) {
-        case Direction::UP:
-            if (y > 0)
-                --y;
-            break;
-        case Direction::DOWN:
-            ++y;
-            break;
-        case Direction::LEFT:
-            if (x > 0)
-                --x;
-            break;
-        case Direction::RIGHT:
-            ++x;
-            break;
-    }
-    return {x, y};
-}
-
 // Inicializamos la posición en IEntity y los días en 0.
 // La pausa inicial aleatoria desfasa a los animales entre sí para que no
 // caminen todos en el mismo tick.
@@ -86,8 +65,16 @@ void Animal::wander(World& w) {
     }
     --this->ticks_to_turn;
 
-    const auto [nx, ny] = step_from(this->pos_x, this->pos_y, this->wander_dir);
     // Si el destino está bloqueado o es el borde, se reintenta en el mismo rumbo
     // hasta que toque cambiar de dirección.
-    w.move_entity(this, nx, ny);
+    this->move(w, this->wander_dir);
+}
+
+bool Animal::move(World& w, Direction dir) {
+    const auto [target_x, target_y] = IMovable::next_tile(this->pos_x, this->pos_y, dir);
+    if (target_x == this->pos_x && target_y == this->pos_y) {
+        return false;
+    }
+    w.move_entity(this, target_x, target_y);
+    return this->pos_x == target_x && this->pos_y == target_y;
 }

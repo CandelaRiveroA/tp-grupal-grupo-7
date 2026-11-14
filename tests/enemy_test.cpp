@@ -7,6 +7,7 @@
 #include "../server/domain/enemies/skull.h"
 #include "../server/domain/enemies/vampire.h"
 #include "../server/domain/enemies/vampiress.h"
+#include "../server/domain/entities/i_movable.h"
 #include "../server/domain/entities/player.h"
 #include "../server/domain/map/world.h"
 
@@ -147,6 +148,32 @@ TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
     EXPECT_EQ(skeleton->get_x(), 0);  // fuera de rango (distancia 9 > 5)
     EXPECT_EQ(skeleton->get_y(), 0);
     EXPECT_EQ(world.get_player(1).get_health(), 100);
+}
+
+TEST(EnemyTest, ElEsqueletoNoPersigueAUnJugadorMuerto) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 1, 2));
+    world.add_player(2, std::make_unique<Player>(2, 4, 1));
+    world.get_player(1).take_damage(100);
+    auto owned = std::make_unique<Skeleton>(1, 1);
+    const Skeleton* skeleton = owned.get();
+    world.add_enemy(std::move(owned));
+
+    world.tick_enemies();
+
+    EXPECT_EQ(skeleton->get_x(), 2);  // va hacia el vivo, no pega al muerto
+    EXPECT_EQ(skeleton->get_y(), 1);
+    EXPECT_EQ(world.get_player(1).get_health(), 0);
+}
+
+TEST(IMovableTest, NextTileAvanzaYSeQuedaEnElBorde) {
+    using Tile = std::pair<uint16_t, uint16_t>;
+    EXPECT_EQ(IMovable::next_tile(3, 3, Direction::UP), (Tile{3, 2}));
+    EXPECT_EQ(IMovable::next_tile(3, 3, Direction::DOWN), (Tile{3, 4}));
+    EXPECT_EQ(IMovable::next_tile(3, 3, Direction::LEFT), (Tile{2, 3}));
+    EXPECT_EQ(IMovable::next_tile(3, 3, Direction::RIGHT), (Tile{4, 3}));
+    EXPECT_EQ(IMovable::next_tile(0, 0, Direction::UP), (Tile{0, 0}));
+    EXPECT_EQ(IMovable::next_tile(0, 0, Direction::LEFT), (Tile{0, 0}));
 }
 
 // ---------------------------------------------------------
@@ -415,6 +442,32 @@ TEST(VampireTest, SpawnVampirePairDejaLaParejaEnlazada) {
     }
     EXPECT_EQ(female->get_health(), 0);
     EXPECT_EQ(male->get_damage(), 30);
+}
+
+TEST(VampireTest, SiLaParejaSaleDelMundoElSobrevivienteNoQuedaColgado) {
+    World world(10, 10);
+    world.spawn_vampire_pair(5, 5);
+
+    Vampire* male = nullptr;
+    Vampiress* female = nullptr;
+    for (uint16_t y = 0; y < world.get_height(); ++y) {
+        for (uint16_t x = 0; x < world.get_width(); ++x) {
+            for (IEntity* ent: world.get_entity_at(x, y)) {
+                if (auto* vampiress = dynamic_cast<Vampiress*>(ent)) {
+                    female = vampiress;
+                } else if (auto* vampire = dynamic_cast<Vampire*>(ent)) {
+                    male = vampire;
+                }
+            }
+        }
+    }
+    ASSERT_NE(male, nullptr);
+    ASSERT_NE(female, nullptr);
+
+    world.remove_entity(female);
+
+    // Sin el desenlace en ~Vampire, esta muerte tocaría la vampira ya borrada.
+    EXPECT_NO_THROW(male->on_death(world));
 }
 
 TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {

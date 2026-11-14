@@ -19,6 +19,13 @@
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
+// Manada de orcos: tamaño entre kOrcPackMin y kOrcPackMax, celdas hasta kOrcPackRadius.
+#define kOrcPackMin 3
+#define kOrcPackMax 6
+#define kOrcPackRadius 2
+// Pareja de vampiros: celdas hasta kVampirePairRadius y al menos kVampirePairMinCells.
+#define kVampirePairRadius 1
+#define kVampirePairMinCells 2
 
 World::World(uint16_t w, uint16_t h):
         width(w), height(h), waking(false), day_ended(false), day_started(false), day(1) {
@@ -221,9 +228,9 @@ void World::add_enemy(std::unique_ptr<Enemy> enemy) {
 void World::spawn_orc_pack(uint16_t x, uint16_t y) {
     // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 del punto:
     // 25 candidatas, así que casi siempre entra la manada completa.
-    const int pack_size = 3 + std::rand() % 4;
+    const int pack_size = kOrcPackMin + std::rand() % (kOrcPackMax - kOrcPackMin + 1);
     std::vector<std::pair<uint16_t, uint16_t>> cells;
-    for (int radius = 0; radius <= 2; ++radius) {
+    for (int radius = 0; radius <= kOrcPackRadius; ++radius) {
         for (int dy = -radius; dy <= radius; ++dy) {
             for (int dx = -radius; dx <= radius; ++dx) {
                 if (std::max(std::abs(dx), std::abs(dy)) != radius) {
@@ -257,8 +264,8 @@ void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
     // Pareja en dos celdas caminables con radio <= 1 del punto (hasta 9
     // candidatas): con menos de 2 no hay pareja.
     std::vector<std::pair<uint16_t, uint16_t>> cells;
-    for (int dy = -1; dy <= 1; ++dy) {
-        for (int dx = -1; dx <= 1; ++dx) {
+    for (int dy = -kVampirePairRadius; dy <= kVampirePairRadius; ++dy) {
+        for (int dx = -kVampirePairRadius; dx <= kVampirePairRadius; ++dx) {
             const int cell_x = static_cast<int>(x) + dx;
             const int cell_y = static_cast<int>(y) + dy;
             if (cell_x < 0 || cell_y < 0 || cell_x >= this->width || cell_y >= this->height) {
@@ -271,7 +278,7 @@ void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
             }
         }
     }
-    if (cells.size() < 2) {
+    if (cells.size() < kVampirePairMinCells) {
         return;
     }
     // Arranque al azar para que no aparezca siempre en el mismo orden.

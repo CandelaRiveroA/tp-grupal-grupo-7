@@ -16,6 +16,8 @@
 #define kGoldOrbPrice 750
 // Radio de persecución cuerpo a cuerpo (celdas, distancia de Chebyshev).
 #define kAggroRange 5
+// Escala de los porcentajes de drop (0 a 100).
+#define kPercentMax 100
 
 Enemy::Enemy(uint16_t x, uint16_t y, uint8_t health, uint8_t damage, uint8_t gold_drop_percent):
         IEntity(x, y),
@@ -39,26 +41,7 @@ bool Enemy::take_damage(uint8_t incoming) {
 }
 
 bool Enemy::move(World& w, Direction dir) {
-    uint16_t target_x = this->pos_x;
-    uint16_t target_y = this->pos_y;
-
-    switch (dir) {
-        case Direction::UP:
-            if (target_y > 0)
-                --target_y;
-            break;
-        case Direction::DOWN:
-            ++target_y;
-            break;
-        case Direction::LEFT:
-            if (target_x > 0)
-                --target_x;
-            break;
-        case Direction::RIGHT:
-            ++target_x;
-            break;
-    }
-
+    const auto [target_x, target_y] = IMovable::next_tile(this->pos_x, this->pos_y, dir);
     if (target_x == this->pos_x && target_y == this->pos_y) {
         return false;
     }
@@ -81,7 +64,7 @@ void Enemy::interact(Player& /*p*/, ToolType tool, World& w) {
 }
 
 void Enemy::drop_orb(World& w, ItemID item, uint16_t price, uint8_t percent) {
-    if (std::rand() % 100 >= percent) {
+    if (std::rand() % kPercentMax >= percent) {
         return;
     }
     auto orb = std::make_unique<Product>(item, price, Quality::BASE);
@@ -94,6 +77,9 @@ const Player* Enemy::find_nearest_player(World& w, int range) const {
     int best_distance = range + 1;
     for (const uint8_t id: w.get_player_ids()) {
         const Player& player = w.get_player(id);
+        if (player.get_health() == 0) {
+            continue;
+        }
         const int player_dx = static_cast<int>(player.get_x()) - static_cast<int>(this->pos_x);
         const int player_dy = static_cast<int>(player.get_y()) - static_cast<int>(this->pos_y);
         const int distance = std::max(std::abs(player_dx), std::abs(player_dy));

@@ -12,9 +12,17 @@
 #define kSpeed 1
 // 10 ticks de CreatureTick (~4 s c/u) ≈ 40 s hasta el revive.
 #define kReviveTicks 10
+// Multiplicador que aplica el frenesí a la habilidad especial.
+#define kFrenzyMultiplier 2
 
 Vampire::Vampire(uint16_t x, uint16_t y):
         Vampire(x, y, kHealth, kDamage, kGoldDropPercent, kSpeed) {}
+
+Vampire::~Vampire() {
+    if (this->partner != nullptr && this->partner->partner == this) {
+        this->partner->partner = nullptr;
+    }
+}
 
 Vampire::Vampire(uint16_t x, uint16_t y, uint8_t health, uint8_t damage,
                  uint8_t gold_drop_percent, uint8_t speed):
@@ -30,7 +38,7 @@ uint8_t Vampire::get_damage() const {
     return static_cast<uint8_t>(this->damage * this->attack_frenzy);
 }
 
-void Vampire::enter_frenzy() { this->attack_frenzy = 2; }
+void Vampire::enter_frenzy() { this->attack_frenzy = kFrenzyMultiplier; }
 
 void Vampire::on_death(World& w) {
     // Particularidad: revive solo si quedaba sangre; consume un charco por

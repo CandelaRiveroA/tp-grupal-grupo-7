@@ -10,7 +10,7 @@
 class Vampire: public Enemy {
 public:
     Vampire(uint16_t x, uint16_t y);
-    ~Vampire() override = default;
+    ~Vampire() override;
 
     // Enlaza a esta pareja (el enlace mutuo lo hace cada lado).
     void set_partner(Vampire* other);
@@ -37,9 +37,8 @@ protected:
     uint8_t speed_frenzy;
 
 private:
-    // shortcut: puntero no-owning a la pareja; queda colgado si la pareja sale
-    // del mundo (mismo patrón que World::enemies) y hoy nada retira enemigos:
-    // cuando haya retiro hay que limpiarlo acá.
+    // Puntero no-owning a la pareja. ~Vampire() lo desenlaza en ambas puntas
+    // para que la pareja que sobrevive no quede con un puntero colgado.
     Vampire* partner;
 };
 

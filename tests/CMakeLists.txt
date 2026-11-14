@@ -59,6 +59,20 @@ target_sources(taller_tests
     ../server/domain/crops/potato.cpp
     ../server/domain/crops/pumpkin.cpp
     toml_document_test.cpp
+    tile_ref_test.cpp
+    tile_codec_test.cpp
+    world_vocabulary_test.cpp
+    world_format_error_test.cpp
+    map_test.cpp
+    world_toml_reader_test.cpp
+    world_toml_writer_test.cpp
+    world_serializer_test.cpp
+    scenario_serializer_test.cpp
+    scenario_library_test.cpp
+    scenario_library_loader_test.cpp
+    world_factory_test.cpp
+    world_repository_test.cpp
+    world_validator_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp
@@ -132,7 +146,7 @@ target_include_directories(taller_tests PRIVATE ${PROJECT_SOURCE_DIR}/server)
 # fetchea solo si hay client/editor/tile-inspector (raíz del CMakeLists),
 # así que los tests de input se agregan únicamente en esa configuración;
 # en la config "solo tests" (make run-tests) no se compilan.
-if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+if(TALLER_CLIENT OR TALLER_TILE_INSPECTOR)
     target_sources(taller_tests
         PRIVATE
         input_manager_test.cpp

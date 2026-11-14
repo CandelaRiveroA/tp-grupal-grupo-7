@@ -1,0 +1,1 @@
+El loader debe ignorar archivos que no sean .toml.

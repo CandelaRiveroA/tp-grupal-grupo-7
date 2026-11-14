@@ -55,12 +55,16 @@ public:
 
 	bool getBool(const std::string& path) const;
 
+	std::vector<int> getIntArray(const std::string& path) const;
+
 	template <std::size_t N>
 	std::array<int, N> getIntArray(const std::string& path) const {
 		std::array<int, N> result{};
 		readIntArray(path, result.data(), N);
 		return result;
 	}
+
+	std::vector<bool> getBoolArray(const std::string& path) const;
 
 	std::vector<std::string> subtableKeys(const std::string& path) const;
 

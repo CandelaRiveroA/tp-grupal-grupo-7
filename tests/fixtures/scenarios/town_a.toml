@@ -1,0 +1,14 @@
+format_version = 1
+
+[scenario]
+id = "town_a"
+kind = "town"
+width = 2
+height = 2
+tile_size = 16
+collision = [false, false, false, false]
+ground = ["outdoors:0,0", "outdoors:0,0", "outdoors:0,0", "outdoors:0,0"]
+
+[tilesets.outdoors]
+image = "Farm/spring_outdoors.png"
+cell = [16, 16]

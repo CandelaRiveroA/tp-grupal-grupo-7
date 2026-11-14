@@ -64,6 +64,13 @@
   preferencia del proyecto es el diccionario.)
 - **enum class** para vocabulario (no números sueltos): `CreatureKind`,
   `ItemKind`, `ActionKind`, `Layer`, etc.
+- **Prohibido `dynamic_cast` (RTTI) en código nuevo de producción** (los
+  tests quedan exentos). Para saber "qué es"
+  algo se le pregunta al dueño del concepto: `snapshot()` describe una
+  entidad al mundo, `World` conoce sus listas (enemigos, animales, ...),
+  y si hace falta distinguir subtipos se agrega un seam explícito (enum
+  class o método virtual con default, como `blocks_placement()`). El código
+  anterior a esta regla no se reescribe por ella.
 
 ## 5. Datos en TOML, no en constantes C++
 

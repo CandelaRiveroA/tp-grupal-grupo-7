@@ -27,6 +27,7 @@ target_sources(taller_server
     domain/enemies/vampire.cpp
     domain/enemies/vampiress.cpp
     domain/enemies/skull.cpp
+    domain/enemies/enemy_controller.cpp
     domain/animals/animal.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp

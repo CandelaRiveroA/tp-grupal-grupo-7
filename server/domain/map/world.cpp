@@ -155,6 +155,8 @@ void World::remove_entity(IEntity* target_entity) {
     for (auto it = cell_entities.begin(); it != cell_entities.end(); ++it) {
         if (it->get() == target_entity) {
             crops.erase(std::remove(crops.begin(), crops.end(), target_entity), crops.end());
+            enemies.erase(std::remove(enemies.begin(), enemies.end(), target_entity),
+                          enemies.end());
             cell_entities.erase(it);  // Se destruye automáticamente
             break;
         }
@@ -285,6 +287,14 @@ void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
     vampiress_ptr->set_partner(vampire_ptr);
     this->add_enemy(std::move(vampire));
     this->add_enemy(std::move(vampiress));
+}
+
+void World::clear_enemies() {
+    // Se copian los punteros: remove_entity borra del vector mientras se itera.
+    const std::vector<Enemy*> all = this->enemies;
+    for (Enemy* enemy: all) {
+        this->remove_entity(enemy);
+    }
 }
 
 void World::tick_enemies() {

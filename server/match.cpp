@@ -10,8 +10,7 @@
 #include "commands/commands.h"
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
-#include "domain/enemies/skeleton.h"
-#include "domain/enemies/skull.h"
+#include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
 
@@ -22,7 +21,7 @@
 #define kSpawnY 10
 
 // TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
-// (ver MineController::create_entity).
+// (ver MineController::make_rock).
 #define kRoomNumber 1
 
 // Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
@@ -123,16 +122,9 @@ void Match::place_animals() {
 }
 
 void Match::place_enemies() {
-    // Enemigos de prueba, igual que los animales: hasta que haya generación
-    // de mundo. Lejos del spawn para que no ataque nada al entrar.
-    world.add_enemy(std::make_unique<Skeleton>(2, 16));
-    world.add_enemy(std::make_unique<Skeleton>(27, 17));
-    // Manada de orcos de prueba (3 a 6), lejos del spawn (15, 10).
-    world.spawn_orc_pack(15, 4);
-    // Pareja de vampiros de prueba, lejos del spawn y de los orcos.
-    world.spawn_vampire_pair(24, 12);
-    // Un solo Skull: hoy hay un solo cuarto; el EnemyController repartirá uno por cuarto.
-    world.add_enemy(std::make_unique<Skull>(5, 3));
+    // Igual que las piedras: cada día la caverna repone sus enemigos.
+    EnemyController enemies(kRoomNumber);
+    enemies.populate(world, kSpawnX, kSpawnY);
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
@@ -144,9 +136,9 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         total_sent(0),
         clock_minutes_sent(0) {
     place_animals();
-    place_enemies();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
     place_minerals();
+    place_enemies();
 }
 
 // Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
@@ -184,6 +176,7 @@ void Match::sync_day() {
         // (DayPassed) o porque todos durmieron (World::try_advance_sleep),
         // que cierra el día sin pasar por DayPassed.
         place_minerals();
+        place_enemies();
         broadcast(ServerDayEnd{});
     }
     if (world.take_day_started()) {

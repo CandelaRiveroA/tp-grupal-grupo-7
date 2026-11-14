@@ -9,6 +9,7 @@ target_sources(taller_tests
     world_test.cpp
     mineral_test.cpp
     mine_controller_test.cpp
+    enemy_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
@@ -37,6 +38,7 @@ target_sources(taller_tests
     ../server/domain/enemies/vampire.cpp
     ../server/domain/enemies/vampiress.cpp
     ../server/domain/enemies/skull.cpp
+    ../server/domain/enemies/enemy_controller.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp

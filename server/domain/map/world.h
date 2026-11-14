@@ -25,9 +25,8 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
-    // No poseen: los dueños son las celdas. Se mantienen para tick_enemies.
-    // shortcut: el puntero queda colgado si algún on_death llama a
-    // remove_entity; si eso pasa hay que sacarlo de acá también.
+    // No poseen: los dueños son las celdas. Se mantienen para tick_enemies;
+    // remove_entity también los saca de acá.
     std::vector<Enemy*> enemies;
     std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
@@ -101,6 +100,10 @@ public:
     // Un paso del reloj de animales: cada uno se mueve en su dirección actual
     // o elige una nueva si expiró el tiempo.
     void tick_animals();
+
+    // Borra todos los enemigos del mapa (vivos y cadáveres), sin dejar
+    // punteros colgantes en la lista de ticks. Lo usa EnemyController.
+    void clear_enemies();
 
     // Un paso del reloj de enemigos: revive a los muertos y ejecuta la IA
     // (perseguir / atacar) de los vivos.

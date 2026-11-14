@@ -30,6 +30,10 @@ public:
 
 	SDL2pp::Texture createTexture(const std::string& path);
 
+	// Igual, pero desde una superficie ya renderizada (p. ej. texto):
+	// la convierte en textura sin dibujarla todavía.
+	SDL2pp::Texture createTexture(SDL2pp::Surface& surface);
+
 	// Textura de escritura para composiciones por frame (la apariencia
 	// del jugador): se actualiza con Texture::Update sin recrearla.
 	SDL2pp::Texture createStreamingTexture(int width, int height,
@@ -46,6 +50,11 @@ public:
 				 SDL2pp::NullOpt);
 
 	void present();
+
+	// Dictado de texto (chat): lo prenden/apagan la sesión, dueña de la
+	// ventana.
+	void startTextInput();
+	void stopTextInput();
 
 	int width() const;
 	int height() const;

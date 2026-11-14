@@ -1,6 +1,16 @@
 #include "game/LocalWorldView.h"
 
+#include "game/GameConstants.h"
+
 namespace game {
+
+void LocalWorldView::addChatLine(const ViewChatLine& line) {
+	chatLog.push_back(line);
+	if (chatLog.size() > kChatHistoryMax) {
+		chatLog.erase(chatLog.begin());
+	}
+	++chatVersion;
+}
 
 int LocalWorldView::addInventoryContent(const std::string& contentId) {
 	for (ViewInventorySlot& slot : inventory) {

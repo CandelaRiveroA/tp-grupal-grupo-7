@@ -36,6 +36,12 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override;
 
+    // El chat no es suyo: lo delega en la fuente que envuelve (si no, se
+    // perdería al pasar por esta capa).
+    void sendChat(const std::string& text) override;
+    void receiveChat(std::uint8_t playerId, const std::string& characterName,
+                     const std::string& text) override;
+
 private:
     // El primer interactuable que encuentre algo cerca del jugador
     // atiende el toque (lista en orden de prioridad). Devuelve si esta

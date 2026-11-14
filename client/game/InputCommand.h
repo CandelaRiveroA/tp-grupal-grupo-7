@@ -26,6 +26,14 @@ struct InputCommand {
         // mientras el server no manda la acción. Lo consume PlaySession;
         // NO viaja al GameClient.
         Faint,
+        // Abrir el chatbox (tecla T).
+        OpenChat,
+        // Con el chat abierto: Enter manda y ESC descarta.
+        ChatSubmit,
+        ChatCancel,
+        // Demo (tecla M): simula que llegó un mensaje de otro jugador;
+        // entra por el mismo embudo que usará la red.
+        SimulateChatMessage,
     };
 
     Kind kind;

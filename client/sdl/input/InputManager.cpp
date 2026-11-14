@@ -8,9 +8,9 @@
 namespace sdl {
 
 InputManager::InputManager(int slotCount):
-        keymap_(defaultBindings()),
         slotKeys_{SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_5, SDLK_6, SDLK_7, SDLK_8, SDLK_9, SDLK_0},
         slotCount_(slotCount) {
+    keymap_ = defaultBindings();
     commandBindings_ = defaultCommandBindings();
     // Prioridad al leer varias teclas a la vez: left, right, up, down
     // (el mismo orden que usaba la lectura original del input).

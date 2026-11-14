@@ -238,7 +238,6 @@ target_sources(taller_client
     world/ChunkGrid.h
     world/SceneElementIndex.h
     game/ViewSpatialIndex.h
-    toml/TomlDocument.h
     sdl/context/SdlConstants.h
     sdl/context/SdlContext.h
     sdl/loop/FrameClock.h

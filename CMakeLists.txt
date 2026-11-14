@@ -69,7 +69,7 @@ target_include_directories(taller_common PUBLIC . common)
 
 # Install libSDL2 and libSDL2pp (for client or editor)
 # HEY!! TODO XXX: add more dependendies (either for client, server or editor)
-if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+if(TALLER_CLIENT OR TALLER_TILE_INSPECTOR)
     include(FetchContent)
 
     # libsdl2pp, al traerse vía FetchContent, no declara sus propias
@@ -143,6 +143,17 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS OR TALLER_QT_HARNESS)
         GIT_PROGRESS TRUE
     )
     FetchContent_MakeAvailable(tomlplusplus)
+
+    add_library(taller_toml STATIC common/toml/TomlDocument.cpp)
+    set_project_warnings(taller_toml ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+    target_include_directories(taller_toml PUBLIC ${CMAKE_SOURCE_DIR}/common)
+    target_link_libraries(taller_toml PUBLIC tomlplusplus::tomlplusplus)
+
+    add_library(taller_world_model STATIC)
+    add_subdirectory(common/world_model)
+    set_project_warnings(taller_world_model ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+    target_include_directories(taller_world_model PUBLIC ${CMAKE_SOURCE_DIR}/common)
+    target_link_libraries(taller_world_model PUBLIC taller_toml)
 endif()
 
 # utf8cpp: helpers UTF-8 header-only (backspace y tope del paste del
@@ -170,7 +181,6 @@ endif()
 # client y tests.
 if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
     add_library(taller_client_world STATIC
-        client/toml/TomlDocument.cpp
         client/world/ConfigError.cpp
         client/world/SceneConfigLoader.cpp
         client/world/SceneTomlReader.cpp
@@ -283,8 +293,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/render/Viewport.cpp
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
-    target_link_libraries(taller_client_world PUBLIC tomlplusplus::tomlplusplus
-                          utf8cpp taller_common)
+    target_link_libraries(taller_client_world PUBLIC utf8cpp
+                          taller_toml taller_common)
     set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 
@@ -411,20 +421,11 @@ if(TALLER_EDITOR)
     # HEY!! TODO XXX: Change the name of the executable to the one you like!
     add_executable(taller_editor)
 
-    # Make them depend on taller_common lib
-    add_dependencies(taller_editor taller_common SDL2pp::SDL2pp)
-
     # Add source files and enable warnings
     # HEY!! TODO XXX: add more subfolders here
     add_subdirectory(editor)
 
     set_project_warnings(taller_editor ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
-
-    # add libSDL2pp's headers
-    target_include_directories(taller_editor PRIVATE ${libSDL2pp_SOURCE_DIR})
-
-    # Link the taller_common lib target
-    target_link_libraries(taller_editor taller_common SDL2pp::SDL2pp)
 endif()
 
 
@@ -476,6 +477,7 @@ if(TALLER_TESTS)
     target_link_libraries(taller_tests
         taller_common
         taller_client_world
+        taller_world_model
         GTest::gtest_main
     )
 
@@ -488,5 +490,6 @@ if(TALLER_TESTS)
         TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
         TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
+        TALLER_SCENARIO_FIXTURES_DIR=\"${CMAKE_SOURCE_DIR}/tests/fixtures/scenarios\"
         TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
 endif()

@@ -6,3 +6,5 @@ tags.*
 harness-out/
 client/qt/harness/
 .vscode/
+worlds/*
+!worlds/.gitkeep

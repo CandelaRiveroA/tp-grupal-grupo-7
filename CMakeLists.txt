@@ -300,6 +300,10 @@ endif()
 
 # Program section
 # ---------------
+if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_QT_HARNESS)
+    find_package(Qt6 COMPONENTS Widgets REQUIRED)
+endif()
+
 if(TALLER_CLIENT)
     # HEY!! TODO XXX: Change the name of the executable to the one you like!
     add_executable(taller_client)

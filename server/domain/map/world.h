@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "../entities/player.h"
@@ -13,6 +14,7 @@
 #include "resource_hit.h"
 
 class Animal;
+class Enemy;
 class Crop;
 
 class World {
@@ -23,9 +25,16 @@ private:
     std::vector<std::vector<Cell>> grid;
     // No poseen: los dueños son las celdas. Se mantienen para tick_day y ordeñe.
     std::vector<Animal*> animals;
+    // No poseen: los dueños son las celdas. Se mantienen para tick_enemies;
+    // remove_entity también los saca de acá.
+    std::vector<Enemy*> enemies;
     std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
+    // Charcos de sangre (globales para todo el mapa): los deja damage_player
+    // cuando un jugador queda por debajo del 20 % de vida y los consumen los
+    // vampiros al morir. La posición queda para un futuro render.
+    std::vector<std::pair<uint16_t, uint16_t>> blood_puddles;
 
     // Sueño: jugadores en la cama (sleepers) y los que ya dieron OK
     // (accepted). accepted ⊆ sleepers, así que vaciar sleepers vacía
@@ -72,6 +81,14 @@ public:
     void remove_entity_at(uint16_t x, uint16_t y);
 
     void add_animal(std::unique_ptr<Animal> animal);
+    void add_enemy(std::unique_ptr<Enemy> enemy);
+
+    // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 de (x, y).
+    void spawn_orc_pack(uint16_t x, uint16_t y);
+
+    // Pareja enlazada de vampiros (1 vampiro + 1 vampira) en celdas
+    // caminables con radio <= 1 de (x, y).
+    void spawn_vampire_pair(uint16_t x, uint16_t y);
 
     // Avanza un día: cada animal reacciona a su update (huevos, leche lista).
     void tick_day();
@@ -83,6 +100,21 @@ public:
     // Un paso del reloj de animales: cada uno se mueve en su dirección actual
     // o elige una nueva si expiró el tiempo.
     void tick_animals();
+
+    // Borra todos los enemigos del mapa (vivos y cadáveres), sin dejar
+    // punteros colgantes en la lista de ticks. Lo usa EnemyController.
+    void clear_enemies();
+
+    // Un paso del reloj de enemigos: revive a los muertos y ejecuta la IA
+    // (perseguir / atacar) de los vivos.
+    void tick_enemies();
+
+    // Golpe de un enemigo al jugador. Devuelve true si quedó sin vida.
+    bool damage_player(uint8_t player_id, uint8_t damage);
+
+    // Consume el último charco de sangre: true = quedaba sangre (la usa el
+    // vampiro que murió para programar su revive).
+    bool consume_blood_puddle();
 
     // Mueve una entidad a otra celda; no hace nada si el destino está bloqueado.
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);

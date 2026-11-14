@@ -10,9 +10,10 @@
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
 
+#include "i_attackable.h"
 #include "i_entity.h"
 
-class Player: public IEntity {
+class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
     Direction facing;
@@ -25,6 +26,7 @@ private:
     uint16_t gold;
     float energy;
     float max_energy;
+    // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
 
@@ -43,6 +45,14 @@ public:
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;
+    uint16_t get_health() const;
+
+    // true si la vida quedó por debajo del 20 % del tope (herido grave o
+    // muerto): con eso World decide si queda un charco de sangre.
+    bool is_gravely_wounded() const;
+
+    // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
+    bool take_damage(uint8_t incoming) override;
 
     // Movimiento y orientación
     void set_facing(Direction dir);

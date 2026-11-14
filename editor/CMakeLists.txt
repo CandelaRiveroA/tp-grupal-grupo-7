@@ -1,7 +1,5 @@
 # El editor solo depende de Qt6 y del modelo de mundos (sin SDL2).
-# Se linkea desde este directorio: Qt6::Widgets es un target importado local
-# y no hace falta promoverlo a global (el cliente ya lo hace en el suyo).
-find_package(Qt6 COMPONENTS Widgets REQUIRED)
+# Qt6::Widgets ya fue resuelto en el CMakeLists.txt de la raíz.
 
 target_sources(taller_editor
     PRIVATE

@@ -18,9 +18,17 @@ target_sources(taller_server
     domain/map/cell.cpp
     domain/map/world.cpp
     domain/entities/i_entity.cpp
+    domain/entities/i_movable.cpp
     domain/entities/entity_controller.cpp
     domain/entities/player.cpp
     domain/entities/dropped_item.cpp
+    domain/enemies/enemy.cpp
+    domain/enemies/skeleton.cpp
+    domain/enemies/orc.cpp
+    domain/enemies/vampire.cpp
+    domain/enemies/vampiress.cpp
+    domain/enemies/skull.cpp
+    domain/enemies/enemy_controller.cpp
     domain/animals/animal.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp

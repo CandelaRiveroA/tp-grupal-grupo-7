@@ -9,9 +9,11 @@ target_sources(taller_tests
     world_test.cpp
     mineral_test.cpp
     mine_controller_test.cpp
+    enemy_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    enemy_test.cpp
     furniture_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
@@ -28,8 +30,16 @@ target_sources(taller_tests
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/i_movable.cpp
     ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
+    ../server/domain/enemies/enemy.cpp
+    ../server/domain/enemies/skeleton.cpp
+    ../server/domain/enemies/orc.cpp
+    ../server/domain/enemies/vampire.cpp
+    ../server/domain/enemies/vampiress.cpp
+    ../server/domain/enemies/skull.cpp
+    ../server/domain/enemies/enemy_controller.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp

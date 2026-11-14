@@ -5,6 +5,8 @@
 
 #include "../entities/entity_controller.h"
 
+class IEntity;
+
 // Genera los minerales de la caverna según los rates de aparición.
 // Se vuelve a llamar populate() al cambiar de día: la sala se repone con
 // una generación nueva (semilla aleatoria por construcción del controller).
@@ -15,9 +17,12 @@ public:
 
 protected:
     void clear_generation(World& world) override;
-    std::unique_ptr<IEntity> create_entity(uint16_t x, uint16_t y) override;
+    void spawn_at(World& world, uint16_t x, uint16_t y) override;
 
 private:
+    // Roca sorteada para el punto de aparición (x, y); spawn_at() la inserta.
+    std::unique_ptr<IEntity> make_rock(uint16_t x, uint16_t y);
+
     uint8_t sala;
 };
 

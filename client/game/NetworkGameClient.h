@@ -37,6 +37,11 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override;
 
+    
+    void sendChat(const std::string& text) override;
+    void receiveChat(std::uint8_t playerId, const std::string& characterName,
+                     const std::string& text) override;
+
 private:
     struct RemotePlayer {
         int cellX = 0;

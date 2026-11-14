@@ -156,6 +156,20 @@ if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TESTS OR TALLER_QT_HARNESS)
     target_link_libraries(taller_world_model PUBLIC taller_toml)
 endif()
 
+# utf8cpp: helpers UTF-8 header-only (backspace y tope del paste del
+# chat). Mismo criterio de tag pinned que toml++.
+if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
+    include(FetchContent)
+    FetchContent_Declare(
+        utf8cpp
+        GIT_REPOSITORY https://github.com/nemtrif/utfcpp.git
+        GIT_TAG v4.2.0
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(utf8cpp)
+endif()
+
 # Librería del cliente SIN dependencia de SDL: datos puros de la escena,
 # el loader de TOML, el logger de la sección SDL (que solo escribe a
 # stderr, no usa SDL), el FrameClock del game loop (cálculo puro de
@@ -209,6 +223,12 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/AnchorLayout.cpp
         client/world/HudOverlayCatalog.cpp
         client/world/HudOverlayTomlReader.cpp
+
+        # Chatbox: layout como datos y geometría de las cajas.
+        client/world/ChatTomlReader.cpp
+        client/world/ChatConfigLoader.cpp
+        client/world/ChatPanel.cpp
+
         client/world/HudFillLayout.cpp
         client/world/HudOverlayConfigLoader.cpp
         client/world/ScenePixelMapper.cpp
@@ -273,7 +293,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/render/Viewport.cpp
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
-    target_link_libraries(taller_client_world PUBLIC taller_toml taller_common)
+    target_link_libraries(taller_client_world PUBLIC utf8cpp
+                          taller_toml taller_common)
     set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 

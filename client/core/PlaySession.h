@@ -27,6 +27,7 @@
 #include "sdl/input/InputManager.h"
 #include "sdl/render/BuildPlacePainter.h"
 #include "sdl/render/Camera.h"
+#include "sdl/render/ChatPainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/HudOverlayPainter.h"
@@ -74,7 +75,8 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
+                const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes);
 
@@ -103,6 +105,12 @@ private:
     // PopupState, el dónde InventoryLayout y el cómo los painters;
     // esto solo compone la llamada.
     void drawPopup(const world::PixelBox& panel);
+
+    // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
+    void closeChat();
+
+    // Borra el último caracter UTF-8 escrito
+    void eraseLastCodepoint(std::string& text);
 
     // Cambia la escena actual (en el negro de la transición): carga la
     // sala pedida, reconstruye el índice del renderer y la cámara. El
@@ -161,6 +169,14 @@ private:
     bool voted_ = false;
     // Día terminado: ya apretó OK y espera a que despierten los demás.
     bool woke_ = false;
+    // Texto tipeado; al Enter sale por gameClient_.sendChat.
+    std::string chatInput_;
+    // Última versión vista del historial: al cambiar, llegó un mensaje y
+    // el preview se muestra hasta chatPreviewUntilTick_.
+    int seenChatVersion_ = 0;
+    int chatPreviewUntilTick_ = -1;
+    // Próximo mensaje de la demo (rota los casos del wrap).
+    std::size_t demoChatNext_ = 0;
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
@@ -192,6 +208,7 @@ private:
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
     sdl::PromptPainter promptPainter_;
+    sdl::ChatPainter chatPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

@@ -56,6 +56,13 @@ const LocalWorldView& MockWorldClient::worldState() const { return merged_; }
 
 bool MockWorldClient::connected() const { return inner_->connected(); }
 
+void MockWorldClient::sendChat(const std::string& text) { inner_->sendChat(text); }
+
+void MockWorldClient::receiveChat(const std::uint8_t playerId, const std::string& characterName,
+                                  const std::string& text) {
+    inner_->receiveChat(playerId, characterName, text);
+}
+
 bool MockWorldClient::startInteraction() {
     const world::CreatureData* player = characters_->find(world::CreatureKind::Player);
     if (player == nullptr) {

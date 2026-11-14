@@ -35,6 +35,40 @@ void SpriteSheet::draw(int col, int row, const SDL2pp::Rect& dest,
 	context_.drawTexture(texture_, frameRect(col, row), dest, flip);
 }
 
+void SpriteSheet::drawNineSlice(const int col, const int row,
+				const int border, const SDL2pp::Rect& dest) {
+	if (border <= 0 || dest.w <= 2 * border || dest.h <= 2 * border) {
+		draw(col, row, dest);
+		return;
+	}
+
+	// Cortes de cada eje: el borde queda fijo y el centro se estira.
+	const SDL2pp::Rect frame = frameRect(col, row);
+	const int srcX[4] = {frame.x, frame.x + border, frame.x + frame.w - border,
+			     frame.x + frame.w};
+	const int srcY[4] = {frame.y, frame.y + border, frame.y + frame.h - border,
+			     frame.y + frame.h};
+	const int dstX[4] = {dest.x, dest.x + border, dest.x + dest.w - border,
+			     dest.x + dest.w};
+	const int dstY[4] = {dest.y, dest.y + border, dest.y + dest.h - border,
+			     dest.y + dest.h};
+
+	for (int r = 0; r < 3; ++r) {
+		for (int c = 0; c < 3; ++c) {
+			const SDL2pp::Rect src(srcX[c], srcY[r],
+					       srcX[c + 1] - srcX[c],
+					       srcY[r + 1] - srcY[r]);
+			const SDL2pp::Rect piece(dstX[c], dstY[r],
+						 dstX[c + 1] - dstX[c],
+						 dstY[r + 1] - dstY[r]);
+			if (src.w <= 0 || src.h <= 0) {
+				continue;
+			}
+			context_.drawTexture(texture_, src, piece, Flip::None);
+		}
+	}
+}
+
 void SpriteSheet::drawContentCentered(const int col, const int row,
 				      const SDL2pp::Rect& dest,
 				      const double scale) {

@@ -80,6 +80,20 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
     commands_.push(message);
 }
 
+void NetworkGameClient::sendChat(const std::string& text) {
+    // Eco local: el día que el server reparta el mensaje hay que sacarlo
+    // o se ve dos veces.
+    view_.addChatLine(ViewChatLine{localPlayerId_, kLocalPlayerName, text});
+
+    // TODO(protocolo): acá viaja el texto cuando el protocolo lo conecte.
+}
+
+void NetworkGameClient::receiveChat(const std::uint8_t playerId,
+                                    const std::string& characterName,
+                                    const std::string& text) {
+    view_.addChatLine(ViewChatLine{playerId, characterName, text});
+}
+
 void NetworkGameClient::startMilking() {
     const auto player = players_.find(localPlayerId_);
     if (session_.active() || player == players_.end()) {

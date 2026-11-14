@@ -24,6 +24,12 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override { return true; }
 
+    // El "server" falso: sendChat se hace eco y receiveChat suma el que
+    // llega al historial.
+    void sendChat(const std::string& text) override;
+    void receiveChat(std::uint8_t playerId, const std::string& characterName,
+                     const std::string& text) override;
+
 private:
     // Mineral simulado: se agota a los `hitsToBreak` golpes (las rocas de
     // relleno, 1; los minerales, 3). Simula al servidor. `drops` marca si

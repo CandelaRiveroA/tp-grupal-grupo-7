@@ -16,12 +16,15 @@ struct InputCommand {
         SelectSlot,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
-        // muerte). Los consume PlaySession con su tabla de despacho;
-        // se van cuando el server mande esas acciones.
+        // muerte) y de sus proyectiles (J avanzar el fuego, L
+        // desaparecerlo). Los consume PlaySession con su tabla de
+        // despacho; se van cuando el server mande esas acciones.
         TestMove,
         TestAttack,
         TestDamage,
         TestDeath,
+        TestProjectileAdvance,
+        TestProjectileDespawn,
     };
 
     Kind kind;

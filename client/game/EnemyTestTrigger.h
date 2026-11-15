@@ -25,6 +25,12 @@ public:
 	// mundo simulado decide si la acepta o la ignora (tabla de
 	// prioridades). Una acción nueva no necesita un método nuevo.
 	virtual void triggerAll(world::ActionKind action) = 0;
+
+	// Proyectiles (hoy el fuego del Skull): avanzan una celda o
+	// desaparecen, como lo hará el server cuando mande la posición de
+	// cada uno. Solo escriben en el mundo simulado.
+	virtual void advanceProjectiles() = 0;
+	virtual void despawnProjectiles() = 0;
 };
 
 }  // namespace game

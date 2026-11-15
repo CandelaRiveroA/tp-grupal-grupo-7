@@ -116,11 +116,14 @@ private:
     game::GameClient& gameClient_;
     // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
     // del mundo simulado (null si no hay). Se va con las teclas de
-    // prueba (G/F/H/K).
+    // prueba (G/F/H/K/J/L).
     game::EnemyTestTrigger* enemyTestTrigger_;
     // ANDAMIAJE TEMPORAL (prueba): despacho de esas teclas a la acción
     // que disparan (una fila por tecla). Se va con el disparador.
     std::map<game::InputCommand::Kind, world::ActionKind> testActions_;
+    // Las dos teclas del proyectil (avanzar / desaparecer) también por
+    // tabla: Kind -> método del disparador. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, void (game::EnemyTestTrigger::*)()> projectileTests_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario

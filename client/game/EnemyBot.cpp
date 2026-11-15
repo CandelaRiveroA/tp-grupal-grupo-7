@@ -31,6 +31,11 @@ constexpr std::array<world::GridCell, 2> kVampireSpawns = {{
 	{19, 7},
 }};
 
+constexpr std::array<world::GridCell, 2> kSkullSpawns = {{
+	{18, 12},
+	{12, 12},
+}};
+
 // Una fila por especie del bot: kind + sus celdas. Sumar una especie =
 // una fila acá + su apariencia en enemies.toml (convención §4).
 struct EnemyBinding {
@@ -38,10 +43,11 @@ struct EnemyBinding {
 	std::span<const world::GridCell> cells;
 };
 
-constexpr std::array<EnemyBinding, 3> kEnemyBindings = {{
+constexpr std::array<EnemyBinding, 4> kEnemyBindings = {{
 	{world::CreatureKind::Orc, kOrcSpawns},
 	{world::CreatureKind::Skeleton, kSkeletonSpawns},
 	{world::CreatureKind::Vampire, kVampireSpawns},
+	{world::CreatureKind::Skull, kSkullSpawns},
 }};
 
 // Diccionario dirección -> delta en celdas (convención §4: tabla sobre
@@ -75,7 +81,13 @@ EnemyBot::EnemyBot(const world::CharacterCatalog& characters,
 		  {EnemyActivity::Attacking, 2},
 		  {EnemyActivity::Damaged, 3},
 		  {EnemyActivity::Dead, 4},
-	  } {}
+	  }
+	// Qué lanza cada enemigo al atacar (hoy solo el Skull). Sumar otro
+	// tipo de fuego = una fila acá + su apariencia en enemies.toml.
+	, attackProjectiles_{
+		  {world::CreatureKind::Skull, world::CreatureKind::SkullFire},
+	  }
+	, nextProjectileId_(kEnemyProjectileFirstId) {}
 
 void EnemyBot::spawnEnemies(const world::CharacterCatalog& characters,
 			    const int playerCellX,
@@ -145,6 +157,20 @@ void EnemyBot::triggerAll(const world::ActionKind action,
 		enemy.endIteration =
 			iteration + characters_->dataFor(enemy.kind)
 					    .actionWindowTicks(action);
+		// Si el enemigo lanza un proyectil, sale en la celda de
+		// adelante, en la dirección en la que está mirando.
+		if (activity->second == EnemyActivity::Attacking) {
+			const auto projectile =
+				attackProjectiles_.find(enemy.kind);
+			if (projectile != attackProjectiles_.end()) {
+				const world::GridCell delta =
+					deltaFor(enemy.facing);
+				launchProjectile(
+					projectile->second,
+					enemy.cellX + delta.column,
+					enemy.cellY + delta.row, enemy.facing);
+			}
+		}
 	}
 }
 
@@ -218,6 +244,50 @@ void EnemyBot::update(const int iteration) {
 	}
 }
 
+void EnemyBot::advanceProjectiles() {
+	for (ProjectileRecord& projectile : projectiles_) {
+		const world::GridCell delta = deltaFor(projectile.facing);
+		const int cellX = projectile.cellX + delta.column;
+		const int cellY = projectile.cellY + delta.row;
+		// La fuente decide hasta dónde llega; si la celda siguiente
+		// cae fuera del mundo, el proyectil se queda (lo saca la
+		// fuente, no esta capa).
+		if (cellX < 0 || cellX >= grid_.columns || cellY < 0 ||
+		    cellY >= grid_.rows) {
+			continue;
+		}
+		projectile.cellX = cellX;
+		projectile.cellY = cellY;
+	}
+}
+
+void EnemyBot::despawnProjectiles() { projectiles_.clear(); }
+
+void EnemyBot::launchProjectile(const world::CreatureKind kind,
+				const int cellX, const int cellY,
+				const world::Direction facing) {
+	if (cellX < 0 || cellX >= grid_.columns || cellY < 0 ||
+	    cellY >= grid_.rows) {
+		return;
+	}
+	ProjectileRecord projectile;
+	projectile.id = nextProjectileId_++;
+	projectile.kind = kind;
+	projectile.cellX = cellX;
+	projectile.cellY = cellY;
+	projectile.facing = facing;
+	projectiles_.push_back(projectile);
+}
+
+world::GridCell EnemyBot::deltaFor(const world::Direction facing) const {
+	for (const DirectionDelta& delta : kDirectionDeltas) {
+		if (delta.direction == facing) {
+			return world::GridCell{delta.deltaX, delta.deltaY};
+		}
+	}
+	return world::GridCell{0, 0};
+}
+
 void EnemyBot::appendEntities(std::vector<ViewEntity>& out) const {
 	for (const EnemyRecord& enemy : enemies_) {
 		ViewEntity entity;
@@ -230,6 +300,20 @@ void EnemyBot::appendEntities(std::vector<ViewEntity>& out) const {
 		entity.action = enemy.action;
 		// El "server falso" no los marca interactivos (no se
 		// seleccionan); mañana lo mandará el server real.
+		entity.interactive = false;
+		out.push_back(entity);
+	}
+	// Los proyectiles van después de los enemigos (el fuego se dibuja
+	// encima). Sin IA: solo la celda/dirección que fija la fuente.
+	for (const ProjectileRecord& projectile : projectiles_) {
+		ViewEntity entity;
+		entity.id = projectile.id;
+		entity.kind = projectile.kind;
+		entity.cellX = projectile.cellX;
+		entity.cellY = projectile.cellY;
+		entity.facing = projectile.facing;
+		entity.moving = false;
+		entity.action = world::ActionKind::Idle;
 		entity.interactive = false;
 		out.push_back(entity);
 	}

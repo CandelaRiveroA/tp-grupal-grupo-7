@@ -75,6 +75,10 @@ void MockWorldClient::triggerAll(const world::ActionKind action) {
     pendingTestAction_ = action;
 }
 
+void MockWorldClient::advanceProjectiles() { enemies_.advanceProjectiles(); }
+
+void MockWorldClient::despawnProjectiles() { enemies_.despawnProjectiles(); }
+
 bool MockWorldClient::startInteraction() {
     const world::CreatureData* player = characters_->find(world::CreatureKind::Player);
     if (player == nullptr) {

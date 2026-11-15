@@ -49,6 +49,8 @@ public:
     // se aplica al comienzo del próximo update (la última tecla del
     // frame gana).
     void triggerAll(world::ActionKind action) override;
+    void advanceProjectiles() override;
+    void despawnProjectiles() override;
 
 private:
     // El primer interactuable que encuentre algo cerca del jugador

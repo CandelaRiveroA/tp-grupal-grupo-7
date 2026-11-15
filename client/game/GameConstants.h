@@ -26,6 +26,10 @@ constexpr unsigned int kAnimalSeed = 20261027;
 // cuando el server mande los enemigos.
 constexpr int kEnemyBotFirstId = 1000;
 
+// ANDAMIAJE TEMPORAL: primer id de los proyectiles del bot (arranca
+// lejos de enemigos y animales: ViewMotion enlaza sus tracks por id).
+constexpr int kEnemyProjectileFirstId = 2000;
+
 // --- Reloj de juego (ServerClock) ---------------------------------------
 
 // El server manda los minutos desde esta hora (0 = 6:00).

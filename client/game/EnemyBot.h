@@ -35,6 +35,17 @@ struct EnemyRecord {
 	int endIteration = 0;
 };
 
+// Estado de UN proyectil del "server falso": DATOS puros. No tiene IA
+// propia: existe, avanza cuando la fuente lo dice y desaparece. Se
+// dibuja por el mismo camino que una entidad (kind + celda + facing).
+struct ProjectileRecord {
+	int id;
+	world::CreatureKind kind;
+	int cellX;
+	int cellY;
+	world::Direction facing = world::Direction::Front;
+};
+
 // ANDAMIAJE TEMPORAL (borrable de una pieza): el stand-in del server
 // para los ENEMIGOS. Produce el mismo estado que el server real mandará
 // (game::ViewEntity con id estable, celda, facing, moving y UNA acción)
@@ -65,8 +76,14 @@ public:
 	// Cierra las ventanas vencidas (vuelven a Idle).
 	void update(int iteration);
 
-	// Las entidades de los enemigos para la vista (después de los
-	// animales de granja).
+	// ANDAMIAJE TEMPORAL (prueba): mueve cada proyectil una celda en su
+	// dirección, o los borra. Simula lo que mañana mandará el server
+	// (la celda de cada proyectil). Solo cliente.
+	void advanceProjectiles();
+	void despawnProjectiles();
+
+	// Las entidades de los enemigos y sus proyectiles para la vista
+	// (después de los animales de granja).
 	void appendEntities(std::vector<ViewEntity>& out) const;
 
 private:
@@ -78,6 +95,13 @@ private:
 	bool canEnter(int cellX, int cellY, int playerCellX, int playerCellY,
 		      const EnemyRecord& self) const;
 
+	// Crea un proyectil en la celda si cae dentro de la grilla.
+	void launchProjectile(world::CreatureKind kind, int cellX, int cellY,
+			      world::Direction facing);
+
+	// Delta en celdas de una dirección (la MISMA tabla del paso).
+	world::GridCell deltaFor(world::Direction facing) const;
+
 	const world::CharacterCatalog* characters_;
 	world::GridSpan grid_;
 	// Acción -> actividad que enciende; y prioridad de cada actividad
@@ -85,8 +109,15 @@ private:
 	// acción nueva = una fila en cada tabla (convención §4/§9).
 	std::map<world::ActionKind, EnemyActivity> activityForAction_;
 	std::map<EnemyActivity, int> activityPriority_;
+	// Enemigo -> proyectil que lanza al atacar. Sumar un tipo de fuego
+	// = una fila acá + su apariencia en enemies.toml.
+	std::map<world::CreatureKind, world::CreatureKind> attackProjectiles_;
 
 	std::vector<EnemyRecord> enemies_;
+	// Proyectiles en vuelo (hoy el fuego del Skull): estado del "server
+	// falso", sin IA propia.
+	std::vector<ProjectileRecord> projectiles_;
+	int nextProjectileId_;
 };
 
 }  // namespace game

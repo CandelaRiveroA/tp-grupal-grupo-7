@@ -878,7 +878,8 @@ cadence     = { step = 48, frame = 6 }
 # No tiene damage ni death: solo idle/walk/attack. El idle loopea para
 # que se anime SIEMPRE aunque la fuente lo deje quieto, y el walk usa
 # los MISMOS 4 frames (la animacion de movimiento es una sola).
-# `skull_move.png` (64x16) es la tira move1..move4 en ese orden.
+# `skull_move.png` (64x16) es la tira de 4 frames que usan idle, walk y
+# attack (un solo sprite de Skull, sin frames sueltos).
 [characters.skull]
 sheet       = "Cavern/skull/skull_move.png"
 grid        = [16, 16]

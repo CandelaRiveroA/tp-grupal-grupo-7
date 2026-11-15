@@ -1,6 +1,7 @@
-# Enemigos de la cueva (orco, esqueleto, vampiro). Mismo formato que
-# characters.toml; separado para mantener ese archivo chico (contrato
-# 9). Cada accion puede declarar su propia hoja (sheet/grid/frame_cells).
+# Enemigos de la cueva (orco, esqueleto, vampiro, skull) y sus
+# proyectiles (el fuego del skull). Mismo formato que characters.toml;
+# separado para mantener ese archivo chico (contrato 9). Cada accion
+# puede declarar su propia hoja (sheet/grid/frame_cells).
 
 [characters.orc]
 sheet       = "Cavern/orc/orc_movement.png"
@@ -871,4 +872,256 @@ cadence     = { step = 48, frame = 6 }
       [ [22, 1, 2, 1] ],
       [ [24, 1, 2, 1] ],
       [ [26, 1, 2, 1] ],
+    ]
+
+# --- Skull -------------------------------------------------------------
+# No tiene damage ni death: solo idle/walk/attack. El idle loopea para
+# que se anime SIEMPRE aunque la fuente lo deje quieto, y el walk usa
+# los MISMOS 4 frames (la animacion de movimiento es una sola).
+# `skull_move.png` (64x16) es la tira move1..move4 en ese orden.
+[characters.skull]
+sheet       = "Cavern/skull/skull_move.png"
+grid        = [16, 16]
+drawn       = [32, 32]
+cadence     = { step = 32, frame = 8 }
+
+  [characters.skull.front]
+  mirrored = false
+    [characters.skull.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.front.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  [characters.skull.back]
+  mirrored = false
+    [characters.skull.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.back.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  # Izquierda: la hoja es de perfil DERECHO, asi que se reusan las
+  # mismas celdas espejadas (mismo patron que characters.player.left).
+  [characters.skull.left]
+  mirrored = true
+    [characters.skull.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.left.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  [characters.skull.right]
+  mirrored = false
+    [characters.skull.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.right.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+# --- Fuego del Skull ---------------------------------------------------
+# Hoja derivada de 3x3 celdas de 16x16: `fire_skull_sheet.png` sale de
+# la llama unica `fire_skull.png` (original intacto), con 9 variantes
+# de aleteo. El orden de frames define la animacion. Se dibuja como una
+# ViewEntity mas (kind SkullFire): la fuente decide en que celda esta y
+# el cliente solo lo anima. La hoja mira a la derecha; `left` usa las
+# mismas celdas espejadas para acompanar la direccion del disparo.
+[characters.skull_fire]
+sheet       = "Cavern/skull/fire_skull_sheet.png"
+grid        = [16, 16]
+drawn       = [28, 28]
+cadence     = { step = 36, frame = 4 }
+
+  [characters.skull_fire.front]
+  mirrored = false
+    [characters.skull_fire.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire.back]
+  mirrored = false
+    [characters.skull_fire.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  # Izquierda: el fuego tambien mira a la derecha en la hoja; espejarlo
+  # hace que acompanie la direccion en la que viaja.
+  [characters.skull_fire.left]
+  mirrored = true
+    [characters.skull_fire.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire.right]
+  mirrored = false
+    [characters.skull_fire.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
     ]

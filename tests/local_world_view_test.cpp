@@ -48,6 +48,8 @@ bool isValidKind(world::CreatureKind k) {
         case world::CreatureKind::Orc:
         case world::CreatureKind::Skeleton:
         case world::CreatureKind::Vampire:
+        case world::CreatureKind::Skull:
+        case world::CreatureKind::SkullFire:
             return true;
     }
     return false;

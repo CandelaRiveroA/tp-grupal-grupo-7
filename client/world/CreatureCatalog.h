@@ -16,6 +16,11 @@ enum class CreatureKind {
 	Orc,
 	Skeleton,
 	Vampire,
+	Skull,
+	// El fuego del Skull se dibuja por el MISMO camino que una criatura
+	// (hoja + celdas + frames + loops): es el "ente dibujable" del
+	// cliente, no un catálogo nuevo. El estado le da kind/celda/facing.
+	SkullFire,
 };
 
 struct MoveCadence {

@@ -25,6 +25,26 @@ struct InputCommand {
         TestDeath,
         TestProjectileAdvance,
         TestProjectileDespawn,
+        // Gasto de energía simulado (tecla U por ahora): representa una
+        // acción del juego que cansa al jugador. Lo consume PlaySession
+        // contra game::FractionStat; NO viaja al GameClient.
+        SpendEnergy,
+        // Gasto de vida simulado (tecla I por ahora): mismo mecanismo
+        // que la energía, con otro stat. Lo consume PlaySession; NO
+        // viaja al GameClient.
+        SpendLife,
+        // Demo del desmayo (tecla O por ahora): presentación local
+        // mientras el server no manda la acción. Lo consume PlaySession;
+        // NO viaja al GameClient.
+        Faint,
+        // Abrir el chatbox (tecla T).
+        OpenChat,
+        // Con el chat abierto: Enter manda y ESC descarta.
+        ChatSubmit,
+        ChatCancel,
+        // Demo (tecla M): simula que llegó un mensaje de otro jugador;
+        // entra por el mismo embudo que usará la red.
+        SimulateChatMessage,
     };
 
     Kind kind;

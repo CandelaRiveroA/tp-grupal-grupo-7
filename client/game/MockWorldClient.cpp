@@ -79,6 +79,12 @@ void MockWorldClient::advanceProjectiles() { enemies_.advanceProjectiles(); }
 
 void MockWorldClient::despawnProjectiles() { enemies_.despawnProjectiles(); }
 
+void MockWorldClient::sendChat(const std::string& text) { inner_->sendChat(text); }
+
+void MockWorldClient::receiveChat(const std::uint8_t playerId, const std::string& characterName,
+                                  const std::string& text) {
+    inner_->receiveChat(playerId, characterName, text);
+}
 bool MockWorldClient::startInteraction() {
     const world::CreatureData* player = characters_->find(world::CreatureKind::Player);
     if (player == nullptr) {

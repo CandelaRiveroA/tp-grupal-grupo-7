@@ -6,10 +6,11 @@
 #include <string>
 
 #include "../entities/i_entity.h"
+#include "../entities/i_movable.h"
 
 class World;
 
-class Animal: public IEntity {
+class Animal: public IEntity, public IMovable {
 protected:
     uint8_t days_passed;
     uint8_t id;
@@ -36,6 +37,9 @@ public:
     // Un paso del reloj de animales: avanza en la dirección actual o elige una
     // nueva cuando se agota el tiempo en esa dirección.
     void wander(World& w);
+
+    // IMovable
+    bool move(World& w, Direction dir) override;
 
     std::optional<AnimalSnapshot> animal_snapshot() const override;
 

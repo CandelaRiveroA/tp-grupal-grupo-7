@@ -8,9 +8,12 @@ target_sources(taller_tests
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
+    mine_controller_test.cpp
+    enemy_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    enemy_test.cpp
     furniture_test.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
@@ -27,7 +30,16 @@ target_sources(taller_tests
     ../server/domain/inventory/inventory.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
+    ../server/domain/entities/i_movable.cpp
+    ../server/domain/entities/entity_controller.cpp
     ../server/domain/entities/dropped_item.cpp
+    ../server/domain/enemies/enemy.cpp
+    ../server/domain/enemies/skeleton.cpp
+    ../server/domain/enemies/orc.cpp
+    ../server/domain/enemies/vampire.cpp
+    ../server/domain/enemies/vampiress.cpp
+    ../server/domain/enemies/skull.cpp
+    ../server/domain/enemies/enemy_controller.cpp
     ../server/domain/animals/animal.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp
@@ -39,8 +51,29 @@ target_sources(taller_tests
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp
     ../server/domain/minerals/silver_rock.cpp
-    ../server/domain/minerals/gold_rock.cpp    
+    ../server/domain/minerals/gold_rock.cpp
+    ../server/domain/minerals/rock.cpp
+    ../server/domain/minerals/mine_controller.cpp
+    ../server/domain/crops/crop.cpp
+    ../server/domain/crops/strawberry.cpp
+    ../server/domain/crops/green_onion.cpp
+    ../server/domain/crops/potato.cpp
+    ../server/domain/crops/pumpkin.cpp
     toml_document_test.cpp
+    tile_ref_test.cpp
+    tile_codec_test.cpp
+    world_vocabulary_test.cpp
+    world_format_error_test.cpp
+    map_test.cpp
+    world_toml_reader_test.cpp
+    world_toml_writer_test.cpp
+    world_serializer_test.cpp
+    scenario_serializer_test.cpp
+    scenario_library_test.cpp
+    scenario_library_loader_test.cpp
+    world_factory_test.cpp
+    world_repository_test.cpp
+    world_validator_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp
@@ -98,6 +131,7 @@ target_sources(taller_tests
     entity_appearance_test.cpp
     startup_sequence_test.cpp
     logger.cpp
+    farming_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp
@@ -113,7 +147,7 @@ target_include_directories(taller_tests PRIVATE ${PROJECT_SOURCE_DIR}/server)
 # fetchea solo si hay client/editor/tile-inspector (raíz del CMakeLists),
 # así que los tests de input se agregan únicamente en esa configuración;
 # en la config "solo tests" (make run-tests) no se compilan.
-if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_TILE_INSPECTOR)
+if(TALLER_CLIENT OR TALLER_TILE_INSPECTOR)
     target_sources(taller_tests
         PRIVATE
         input_manager_test.cpp

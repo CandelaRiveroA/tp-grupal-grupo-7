@@ -7,7 +7,6 @@
 #include "common/common_command.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
-#include "world/ContentIds.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 
@@ -25,13 +24,23 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override { return true; }
 
+    // El "server" falso: sendChat se hace eco y receiveChat suma el que
+    // llega al historial.
+    void sendChat(const std::string& text) override;
+    void receiveChat(std::uint8_t playerId, const std::string& characterName,
+                     const std::string& text) override;
+
 private:
-    // Mineral simulado: a los 3 golpes se agota. Simula al servidor.
+    // Mineral simulado: se agota a los `hitsToBreak` golpes (las rocas de
+    // relleno, 1; los minerales, 3). Simula al servidor. `drops` marca si
+    // deja item al agotarse: las rocas no dejan nada (como server::Rock).
     struct MineralSpot {
-        world::ResourceKind kind;
+        std::string contentId;
         int cellX;
         int cellY;
         int hits = 0;
+        int hitsToBreak = 3;
+        bool drops = true;
     };
 
     void walk(::Direction direction);
@@ -61,13 +70,6 @@ private:
     // primer slotIndex libre. Simula al servidor acumulando cantidad.
     void addToInventory(const std::string& contentId);
 
-    // contentId estable de un recurso (mismo vocabulario que el servidor
-    // y que inventory.toml / resources.toml).
-    std::string contentIdFor(world::ResourceKind kind) const;
-
-    // Vocabulario contentId compartido (ver world::ContentIds).
-    world::ContentIds contentIds_;
-
     // update() avanza la simulación un tick; worldState() solo consulta la vista.
     void advanceToolUse();
 
@@ -93,7 +95,7 @@ private:
 
     // Mineral caído al piso tras agotarse una roca. Recogible con Take.
     struct DroppedItem {
-        world::ResourceKind kind;
+        std::string contentId;
         int cellX;
         int cellY;
     };

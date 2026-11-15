@@ -35,15 +35,6 @@ public:
     // PlaySession cuando la pantalla quedó en negro.
     void showNextDay();
 
-    // El jugador apretó OK: deja el aviso pendiente (un pulso, una sola
-    // vez) y cierra el popup.
-    void confirmNextDay();
-
-    // Punto de SALIDA hacia el server: true UNA vez después del OK (lo
-    // consume: la segunda llamada da false). Quien conecta cliente y
-    // servidor lo lee para que el server reinicie el reloj.
-    bool takeNextDayConfirmed();
-
     // Sin popup (cualquier opción de la pregunta lo cierra: es un
     // voto; la consecuencia la decidirá la fuente de estado).
     void hide();
@@ -64,7 +55,6 @@ private:
     PopupView view_ = PopupView::Hidden;
     int waitingReady_ = 0;
     int waitingTotal_ = 0;
-    bool nextDayConfirmed_ = false;
 };
 
 }  // namespace game

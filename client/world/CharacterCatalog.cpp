@@ -63,4 +63,13 @@ int CharacterCatalog::frameRows(CreatureKind kind) const {
 	return entryFor(kind).frameRows;
 }
 
+bool CharacterCatalog::hasAppearance(CreatureKind kind) const {
+	return entryFor(kind).appearance.present;
+}
+
+const AppearanceData& CharacterCatalog::appearanceFor(
+	CreatureKind kind) const {
+	return entryFor(kind).appearance;
+}
+
 }

@@ -24,6 +24,12 @@ void DialogPainter::draw(const world::DialogCatalog& catalog,
 	const world::DialogLayout layout(*data);
 	const world::DialogAnimation& animation = data->animation;
 
+	// Las animaciones que se van al terminar (las Z del desmayo) dejan
+	// de dibujarse cuando ya mostraron su último frame.
+	if (animation.hideAtEnd && animation.finishedAt(animationTick)) {
+		return;
+	}
+
 	const int frameIndex = animation.frameIndexAt(animationTick);
 	const world::SheetCell& cell =
 		animation.frames[static_cast<std::size_t>(frameIndex)];

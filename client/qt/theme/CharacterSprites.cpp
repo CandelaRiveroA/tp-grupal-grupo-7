@@ -7,28 +7,28 @@
 #include "CharacterRects.h"
 #include "NineSlice.h"
 
-CharacterSprites::CharacterSprites():
-        // La hoja trae dos fondos lado a lado (diurno | nocturno); se usa el diurno.
-        portraitBackground_(
-                load(":/ui/character/backgrounds.png").copy(0, 0, CHAR_PREVIEW_W, CHAR_PREVIEW_H)),
-        leftArrow_(load(":/ui/character/arrow_left.png")
-                           .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
-                                   Qt::FastTransformation)),
-        leftArrowHover_(brightenPercent(leftArrow_)),
-        rightArrow_(load(":/ui/character/arrow_right.png")
-                            .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
-                                    Qt::FastTransformation)),
-        rightArrowHover_(brightenPercent(rightArrow_)),
-        okButton_(load(":/ui/join/ok.png")
-                          .scaled(CHAR_OK_SIZE, CHAR_OK_SIZE, Qt::IgnoreAspectRatio,
-                                  Qt::FastTransformation)),
-        okButtonHover_(brightenPercent(okButton_)),
-        inputBox_(inputBoxFrom(load(":/ui/character/text_box.png"))),
-        windowBox_(
-                NineSlice(load(":/ui/join/input_box.png"),
-                          QMargins(CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE,
-                                   CHAR_WINDOW_SLICE))
-                        .build(CHAR_WINDOW_LOGICAL_W, CHAR_WINDOW_LOGICAL_H, CHAR_WINDOW_SCALE)) {}
+CharacterSprites::CharacterSprites() {
+    // La hoja trae dos fondos lado a lado (diurno | nocturno); se usa el diurno.
+    portraitBackground_ =
+            load(":/ui/character/backgrounds.png").copy(0, 0, CHAR_PREVIEW_W, CHAR_PREVIEW_H);
+    leftArrow_ = load(":/ui/character/arrow_left.png")
+                         .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
+                                 Qt::FastTransformation);
+    leftArrowHover_ = brightenPercent(leftArrow_);
+    rightArrow_ = load(":/ui/character/arrow_right.png")
+                          .scaled(CHAR_ARROW_W, CHAR_ARROW_H, Qt::IgnoreAspectRatio,
+                                  Qt::FastTransformation);
+    rightArrowHover_ = brightenPercent(rightArrow_);
+    okButton_ = load(":/ui/join/ok.png")
+                        .scaled(CHAR_OK_SIZE, CHAR_OK_SIZE, Qt::IgnoreAspectRatio,
+                                Qt::FastTransformation);
+    okButtonHover_ = brightenPercent(okButton_);
+    inputBox_ = inputBoxFrom(load(":/ui/character/text_box.png"));
+    windowBox_ = NineSlice(load(":/ui/join/input_box.png"),
+                           QMargins(CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE, CHAR_WINDOW_SLICE,
+                                    CHAR_WINDOW_SLICE))
+                         .build(CHAR_WINDOW_LOGICAL_W, CHAR_WINDOW_LOGICAL_H, CHAR_WINDOW_SCALE);
+}
 
 QPixmap CharacterSprites::load(const char* path) const {
     QPixmap sprite(path);

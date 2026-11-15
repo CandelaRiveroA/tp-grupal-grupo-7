@@ -12,6 +12,8 @@
 #include "game/EnterSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
+#include "game/FractionStat.h"
+#include "game/InputCommand.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -25,10 +27,11 @@
 #include "sdl/input/InputManager.h"
 #include "sdl/render/BuildPlacePainter.h"
 #include "sdl/render/Camera.h"
+#include "sdl/render/ChatPainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
-#include "sdl/render/InventoryHud.h"
 #include "sdl/render/HudOverlayPainter.h"
+#include "sdl/render/InventoryHud.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
@@ -50,6 +53,7 @@ namespace world {
 class Scenario;
 class ScenePixelMapper;
 class CharacterCatalog;
+struct CharacterPalettes;
 struct DigitCatalog;
 struct InventoryLayout;
 struct ObtainedBannerCatalog;
@@ -72,8 +76,10 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
+                const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
+                const world::CharacterPalettes& palettes,
                 game::EnemyTestTrigger* enemyTestTrigger = nullptr);
 
     // Corre el game loop hasta que se pida salir.
@@ -81,6 +87,12 @@ public:
 
 private:
     void tick(int iteration);
+
+    // Vista de presentación del tick: la de "meterse" (EnterSelection)
+    // más el override LOCAL del desmayo (pose, frente y, al terminar la
+    // caída, la indicación de las Z). La consumen el movimiento, el
+    // renderer y los diálogos; el estado de juego queda intacto.
+    game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
@@ -95,6 +107,12 @@ private:
     // PopupState, el dónde InventoryLayout y el cómo los painters;
     // esto solo compone la llamada.
     void drawPopup(const world::PixelBox& panel);
+
+    // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
+    void closeChat();
+
+    // Borra el último caracter UTF-8 escrito
+    void eraseLastCodepoint(std::string& text);
 
     // Cambia la escena actual (en el negro de la transición): carga la
     // sala pedida, reconstruye el índice del renderer y la cámara. El
@@ -161,11 +179,36 @@ private:
     int lastSleeping_ = 0;
     int lastTotal_ = 0;
     bool voted_ = false;
+    // Día terminado: ya apretó OK y espera a que despierten los demás.
+    bool woke_ = false;
+    // Texto tipeado; al Enter sale por gameClient_.sendChat.
+    std::string chatInput_;
+    // Última versión vista del historial: al cambiar, llegó un mensaje y
+    // el preview se muestra hasta chatPreviewUntilTick_.
+    int seenChatVersion_ = 0;
+    int chatPreviewUntilTick_ = -1;
+    // Próximo mensaje de la demo (rota los casos del wrap).
+    std::size_t demoChatNext_ = 0;
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
     // tick).
     game::DayPhase dayPhase_;
+    // Stats simulados del jugador: hoy los simula el cliente y el server
+    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
+    // qué comando gasta cuál. La traducción a las claves del HUD queda en
+    // el borde de dibujo, no en el estado.
+    struct StatSpend {
+        game::StatKind stat;
+        double cost = 0.0;
+    };
+    std::map<game::StatKind, game::FractionStat> stats_;
+    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Demo del desmayo (tecla F): presentación local mientras el server
+    // no manda la acción. El reloj cuenta desde el inicio de la caída
+    // para recién entonces mostrar las Z.
+    bool faintRequested_ = false;
+    int faintFallTicks_ = 0;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
@@ -177,6 +220,7 @@ private:
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
     sdl::PromptPainter promptPainter_;
+    sdl::ChatPainter chatPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

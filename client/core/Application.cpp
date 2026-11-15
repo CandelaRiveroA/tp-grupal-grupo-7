@@ -22,6 +22,7 @@
 #include "world/CharacterCatalogLoader.h"
 #include "world/CharacterPaletteLoader.h"
 #include "world/CharacterPalettes.h"
+#include "world/ChatConfigLoader.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
 #include "world/CursorConfigLoader.h"
@@ -61,6 +62,14 @@ void Application::loadFonts() {
     }
 }
 
+world::CharacterPalettes Application::loadPalettes() const {
+    QFile paletteFile(core::kPalettesResource);
+    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
+    }
+    return world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+}
+
 void Application::loadStyleSheet() {
     QFile file(":/ui.qss");
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -89,12 +98,7 @@ int Application::run() {
 std::optional<SessionConfig> Application::runLobby() {
     const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
             core::assetPath(core::kCharactersFile));
-    QFile paletteFile(core::kPalettesResource);
-    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
-    }
-    const world::CharacterPalettes palettes =
-            world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+    const world::CharacterPalettes palettes = loadPalettes();
 
     sdl::MusicPlayer music;
     LobbyWindow lobby(config_, characters, palettes, &music);
@@ -120,6 +124,7 @@ int Application::runGame(SessionConfig session) {
         // mismo catálogo): mantiene characters.toml chico (contrato §9).
         world::CharacterCatalogLoader().mergeFromFile(
                 characters, core::assetPath(core::kEnemiesFile));
+        const world::CharacterPalettes palettes = loadPalettes();
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -146,6 +151,8 @@ int Application::runGame(SessionConfig session) {
         // catch único de este borde).
         const world::FontCatalog font(core::assetPath(core::kTextFile));
         const world::PromptLayout prompt(core::assetPath(core::kTextFile));
+        const world::ChatLayout chat =
+                world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
@@ -166,8 +173,8 @@ int Application::runGame(SessionConfig session) {
         game::EnemyTestTrigger* enemyTestTrigger = mockWorld.get();
         gameClient = std::move(mockWorld);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs, font, prompt,
-                                hudOverlays, lighting, enemyTestTrigger);
+                                resources, banner, digits, cursors, dialogs, font, prompt, chat,
+                                hudOverlays, lighting, palettes, enemyTestTrigger);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

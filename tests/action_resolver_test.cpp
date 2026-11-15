@@ -384,6 +384,21 @@ TEST(ActionResolverTest, SourceActionBeatsWalk) {
 	}
 }
 
+TEST(ActionResolverTest, FaintBeatsWalkingAndUsesTheActionClock) {
+	ViewMotion motion(catalog());
+	motion.observe(viewWith(entity(ActionKind::Faint)), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	// Aunque el jugador siga moviéndose, la pose es Faint.
+	ViewEntity moving = entity(ActionKind::Faint);
+	moving.moving = true;
+	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
+		  ActionKind::Faint);
+	// La fase corre con el reloj de la acción, desde su arranque.
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 100), 0);
+	EXPECT_EQ(resolver.phaseFor(moving, kPlayerIndex, 112), 12);
+}
+
 TEST(ActionResolverTest, ToolPhaseStartsAtZeroWhenTheSourceBeginsUseTool) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity(ActionKind::UseTool)), 100);

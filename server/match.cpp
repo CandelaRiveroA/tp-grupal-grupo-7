@@ -10,17 +10,19 @@
 #include "commands/commands.h"
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
+#include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
-#include "domain/minerals/coal_rock.h"
-#include "domain/minerals/gold_rock.h"
-#include "domain/minerals/lapis_rock.h"
-#include "domain/minerals/silver_rock.h"
+#include "domain/minerals/mine_controller.h"
 
 // Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
 #define kWidth 30
 #define kHeight 20
 #define kSpawnX 15
 #define kSpawnY 10
+
+// TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
+// (ver MineController::make_rock).
+#define kRoomNumber 1
 
 // Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
 // compartida: los durmientes no colisionan, así todos caben en ella.
@@ -29,13 +31,13 @@
 
 // shortcut: un día de juego de 30s para probar; en la versión final son 15 min
 // (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 30
+#define kDayDurationSeconds 60
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
 #define kClockStepMs 100
-// Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
-#define kAnimalTickSteps 40
+// Pasos de kClockStepMs entre movimiento de animales y enemigos (10 = 1 s). Ajustable.
+#define kCreatureTickSteps 40
 
 DayClock::DayClock(Queue<MatchEvent>& events):
         events(events), restart_requested(false), day_generation(0) {}
@@ -56,7 +58,7 @@ void DayClock::execute() {
         const uint32_t current_generation = this->day_generation.load();
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
-        uint8_t animal_steps = 0;
+        uint8_t creature_steps = 0;
         uint16_t clock_minutes = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
@@ -84,10 +86,10 @@ void DayClock::execute() {
                 }
             }
             // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
-            if (++animal_steps >= kAnimalTickSteps) {
-                animal_steps = 0;
+            if (++creature_steps >= kCreatureTickSteps) {
+                creature_steps = 0;
                 try {
-                    events.push(MatchEvent(AnimalTick{}));
+                    events.push(MatchEvent(CreatureTick{}));
                 } catch (const ClosedQueue&) {
                     return;
                 }
@@ -105,19 +107,10 @@ void DayClock::execute() {
 }
 
 void Match::place_minerals() {
-    // Piedras de prueba alrededor del punto de aparición. Hasta que haya
-    // generación de mundo, el servidor fija estas.
-    world.set_entity_at(kSpawnX + 1, kSpawnY, std::make_unique<SilverRock>(kSpawnX + 1, kSpawnY));
-    world.set_entity_at(kSpawnX + 2, kSpawnY, std::make_unique<CoalRock>(kSpawnX + 2, kSpawnY));
-    world.set_entity_at(kSpawnX + 1, kSpawnY + 1,
-                        std::make_unique<LapisRock>(kSpawnX + 1, kSpawnY + 1));
-    world.set_entity_at(kSpawnX + 2, kSpawnY + 1,
-                        std::make_unique<GoldRock>(kSpawnX + 2, kSpawnY + 1));
-    world.set_entity_at(kSpawnX - 1, kSpawnY, std::make_unique<CoalRock>(kSpawnX - 1, kSpawnY));
-    world.set_entity_at(kSpawnX, kSpawnY + 2, std::make_unique<SilverRock>(kSpawnX, kSpawnY + 2));
-    world.set_entity_at(kSpawnX - 1, kSpawnY + 2,
-                        std::make_unique<GoldRock>(kSpawnX - 1, kSpawnY + 2));
-    world.set_entity_at(kSpawnX + 3, kSpawnY, std::make_unique<LapisRock>(kSpawnX + 3, kSpawnY));
+    // El controller se construye de nuevo en cada llamada: así la semilla
+    // aleatoria cambia y cada generación dispone los minerales distinto.
+    MineController mine(kRoomNumber);
+    mine.populate(world, kSpawnX, kSpawnY);
 }
 
 void Match::place_animals() {
@@ -128,6 +121,12 @@ void Match::place_animals() {
     world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
+void Match::place_enemies() {
+    // Igual que las piedras: cada día la caverna repone sus enemigos.
+    EnemyController enemies(kRoomNumber);
+    enemies.populate(world, kSpawnX, kSpawnY);
+}
+
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         events(events),
         output(output),
@@ -136,36 +135,58 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         sleeping_sent(0),
         total_sent(0),
         clock_minutes_sent(0) {
-    place_minerals();
     place_animals();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
+    place_minerals();
+    place_enemies();
 }
 
-// Pasaron los 30 s sin que nadie durmiera: todos duermen donde están y
-// amanecen en la cama. Se cancela la votación abierta.
+// Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
+// donde están y amanecen en la cama cuando despiertan.
 void Match::handle(const DayPassed& /*day*/) {
-    world.clear_sleep();
-    world.advance_day();
-    for (const uint8_t id: world.get_player_ids()) {
-        world.set_player_position(id, kBedX, kBedY);
-    }
+    world.end_day();
+    sync_day();
     push_sleep_state();
-    broadcast(ServerDay{});
-    broadcast_clock(0);
     sync_all();
 }
 
-void Match::handle(const AnimalTick& /*tick*/) {
-    world.tick_animals();
+void Match::handle(const CreatureTick& /*tick*/) {
+    if (!world.is_waking()) {
+        world.tick_animals();
+        world.tick_enemies();
+    }
     sync_all();
 }
 
 void Match::handle(const ClockStep& step) {
-    // Un paso de un día reiniciado llega tarde: se descarta.
-    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent) {
+    // Un paso de un día reiniciado llega tarde: se descarta. Con el día
+    // terminado el reloj queda congelado hasta que despierten todos.
+    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent ||
+        world.is_waking()) {
         return;
     }
     broadcast_clock(step.minutes);
+}
+
+// Transiciones del día: al terminar, la pantalla se apaga; al arrancar, todos
+// van a la cama y el reloj vuelve a las 6:00.
+void Match::sync_day() {
+    if (world.take_day_ended()) {
+        // La caverna se repone en todo fin de día, sea por timeout
+        // (DayPassed) o porque todos durmieron (World::try_advance_sleep),
+        // que cierra el día sin pasar por DayPassed.
+        place_minerals();
+        place_enemies();
+        broadcast(ServerDayEnd{});
+    }
+    if (world.take_day_started()) {
+        for (const uint8_t id: world.get_player_ids()) {
+            world.set_player_position(id, kBedX, kBedY);
+        }
+        clock.restart();
+        broadcast(ServerDay{});
+        broadcast_clock(0);
+    }
 }
 
 void Match::broadcast_clock(uint16_t minutes) {
@@ -177,6 +198,11 @@ void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
+    world.set_player_appearance(joined.player_id, joined.appearance);
+    // Si el día ya terminó, el que entra también tiene que despertar.
+    if (world.is_waking()) {
+        send_to(joined.player_id, ServerDayEnd{});
+    }
     // Sube el total de la votación: mientras no vaya a la cama, el sueño
     // no puede completarse.
     push_sleep_state();
@@ -189,7 +215,9 @@ void Match::handle(const PlayerMessage& event) {
                 &event](const auto& message) { commands::apply(world, event.player_id, message); },
                event.message);
     if (std::holds_alternative<protocol::PickMessage>(event.message)) {
-        broadcast(ServerToolUsed{event.player_id});
+        const Item* equipped = world.get_player(event.player_id).peek_equipped_item();
+        broadcast(ServerToolUsed{event.player_id,
+                                 equipped ? content_id_for(equipped->get_id()) : ""});
     }
     // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
     // inventarios: solo se traduce a mensaje acá.
@@ -199,13 +227,7 @@ void Match::handle(const PlayerMessage& event) {
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
-    // Dormir avanzó el día antes de tiempo: el tick ya corrió (los animales
-    // produjeron), solo queda reiniciar el reloj.
-    if (world.take_sleep_advanced()) {
-        clock.restart();
-        broadcast(ServerDay{});
-        broadcast_clock(0);
-    }
+    sync_day();
     push_sleep_state();
     sync_all();
 }
@@ -219,11 +241,7 @@ void Match::handle(const PlayerLeft& left) {
     outputs.erase(it);
     // Saca al jugador de la votación: nadie queda esperando a un ausente.
     world.remove_player(left.player_id);
-    if (world.take_sleep_advanced()) {
-        clock.restart();
-        broadcast(ServerDay{});
-        broadcast_clock(0);
-    }
+    sync_day();
     push_sleep_state();
     broadcast(ServerLeave{left.player_id});
     leaving->close();
@@ -282,6 +300,8 @@ void Match::push_sleep_state() {
     std::vector<uint8_t> sleepers;
     for (const uint8_t id: players) {
         if (world.is_sleeping(id)) {
+            // cppcheck-suppress useStlAlgorithm; copy_if con lambda queda más
+            // ruido que este filtro de tres líneas.
             sleepers.push_back(id);
         }
     }

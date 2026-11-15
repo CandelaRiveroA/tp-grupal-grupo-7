@@ -14,6 +14,7 @@
 #include "common_queue.h"
 #include "common_server_status.h"
 #include "common_worker.h"
+#include "common/model/draft/CharacterAppearance.h"
 #include "server_output_monitor.h"
 #include "world_view.h"
 
@@ -25,6 +26,8 @@ struct PlayerMessage {
 struct PlayerJoined {
     uint8_t player_id;
     std::shared_ptr<Queue<ServerMessage>> statuses;
+    // Personalizacion del personaje que mando al entrar (MatchRequest).
+    CharacterAppearance appearance;
 };
 
 struct PlayerLeft {
@@ -41,15 +44,15 @@ struct ClockStep {
     uint32_t generation;
 };
 
-// Dispara el paso de movimiento de los animales (un paso por segundo).
-struct AnimalTick {};
+// Dispara el paso de movimiento de animales y enemigos (un paso por segundo).
+struct CreatureTick {};
 
 using MatchEvent =
-        std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, AnimalTick, ClockStep>;
+        std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick, ClockStep>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
-// restart() corta el día en curso SIN empujar DayPassed: lo usa el sueño,
-// que ya avanzó el día, para que los 30 segundos arranquen de cero.
+// restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
+// del día (todos despiertos), para que los 30 segundos arranquen de cero.
 class DayClock: public Worker {
 private:
     Queue<MatchEvent>& events;
@@ -85,15 +88,17 @@ private:
     void handle(const PlayerMessage& event);
     void handle(const PlayerLeft& left);
     void handle(const DayPassed& day);
-    void handle(const AnimalTick& tick);
+    void handle(const CreatureTick& tick);
     void handle(const ClockStep& step);
     void sync_all();
     void place_minerals();
     void place_animals();
+    void place_enemies();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
     void push_sleep_state();
     void broadcast_clock(uint16_t minutes);
+    void sync_day();
     void closeOutputs();
 
 public:

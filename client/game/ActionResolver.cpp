@@ -35,6 +35,10 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 		  {world::ActionKind::Death,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Faint,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Sword,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 	  }
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},
@@ -42,6 +46,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 	  }
 	, toolActions_{
 		  {world::ItemKind::WateringCan, world::ActionKind::Water},
+		  {world::ItemKind::Sword, world::ActionKind::Sword},
 	  } {}
 
 world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
@@ -58,6 +63,12 @@ world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
 
 world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 					    std::size_t index, int it) const {
+	// El desmayo manda sobre la caminata y el carry: el personaje puede
+	// seguir moviéndose (no se bloquea el input), pero la pose es la
+	// última del desmayo hasta que la fuente la apague.
+	if (entity.action == world::ActionKind::Faint) {
+		return world::ActionKind::Faint;
+	}
 	// La caminata es presentación local (la interpolación del paso) y
 	// solo pisa a las acciones de LOCOMOCIÓN. Las que enciende la
 	// fuente (golpe, daño, muerte, ...) se animan tal cual aunque la

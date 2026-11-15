@@ -13,6 +13,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
                 {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
                 {protocol::ClientMessageType::Sleep, &ProtocolReceiver::receive_sleep_message},
+                {protocol::ClientMessageType::Wake, &ProtocolReceiver::receive_wake_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -25,13 +26,17 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::ToolUsed, &ProtocolReceiver::receive_tool_used_message},
                 {ServerMessageType::ResourceHit, &ProtocolReceiver::receive_resource_hit_message},
                 {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
+                {ServerMessageType::SyncEnd, &ProtocolReceiver::receive_sync_end_message},
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
                 {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
                 {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
+                {ServerMessageType::DayEnd, &ProtocolReceiver::receive_day_end_message},
                 {ServerMessageType::Day, &ProtocolReceiver::receive_day_message},
                 {ServerMessageType::SleepingPlayers,
                  &ProtocolReceiver::receive_sleeping_players_message},
                 {ServerMessageType::Clock, &ProtocolReceiver::receive_clock_message},
+                {ServerMessageType::Crop, &ProtocolReceiver::receive_crop_message},
+                {ServerMessageType::GroundEffect, &ProtocolReceiver::receive_ground_effect_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -68,6 +73,19 @@ std::string ProtocolReceiver::receive_string() {
     return std::string(value.begin(), value.end());
 }
 
+CharacterAppearance ProtocolReceiver::receive_appearance() {
+    CharacterAppearance appearance;
+    appearance.skin = receive_uint8();
+    appearance.eyes = receive_uint8();
+    appearance.hair = receive_uint8();
+    appearance.hairColor = receive_uint8();
+    appearance.shirt = receive_uint8();
+    appearance.pants = receive_uint8();
+    appearance.pantsColor = receive_uint8();
+    appearance.accessory = receive_uint8();
+    return appearance;
+}
+
 Direction ProtocolReceiver::direction_from_byte(uint8_t value) {
     if (value > static_cast<uint8_t>(Direction::RIGHT)) {
         throw std::invalid_argument("La direccion recibida no es valida.");
@@ -89,7 +107,8 @@ protocol::ClientMessage ProtocolReceiver::receive_move_message() {
 
 protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
     const Direction direction = direction_from_byte(receive_uint8());
-    return protocol::PickMessage{direction};
+    const uint8_t slot = receive_uint8();
+    return protocol::PickMessage{direction, slot};
 }
 
 protocol::ClientMessage ProtocolReceiver::receive_take_message() {
@@ -104,6 +123,8 @@ protocol::ClientMessage ProtocolReceiver::receive_sleep_message() {
     }
     return protocol::SleepMessage{accept == 1};
 }
+
+protocol::ClientMessage ProtocolReceiver::receive_wake_message() { return protocol::WakeMessage{}; }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
     const std::optional<uint8_t> type_byte = receive_uint8_or_end();
@@ -125,7 +146,8 @@ ServerMessage ProtocolReceiver::receive_status_message() {
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     const Direction direction = direction_from_byte(receive_uint8());
-    return ServerStatus(player_id, x, y, direction);
+    const CharacterAppearance appearance = receive_appearance();
+    return ServerStatus(player_id, x, y, direction, appearance);
 }
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
@@ -171,10 +193,13 @@ ServerMessage ProtocolReceiver::receive_resource_hit_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_tool_used_message() {
-    return ServerToolUsed{receive_uint8()};
+    const uint8_t player_id = receive_uint8();
+    return ServerToolUsed{player_id, receive_string()};
 }
 
 ServerMessage ProtocolReceiver::receive_reset_message() { return ServerReset{}; }
+
+ServerMessage ProtocolReceiver::receive_sync_end_message() { return ServerSyncEnd{}; }
 
 ServerMessage ProtocolReceiver::receive_animal_message() {
     const uint8_t id = receive_uint8();
@@ -202,6 +227,8 @@ ServerMessage ProtocolReceiver::receive_furniture_message() {
     return ServerFurniture{x, y, std::move(content_id)};
 }
 
+ServerMessage ProtocolReceiver::receive_day_end_message() { return ServerDayEnd{}; }
+
 ServerMessage ProtocolReceiver::receive_day_message() { return ServerDay{}; }
 
 ServerMessage ProtocolReceiver::receive_sleeping_players_message() {
@@ -217,6 +244,33 @@ ServerMessage ProtocolReceiver::receive_clock_message() {
     const uint8_t day = receive_uint8();
     const uint16_t minutes = receive_uint16();
     return ServerClock{day, minutes};
+}
+
+ServerMessage ProtocolReceiver::receive_crop_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    std::string crop_id = receive_string();
+    const uint8_t stage = receive_uint8();
+    const uint8_t needs_water = receive_uint8();
+    const uint8_t interactive = receive_uint8();
+    const uint8_t quality = receive_uint8();
+    if (needs_water > 1 || interactive > 1) {
+        throw std::invalid_argument("Los indicadores del cultivo no son validos.");
+    }
+    if (quality < 1 || quality > 5) {
+        throw std::invalid_argument("La calidad del cultivo no es valida.");
+    }
+    return ServerCrop{x, y, std::move(crop_id), stage, needs_water == 1, interactive == 1, quality};
+}
+
+ServerMessage ProtocolReceiver::receive_ground_effect_message() {
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const uint8_t effect = receive_uint8();
+    if (effect > 1) {
+        throw std::invalid_argument("El efecto de suelo no es valido.");
+    }
+    return ServerGroundEffect{x, y, static_cast<GroundEffect>(effect)};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {
@@ -248,8 +302,10 @@ MatchRequest ProtocolReceiver::receive_match_request() {
     std::string nameMatch = receive_string();
     std::string username = receive_string();
     std::string characterName = receive_string();
+    const CharacterAppearance appearance = receive_appearance();
     return MatchRequest{static_cast<MatchRequestType>(type), std::move(codeMatch),
-                        std::move(nameMatch), std::move(username), std::move(characterName)};
+                        std::move(nameMatch), std::move(username), std::move(characterName),
+                        appearance};
 }
 
 LobbyStatus ProtocolReceiver::receive_lobby_status() {

@@ -28,7 +28,7 @@ dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4 };
 
 struct MoveMessage { Direction direction; };  // caminar; fija el facing
-struct PickMessage { Direction direction; };  // picar la celda enfrentada
+struct PickMessage { Direction direction; uint8_t slot; };  // usar el casillero `slot` sobre la celda enfrentada
 struct TakeMessage { Direction direction; };  // recoger en la celda propia
 struct SleepMessage { bool accept; };         // voto del aviso de la cama
 
@@ -45,20 +45,22 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
 ## 2. Qué RECIBE el cliente — estado y eventos
 
 Archivo: `common/common_server_status.h`. El servidor manda el **estado
-completo** en cada lote: empieza con `Reset` (10) y después describe a todos
-los jugadores, minerales, drops y slots ocupados. El cliente borra el mapa y el
-inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe.
+completo** en cada lote: empieza con `Reset` (10), describe a todos los
+jugadores, minerales, drops y slots ocupados, y cierra con `SyncEnd` (18).
+El cliente acumula el lote entero y lo aplica recién al recibir `SyncEnd`
+(sin ese cierre podría dibujar un frame entre el `Reset` y las entidades:
+mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
 | 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
-| 1 | `Status` | `player_id u8, x u16, y u16, direction u8` | Pose de un jugador |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8` | Pose y personalización de un jugador (índices de capa, sin validar) |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
 | 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |
 | 6 | `InventorySlot` | `slot u8, count u8, content_id str` | Slot ocupado del inventario propio |
 | 7 | `Obtained` | `content_id str` | Evento puntual: el jugador obtuvo un contenido |
-| 8 | `ToolUsed` | `player_id u8` | Un jugador usó su herramienta (animación de golpe) |
+| 8 | `ToolUsed` | `player_id u8, content_id str` | Un jugador usó su herramienta (animación de golpe); `content_id` es lo equipado (vacío = manos) |
 | 9 | `ResourceHit` | `x u16, y u16, destroyed u8` | Evento puntual: un golpe a un mineral |
 | 10 | `Reset` | (sin payload) | Primer mensaje de cada lote de estado: borra mapa e inventario del cliente |
 | 11 | `Animal` | `id u8, kind str, x u16, y u16, direction u8, ready_to_milk u8` | Animal del mundo |
@@ -67,11 +69,14 @@ inventario al recibir `Reset`, así que lo que no vuelve en el lote ya no existe
 | 14 | `Day` | (sin payload) | Amaneció: el día terminó por sueño o por timeout de 30 s |
 | 15 | `SleepingPlayers` | `count u8, ids u8 × count` | Quiénes están en la cama (IDs). Va a todos los jugadores; se manda solo al cambiar |
 | 16 | `Clock` | `day u8, minutes u16` | Día de juego (1 a 28, vuelve al 1) y hora: minutos desde las 6:00 (0 a 1200). La hora salta de a 10 min; se manda al cambiar, al amanecer (día nuevo, 0) y al entrar un jugador |
+| 18 | `SyncEnd` | (sin payload) | Último mensaje de cada lote de estado: el cliente aplica el lote acumulado recién acá (evita el frame a medias = parpadeo) |
+| 19 | `Crop` | `x u16, y u16, crop_id str, stage u8, needs_water u8, interactive u8, quality u8` | Cultivo plantado. `crop_id` = contentId del producto (`strawberry`, `onion`...); `stage` 0 semilla, 1..5 crecimiento, 6 cosecha; `needs_water` pide riego; `interactive` = cosechable con Take; `quality` 1..5 = BASE..PERFECT (misma línea que `qualities` de crops.toml; solo cambia la apariencia en la cosecha) |
+| 20 | `GroundEffect` | `x u16, y u16, effect u8` | Tierra tratada en la celda: `0` = arada (Dug), `1` = regada (Watered). Una celda regada manda ambos, en ese orden |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).
 - `content_id` es el vocabulario compartido de `inventory.toml` y
-  `resources.toml`: `pickaxe, shovel, watering_can, sword, silver, coal, lapis, gold`.
+  `resources.toml`: `pickaxe, shovel, watering_can, sword, silver, coal, lapis, gold, rock`.
 - `Obtained` solo se manda al jugador que obtuvo el contenido, y no en el
   inventario inicial.
 - Las dimensiones del mundo **no viajan por la red**: el servidor usa el mismo

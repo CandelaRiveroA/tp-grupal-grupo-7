@@ -2,13 +2,14 @@
 
 #include <QtGlobal>
 
-CharacterSheets::CharacterSheets():
-        base_(load(":/character/base.png")),
-        skins_(load(":/character/skins.png")),
-        hairstyles_(load(":/character/hairstyles.png")),
-        shirts_(load(":/character/shirts.png")),
-        pants_(load(":/character/pants.png")),
-        accessories_(load(":/character/accessories.png")) {}
+CharacterSheets::CharacterSheets() {
+    base_ = load(":/character/base.png");
+    skins_ = load(":/character/skins.png");
+    hairstyles_ = load(":/character/hairstyles.png");
+    shirts_ = load(":/character/shirts.png");
+    pants_ = load(":/character/pants.png");
+    accessories_ = load(":/character/accessories.png");
+}
 
 QImage CharacterSheets::load(const char* path) const {
     QImage image(path);

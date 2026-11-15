@@ -49,7 +49,8 @@ private:
                                              const std::string& characterName) const;
     MatchSeat joinLocked(MatchEntry& entry, const std::string& username,
                          const std::string& characterName,
-                         const std::shared_ptr<Queue<ServerMessage>>& statuses);
+                         const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                         const CharacterAppearance& appearance);
 
 public:
     explicit MatchesMonitor(ServerOutputMonitor& output);
@@ -57,12 +58,16 @@ public:
     MatchesMonitor(const MatchesMonitor&) = delete;
     MatchesMonitor& operator=(const MatchesMonitor&) = delete;
 
+    // La apariencia se guarda tal cual la manda el cliente (sin validar). Va
+    // con default para no romper a los llamados que hoy no la mandan.
     MatchSeat create(const std::string& codeMatch, const std::string& username,
                      const std::string& characterName,
-                     const std::shared_ptr<Queue<ServerMessage>>& statuses);
+                     const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                     const CharacterAppearance& appearance = CharacterAppearance{});
     MatchSeat join(const std::string& codeMatch, const std::string& username,
                    const std::string& characterName,
-                   const std::shared_ptr<Queue<ServerMessage>>& statuses);
+                   const std::shared_ptr<Queue<ServerMessage>>& statuses,
+                   const CharacterAppearance& appearance = CharacterAppearance{});
     void leave(const std::string& codeMatch, uint8_t player_id);
     void closeAll();
 };

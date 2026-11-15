@@ -12,6 +12,7 @@
 #include "core/StartupSequence.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
+#include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
@@ -41,18 +42,32 @@ constexpr std::array<DemoChatMessage, 3> kDemoChatMessages{{
 
 namespace core {
 
-PlaySession::PlaySession(
-        const WindowConfig& config, const world::Scenario& scenario, game::GameClient& gameClient,
-        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
-        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
-        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
-        const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
-        const world::FontCatalog& font, const world::PromptLayout& prompt,
-        const world::ChatLayout& chat, const world::HudOverlayCatalog& hudOverlays,
-        const world::HudOverlayCatalog& lighting,
-        const world::CharacterPalettes& palettes):
+PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
+                         game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                         const world::InventoryLayout& inventory,
+                         const world::ToolOverlayCatalog& toolOverlay,
+                         const world::ResourceCatalog& resources,
+                         const world::ObtainedBannerCatalog& banner,
+                         const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
+                         const world::DialogCatalog& dialogs, const world::FontCatalog& font,
+                         const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                         const world::HudOverlayCatalog& hudOverlays,
+                         const world::HudOverlayCatalog& lighting,
+                         game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
         gameClient_(gameClient),
+        enemyTestTrigger_(enemyTestTrigger),
+        testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
+                     {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
+                     {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death}},
+        projectileTests_{
+                {game::InputCommand::Kind::TestProjectileAdvance,
+                 &game::EnemyTestTrigger::advanceProjectiles},
+                {game::InputCommand::Kind::TestProjectileDespawn,
+                 &game::EnemyTestTrigger::despawnProjectiles}},
+        attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
+                            world::CreatureKind::SkullFireGreen}},
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -258,6 +273,11 @@ void PlaySession::tick(int iteration) {
 
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
+    // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
+    // de los enemigos en el mundo simulado (si hay), J/L mueven/borran
+    // sus proyectiles y V hace que el Skull ataque con el fuego verde.
+    // El server real pondrá la acción/posición directo en la vista y
+    // esto se saca.
     for (const game::InputCommand& command: commands) {
         // Enter manda y deja el chat ABIERTO; ESC lo cierra. Los dos
         // pasan aunque el popup sea modal.
@@ -270,6 +290,25 @@ void PlaySession::tick(int iteration) {
         }
         if (command.kind == game::InputCommand::Kind::ChatCancel) {
             closeChat();
+        const auto test = testActions_.find(command.kind);
+        if (test != testActions_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAll(test->second);
+            }
+            continue;
+        }
+        const auto projectileTest = projectileTests_.find(command.kind);
+        if (projectileTest != projectileTests_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                (enemyTestTrigger_->*(projectileTest->second))();
+            }
+            continue;
+        }
+        const auto attackProjectile = attackProjectiles_.find(command.kind);
+        if (attackProjectile != attackProjectiles_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAttackWith(attackProjectile->second);
+            }
             continue;
         }
         if (popupState_.modal()) {

@@ -34,6 +34,21 @@ struct InputCommand {
         // Demo (tecla M): simula que llegó un mensaje de otro jugador;
         // entra por el mismo embudo que usará la red.
         SimulateChatMessage,
+        // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
+        // enemigos del mundo simulado (G mover, F atacar, H daño, K
+        // muerte), de sus proyectiles (J avanzar, L desaparecer) y el
+        // fuego verde (V hacerlo aparecer). Los consume PlaySession con
+        // su tabla de despacho; se van cuando el server mande esas
+        // acciones.
+        TestMove,
+        TestAttack,
+        TestDamage,
+        TestDeath,
+        TestProjectileAdvance,
+        TestProjectileDespawn,
+        // Hace que el Skull ataque con el fuego VERDE (tecla V); el
+        // proyectil despues se mueve/borra con J/L como el azul.
+        TestGreenFire,
     };
 
     Kind kind;

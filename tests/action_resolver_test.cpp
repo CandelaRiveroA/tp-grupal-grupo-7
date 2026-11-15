@@ -156,6 +156,120 @@ cadence = { step = 8, frame = 8 }
     [characters.cow.left.walk]
     loops  = true
     frames = [ [[0, 0]] ]
+
+[characters.orc]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.orc.front]
+  mirrored = false
+    [characters.orc.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.right]
+  mirrored = false
+    [characters.orc.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.back]
+  mirrored = false
+    [characters.orc.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.left]
+  mirrored = false
+    [characters.orc.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.skeleton]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.skeleton.front]
+  mirrored = false
+    [characters.skeleton.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.right]
+  mirrored = false
+    [characters.skeleton.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.back]
+  mirrored = false
+    [characters.skeleton.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.left]
+  mirrored = false
+    [characters.skeleton.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.vampire]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.vampire.front]
+  mirrored = false
+    [characters.vampire.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.right]
+  mirrored = false
+    [characters.vampire.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.back]
+  mirrored = false
+    [characters.vampire.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.left]
+  mirrored = false
+    [characters.vampire.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -184,7 +298,8 @@ LocalWorldView viewWith(const ViewEntity& first) {
 
 
 // La fuente (mock/servidor) decide la acción. El ActionResolver la sigue:
-// Walk si la presentación detecta caminata, si no la acción de la vista.
+// Walk si la presentación detecta caminata y la acción es de locomoción;
+// si no, la acción de la vista (las de la fuente no las pisa la caminata).
 
 TEST(ActionResolverTest, QuietEntityDrawsTheViewAction) {
 	ViewMotion motion(catalog());
@@ -252,15 +367,21 @@ TEST(ActionResolverTest, ConcreteActionFromTheSourceIsRespected) {
 		  ActionKind::Milk);
 }
 
-TEST(ActionResolverTest, WalkingBeatsUseTool) {
+TEST(ActionResolverTest, SourceActionBeatsWalk) {
 	ViewMotion motion(catalog());
 	motion.observe(viewWith(entity()), 0);
 	const ActionResolver resolver(motion, kNoCarry);
 
-	ViewEntity moving = entity(ActionKind::UseTool);
-	moving.moving = true;
-	EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100),
-		  ActionKind::Walk);
+	// La caminata NO tapa a las acciones de la fuente: aunque la
+	// entidad se esté moviendo, se anima lo que manda la fuente
+	// (contrato §10).
+	for (const ActionKind action :
+	     {ActionKind::UseTool, ActionKind::Attack, ActionKind::Damage,
+	      ActionKind::Death}) {
+		ViewEntity moving = entity(action);
+		moving.moving = true;
+		EXPECT_EQ(resolver.actionFor(moving, kPlayerIndex, 100), action);
+	}
 }
 
 TEST(ActionResolverTest, FaintBeatsWalkingAndUsesTheActionClock) {

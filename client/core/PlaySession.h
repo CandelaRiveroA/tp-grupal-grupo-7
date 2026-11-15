@@ -37,6 +37,7 @@
 #include "sdl/render/Renderer.h"
 #include "sdl/render/TextRenderer.h"
 #include "world/CursorCatalog.h"
+#include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
 #include "world/InventoryLayout.h"
@@ -45,6 +46,7 @@
 
 namespace game {
 class GameClient;
+class EnemyTestTrigger;
 struct LocalWorldView;
 }  // namespace game
 
@@ -75,10 +77,11 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                const world::PromptLayout& prompt, const world::ChatLayout& chat, const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes);
+                game::EnemyTestTrigger* enemyTestTrigger = nullptr);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -130,6 +133,19 @@ private:
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
     game::GameClient& gameClient_;
+    // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
+    // del mundo simulado (null si no hay). Se va con las teclas de
+    // prueba (G/F/H/K/J/L/V).
+    game::EnemyTestTrigger* enemyTestTrigger_;
+    // ANDAMIAJE TEMPORAL (prueba): despacho de esas teclas a la acción
+    // que disparan (una fila por tecla). Se va con el disparador.
+    std::map<game::InputCommand::Kind, world::ActionKind> testActions_;
+    // Las dos teclas del proyectil (avanzar / desaparecer) también por
+    // tabla: Kind -> método del disparador. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, void (game::EnemyTestTrigger::*)()> projectileTests_;
+    // Tecla de ataque con un proyectil concreto (hoy el fuego verde V):
+    // Kind -> tipo de proyectil. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, world::CreatureKind> attackProjectiles_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario

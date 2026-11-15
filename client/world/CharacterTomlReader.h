@@ -24,6 +24,12 @@ public:
 
 	CharacterCatalog readCatalog() const;
 
+	// Vuelca las criaturas de este documento SOBRE un catálogo ya
+	// armado (fusiona): el loader lee characters.toml y luego
+	// enemies.toml sobre el mismo catálogo. Solo agrega las tablas
+	// presentes (§9: un reader, dos archivos).
+	void mergeInto(CharacterCatalog& catalog) const;
+
 private:
 	std::string join(const std::string& base,
 			 const std::string& key) const;

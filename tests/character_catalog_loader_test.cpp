@@ -161,6 +161,120 @@ cadence = { step = 8, frame = 8 }
     [characters.cow.left.walk]
     loops  = true
     frames = [ [[0, 0]] ]
+
+[characters.orc]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.orc.front]
+  mirrored = false
+    [characters.orc.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.right]
+  mirrored = false
+    [characters.orc.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.back]
+  mirrored = false
+    [characters.orc.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.left]
+  mirrored = false
+    [characters.orc.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.skeleton]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.skeleton.front]
+  mirrored = false
+    [characters.skeleton.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.right]
+  mirrored = false
+    [characters.skeleton.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.back]
+  mirrored = false
+    [characters.skeleton.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.left]
+  mirrored = false
+    [characters.skeleton.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.vampire]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.vampire.front]
+  mirrored = false
+    [characters.vampire.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.right]
+  mirrored = false
+    [characters.vampire.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.back]
+  mirrored = false
+    [characters.vampire.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.left]
+  mirrored = false
+    [characters.vampire.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 CharacterCatalog loadPlayer() {
@@ -339,7 +453,12 @@ ConfigErrorKind kindOfError(const std::string& toml) {
 }
 
 TEST(CharacterCatalogLoaderTest, MissingCreatureThrowsMissingStructure) {
-	const std::string toml = "[characters.other]\nsheet = \"x.png\"\n";
+	// Una criatura PRESENTE pero sin sus direcciones obligatorias lanza.
+	// (Un archivo ya no debe tener TODAS las criaturas: characters.toml
+	// y enemies.toml se fusionan; cada uno trae las suyas.)
+	const std::string toml =
+		"[characters.player]\nsheet = \"x.png\"\ngrid = [16, 16]\n"
+		"drawn = [16, 16]\ncadence = { step = 8, frame = 8 }\n";
 	EXPECT_EQ(kindOfError(toml), ConfigErrorKind::MissingStructure);
 }
 

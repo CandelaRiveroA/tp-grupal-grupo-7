@@ -245,6 +245,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/FloorItems.cpp
         client/game/InteractionSession.cpp
         client/game/AnimalSystem.cpp
+        client/game/EnemyBot.cpp
         client/game/MockWorldClient.cpp
         client/game/ObjectPicker.cpp
         client/game/DialogAnimator.cpp

@@ -51,12 +51,32 @@ enum class ActionKind {
     // estado; mientras dure manda sobre Walk y Carry (el personaje
     // puede seguir moviéndose, pero la pose no cambia).
     Faint,
+    // Ataque de un enemigo: su propia secuencia one-shot (la enciende la
+    // fuente de estado; hoy el server falso con la letra de prueba).
+    Attack,
+    // Daño recibido por un enemigo: su propia secuencia one-shot (la
+    // enciende la fuente de estado). Al ser de ACCIÓN, el resolver la
+    // anima aunque la entidad se esté moviendo (interrumpe la caminata
+    // y, según la prioridad del que la emite, el ataque).
+    Damage,
+    // Muerte de un enemigo: su propia secuencia one-shot, que se queda
+    // en el ÚLTIMO frame (loops = false). Terminal: no vuelve a Idle.
+    Death,
 };
 
 struct ActionData {
     std::vector<Pose> frames;
     bool loops = false;
     int frameTicks = 0;
+    // Hoja PROPIA de la acción (opcional): si está, la acción se dibuja
+    // con esta hoja y su celda/escala, en vez de las de la criatura.
+    // Vacío/0 = usar las de la criatura (el caso del jugador). Sirve para
+    // enemigos con una hoja por acción (walk, attack, ...).
+    std::string sheet;
+    int cellWidth = 0;
+    int cellHeight = 0;
+    int frameCols = 0;
+    int frameRows = 0;
 };
 
 // Cara de una capa de apariencia. Izquierda y derecha comparten `Side`:

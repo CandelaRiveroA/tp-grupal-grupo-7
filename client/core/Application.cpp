@@ -13,6 +13,7 @@
 #include "core/Constants.h"
 #include "core/PlaySession.h"
 #include "game/GameClient.h"
+#include "game/MockWorldClient.h"
 #include "game/NetworkGameClient.h"
 #include "qt/LobbyWindow.h"
 #include "sdl/audio/MusicPlayer.h"
@@ -117,9 +118,16 @@ int Application::runGame(SessionConfig session) {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
         world::Scenario scenario(config_, std::move(scene));
-        const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+        world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
+<<<<<<< HEAD
         const world::CharacterPalettes palettes = loadPalettes();
+=======
+        // Los enemigos viven en su propio archivo (se fusionan sobre el
+        // mismo catálogo): mantiene characters.toml chico (contrato §9).
+        world::CharacterCatalogLoader().mergeFromFile(
+                characters, core::assetPath(core::kEnemiesFile));
+>>>>>>> feat/SDL_enemigos
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -152,9 +160,29 @@ int Application::runGame(SessionConfig session) {
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
+        // PRUEBA (solo cliente, NO toca server ni protocolo): el server
+        // todavía no manda enemigos, así que se superpone el mundo
+        // simulado SOLO para ellos (gallinas y vacas las trae el server).
+        // El MockWorldClient es además el disparador de prueba de sus
+        // acciones (EnemyTestTrigger, teclas G/F/H/K/J/L/V). Cuando el
+        // server mande enemigos y sus acciones, se quita esta envoltura
+        // y las teclas.
+        auto mockWorld = std::make_unique<game::MockWorldClient>(
+                std::move(gameClient), characters, scenario.scene().grid,
+                std::vector<world::CreatureKind>{world::CreatureKind::Orc,
+                                                 world::CreatureKind::Skeleton,
+                                                 world::CreatureKind::Vampire,
+                                                 world::CreatureKind::Skull});
+        game::EnemyTestTrigger* enemyTestTrigger = mockWorld.get();
+        gameClient = std::move(mockWorld);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
+<<<<<<< HEAD
                                 resources, banner, digits, cursors, dialogs, font, prompt, chat,
                                 hudOverlays, lighting, palettes);
+=======
+                                resources, banner, digits, cursors, dialogs, font, prompt,
+                                hudOverlays, lighting, enemyTestTrigger);
+>>>>>>> feat/SDL_enemigos
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

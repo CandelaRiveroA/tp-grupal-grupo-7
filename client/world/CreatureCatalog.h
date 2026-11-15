@@ -21,6 +21,9 @@ enum class CreatureKind {
 	// (hoja + celdas + frames + loops): es el "ente dibujable" del
 	// cliente, no un catálogo nuevo. El estado le da kind/celda/facing.
 	SkullFire,
+	// Mismo camino que SkullFire, otro color de llama (dato en
+	// enemies.toml): la fuente elige cuál mandar.
+	SkullFireGreen,
 };
 
 struct MoveCadence {

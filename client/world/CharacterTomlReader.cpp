@@ -32,7 +32,7 @@ struct CreatureBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<CreatureBinding, 8> kCreatureBindings = {{
+constexpr std::array<CreatureBinding, 9> kCreatureBindings = {{
 	{CreatureKind::Player, "characters.player"},
 	{CreatureKind::Chicken, "characters.chicken"},
 	{CreatureKind::Cow, "characters.cow"},
@@ -41,6 +41,7 @@ constexpr std::array<CreatureBinding, 8> kCreatureBindings = {{
 	{CreatureKind::Vampire, "characters.vampire"},
 	{CreatureKind::Skull, "characters.skull"},
 	{CreatureKind::SkullFire, "characters.skull_fire"},
+	{CreatureKind::SkullFireGreen, "characters.skull_fire_green"},
 }};
 
 }

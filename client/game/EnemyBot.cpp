@@ -82,10 +82,14 @@ EnemyBot::EnemyBot(const world::CharacterCatalog& characters,
 		  {EnemyActivity::Damaged, 3},
 		  {EnemyActivity::Dead, 4},
 	  }
-	// Qué lanza cada enemigo al atacar (hoy solo el Skull). Sumar otro
-	// tipo de fuego = una fila acá + su apariencia en enemies.toml.
+	// Qué proyectiles puede lanzar cada enemigo al atacar (hoy solo el
+	// Skull, con el fuego azul por defecto y el verde como variante).
+	// Sumar otro tipo de fuego = una entrada en la lista del enemigo +
+	// su apariencia en enemies.toml.
 	, attackProjectiles_{
-		  {world::CreatureKind::Skull, world::CreatureKind::SkullFire},
+		  {world::CreatureKind::Skull,
+		   {world::CreatureKind::SkullFire,
+		    world::CreatureKind::SkullFireGreen}},
 	  }
 	, nextProjectileId_(kEnemyProjectileFirstId) {}
 
@@ -132,46 +136,78 @@ void EnemyBot::triggerAll(const world::ActionKind action,
 		return;
 	}
 	for (EnemyRecord& enemy : enemies_) {
-		// Una acción a la vez: solo gana la de prioridad
-		// ESTRICTAMENTE mayor que la actividad actual.
-		if (activityPriority_.at(activity->second) <=
-		    activityPriority_.at(enemy.activity)) {
+		applyAction(enemy, activity->second, action, iteration,
+			    playerCellX, playerCellY, std::nullopt);
+	}
+}
+
+void EnemyBot::triggerAttackWith(const world::CreatureKind projectile,
+				 const int iteration,
+				 const int playerCellX,
+				 const int playerCellY) {
+	for (EnemyRecord& enemy : enemies_) {
+		// Solo atacan los que declaran poder lanzar ESE proyectil.
+		const auto row = attackProjectiles_.find(enemy.kind);
+		if (row == attackProjectiles_.end() ||
+		    std::find(row->second.begin(), row->second.end(),
+			      projectile) == row->second.end()) {
 			continue;
 		}
-		// El kind tiene que tener la animación (el orco no tiene
-		// daño ni muerte: se saltea). Walk siempre existe.
-		if (action != world::ActionKind::Walk &&
-		    characters_->dataFor(enemy.kind).actionCycleTicks(action) <=
-			    0) {
-			continue;
-		}
-		if (activity->second == EnemyActivity::Walking) {
-			tryStep(enemy, iteration, playerCellX, playerCellY);
-			continue;
-		}
-		// Ataque / daño / muerte: la entidad queda quieta y abre la
-		// ventana de la acción (el resolver anima desde el frame 0).
-		enemy.moving = false;
-		enemy.action = action;
-		enemy.activity = activity->second;
-		enemy.endIteration =
-			iteration + characters_->dataFor(enemy.kind)
-					    .actionWindowTicks(action);
-		// Si el enemigo lanza un proyectil, sale en la celda de
-		// adelante, en la dirección en la que está mirando.
-		if (activity->second == EnemyActivity::Attacking) {
-			const auto projectile =
-				attackProjectiles_.find(enemy.kind);
-			if (projectile != attackProjectiles_.end()) {
-				const world::GridCell delta =
-					deltaFor(enemy.facing);
-				launchProjectile(
-					projectile->second,
-					enemy.cellX + delta.column,
-					enemy.cellY + delta.row, enemy.facing);
-			}
+		applyAction(enemy, EnemyActivity::Attacking,
+			    world::ActionKind::Attack, iteration, playerCellX,
+			    playerCellY, projectile);
+	}
+}
+
+void EnemyBot::applyAction(
+	EnemyRecord& enemy, const EnemyActivity activity,
+	const world::ActionKind action, const int iteration,
+	const int playerCellX, const int playerCellY,
+	const std::optional<world::CreatureKind> projectile) {
+	// Una acción a la vez: solo gana la de prioridad ESTRICTAMENTE
+	// mayor que la actividad actual.
+	if (activityPriority_.at(activity) <=
+	    activityPriority_.at(enemy.activity)) {
+		return;
+	}
+	// El kind tiene que tener la animación (el orco no tiene daño ni
+	// muerte: se saltea). Walk siempre existe.
+	if (action != world::ActionKind::Walk &&
+	    characters_->dataFor(enemy.kind).actionCycleTicks(action) <= 0) {
+		return;
+	}
+	if (activity == EnemyActivity::Walking) {
+		tryStep(enemy, iteration, playerCellX, playerCellY);
+		return;
+	}
+	// Ataque / daño / muerte: la entidad queda quieta y abre la
+	// ventana de la acción (el resolver anima desde el frame 0).
+	enemy.moving = false;
+	enemy.action = action;
+	enemy.activity = activity;
+	enemy.endIteration =
+		iteration +
+		characters_->dataFor(enemy.kind).actionWindowTicks(action);
+	if (activity != EnemyActivity::Attacking) {
+		return;
+	}
+	// El ataque lanza el proyectil forzado o, si no hay, el default
+	// del enemigo. Sin proyectil, solo se anima el ataque.
+	const world::CreatureKind* kind = nullptr;
+	if (projectile.has_value()) {
+		kind = &*projectile;
+	} else {
+		const auto row = attackProjectiles_.find(enemy.kind);
+		if (row != attackProjectiles_.end() && !row->second.empty()) {
+			kind = &row->second.front();
 		}
 	}
+	if (kind == nullptr) {
+		return;
+	}
+	const world::GridCell delta = deltaFor(enemy.facing);
+	launchProjectile(*kind, enemy.cellX + delta.column,
+			 enemy.cellY + delta.row, enemy.facing);
 }
 
 bool EnemyBot::tryStep(EnemyRecord& enemy, const int iteration,

@@ -50,8 +50,13 @@ void MockWorldClient::update(const int iteration) {
     // (al comienzo del update que la observa): así la ventana observada
     // coincide con frames x frameTicks y la última tecla del frame gana.
     if (pendingTestAction_.has_value()) {
-        enemies_.triggerAll(*pendingTestAction_, iteration, playerX, playerY);
+        if (pendingAttackProjectile_.has_value()) {
+            enemies_.triggerAttackWith(*pendingAttackProjectile_, iteration, playerX, playerY);
+        } else {
+            enemies_.triggerAll(*pendingTestAction_, iteration, playerX, playerY);
+        }
         pendingTestAction_.reset();
+        pendingAttackProjectile_.reset();
     }
     enemies_.update(iteration);
 
@@ -73,6 +78,14 @@ void MockWorldClient::triggerAll(const world::ActionKind action) {
     // Solo la anota (andamiaje de prueba): se aplica al comienzo del
     // próximo update. La última tecla del frame gana.
     pendingTestAction_ = action;
+    pendingAttackProjectile_.reset();
+}
+
+void MockWorldClient::triggerAttackWith(const world::CreatureKind projectile) {
+    // El ataque es la acción Attack, pero con un proyectil concreto. La
+    // última tecla del frame gana (pisa cualquier acción pendiente).
+    pendingTestAction_ = world::ActionKind::Attack;
+    pendingAttackProjectile_ = projectile;
 }
 
 void MockWorldClient::advanceProjectiles() { enemies_.advanceProjectiles(); }

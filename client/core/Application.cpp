@@ -154,7 +154,7 @@ int Application::runGame(SessionConfig session) {
         // todavía no manda enemigos, así que se superpone el mundo
         // simulado SOLO para ellos (gallinas y vacas las trae el server).
         // El MockWorldClient es además el disparador de prueba de sus
-        // acciones (EnemyTestTrigger, teclas G/F/H/K/J/L). Cuando el
+        // acciones (EnemyTestTrigger, teclas G/F/H/K/J/L/V). Cuando el
         // server mande enemigos y sus acciones, se quita esta envoltura
         // y las teclas.
         auto mockWorld = std::make_unique<game::MockWorldClient>(

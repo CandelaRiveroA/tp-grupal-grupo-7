@@ -1,6 +1,7 @@
 #pragma once
 
 #include "world/CharacterAppearance.h"
+#include "world/CreatureCatalog.h"
 
 namespace game {
 
@@ -31,6 +32,11 @@ public:
 	// cada uno. Solo escriben en el mundo simulado.
 	virtual void advanceProjectiles() = 0;
 	virtual void despawnProjectiles() = 0;
+
+	// Ataque con un proyectil concreto (hoy el fuego verde de prueba):
+	// los enemigos que pueden lanzarlo atacan y disparan ESE proyectil,
+	// igual que el ataque normal pero eligiendo el fuego.
+	virtual void triggerAttackWith(world::CreatureKind projectile) = 0;
 };
 
 }  // namespace game

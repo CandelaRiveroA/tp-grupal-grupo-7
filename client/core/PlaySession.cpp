@@ -46,6 +46,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                  &game::EnemyTestTrigger::advanceProjectiles},
                 {game::InputCommand::Kind::TestProjectileDespawn,
                  &game::EnemyTestTrigger::despawnProjectiles}},
+        attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
+                            world::CreatureKind::SkullFireGreen}},
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -204,9 +206,10 @@ void PlaySession::tick(int iteration) {
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
-    // de los enemigos en el mundo simulado (si hay) y J/L mueven/borran
-    // su proyectil. El server real pondrá la acción/posición directo en
-    // la vista y esto se saca.
+    // de los enemigos en el mundo simulado (si hay), J/L mueven/borran
+    // sus proyectiles y V hace que el Skull ataque con el fuego verde.
+    // El server real pondrá la acción/posición directo en la vista y
+    // esto se saca.
     for (const game::InputCommand& command: commands) {
         const auto test = testActions_.find(command.kind);
         if (test != testActions_.end()) {
@@ -219,6 +222,13 @@ void PlaySession::tick(int iteration) {
         if (projectileTest != projectileTests_.end()) {
             if (enemyTestTrigger_ != nullptr) {
                 (enemyTestTrigger_->*(projectileTest->second))();
+            }
+            continue;
+        }
+        const auto attackProjectile = attackProjectiles_.find(command.kind);
+        if (attackProjectile != attackProjectiles_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAttackWith(attackProjectile->second);
             }
             continue;
         }

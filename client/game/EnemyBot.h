@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <vector>
 
 #include "game/LocalWorldView.h"
@@ -73,6 +74,12 @@ public:
 	void triggerAll(world::ActionKind action, int iteration,
 			int playerCellX, int playerCellY);
 
+	// Ataque con un proyectil CONCRETO (hoy el fuego verde de prueba):
+	// solo atacan los enemigos que declaran poder lanzarlo, y disparan
+	// ese proyectil en vez del default. Misma tabla de prioridades.
+	void triggerAttackWith(world::CreatureKind projectile, int iteration,
+			       int playerCellX, int playerCellY);
+
 	// Cierra las ventanas vencidas (vuelven a Idle).
 	void update(int iteration);
 
@@ -87,6 +94,13 @@ public:
 	void appendEntities(std::vector<ViewEntity>& out) const;
 
 private:
+	// Aplica UNA acción a UN enemigo (si su prioridad gana). Con
+	// `projectile` fuerza ese proyectil en el ataque; sin él usa el
+	// default de la tabla.
+	void applyAction(EnemyRecord& enemy, EnemyActivity activity,
+			 world::ActionKind action, int iteration,
+			 int playerCellX, int playerCellY,
+			 std::optional<world::CreatureKind> projectile);
 	// El paso intenta la dirección actual primero y después las otras
 	// en orden de tabla. Devuelve si arrancó el paso.
 	bool tryStep(EnemyRecord& enemy, int iteration, int playerCellX,
@@ -109,9 +123,11 @@ private:
 	// acción nueva = una fila en cada tabla (convención §4/§9).
 	std::map<world::ActionKind, EnemyActivity> activityForAction_;
 	std::map<EnemyActivity, int> activityPriority_;
-	// Enemigo -> proyectil que lanza al atacar. Sumar un tipo de fuego
-	// = una fila acá + su apariencia en enemies.toml.
-	std::map<world::CreatureKind, world::CreatureKind> attackProjectiles_;
+	// Enemigo -> proyectiles que puede lanzar al atacar (el PRIMERO es
+	// el default). Sumar un tipo de fuego = una entrada en la lista +
+	// su apariencia en enemies.toml.
+	std::map<world::CreatureKind, std::vector<world::CreatureKind>>
+		attackProjectiles_;
 
 	std::vector<EnemyRecord> enemies_;
 	// Proyectiles en vuelo (hoy el fuego del Skull): estado del "server

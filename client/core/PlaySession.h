@@ -34,6 +34,7 @@
 #include "sdl/render/Renderer.h"
 #include "sdl/render/TextRenderer.h"
 #include "world/CursorCatalog.h"
+#include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
 #include "world/InventoryLayout.h"
@@ -116,7 +117,7 @@ private:
     game::GameClient& gameClient_;
     // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
     // del mundo simulado (null si no hay). Se va con las teclas de
-    // prueba (G/F/H/K/J/L).
+    // prueba (G/F/H/K/J/L/V).
     game::EnemyTestTrigger* enemyTestTrigger_;
     // ANDAMIAJE TEMPORAL (prueba): despacho de esas teclas a la acción
     // que disparan (una fila por tecla). Se va con el disparador.
@@ -124,6 +125,9 @@ private:
     // Las dos teclas del proyectil (avanzar / desaparecer) también por
     // tabla: Kind -> método del disparador. Se va con el andamiaje.
     std::map<game::InputCommand::Kind, void (game::EnemyTestTrigger::*)()> projectileTests_;
+    // Tecla de ataque con un proyectil concreto (hoy el fuego verde V):
+    // Kind -> tipo de proyectil. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, world::CreatureKind> attackProjectiles_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario

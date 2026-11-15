@@ -1125,3 +1125,131 @@ cadence     = { step = 36, frame = 4 }
       [ [1, 2] ],
       [ [2, 2] ],
     ]
+
+# --- Fuego verde -------------------------------------------------------
+# Misma hoja de 3x3 celdas y misma animacion que el fuego del Skull:
+# `fire_green_sheet.png` es `fire_skull_sheet.png` recoloreado a verde
+# (misma forma y alfa), a partir de la llama `fire_green.png`. Se dibuja
+# como una ViewEntity mas (kind SkullFireGreen) con el MISMO tamano
+# (`drawn` = 28) y las mismas teclas de avance/borrado.
+[characters.skull_fire_green]
+sheet       = "Cavern/skull/fire_green_sheet.png"
+grid        = [16, 16]
+drawn       = [28, 28]
+cadence     = { step = 36, frame = 4 }
+
+  [characters.skull_fire_green.front]
+  mirrored = false
+    [characters.skull_fire_green.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.back]
+  mirrored = false
+    [characters.skull_fire_green.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.left]
+  mirrored = true
+    [characters.skull_fire_green.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.right]
+  mirrored = false
+    [characters.skull_fire_green.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]

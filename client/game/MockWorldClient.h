@@ -49,6 +49,7 @@ public:
     // se aplica al comienzo del próximo update (la última tecla del
     // frame gana).
     void triggerAll(world::ActionKind action) override;
+    void triggerAttackWith(world::CreatureKind projectile) override;
     void advanceProjectiles() override;
     void despawnProjectiles() override;
 
@@ -87,8 +88,10 @@ private:
     // Quién atiende la interacción en curso (para su efecto final).
     Interactor* activeInteractor_ = nullptr;
     // Acción de prueba pedida por el disparador y todavía no aplicada
-    // (se aplica al comienzo del próximo update; la última gana).
+    // (se aplica al comienzo del próximo update; la última gana). Si
+    // `pendingAttackProjectile_` está, el ataque usa ESE proyectil.
     std::optional<world::ActionKind> pendingTestAction_;
+    std::optional<world::CreatureKind> pendingAttackProjectile_;
 
     // Sonidos de los sistemas del último update (per-tick).
     std::vector<ViewSoundEvent> soundEvents_;

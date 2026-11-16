@@ -39,6 +39,7 @@ constexpr const char* kScenesFile = "scenes.toml";
 constexpr const char* kInitialRoom = "bedroom";
 
 constexpr const char* kCharactersFile = "characters.toml";
+constexpr const char* kEnemiesFile = "enemies.toml";
 constexpr const char* kPalettesResource = ":/character/palettes.toml";
 
 constexpr const char* kInventoryFile = "inventory.toml";

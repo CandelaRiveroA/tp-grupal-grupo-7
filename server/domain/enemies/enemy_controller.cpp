@@ -28,9 +28,12 @@ EnemyController::EnemyController(uint8_t sala, uint32_t seed):
 
 void EnemyController::clear_generation(World& world) {
     // El mundo es el dueño de la lista de enemigos: él los identifica y los
-    // retira de las celdas y de la lista de ticks (sin RTTI).
+    // retira de las celdas y de la lista de ticks (sin RTTI). Las llamas en
+    // vuelo también son suyas.
     this->skull_placed = false;
     world.clear_enemies();
+    world.clear_flames();
+    world.clear_blood_puddle();
 }
 
 void EnemyController::spawn_at(World& world, uint16_t x, uint16_t y) {

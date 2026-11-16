@@ -95,22 +95,34 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
+    // Los teclas de test de enemigos (G/F/H/K/V/J/L) quedaron SIN bind
+    // a propósito: los enemigos los manda el server por red y la
+    // envoltura MockWorldClient (el disparador de esas pruebas) ya no se
+    // superpone; los comandos Test* siguen en InputCommand para cuando
+    // vuelva un disparador.
     // Demo del gasto de energía: cada pulsación simula una acción que
     // cansa al jugador (gastar). Es un one-shot rebindeable; cuando el
     // server mande el gasto real, esta tecla se puede quitar sin tocar
     // el dibujo de la barra.
-    bindings.insert({SDLK_g, game::InputCommand{Kind::SpendEnergy, 0}});
+    bindings.insert({SDLK_u, game::InputCommand{Kind::SpendEnergy, 0}});
     // Demo del gasto de vida: mismo mecanismo que la energía, con otra
-    // tecla (H). Cuando el server mande la vida real, esta tecla se puede
+    // tecla (I). Cuando el server mande la vida real, esta tecla se puede
     // quitar sin tocar el dibujo de la barra.
-    bindings.insert({SDLK_h, game::InputCommand{Kind::SpendLife, 0}});
+    bindings.insert({SDLK_i, game::InputCommand{Kind::SpendLife, 0}});
     // Demo del desmayo: one-shot local que dispara la secuencia de
     // Faint + el diálogo de las Z. Cuando el server mande la acción,
     // esta tecla se puede quitar sin tocar el dibujo.
-    bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
+    bindings.insert({SDLK_o, game::InputCommand{Kind::Faint, 0}});
+    // Demo del daño recibido: one-shot local que dispara la titilación
+    // del jugador (aparece/desaparece). Cuando el server mande el daño,
+    // esta tecla se puede quitar sin tocar el dibujo.
+    bindings.insert({SDLK_r, game::InputCommand{Kind::Hurt, 0}});
+    // Demo del charco de sangre: one-shot local que deja un charco en
+    // la celda del jugador. Cuando la fuente mande sangre, se quita.
+    bindings.insert({SDLK_c, game::InputCommand{Kind::BloodPuddle, 0}});
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
-    // Demo del chat (M): como G/H/F, se quita cuando el server mande el
+    // Demo del chat (M): como U/I/O, se quita cuando el server mande el
     // chat.
     bindings.insert({SDLK_m, game::InputCommand{Kind::SimulateChatMessage, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));

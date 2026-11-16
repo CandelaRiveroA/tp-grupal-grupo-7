@@ -96,6 +96,7 @@ target_sources(taller_client
     core/PlaySession.h
     core/FarmConstants.h
     core/ToolUseSounds.h
+    core/ActionSounds.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h
@@ -178,6 +179,7 @@ target_sources(taller_client
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
+    game/LocalActionWindow.h
     game/InventorySelector.h
     world/ActionNames.h
     world/CharacterAppearance.h

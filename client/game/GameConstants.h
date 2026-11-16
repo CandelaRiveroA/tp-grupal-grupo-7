@@ -18,8 +18,27 @@ constexpr int kMaxGroundItems = 3;
 constexpr int kDefaultMilkCycles = 2;
 constexpr int kPickupCycles = 1;
 
+// ANDAMIAJE TEMPORAL: ciclos de la demo de daño recibido (tecla R). La
+// ventana sale de los MISMOS datos de la acción (ActionData); esto solo
+// dice cuántas vueltas de titilación. Se va con la tecla.
+constexpr int kHurtDemoCycles = 2;
+
+// ANDAMIAJE TEMPORAL: vida de un charco de sangre (tecla C), en ticks.
+// Cuando la fuente mande la sangre del terreno, la duración la decide
+// ella. Se va con la tecla.
+constexpr int kBloodPuddleTicks = 600;
+
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
+
+// ANDAMIAJE TEMPORAL: primer id de los enemigos del bot de prueba
+// (los del mundo simulado de granja arrancan en 1). Se va con el bot
+// cuando el server mande los enemigos.
+constexpr int kEnemyBotFirstId = 1000;
+
+// ANDAMIAJE TEMPORAL: primer id de los proyectiles del bot (arranca
+// lejos de enemigos y animales: ViewMotion enlaza sus tracks por id).
+constexpr int kEnemyProjectileFirstId = 2000;
 
 // --- Reloj de juego (ServerClock) ---------------------------------------
 

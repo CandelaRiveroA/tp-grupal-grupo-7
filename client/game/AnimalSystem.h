@@ -26,10 +26,14 @@ public:
 	AnimalSystem(world::GridSpan grid, FloorItems& floor);
 	~AnimalSystem() override;
 
-	// Spawnea los animales del mundo (celdas en el .cpp). El jugador
-	// está en su celda para no spawnear encima.
+	// Spawnea los animales de granja del mundo (celdas en el .cpp). El
+	// jugador está en su celda para no spawnear encima. `only`: si no
+	// está vacío, spawnea SOLO esas especies (las demás las trae otra
+	// fuente, p. ej. el server manda unas y acá van solo las otras);
+	// vacío = todas. Los enemigos no van acá: los trae EnemyBot.
 	void spawnAnimals(const world::CharacterCatalog& characters,
-			  int playerCellX, int playerCellY);
+			  int playerCellX, int playerCellY,
+			  const std::vector<world::CreatureKind>& only = {});
 
 	void update(int iteration, int playerCellX, int playerCellY);
 

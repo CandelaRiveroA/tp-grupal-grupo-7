@@ -3,10 +3,13 @@
 namespace world {
 
 CharacterLayout::CharacterLayout(const PixelRect& bodyBox, int drawnWidth,
-				 int drawnHeight)
+				 int drawnHeight, int referenceCols,
+				 int referenceRows)
 	: bodyBox_(bodyBox)
 	, drawnWidth_(drawnWidth)
-	, drawnHeight_(drawnHeight) {}
+	, drawnHeight_(drawnHeight)
+	, referenceCols_(referenceCols)
+	, referenceRows_(referenceRows) {}
 
 int CharacterLayout::bodyX() const {
 	return bodyBox_.x + (bodyBox_.width - drawnWidth_) / 2;
@@ -29,12 +32,19 @@ PixelRect CharacterLayout::layerRect(const LayerFrame& layer,
 		return PixelRect{bodyX(), bodyBottom(), 0, 0};
 	}
 
-	const int pxPerCellX = drawnWidth_ / baseLayer.cols;
-	const int pxPerCellY = drawnHeight_ / baseLayer.rows;
+	// Con referencia, la escala es la de la criatura (igual para todos
+	// sus frames); sin ella, la de la capa base de este frame.
+	const bool hasReference = referenceCols_ > 0 && referenceRows_ > 0;
+	const int pxPerCellX =
+		drawnWidth_ / (hasReference ? referenceCols_ : baseLayer.cols);
+	const int pxPerCellY =
+		drawnHeight_ / (hasReference ? referenceRows_ : baseLayer.rows);
 
 	const int w = layer.cols * pxPerCellX;
 	const int h = layer.rows * pxPerCellY;
-	const int x = bodyX();
+	// Con referencia el frame se centra en el cuerpo (uno más ancho
+	// sobresale parejo a los dos lados).
+	const int x = bodyX() + (hasReference ? (drawnWidth_ - w) / 2 : 0);
 	const int y = bodyBottom() - h;
 	return PixelRect{x, y, w, h};
 }

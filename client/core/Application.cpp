@@ -117,9 +117,13 @@ int Application::runGame(SessionConfig session) {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
         world::Scenario scenario(config_, std::move(scene));
-        const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+        world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
         const world::CharacterPalettes palettes = loadPalettes();
+        // Los enemigos viven en su propio archivo (se fusionan sobre el
+        // mismo catálogo): mantiene characters.toml chico (contrato §9).
+        world::CharacterCatalogLoader().mergeFromFile(
+                characters, core::assetPath(core::kEnemiesFile));
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -154,7 +158,11 @@ int Application::runGame(SessionConfig session) {
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
                                 resources, banner, digits, cursors, dialogs, font, prompt, chat,
-                                hudOverlays, lighting, palettes);
+                                // Sin envoltura MockWorldClient: los enemigos
+                                // ahora los manda el server por red, y este
+                                // puntero apagado deja los disparadores de
+                                // prueba (teclas de test) inertes.
+                                hudOverlays, lighting, palettes, nullptr);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

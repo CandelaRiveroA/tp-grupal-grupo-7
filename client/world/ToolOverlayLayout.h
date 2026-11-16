@@ -17,17 +17,19 @@ public:
 			  const ToolOverlayCatalog& catalog,
 			  const LayerFrame& baseLayer);
 
-	// Frame de la animación para la fase recibida. nullptr si la acción
-	// no tiene frames dibujables. Toma AnimatedOverlay: sirve tanto para
-	// la herramienta como para su efecto (el chorro), que comparten el
-	// mismo dato de animación.
+	// Frame de la animación para la fase recibida, de la pasada pedida
+	// (detrás/delante del cuerpo). nullptr si la acción no tiene frames
+	// dibujables o si el frame de esa fase pertenece a la otra pasada.
+	// Toma AnimatedOverlay: sirve tanto para la herramienta como para su
+	// efecto (el chorro), que comparten el mismo dato de animación.
 	const ToolOverlayFrame* frameAt(const AnimatedOverlay& action,
-					int phase) const;
+					int phase, OverlayPass pass) const;
 
 	// Frame del contenido sostenido para la fase recibida (misma ley de
-	// avance que las herramientas). nullptr si no hay frames.
+	// avance que las herramientas). nullptr si no hay frames o si el de
+	// esa fase pertenece a la otra pasada.
 	const HeldOverlayFrame* frameAt(const HeldContentOverlay& overlay,
-					int phase) const;
+					int phase, OverlayPass pass) const;
 
 	// Rectángulo de una capa del overlay. Aplica el offset EN CELDAS de
 	// la capa (distribuye las gotas del chorro en 2D). Si la capa es
@@ -48,6 +50,10 @@ private:
 	// dos clases de overlay).
 	int frameIndexAt(int frameTicks, std::size_t frameCount,
 			 int phase) const;
+
+	// Un frame pertenece a la pasada pedida según su flag `behind`
+	// (compartido por las dos clases de overlay).
+	bool inPass(const OverlayFrame& frame, OverlayPass pass) const;
 
 	CharacterLayout body_;
 	// Capa base del pose (el cuerpo): de ella sale el factor de píxeles

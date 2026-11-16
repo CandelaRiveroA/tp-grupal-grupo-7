@@ -11,6 +11,10 @@ enum class Direction : uint8_t {
     RIGHT = 3 
 };
 
+// Acción visible de un enemigo: el servidor la enciende y el cliente la anima
+// (la muerte la deriva el cliente de la vida = 0).
+enum class EnemyAction : uint8_t { Idle = 0, Attack = 1, Damage = 2 };
+
 // Como acordamos, usamos HAND para levantar objetos
 enum class ToolType : uint8_t { 
     HAND = 0,

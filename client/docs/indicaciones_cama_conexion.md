@@ -55,6 +55,18 @@ que el flujo actual de la vista.
    - **Despertaron todos** → `ServerDay`: `changeTo("bedroom")` **y el cue
      del gallo**. El reloj vuelve a las 6:00 y todos quedan en la cama.
 
+### El jugador muerto no se le pregunta
+
+Al morir (vida en 0 o energía agotada) el server lo registra en la cama
+como aceptado y empuja el estado de sueño **en el mismo tick de la
+muerte** (`Match::handle(EnemyTick)`): sin eso el muerto se enteraba
+recién cuando mandaba un comando, es decir, cuando se movía.
+
+Del lado SDL, `PopupState::showSleepState(sleeping, total, voted,
+localDied)` manda al muerto directo a `showWaiting` **sin la pregunta y
+sin el botón de cancelar** (`waitingCancelable` apagado con la vida del
+jugador local). Espera ahí hasta que el resto vote o muera también.
+
 ### El "reinicio del día" NO arma nada
 
 `changeTo(...)` solo cambia **qué se pinta**: se cargan los datos de la

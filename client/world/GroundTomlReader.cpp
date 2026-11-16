@@ -18,6 +18,14 @@ constexpr const char* kSheetCell = "sheet.cell";
 constexpr const char* kGround = "ground";
 constexpr const char* kSprite = "sprite";
 constexpr const char* kTiles = "tiles";
+// Hoja propia opcional de una consecuencia (con su tamaño de celda).
+constexpr const char* kImage = "image";
+constexpr const char* kCell = "cell";
+// Opcionales del sprite de la consecuencia: bloque de celdas, tinte y
+// tamaño en el mapa.
+constexpr const char* kBlock = "block";
+constexpr const char* kTint = "tint";
+constexpr const char* kDrawn = "drawn";
 
 // Consecuencia lógica -> tabla del TOML que la describe.
 struct GroundBinding {
@@ -25,9 +33,10 @@ struct GroundBinding {
 	const char* tableKey;
 };
 
-constexpr std::array<GroundBinding, 2> kGroundBindings = {{
+constexpr std::array<GroundBinding, 3> kGroundBindings = {{
 	{GroundConsequence::Dug, "dug"},
 	{GroundConsequence::Watered, "watered"},
+	{GroundConsequence::Blood, "blood"},
 }};
 
 // Pieza del auto-tiling -> máscara de vecinos que la corresponde. El
@@ -109,6 +118,46 @@ SpriteVisual GroundTomlReader::readSprite(const std::string& sheet,
 	return visual;
 }
 
+void GroundTomlReader::readSpriteExtras(const std::string& base,
+					SpriteVisual& sprite) const {
+	// block = [cols, rows]: el sprite es un BLOQUE de celdas (la
+	// salpicadura de la sangre arma sus gotas en una región 4x3).
+	// Opcional; sin la clave, una celda.
+	const std::string blockPath = join(base, kBlock);
+	if (doc_.hasKey(blockPath)) {
+		const std::array<int, 2> block =
+			doc_.getIntArray<2>(blockPath);
+		if (block[0] <= 0 || block[1] <= 0) {
+			throw ConfigError(Kind::InvalidValue, blockPath);
+		}
+		sprite.cols = block[0];
+		sprite.rows = block[1];
+	}
+	// tint = [r, g, b]: recoloreo del sprite (los blancos de la hoja
+	// de la sangre salen bordó). Opcional.
+	const std::string tintPath = join(base, kTint);
+	if (doc_.hasKey(tintPath)) {
+		const std::array<int, 3> tint = doc_.getIntArray<3>(tintPath);
+		if (tint[0] < 0 || tint[0] > 255 || tint[1] < 0 ||
+		    tint[1] > 255 || tint[2] < 0 || tint[2] > 255) {
+			throw ConfigError(Kind::InvalidValue, tintPath);
+		}
+		sprite.tint = Color{tint[0], tint[1], tint[2], 255};
+	}
+	// drawn = [w, h]: tamaño en el mapa (sin la clave, el sprite cubre
+	// la celda entera). Opcional.
+	const std::string drawnPath = join(base, kDrawn);
+	if (doc_.hasKey(drawnPath)) {
+		const std::array<int, 2> drawn =
+			doc_.getIntArray<2>(drawnPath);
+		if (drawn[0] <= 0 || drawn[1] <= 0) {
+			throw ConfigError(Kind::InvalidValue, drawnPath);
+		}
+		sprite.drawnWidth = drawn[0];
+		sprite.drawnHeight = drawn[1];
+	}
+}
+
 void GroundTomlReader::readPieces(const std::string& tilesPath,
 				  const std::string& sheet, int cellWidth,
 				  int cellHeight,
@@ -161,10 +210,33 @@ GroundCatalog GroundTomlReader::read() const {
 			throw ConfigError(Kind::InvalidValue, join(kGround, name));
 		}
 		const std::string base = join(kGround, name);
+		// Hoja propia OPCIONAL de la consecuencia (la sangre vive en
+		// Animations.png, no en hoeDirt): `image` + `cell` la
+		// declaran; sin ellas se usa la hoja global.
+		std::string consequenceSheet = sheet;
+		int cellWidth = cell[0];
+		int cellHeight = cell[1];
+		const std::string imagePath = join(base, kImage);
+		if (doc_.hasKey(imagePath)) {
+			consequenceSheet = doc_.getString(imagePath);
+			if (consequenceSheet.empty()) {
+				throw ConfigError(Kind::InvalidValue, imagePath);
+			}
+			const std::string cellPath = join(base, kCell);
+			const std::array<int, 2> ownCell =
+				doc_.getIntArray<2>(cellPath);
+			if (ownCell[0] <= 0 || ownCell[1] <= 0) {
+				throw ConfigError(Kind::InvalidValue, cellPath);
+			}
+			cellWidth = ownCell[0];
+			cellHeight = ownCell[1];
+		}
 		GroundVisual visual;
-		visual.sprite = readSprite(sheet, cell[0], cell[1],
-					   join(base, kSprite));
-		readPieces(join(base, kTiles), sheet, cell[0], cell[1], visual);
+		visual.sprite = readSprite(consequenceSheet, cellWidth,
+					   cellHeight, join(base, kSprite));
+		readSpriteExtras(base, visual.sprite);
+		readPieces(join(base, kTiles), consequenceSheet, cellWidth,
+			   cellHeight, visual);
 		catalog.setConsequence(*consequence, std::move(visual));
 	}
 	return catalog;

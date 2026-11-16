@@ -14,4 +14,6 @@
 Vampiress::Vampiress(uint16_t x, uint16_t y):
         Vampire(x, y, kHealth, kDamage, kGoldDropPercent, kSpeed) {}
 
+std::string Vampiress::kind_name() const { return "vampiress"; }
+
 void Vampiress::enter_frenzy() { this->speed_frenzy = kFrenzyMultiplier; }

@@ -57,7 +57,10 @@ void PromptPainter::drawWaiting(const game::PopupState& state, const int,
 				const world::PixelBox& panel) {
 	text_.draw(waitingText(state), layout_.waitingBox(panel),
 		   layout_.textColor);
-	drawButton(world::kPromptCancelButton, panel);
+	// Un muerto no cancela: el botón no aparece.
+	if (state.waitingCancelable()) {
+		drawButton(world::kPromptCancelButton, panel);
+	}
 }
 
 void PromptPainter::drawNextDay(const game::PopupState&, const int,

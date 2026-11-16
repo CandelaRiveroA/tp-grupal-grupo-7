@@ -43,8 +43,19 @@ void GroundEffectPainter::draw(
 			continue;
 		}
 
-		const world::PixelRect rect = viewport.toScreen(mapper.toPixels(
-			cell, world::kUnitCellSpan));
+		// Con `drawn` el sprite se dibuja a SU tamaño del mapa,
+		// apoyado en el borde inferior de la celda y centrado (la
+		// salpicadura de la sangre se pisa a los pies sin
+		// deformarse); sin él, cubre la celda entera (como siempre).
+		world::PixelRect rect =
+			mapper.toPixels(cell, world::kUnitCellSpan);
+		if (visual->drawnWidth > 0 && visual->drawnHeight > 0) {
+			rect = world::PixelRect{
+				rect.x + (rect.width - visual->drawnWidth) / 2,
+				rect.y + rect.height - visual->drawnHeight,
+				visual->drawnWidth, visual->drawnHeight};
+		}
+		rect = viewport.toScreen(rect);
 		if (!viewport.intersects(rect)) {
 			continue;
 		}
@@ -52,8 +63,21 @@ void GroundEffectPainter::draw(
 		SpriteSheet& sheet = sheets_.sheet(
 			visual->sheetImage, core::assetPath(visual->sheetImage),
 			visual->cellWidth, visual->cellHeight);
-		sheet.draw(visual->col, visual->row,
-			   SDL2pp::Rect(rect.x, rect.y, rect.width, rect.height));
+		// Tinte opcional del sprite (los blancos de la hoja de la
+		// sangre salen bordó); se limpia para no tiñar lo que siga.
+		if (visual->tint.has_value()) {
+			const world::Color& tint = *visual->tint;
+			sheet.setColorMod(static_cast<std::uint8_t>(tint.r),
+					  static_cast<std::uint8_t>(tint.g),
+					  static_cast<std::uint8_t>(tint.b));
+		}
+		sheet.drawBlock(visual->col, visual->row, visual->cols,
+				visual->rows,
+				SDL2pp::Rect(rect.x, rect.y, rect.width,
+					     rect.height));
+		if (visual->tint.has_value()) {
+			sheet.clearColorMod();
+		}
 	}
 }
 

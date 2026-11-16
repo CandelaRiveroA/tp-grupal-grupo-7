@@ -63,6 +63,9 @@ void MockGameClient::sendCommand(const protocol::ClientMessage& message) {
         playerMoving_ = false;
         playerFacing_ = world::viewDirectionFrom(pick->direction);
         toolUseRemaining_ = toolUseDurationTicks_;
+        // La herramienta la decide la "fuente" desde el slot pedido
+        // (contrato §12): el servidor hará lo mismo con su inventario.
+        activeTool_ = toolAt(pick->slot);
         // El daño se confirma al COMPLETAR la ventana (fin de la
         // animación), no al apretar, como hará el servidor.
         int targetX = 0;
@@ -204,6 +207,15 @@ void MockGameClient::addToInventory(const std::string& contentId) {
     view_.addInventoryContent(contentId);
 }
 
+std::optional<world::ItemKind> MockGameClient::toolAt(const int slot) const {
+    for (const ViewInventorySlot& entry : view_.inventory) {
+        if (entry.slotIndex == slot) {
+            return itemIds_.itemKindFor(entry.contentId);
+        }
+    }
+    return std::nullopt;
+}
+
 void MockGameClient::rebuildView() {
     view_.entities.clear();
     view_.grid = world::GridSpan{gridColumns_, gridRows_};
@@ -218,7 +230,7 @@ void MockGameClient::rebuildView() {
     player.moving = playerMoving_;
     if (toolUseRemaining_ > 0) {
         player.action = world::ActionKind::UseTool;
-        player.activeTool = world::ItemKind::Pickaxe;
+        player.activeTool = activeTool_;
     } else {
         player.action = playerMoving_ ? world::ActionKind::Walk : world::ActionKind::Idle;
     }

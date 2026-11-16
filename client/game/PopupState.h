@@ -31,6 +31,21 @@ public:
     // ni protocolo acá: solo llegan los números.
     void showWaiting(int ready, int total);
 
+    // Punto de ENTRADA: el cambio de estado de sueño que manda el
+    // server (ServerSleep). Traduce sleeping/total a la vista: sin
+    // durmientes no hay popup; quien ya votó —o está muerto, que el
+    // server da por aceptado y no puede levantarse— ve el avance; el
+    // resto, la pregunta.
+    void showSleepState(int sleeping, int total, bool voted,
+                        bool localDied);
+
+    // ¿El avance ofrece el botón de cancelar? Un muerto espera sin
+    // cancelar: PlaySession lo apaga con este flag (lo leen el pintor,
+    // el cursor y el click).
+    void setWaitingCancelable(bool cancelable);
+
+    bool waitingCancelable() const;
+
     // Punto de ENTRADA: la pregunta del cambio de día. La llama
     // PlaySession cuando la pantalla quedó en negro.
     void showNextDay();
@@ -55,6 +70,7 @@ private:
     PopupView view_ = PopupView::Hidden;
     int waitingReady_ = 0;
     int waitingTotal_ = 0;
+    bool waitingCancelable_ = true;
 };
 
 }  // namespace game

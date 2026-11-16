@@ -16,6 +16,7 @@
 #include "../enemies/orc.h"
 #include "../enemies/vampire.h"
 #include "../enemies/vampiress.h"
+#include "../entities/i_movable.h"
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -26,9 +27,35 @@
 // Pareja de vampiros: celdas hasta kVampirePairRadius y al menos kVampirePairMinCells.
 #define kVampirePairRadius 1
 #define kVampirePairMinCells 2
+// Pasos de EnemyTick (400 ms) entre la muerte y la cama: deja correr la
+// animación de desmayo del cliente (30 ticks ≈ 500 ms) más el lote de
+// red (≤400 ms) antes de teletransportar.
+#define kDeathToBedSteps 4
+// Rangos de id: los animales usan uint8 desde 1 y ViewMotion empareja por id
+// en una sola lista, así que enemigos y llamas arrancan en rangos distintos.
+#define kFirstEnemyId 1000
+#define kFirstProjectileId 2000
+
+// Dirección del paso más corto hacia (target_x, target_y): primero el eje con
+// más distancia, para que la llama llegue en zigzag a cualquier celda.
+static Direction direction_to(uint16_t x, uint16_t y, uint16_t target_x, uint16_t target_y) {
+    const int dx = static_cast<int>(target_x) - static_cast<int>(x);
+    const int dy = static_cast<int>(target_y) - static_cast<int>(y);
+    if (std::abs(dx) >= std::abs(dy)) {
+        return dx >= 0 ? Direction::RIGHT : Direction::LEFT;
+    }
+    return dy >= 0 ? Direction::DOWN : Direction::UP;
+}
 
 World::World(uint16_t w, uint16_t h):
-        width(w), height(h), waking(false), day_ended(false), day_started(false), day(1) {
+        width(w),
+        height(h),
+        next_enemy_id(kFirstEnemyId),
+        next_projectile_id(kFirstProjectileId),
+        waking(false),
+        day_ended(false),
+        day_started(false),
+        day(1) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -220,6 +247,8 @@ void World::add_enemy(std::unique_ptr<Enemy> enemy) {
     if (x >= this->width || y >= this->height) {
         return;
     }
+    // shortcut: id sin reciclar, se repite tras 65535 enemigos; upgrade: reusar ids libres.
+    enemy->set_id(this->next_enemy_id++);
     set_entity_at(x, y, std::move(enemy));
     // set_entity_at agrega al final de la celda: el puntero es el de la celda, no el del parámetro.
     enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
@@ -304,12 +333,92 @@ void World::clear_enemies() {
     }
 }
 
+void World::clear_flames() { this->flames.clear(); }
+
 void World::tick_enemies() {
     // Se copian los punteros: update puede agregar enemigos (spawn) y rearmar el vector.
     const std::vector<Enemy*> today = enemies;
     for (Enemy* enemy: today) {
         enemy->update(*this);
     }
+}
+
+bool World::tick_enemies_pursuit() {
+    // Se copian los punteros: la IA puede cambiar listas (muerte, spawn).
+    const std::vector<Enemy*> today = enemies;
+    bool changed = false;
+    for (Enemy* enemy: today) {
+        if (enemy->get_health() == 0) {
+            continue;  // Los cadáveres no persiguen.
+        }
+        changed = enemy->pursue(*this) || changed;
+    }
+    return changed;
+}
+
+void World::spawn_flame(uint16_t x, uint16_t y, uint16_t target_x, uint16_t target_y,
+                        uint8_t damage, const std::string& kind) {
+    const Direction direction = direction_to(x, y, target_x, target_y);
+    this->flames.push_back(
+            Flame{this->next_projectile_id++, kind, x, y, direction, damage, target_x, target_y});
+}
+
+bool World::damage_players_at(uint16_t x, uint16_t y, uint8_t damage) {
+    for (const uint8_t id: this->get_player_ids()) {
+        const Player& player = this->get_player(id);
+        if (player.get_health() > 0 && player.get_x() == x && player.get_y() == y) {
+            this->damage_player(id, damage);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool World::tick_flames() {
+    if (this->flames.empty()) {
+        return false;
+    }
+    auto it = this->flames.begin();
+    while (it != this->flames.end()) {
+        Flame& flame = *it;
+        // Contacto: el jugador puede haber entrado en la celda de la llama.
+        if (this->damage_players_at(flame.x, flame.y, flame.damage)) {
+            it = this->flames.erase(it);
+            continue;
+        }
+        const Direction direction = direction_to(flame.x, flame.y, flame.target_x, flame.target_y);
+        const auto [next_x, next_y] = IMovable::next_tile(flame.x, flame.y, direction);
+        if ((next_x == flame.x && next_y == flame.y) || !this->can_walk_to(next_x, next_y)) {
+            it = this->flames.erase(it);  // Borde del mapa o pared: se apaga.
+            continue;
+        }
+        flame.x = next_x;
+        flame.y = next_y;
+        flame.direction = direction;
+        if (this->damage_players_at(flame.x, flame.y, flame.damage) ||
+            (flame.x == flame.target_x && flame.y == flame.target_y)) {
+            it = this->flames.erase(it);
+            continue;
+        }
+        ++it;
+    }
+    return true;
+}
+
+const std::vector<std::pair<uint16_t, uint16_t>>& World::blood_puddle_list() const {
+    return this->blood_puddles;
+}
+
+void World::clear_blood_puddle() { this->blood_puddles.clear(); }
+
+std::vector<ProjectileSnapshot> World::projectile_snapshots() const {
+    std::vector<ProjectileSnapshot> out;
+    out.reserve(this->flames.size());
+    for (const Flame& flame: this->flames) {
+        out.push_back(
+                ProjectileSnapshot{flame.id, flame.kind, flame.x, flame.y, flame.direction});
+    }
+    return out;
 }
 
 bool World::damage_player(uint8_t player_id, uint8_t damage) {
@@ -321,6 +430,9 @@ bool World::damage_player(uint8_t player_id, uint8_t damage) {
     if (player.get_health() < hp_before && player.is_gravely_wounded()) {
         this->blood_puddles.emplace_back(player.get_x(), player.get_y());
     }
+    if (killed) {
+        this->kill_player(player_id);
+    }
     return killed;
 }
 
@@ -330,6 +442,10 @@ bool World::consume_blood_puddle() {
     }
     this->blood_puddles.pop_back();
     return true;
+}
+
+bool World::has_blood_puddle() const {
+    return !this->blood_puddles.empty();
 }
 
 void World::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
@@ -408,16 +524,16 @@ void World::use_tool(uint8_t player_id) {
         action_performed = this->try_plant_seed(player_id, tx, ty);
     }
 
-    apply_consume_energy(player_id, action_performed ? 5.0f : 1.0f);
+    if (tool != ToolType::SWORD && tool != ToolType::HAND) {
+        apply_consume_energy(player_id, action_performed ? 5.0f : 1.0f);
+    }
 }
 
 void World::apply_consume_energy(uint8_t player_id, float amount) {
     Player& p = *this->players.at(player_id);
     p.consume_energy(amount);
     if (p.is_energy_depleted()) {
-        // TODO: Cambiar estado del jugador a INCONSCIENTE.
-        // Si es Single Player, forzar el process_end_of_day().
-        // Si es Multiplayer, notificar que este jugador ya no puede actuar hasta mañana.
+        this->kill_player(player_id);
     }
 }
 
@@ -594,6 +710,7 @@ void World::remove_player(uint8_t player_id) {
     this->sleepers.erase(player_id);
     this->accepted.erase(player_id);
     this->woke.erase(player_id);
+    this->death_to_bed.erase(player_id);
     // Si el que se fue era el único que faltaba aceptar o despertar, el día tiene que avanzar.
     this->try_advance_sleep();
     this->try_start_day();
@@ -601,6 +718,61 @@ void World::remove_player(uint8_t player_id) {
 
 void World::set_player_position(uint8_t player_id, uint16_t x, uint16_t y) {
     this->players.at(player_id)->set_position(x, y);
+}
+
+void World::kill_player(uint8_t player_id) {
+    Player& player = *this->players.at(player_id);
+    player.set_health(0);
+    player.setDiedInCombat(true);
+    // La cama y el sueño quedan diferidos: primero el desmayo en el
+    // lugar de la muerte (tick_death_to_bed los despacha).
+    // shortcut: mientras espera, el muerto sigue pudiendo mandar
+    // comandos (bloquear movimiento de muertos queda fuera de alcance);
+    // en ≤1,6 s ya está en la cama, y en sleepers no se mueve.
+    this->death_to_bed.emplace(player_id, kDeathToBedSteps);
+}
+
+bool World::tick_death_to_bed() {
+    bool arrived = false;
+    for (auto it = this->death_to_bed.begin(); it != this->death_to_bed.end();) {
+        const uint8_t id = it->first;
+        if (it->second > 0) {
+            --it->second;
+            ++it;
+            continue;
+        }
+        // Venció la espera: remove_player limpia death_to_bed, así que
+        // el id sigue vivo acá.
+        it = this->death_to_bed.erase(it);
+        Player& player = *this->players.at(id);
+        // Revivió (amaneció) mientras esperaba: no hay cama que buscar.
+        if (player.get_health() > 0) {
+            continue;
+        }
+        player.set_position(20, 13);  // misma cama que kBedX/kBedY (match.cpp)
+        this->record_sleep_request(id);
+        this->answer_sleep(id, true);
+        arrived = true;
+    }
+    return arrived;
+}
+
+void World::mark_all_fainted_by_timeout() {
+    for (const uint8_t id: this->get_player_ids()) {
+        this->players.at(id)->setFaintedByTimeout(true);
+    }
+}
+
+void World::reset_player_for_day(uint8_t player_id) {
+    Player& p = *this->players.at(player_id);
+    const bool penalized = p.diedInCombat() || p.faintedByTimeout();
+    const uint16_t new_hp = penalized ? static_cast<uint16_t>(p.get_max_health() / 2)
+                                     : p.get_max_health();
+    const float new_energy = penalized ? (p.get_max_energy() / 2.0f) : p.get_max_energy();
+    p.set_health(new_hp);
+    p.set_energy(new_energy);
+    p.setDiedInCombat(false);
+    p.setFaintedByTimeout(false);
 }
 
 
@@ -627,8 +799,13 @@ void World::answer_sleep(uint8_t player_id, bool accept) {
     }
 
     if (!accept) {
-        // Cancelar: sale de la cama y se borra solo su OK. Los OK de los demás
-        // siguen valiendo (así nadie que ya votó queda esperando en vano).
+        // Un jugador muerto no puede levantarse: se queda dormido hasta el amanecer.
+        if (this->players.at(player_id)->diedInCombat()) {
+            this->accepted.insert(player_id);
+            this->try_advance_sleep();
+            return;
+        }
+        // Cancelar: sale de la cama...
         this->sleepers.erase(player_id);
         this->accepted.erase(player_id);
         return;

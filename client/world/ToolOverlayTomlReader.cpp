@@ -29,6 +29,7 @@ constexpr const char* kFlip = "flip";
 constexpr const char* kScale = "scale";
 constexpr const char* kCellSpan = "cell_span";
 constexpr const char* kDrawn = "drawn";
+constexpr const char* kBehind = "behind";
 constexpr const char* kHeld = "held";
 constexpr const char* kEffect = "effect";
 
@@ -149,6 +150,11 @@ void ToolOverlayTomlReader::readPlacement(
 		}
 		frame.cellSpanX = span[0];
 		frame.cellSpanY = span[1];
+	}
+	// behind = true: el frame se dibuja DETRÁS del cuerpo (la pasada
+	// OverlayPass::Behind). Opcional; sin la clave, false (delante).
+	if (frameDoc.hasKey(kBehind)) {
+		frame.behind = frameDoc.getBool(kBehind);
 	}
 }
 

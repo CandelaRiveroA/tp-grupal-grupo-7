@@ -632,6 +632,40 @@ cadence = { step = 24, frame = 12 }
       [ [3, 22, 1, 2], [9, 22, 1, 2] ],
       [ [4, 22, 1, 2], [10, 22, 1, 2] ],
     ]
+    # Tajo de espada de frente: 6 cuadros, one-shot (loops=false). Cuerpo
+    # en las filas 8-9 (cols 0-5), brazos en las cols 12-17: 1x2 en los
+    # cuadros 1-2 (brazos alzados) y 1x1 en los cuadros 3-6 (bajos).
+    # frame = 5: 6x5 = 30 ticks, la misma ventana uniforme que las otras
+    # herramientas (contrato §10). La espada en la mano la dibuja el
+    # overlay [sword.front] (tools_overlay.toml), sincronizado con estos
+    # cuadros.
+    [characters.player.front.sword]
+    loops  = false
+    frame  = 5
+    frames = [
+      [ [0, 8, 1, 2], [12, 8, 1, 2] ],
+      [ [1, 8, 1, 2], [13, 8, 1, 2] ],
+      [ [2, 8, 1, 2], [14, 9, 1, 1] ],
+      [ [3, 8, 1, 2], [15, 9, 1, 1] ],
+      [ [4, 8, 1, 2], [16, 9, 1, 1] ],
+      [ [5, 8, 1, 2], [17, 9, 1, 1] ],
+    ]
+    # Daño recibido de frente: la titilación es la pose idle que APARECE
+    # y DESAPARECE — un frame sin capas ([]) no dibuja nada (el mismo
+    # truco que layers = [] en los overlays). One-shot que termina
+    # VISIBLE; frame = 6 da la ventana de 30 ticks como las otras
+    # acciones. La acción es dominante (ActionResolver): parpadea aunque
+    # el jugador camine o sostenga algo.
+    [characters.player.front.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+      [ ],
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+      [ ],
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+    ]
     # Regar de frente: 5 cuadros, one-shot (los brazos suben de 1x1 a
     # 1x2 y vuelven). frame = 6: 5x6 = 30 ticks, la misma duración que
     # costado (3x10) y espalda (1x30) — la ventana del golpe se arma de
@@ -726,6 +760,35 @@ cadence = { step = 24, frame = 12 }
       [ [2, 62, 1, 2], [8, 63, 1, 1] ],
       [ [4, 62, 1, 2], [10, 62, 1, 2] ],
     ]
+    # Tajo de espada de espaldas: 6 cuadros, one-shot. Cuerpo en las
+    # filas 12-13 (cols 0-5), brazos en las cols 12-17: 1x1 en el cuadro
+    # 1 (bajos) y 1x2 en los cuadros 2-6 (suben). frame = 5: 6x5 = 30
+    # ticks (ventana uniforme, contrato §10). La espada se dibuja DETRÁS
+    # del cuerpo (overlay [sword.back] con behind = true): el cuerpo la
+    # tapa donde la cruza y se ve donde sobresale.
+    [characters.player.back.sword]
+    loops  = false
+    frame  = 5
+    frames = [
+      [ [0, 12, 1, 2], [12, 13, 1, 1] ],
+      [ [1, 12, 1, 2], [13, 12, 1, 2] ],
+      [ [2, 12, 1, 2], [14, 12, 1, 2] ],
+      [ [3, 12, 1, 2], [15, 12, 1, 2] ],
+      [ [4, 12, 1, 2], [16, 12, 1, 2] ],
+      [ [5, 12, 1, 2], [17, 12, 1, 2] ],
+    ]
+    # Daño recibido de espaldas: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.back.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+      [ ],
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+      [ ],
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+    ]
     # Regar de espalda: 1 pose estática (brazos 1x2). frame = 30: el
     # cuadro dura lo mismo que la animación completa de las otras
     # direcciones (30 ticks), para que la duración sea uniforme.
@@ -792,6 +855,33 @@ cadence = { step = 24, frame = 12 }
       [ [2, 16, 1, 2], [8, 16, 1, 2] ],
       [ [3, 16, 1, 2], [9, 16, 1, 2] ],
       [ [4, 16, 1, 2], [10, 16, 1, 2] ],
+    ]
+    # Tajo de espada espejado (mismas celdas que derecha, mirrored=true
+    # las voltea): 6 cuadros one-shot, brazos 1x2 -> 1x1 -> 1x2. frame = 5
+    # (6x5 = 30 ticks, ventana uniforme, contrato §10). La espada es el
+    # overlay [sword.left] (espejo de [sword.right]).
+    [characters.player.left.sword]
+    loops  = false
+    frame  = 5
+    frames = [
+      [ [0, 10, 1, 2], [12, 10, 1, 2] ],
+      [ [1, 10, 1, 2], [13, 10, 1, 2] ],
+      [ [2, 10, 1, 2], [14, 11, 1, 1] ],
+      [ [3, 10, 1, 2], [15, 11, 1, 1] ],
+      [ [4, 10, 1, 2], [16, 10, 1, 2] ],
+      [ [5, 10, 1, 2], [17, 10, 1, 2] ],
+    ]
+    # Daño recibido espejado: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.left.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
     ]
     # Regar espejado (mismas celdas que derecha, mirrored=true las
     # voltea): 3 cuadros one-shot. frame = 10: 3x10 = 30 ticks, la
@@ -865,6 +955,32 @@ cadence = { step = 24, frame = 12 }
       [ [2, 16, 1, 2], [8, 16, 1, 2] ],
       [ [3, 16, 1, 2], [9, 16, 1, 2] ],
       [ [4, 16, 1, 2], [10, 16, 1, 2] ],
+    ]
+    # Tajo de espada de costado: 6 cuadros one-shot, brazos 1x2 (cuadros
+    # 1-2 y 5-6) y 1x1 (cuadros 3-4). frame = 5 (6x5 = 30 ticks, ventana
+    # uniforme, contrato §10). La espada es el overlay [sword.right].
+    [characters.player.right.sword]
+    loops  = false
+    frame  = 5
+    frames = [
+      [ [0, 10, 1, 2], [12, 10, 1, 2] ],
+      [ [1, 10, 1, 2], [13, 10, 1, 2] ],
+      [ [2, 10, 1, 2], [14, 11, 1, 1] ],
+      [ [3, 10, 1, 2], [15, 11, 1, 1] ],
+      [ [4, 10, 1, 2], [16, 10, 1, 2] ],
+      [ [5, 10, 1, 2], [17, 10, 1, 2] ],
+    ]
+    # Daño recibido de costado: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.right.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
     ]
     # Regar de costado: 3 cuadros one-shot (brazos 1x1 bajos y el final
     # con brazos 1x2, el de verter). frame = 10: 3x10 = 30 ticks, la

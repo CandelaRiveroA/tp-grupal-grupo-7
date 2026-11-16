@@ -15,10 +15,10 @@
 
 Skeleton::Skeleton(uint16_t x, uint16_t y): Enemy(x, y, kHealth, kDamage, kGoldDropPercent) {}
 
+std::string Skeleton::kind_name() const { return "skeleton"; }
+
 void Skeleton::on_death(World& /*w*/) {
     // Particularidad del esqueleto: no se retira del mundo, revive con vida
     // llena cuando update() se acaba el contador.
     this->ticks_to_revive = kReviveTicks;
 }
-
-void Skeleton::behave(World& w) { this->chase_player(w); }

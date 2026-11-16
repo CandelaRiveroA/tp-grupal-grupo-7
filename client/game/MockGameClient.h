@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "common/common_command.h"
 #include "game/GameClient.h"
 #include "game/LocalWorldView.h"
+#include "world/ContentIds.h"
 #include "world/ResourceCatalog.h"
 #include "world/ViewDirection.h"
 
@@ -77,6 +79,10 @@ private:
     // solo tick. El servidor decidirá este evento; esto lo simula.
     void advanceObtained();
 
+    // Herramienta del slot pedido (el PickMessage lleva el slot): el
+    // mismo reparto que hará el servidor con su inventario (§12).
+    std::optional<world::ItemKind> toolAt(int slot) const;
+
     int gridColumns_;
     int gridRows_;
 
@@ -87,6 +93,13 @@ private:
 
     int toolUseDurationTicks_;
     int toolUseRemaining_ = 0;
+
+    // Herramienta del golpe en curso (la del slot pedido al "usar"): la
+    // llena el PickMessage, la consume rebuildView (contrato §12).
+    std::optional<world::ItemKind> activeTool_;
+    // Vocabulario contentId -> ItemKind (convención §2: miembro, no
+    // static).
+    world::ContentIds itemIds_;
 
     // El golpe pendiente se confirma al completar la ventana (fin de la
     // animación), como hará el servidor.

@@ -115,13 +115,14 @@ TEST(InputManagerTest, CollectIsOneShotPerPress) {
 TEST(InputManagerTest, FaintIsOneShotPerPress) {
     InputManager input(4);
 
-    input.handleEvent(keyDown(SDLK_f));
+    // O = demo del desmayo (la F quedó en los test de enemigos).
+    input.handleEvent(keyDown(SDLK_o));
     const std::vector<Command> commands = input.takeCommands();
     ASSERT_EQ(commands.size(), 1u);
     EXPECT_EQ(commands[0].kind, CommandKind::Faint);
 
     // Soltar no dispara de nuevo.
-    input.handleEvent(keyUp(SDLK_f));
+    input.handleEvent(keyUp(SDLK_o));
     EXPECT_TRUE(input.takeCommands().empty());
 }
 

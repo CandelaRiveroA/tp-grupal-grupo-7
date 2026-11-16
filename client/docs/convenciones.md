@@ -244,6 +244,17 @@
   queda del tamaño de la celda de tierra). Sin la clave, cada capa mide una
   celda entera (el caso de la herramienta). Vive en `OverlayFrame`; lo aplica
   `ToolOverlayLayout::layerRect`.
+- **Frame sin capas = invisible.** Una pose de personaje SIN capas (`[]`) no
+  dibuja nada: es la "titilación" del daño recibido (el personaje aparece y
+  desaparece alternando frames con y sin capas en `characters.toml`), el
+  mismo truco que `layers = []` en los overlays. Los datos declaran el
+  parpadeo; el dibujo no tiene ninguna decisión al respecto (los pintores
+  solo guardan la precondición de pose no vacía, como `CharacterSprite::draw`).
+- **Acciones dominantes por tabla.** Una acción puede ser DOMINANTE en su
+  fila de `ActionSpec` (`game::ActionResolver`): manda sobre la caminata Y
+  el carry hasta que la fuente la apague (Faint, Damage). Es dato de la
+  fila, no un `if` por acción: sumar una acción dominante es una entrada
+  más de la tabla (convención §4).
 
 ## 11. Cámara del mundo
 

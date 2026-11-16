@@ -31,12 +31,15 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 		  {world::ActionKind::Attack,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  // Daño recibido: DOMINANTE (parpadea aunque camine o
+		  // sostenga algo). Su pose en el jugador es la titilación
+		  // (frames vacíos alternados, characters.toml).
 		  {world::ActionKind::Damage,
-		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		   ActionSpec{ActionRole::Action, PhaseClock::Action, true}},
 		  {world::ActionKind::Death,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 		  {world::ActionKind::Faint,
-		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		   ActionSpec{ActionRole::Action, PhaseClock::Action, true}},
 		  {world::ActionKind::Sword,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 	  }
@@ -63,11 +66,13 @@ world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
 
 world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 					    std::size_t index, int it) const {
-	// El desmayo manda sobre la caminata y el carry: el personaje puede
-	// seguir moviéndose (no se bloquea el input), pero la pose es la
-	// última del desmayo hasta que la fuente la apague.
-	if (entity.action == world::ActionKind::Faint) {
-		return world::ActionKind::Faint;
+	// Las acciones DOMINANTES (Faint, Damage) mandan sobre la caminata
+	// y el carry: el personaje puede seguir moviéndose (no se bloquea
+	// el input), pero la pose es la de la acción hasta que la fuente la
+	// apague. Lo decide la FILA de actionSpecs_ (dato), no un if por
+	// acción.
+	if (specFor(entity.action).dominant) {
+		return entity.action;
 	}
 	// La caminata es presentación local (la interpolación del paso) y
 	// solo pisa a las acciones de LOCOMOCIÓN. Las que enciende la

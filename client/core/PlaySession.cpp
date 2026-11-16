@@ -101,6 +101,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::InputCommand::Kind::SpendLife,
                  {game::StatKind::Life, game::kLifeCostPerAction}},
         },
+        localActions_{{game::InputCommand::Kind::Hurt,
+                       {world::ActionKind::Damage, game::kHurtDemoCycles}}},
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -136,6 +138,9 @@ void PlaySession::tick(int iteration) {
     if (faintRequested_) {
         ++faintFallTicks_;
     }
+    // Las ventanas de presentación local corren con el tick (la del daño
+    // recibido se suelta sola).
+    actionWindow_.advance();
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
@@ -330,6 +335,18 @@ void PlaySession::tick(int iteration) {
             stats_.at(spend->second.stat).spend(spend->second.cost);
             continue;
         }
+        if (const auto demo = localActions_.find(command.kind);
+            demo != localActions_.end()) {
+            // Demo local de una acción de la fuente (andamiaje): corre
+            // por la ventana de presentación local. La ventana se arma
+            // de los MISMOS datos de la acción (contrato §10).
+            const world::CreatureData& creature =
+                    characters_.dataFor(world::CreatureKind::Player);
+            actionWindow_.open(demo->second.action,
+                               creature.actionCycleTicks(demo->second.action) *
+                                       demo->second.cycles);
+            continue;
+        }
         if (command.kind == game::InputCommand::Kind::Faint) {
             // Demo local: la primera pulsación dispara la caída; con el
             // personaje ya desmayado no se reinicia.
@@ -374,6 +391,7 @@ void PlaySession::tick(int iteration) {
             audio_.play(*sound);
         }
     }
+
 
     // Un sonido por impacto confirmado, aunque el aspecto no cambie.
     for (const auto event: resourceAudioCue_.update(state.resourceHits)) {
@@ -543,9 +561,15 @@ void PlaySession::tick(int iteration) {
 }
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima el override
-    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    // Primero la pose de "meterse" (EnterSelection) y encima los
+    // overrides locales: la ventana de acción (demo de daño recibido) y
+    // el desmayo, que manda sobre todo lo demás.
     game::LocalWorldView display = enterSelection_.displayView(view);
+    if (actionWindow_.active() && !display.entities.empty()) {
+        // Ventana de acción local: su acción manda hasta que se suelte
+        // (presentación local; la fuente la mandará tal cual).
+        display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
+    }
     if (!faintRequested_ || display.entities.empty()) {
         return display;
     }

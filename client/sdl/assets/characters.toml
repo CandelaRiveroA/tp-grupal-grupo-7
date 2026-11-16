@@ -649,7 +649,24 @@ cadence = { step = 24, frame = 12 }
       [ [3, 8, 1, 2], [15, 9, 1, 1] ],
       [ [4, 8, 1, 2], [16, 9, 1, 1] ],
       [ [5, 8, 1, 2], [17, 9, 1, 1] ],
-    ]    # Regar de frente: 5 cuadros, one-shot (los brazos suben de 1x1 a
+    ]
+    # Daño recibido de frente: la titilación es la pose idle que APARECE
+    # y DESAPARECE — un frame sin capas ([]) no dibuja nada (el mismo
+    # truco que layers = [] en los overlays). One-shot que termina
+    # VISIBLE; frame = 6 da la ventana de 30 ticks como las otras
+    # acciones. La acción es dominante (ActionResolver): parpadea aunque
+    # el jugador camine o sostenga algo.
+    [characters.player.front.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+      [ ],
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+      [ ],
+      [ [0, 0, 1, 2], [6, 1, 1, 1] ],
+    ]
+    # Regar de frente: 5 cuadros, one-shot (los brazos suben de 1x1 a
     # 1x2 y vuelven). frame = 6: 5x6 = 30 ticks, la misma duración que
     # costado (3x10) y espalda (1x30) — la ventana del golpe se arma de
     # estos mismos datos y no puede desfasarse (contrato §10). Los
@@ -759,7 +776,20 @@ cadence = { step = 24, frame = 12 }
       [ [3, 12, 1, 2], [15, 12, 1, 2] ],
       [ [4, 12, 1, 2], [16, 12, 1, 2] ],
       [ [5, 12, 1, 2], [17, 12, 1, 2] ],
-    ]    # Regar de espalda: 1 pose estática (brazos 1x2). frame = 30: el
+    ]
+    # Daño recibido de espaldas: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.back.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+      [ ],
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+      [ ],
+      [ [0, 4, 1, 2], [6, 4, 1, 2] ],
+    ]
+    # Regar de espalda: 1 pose estática (brazos 1x2). frame = 30: el
     # cuadro dura lo mismo que la animación completa de las otras
     # direcciones (30 ticks), para que la duración sea uniforme.
     [characters.player.back.water]
@@ -840,7 +870,20 @@ cadence = { step = 24, frame = 12 }
       [ [3, 10, 1, 2], [15, 11, 1, 1] ],
       [ [4, 10, 1, 2], [16, 10, 1, 2] ],
       [ [5, 10, 1, 2], [17, 10, 1, 2] ],
-    ]    # Regar espejado (mismas celdas que derecha, mirrored=true las
+    ]
+    # Daño recibido espejado: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.left.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+    ]
+    # Regar espejado (mismas celdas que derecha, mirrored=true las
     # voltea): 3 cuadros one-shot. frame = 10: 3x10 = 30 ticks, la
     # misma duración que las otras direcciones (contrato §10).
     [characters.player.left.water]
@@ -926,7 +969,20 @@ cadence = { step = 24, frame = 12 }
       [ [3, 10, 1, 2], [15, 11, 1, 1] ],
       [ [4, 10, 1, 2], [16, 10, 1, 2] ],
       [ [5, 10, 1, 2], [17, 10, 1, 2] ],
-    ]    # Regar de costado: 3 cuadros one-shot (brazos 1x1 bajos y el final
+    ]
+    # Daño recibido de costado: misma titilación (frames vacíos
+    # alternados, ver [front.damage]).
+    [characters.player.right.damage]
+    loops  = false
+    frame  = 6
+    frames = [
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+      [ ],
+      [ [0, 2, 1, 2], [6, 3, 1, 1] ],
+    ]
+    # Regar de costado: 3 cuadros one-shot (brazos 1x1 bajos y el final
     # con brazos 1x2, el de verter). frame = 10: 3x10 = 30 ticks, la
     # misma duración que las otras direcciones (contrato §10).
     [characters.player.right.water]

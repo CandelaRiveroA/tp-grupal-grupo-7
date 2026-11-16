@@ -37,6 +37,11 @@ struct InputCommand {
         // mientras el server no manda la acción. Lo consume PlaySession;
         // NO viaja al GameClient.
         Faint,
+        // Demo del daño recibido (tecla R por ahora): titilación del
+        // jugador (aparece/desaparece) como presentación local mientras
+        // el server no mande el daño. Lo consume PlaySession con
+        // game::LocalActionWindow; NO viaja al GameClient.
+        Hurt,
         // Abrir el chatbox (tecla T).
         OpenChat,
         // Con el chat abierto: Enter manda y ESC descarta.

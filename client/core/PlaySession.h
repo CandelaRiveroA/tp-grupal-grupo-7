@@ -14,6 +14,7 @@
 #include "game/FootstepCue.h"
 #include "game/FractionStat.h"
 #include "game/InputCommand.h"
+#include "game/LocalActionWindow.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -204,6 +205,18 @@ private:
     };
     std::map<game::StatKind, game::FractionStat> stats_;
     std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Fila de las demos de ACCIÓN LOCAL (andamiaje): Kind -> acción de la
+    // fuente que dispara + ciclos de su ventana (mismo patrón que
+    // statSpends_). Lo consume game::LocalActionWindow; se va cuando el
+    // server mande esas acciones.
+    struct LocalActionDemo {
+        world::ActionKind action;
+        int cycles;
+    };
+    std::map<game::InputCommand::Kind, LocalActionDemo> localActions_;
+    // Ventana de presentación local de esas demos (el daño recibido):
+    // mientras está activa, su acción manda en la vista.
+    game::LocalActionWindow actionWindow_;
     // Demo del desmayo (tecla F): presentación local mientras el server
     // no manda la acción. El reloj cuenta desde el inicio de la caída
     // para recién entonces mostrar las Z.

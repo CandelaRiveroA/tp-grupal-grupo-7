@@ -1,5 +1,6 @@
 #include "world/CharacterTomlReader.h"
 
+
 #include "world/ConfigError.h"
 
 namespace world {
@@ -104,10 +105,10 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 }
 
 Pose CharacterTomlReader::readPose(const std::string& posePath) const {
+	// Una pose SIN capas es un frame INVISIBLE (la titilación del daño):
+	// no dibuja nada, como los frames sin layers de los overlays. Lo que
+	// no puede ser vacía es la lista de frames de la acción.
 	const std::size_t layers = doc_.arraySize(posePath);
-	if (layers == 0) {
-		throw ConfigError(Kind::InvalidValue, posePath);
-	}
 	Pose pose;
 	for (std::size_t i = 0; i < layers; ++i) {
 		pose.push_back(readLayer(posePath, i));

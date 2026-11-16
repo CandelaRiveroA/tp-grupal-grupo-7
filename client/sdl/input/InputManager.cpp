@@ -118,6 +118,10 @@ auto InputManager::defaultCommandBindings() const
     // esta tecla se puede quitar sin tocar el dibujo. (O: la F quedó en
     // los test de enemigos.)
     bindings.insert({SDLK_o, game::InputCommand{Kind::Faint, 0}});
+    // Demo del daño recibido: one-shot local que dispara la titilación
+    // del jugador (aparece/desaparece). Cuando el server mande el daño,
+    // esta tecla se puede quitar sin tocar el dibujo.
+    bindings.insert({SDLK_r, game::InputCommand{Kind::Hurt, 0}});
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
     // Demo del chat (M): como U/I/O, se quita cuando el server mande el

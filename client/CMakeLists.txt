@@ -178,6 +178,7 @@ target_sources(taller_client
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
+    game/LocalActionWindow.h
     game/InventorySelector.h
     world/ActionNames.h
     world/CharacterAppearance.h

@@ -24,6 +24,11 @@ void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 			      const world::ActionKind action,
 			      const world::Pose& pose,
 			      const world::OverlayPass pass) const {
+	// Precondición (como CharacterSprite::draw): una pose vacía es un
+	// frame "invisible" (la titulación del daño) y no tiene capa base.
+	if (pose.empty()) {
+		return;
+	}
 	if (!entity.activeTool.has_value() &&
 	    !entity.activeContent.has_value()) {
 		return;

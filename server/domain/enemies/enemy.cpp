@@ -206,8 +206,11 @@ void Enemy::update(World& w) {
         if (this->ticks_to_revive > 0) {
             --this->ticks_to_revive;
             if (this->ticks_to_revive == 0) {
-                this->health = this->max_health;  // Revive con vida llena.
-                this->action = EnemyAction::Idle;
+                // Consume al revivir: si ya no queda sangre, se queda muerto.
+                if (this->try_consume_for_revive(w)) {
+                    this->health = this->max_health;  // Revive con vida llena.
+                    this->action = EnemyAction::Idle;
+                }
             }
         }
         return;

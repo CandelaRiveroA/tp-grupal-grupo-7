@@ -17,6 +17,7 @@
 #include "game/InteractionSession.h"
 #include "game/LocalWorldView.h"
 #include "world/CharacterCatalog.h"
+#include "world/ContentIds.h"
 
 #include "client_receiver.h"
 #include "client_sender.h"
@@ -56,6 +57,12 @@ private:
         int maxHealth = 0;
         int energy = 0;      // x100
         int maxEnergy = 0;  // x100
+        // Reacción al daño: la enciende el flanco de health en
+        // ServerStatus (bajó = titilación con ventana; 0 = desmayo, se
+        // queda tirado hasta que la vida vuelva a subir). Mismo dato y
+        // misma regla que World::damage_player en el server.
+        world::ActionKind reaction = world::ActionKind::Idle;
+        int reactionRemaining = 0;
     };
 
     // Enemigo del server: la vista lo sigue por id; la acción dura su ventana.
@@ -79,6 +86,13 @@ private:
     // no llega a ser el golpe final cae en Intact (seguro ante wire roto).
     world::ResourceState resourceStateFor(ResourceDamage damage) const;
 
+    // Contenido equipado (inventory.toml) -> herramienta. Sin fila =
+    // nullopt (manos o producto).
+    std::optional<world::ItemKind> toolKindFor(const std::string& contentId) const;
+
+    // Vocabulario compartido con el servidor (characters.toml).
+    std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) const;
+
     // Un Take cerca de una vaca lista abre la animación de ordeñe; la leche la
     // da el servidor.
     void startMilking();
@@ -101,6 +115,12 @@ private:
     // Tabla de traducción protocolo -> vista (convención §4: diccionario
     // miembro, inicializado en el constructor).
     std::map<ResourceDamage, world::ResourceState> resourceStates_;
+    // Vocabulario contentId <-> ItemKind (convención §2: sin función
+    // libre ni static; vive como miembro).
+    world::ContentIds contentIds_;
+    // Vocabulario kind del servidor -> CreatureKind (convención §4:
+    // diccionario miembro, inicializado en el constructor).
+    std::map<std::string, world::CreatureKind> creatureKinds_;
 
     std::map<uint8_t, RemotePlayer> players_;
     // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).

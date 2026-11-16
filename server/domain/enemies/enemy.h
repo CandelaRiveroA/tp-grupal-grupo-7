@@ -72,6 +72,10 @@ public:
     // quien ataca, porque take_damage no recibe World.
     virtual void on_death(World& w) = 0;
 
+    // Consumo necesario para revivir: por defecto libre; el vampiro consume
+    // un charco de sangre.
+    virtual bool try_consume_for_revive(World& /*w*/) { return true; }
+
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;

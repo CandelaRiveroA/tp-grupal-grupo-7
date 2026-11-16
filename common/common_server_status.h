@@ -37,8 +37,9 @@ enum class ServerMessageType : uint8_t {
 // Estado de daño visible de un recurso picable.
 enum class ResourceDamage : uint8_t { Intact = 0, Cracked = 1, Broken = 2 };
 
-// Consecuencia visible en el suelo de una celda (tierra arada / regada).
-enum class GroundEffect : uint8_t { Dug = 0, Watered = 1 };
+// Consecuencia visible en el suelo de una celda (tierra arada / regada /
+// charco de sangre).
+enum class GroundEffect : uint8_t { Dug = 0, Watered = 1, Blood = 2 };
 
 struct ServerStatus {
     uint8_t player_id;
@@ -202,7 +203,10 @@ struct ServerCrop {
     uint8_t quality;
 };
 
-// Tierra tratada en una celda. Una celda regada manda Dug y después Watered.
+// Consecuencia en una celda: tierra arada/regada, o charco de sangre
+// (Blood, estado PERSISTENTE del dia: se seca al terminar el dia o lo
+// consume una vampira). Va a todos los jugadores para que vean de donde
+// pueden revivir los vampiros. Una celda regada manda Dug y despues Watered.
 struct ServerGroundEffect {
     uint16_t x;
     uint16_t y;

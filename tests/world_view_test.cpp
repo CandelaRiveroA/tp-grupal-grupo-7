@@ -332,6 +332,22 @@ TEST(WorldViewTest, WateredSoilIsSentAsDugThenWatered) {
     EXPECT_EQ(ground[1].effect, GroundEffect::Watered);
 }
 
+TEST(WorldViewTest, LosCharcosDeSangreSeTransmitenEnCadaLote) {
+    World world(5, 5);
+    populate(world);
+    world.damage_player(1, 85);  // 100 -> 15: por debajo del 20 %, deja sangre
+    WorldView view;
+
+    // Sin tierra tratada, el unico GroundEffect del lote es el charco:
+    // va en el mismo transporte que la tierra, para que TODOS los
+    // jugadores sepan donde pueden revivir los vampiros.
+    const auto ground = only<ServerGroundEffect>(view.sync(world, 1));
+    ASSERT_EQ(ground.size(), 1u);
+    EXPECT_EQ(ground[0].x, 1);
+    EXPECT_EQ(ground[0].y, 1);
+    EXPECT_EQ(ground[0].effect, GroundEffect::Blood);
+}
+
 TEST(WorldViewTest, CropsAndSeedsUseTheSharedContentIds) {
     EXPECT_EQ(content_id_for(ItemID::POTATO), "potato");
     EXPECT_EQ(content_id_for(ItemID::GREEN_ONION), "onion");

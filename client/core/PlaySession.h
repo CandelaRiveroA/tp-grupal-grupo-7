@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core/StartupScreens.h"
+#include "core/ActionSounds.h"
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
@@ -14,6 +15,7 @@
 #include "game/FootstepCue.h"
 #include "game/FractionStat.h"
 #include "game/InputCommand.h"
+#include "game/LocalActionWindow.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -175,6 +177,7 @@ private:
     game::ViewMotion motion_;
     game::FootstepCue footstepCue_;
     ToolUseSounds toolUseSounds_;
+    ActionSounds actionSounds_;
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
@@ -208,6 +211,18 @@ private:
     };
     std::map<game::StatKind, game::FractionStat> stats_;
     std::map<game::InputCommand::Kind, StatSpend> statSpends_;
+    // Fila de las demos de ACCIÓN LOCAL (andamiaje): Kind -> acción de la
+    // fuente que dispara + ciclos de su ventana (mismo patrón que
+    // statSpends_). Lo consume game::LocalActionWindow; se va cuando el
+    // server mande esas acciones.
+    struct LocalActionDemo {
+        world::ActionKind action;
+        int cycles;
+    };
+    std::map<game::InputCommand::Kind, LocalActionDemo> localActions_;
+    // Ventana de presentación local de esas demos (el daño recibido):
+    // mientras está activa, su acción manda en la vista.
+    game::LocalActionWindow actionWindow_;
     // Demo del desmayo (tecla F): presentación local mientras el server
     // no manda la acción. El reloj cuenta desde el inicio de la caída
     // para recién entonces mostrar las Z.
@@ -217,6 +232,15 @@ private:
     game::PlayerController player_;
     game::ObjectPicker picker_;
     sdl::BuildPlacePainter markerPainter_;
+    // Charcos de sangre (ANDAMIAJE): la demo de la tecla C los deja
+    // donde está el jugador y se acumulan; cada uno vence a los
+    // kBloodPuddleTicks y desaparece. Se van cuando la fuente mande la
+    // sangre del terreno (ViewGroundEffect).
+    struct BloodPuddle {
+        world::GridCell cell;
+        int ticksRemaining;
+    };
+    std::vector<BloodPuddle> bloodPuddles_;
     world::CursorCatalog cursorCatalog_;
     sdl::CursorPainter cursorPainter_;
     game::DialogAnimator dialogAnimator_;

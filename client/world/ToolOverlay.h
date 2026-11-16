@@ -19,6 +19,15 @@ enum class FrameAnchor {
 	Bottom,
 };
 
+// Pasada de dibujo de un frame del overlay respecto del cuerpo: la que
+// va DETRÁS (el cuerpo la tapa donde se superpone) o la que va delante
+// (el caso histórico de la herramienta). Lo decide el DATO del frame
+// (`behind`); el render solo dibuja la pasada que le piden.
+enum class OverlayPass {
+	Behind,
+	Front,
+};
+
 // Geometría de un frame del overlay: dónde se apoya el sprite respecto
 // del cuerpo y cómo se ajusta (offsets, escala, rotación, espejado). La
 // comparten lo que dibuja una hoja fija (las herramientas) y lo que
@@ -41,6 +50,10 @@ struct OverlayFrame {
 	// (el caso de la herramienta de una sola celda).
 	int cellSpanX = 0;
 	int cellSpanY = 0;
+	// Dibuja el frame DETRÁS del cuerpo (el cuerpo lo tapa donde se
+	// superpone): la espada de espaldas se ve igual pero la espalda la
+	// cubre. false = delante (el caso histórico).
+	bool behind = false;
 };
 
 // Una capa de un frame del overlay: la celda (o bloque) de la hoja más

@@ -1,5 +1,6 @@
 #include "core/PlaySession.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -61,7 +62,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
                      {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
                      {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
-                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death}},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death},
+                     {game::InputCommand::Kind::TestRevive,
+                      world::ActionKind::Revive}},
         projectileTests_{
                 {game::InputCommand::Kind::TestProjectileAdvance,
                  &game::EnemyTestTrigger::advanceProjectiles},
@@ -88,6 +91,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
         motion_(characters),
+        actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
@@ -103,6 +107,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::InputCommand::Kind::SpendLife,
                  {game::StatKind::Life, game::kLifeCostPerAction}},
         },
+        localActions_{{game::InputCommand::Kind::Hurt,
+                       {world::ActionKind::Damage, game::kHurtDemoCycles}}},
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -138,6 +144,20 @@ void PlaySession::tick(int iteration) {
     if (faintRequested_) {
         ++faintFallTicks_;
     }
+    // Las ventanas de presentación local corren con el tick (la del daño
+    // recibido se suelta sola).
+    actionWindow_.advance();
+    // Los charcos de sangre vencen con su reloj (ANDAMIAJE): al llegar
+    // a 0 desaparecen de la vista de una.
+    for (BloodPuddle& puddle : bloodPuddles_) {
+        --puddle.ticksRemaining;
+    }
+    bloodPuddles_.erase(std::remove_if(bloodPuddles_.begin(),
+                                       bloodPuddles_.end(),
+                                       [](const BloodPuddle& puddle) {
+                                           return puddle.ticksRemaining <= 0;
+                                       }),
+                        bloodPuddles_.end());
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
@@ -348,6 +368,18 @@ void PlaySession::tick(int iteration) {
             stats_.at(spend->second.stat).spend(spend->second.cost);
             continue;
         }
+        if (const auto demo = localActions_.find(command.kind);
+            demo != localActions_.end()) {
+            // Demo local de una acción de la fuente (andamiaje): corre
+            // por la ventana de presentación local. La ventana se arma
+            // de los MISMOS datos de la acción (contrato §10).
+            const world::CreatureData& creature =
+                    characters_.dataFor(world::CreatureKind::Player);
+            actionWindow_.open(demo->second.action,
+                               creature.actionCycleTicks(demo->second.action) *
+                                       demo->second.cycles);
+            continue;
+        }
         if (command.kind == game::InputCommand::Kind::Faint) {
             // Demo local: la primera pulsación dispara la caída; con el
             // personaje ya desmayado no se reinicia.
@@ -355,6 +387,19 @@ void PlaySession::tick(int iteration) {
                 faintRequested_ = true;
                 faintFallTicks_ = 0;
                 audio_.play(sdl::SoundId::Death);
+            }
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::BloodPuddle) {
+            // ANDAMIAJE TEMPORAL: la demo del charco de sangre (tecla
+            // C) deja un charco en la celda del jugador (se acumulan),
+            // con su reloj de vida.
+            if (!state.entities.empty()) {
+                const game::ViewEntity& local =
+                        state.entities[game::kLocalPlayerIndex];
+                bloodPuddles_.push_back(BloodPuddle{
+                    world::GridCell{local.cellX, local.cellY},
+                    game::kBloodPuddleTicks});
             }
             continue;
         }
@@ -391,6 +436,15 @@ void PlaySession::tick(int iteration) {
         if (const std::optional<sdl::SoundId> sound = toolUseSounds_.update(local.activeTool)) {
             audio_.play(*sound);
         }
+    }
+
+    // Un sonido por cada acción que ACABA de empezar (el daño recibido:
+    // golpe al jugador o al enemigo, según la criatura), o al entrar a
+    // su último cuadro (el momento lo decide la tabla de ActionSounds).
+    // Va sobre la vista de PRESENTACIÓN: así suenan también las
+    // acciones locales.
+    for (const sdl::SoundId sound : actionSounds_.update(presentation, iteration)) {
+        audio_.play(sound);
     }
 
     // Un sonido por impacto confirmado, aunque el aspecto no cambie.
@@ -574,9 +628,27 @@ void PlaySession::tick(int iteration) {
 }
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima el override
-    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    // Primero la pose de "meterse" (EnterSelection) y encima los
+    // overrides locales: la ventana de acción (demo de daño recibido),
+    // los charcos de sangre (demo) y el desmayo, que manda sobre todo
+    // lo demás.
     game::LocalWorldView display = enterSelection_.displayView(view);
+    if (actionWindow_.active() && !display.entities.empty() &&
+        display.entities[game::kLocalPlayerIndex].action != world::ActionKind::Faint) {
+        // Ventana de acción local: su acción manda hasta que se suelte
+        // (presentación local; la fuente la mandará tal cual). No pisa
+        // el desmayo que llegó por red: la fuente manda.
+        display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
+    }
+    // Los charcos de sangre (ANDAMIAJE) entran como consecuencia de
+    // terreno: así se dibujan bajo las entidades (el personaje pisa el
+    // charco) y mañana la fuente los manda tal cual. Solo los vivos:
+    // los vencidos ya salieron del estado.
+    for (const BloodPuddle& puddle : bloodPuddles_) {
+        display.groundEffects.push_back(game::ViewGroundEffect{
+            puddle.cell.column, puddle.cell.row,
+            world::GroundConsequence::Blood});
+    }
     if (!faintRequested_ || display.entities.empty()) {
         return display;
     }

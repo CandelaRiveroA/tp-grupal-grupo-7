@@ -345,6 +345,17 @@ TEST(ActionResolverTest, WateringCanUseToolAnimatesAsWater) {
 		  ActionKind::Water);
 }
 
+TEST(ActionResolverTest, SwordUseToolAnimatesAsSword) {
+	ViewMotion motion(catalog());
+	ViewEntity swinging = entity(ActionKind::UseTool);
+	swinging.activeTool = world::ItemKind::Sword;
+	motion.observe(viewWith(swinging), 100);
+	const ActionResolver resolver(motion, kNoCarry);
+
+	EXPECT_EQ(resolver.actionFor(swinging, kPlayerIndex, 100),
+		  ActionKind::Sword);
+}
+
 TEST(ActionResolverTest, ToolWithoutRowKeepsUseTool) {
 	ViewMotion motion(catalog());
 	ViewEntity picking = entity(ActionKind::UseTool);

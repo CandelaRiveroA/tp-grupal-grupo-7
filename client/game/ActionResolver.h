@@ -31,10 +31,14 @@ enum class ActionRole {
 };
 
 // Fila de la tabla de acciones: rol + reloj. Sumar una acción nueva es
-// una entrada acá y ya funciona (convención §4/§9).
+// una entrada acá y ya funciona (convención §4/§9). `dominant` marca las
+// acciones que mandan sobre la caminata Y el carry (Faint, Damage): su
+// pose corre tal cual hasta que la fuente la apague. Es dato de la fila,
+// no un if por acción.
 struct ActionSpec {
 	ActionRole role;
 	PhaseClock clock;
+	bool dominant = false;
 };
 
 // Resuelve la pose efectiva de cada entidad: la acción que se anima, su

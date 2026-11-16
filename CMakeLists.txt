@@ -257,6 +257,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
+        client/game/LocalActionWindow.cpp
         client/game/InventorySelector.cpp
         # SDL: cultivos, terreno, build-place y contenido en las manos.
         client/world/ContentTraits.cpp
@@ -284,7 +285,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp
+        client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp
+        client/core/ActionSounds.cpp
         client/game/CarrySelection.cpp
         client/game/PlantingSelection.cpp
         client/core/StartupSequence.cpp

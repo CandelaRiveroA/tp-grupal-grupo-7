@@ -158,6 +158,10 @@ int Application::runGame(SessionConfig session) {
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
                                 resources, banner, digits, cursors, dialogs, font, prompt, chat,
+                                // Sin envoltura MockWorldClient: los enemigos
+                                // ahora los manda el server por red, y este
+                                // puntero apagado deja los disparadores de
+                                // prueba (teclas de test) inertes.
                                 hudOverlays, lighting, palettes, nullptr);
         playSession.run();
         return 0;

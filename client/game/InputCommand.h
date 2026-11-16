@@ -14,26 +14,6 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
-        // Gasto de energía simulado (tecla G por ahora): representa una
-        // acción del juego que cansa al jugador. Lo consume PlaySession
-        // contra game::FractionStat; NO viaja al GameClient.
-        SpendEnergy,
-        // Gasto de vida simulado (tecla H por ahora): mismo mecanismo
-        // que la energía, con otro stat. Lo consume PlaySession; NO
-        // viaja al GameClient.
-        SpendLife,
-        // Demo del desmayo (tecla F por ahora): presentación local
-        // mientras el server no manda la acción. Lo consume PlaySession;
-        // NO viaja al GameClient.
-        Faint,
-        // Abrir el chatbox (tecla T).
-        OpenChat,
-        // Con el chat abierto: Enter manda y ESC descarta.
-        ChatSubmit,
-        ChatCancel,
-        // Demo (tecla M): simula que llegó un mensaje de otro jugador;
-        // entra por el mismo embudo que usará la red.
-        SimulateChatMessage,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
         // muerte), de sus proyectiles (J avanzar, L desaparecer) y el
@@ -44,11 +24,43 @@ struct InputCommand {
         TestAttack,
         TestDamage,
         TestDeath,
+        // Revivir (V): la animación de muerte de los enemigos, al revés
+        // (la acción Revive). Se va con el disparador.
+        TestRevive,
         TestProjectileAdvance,
         TestProjectileDespawn,
         // Hace que el Skull ataque con el fuego VERDE (tecla V); el
         // proyectil despues se mueve/borra con J/L como el azul.
         TestGreenFire,
+        // Gasto de energía simulado (tecla U por ahora): representa una
+        // acción del juego que cansa al jugador. Lo consume PlaySession
+        // contra game::FractionStat; NO viaja al GameClient.
+        SpendEnergy,
+        // Gasto de vida simulado (tecla I por ahora): mismo mecanismo
+        // que la energía, con otro stat. Lo consume PlaySession; NO
+        // viaja al GameClient.
+        SpendLife,
+        // Demo del desmayo (tecla O por ahora): presentación local
+        // mientras el server no manda la acción. Lo consume PlaySession;
+        // NO viaja al GameClient.
+        Faint,
+        // Demo del daño recibido (tecla R por ahora): titilación del
+        // jugador (aparece/desaparece) como presentación local mientras
+        // el server no mande el daño. Lo consume PlaySession con
+        // game::LocalActionWindow; NO viaja al GameClient.
+        Hurt,
+        // Demo del charco de sangre (tecla C por ahora): deja un charco
+        // en la celda del jugador. Lo consume PlaySession; NO viaja al
+        // GameClient.
+        BloodPuddle,
+        // Abrir el chatbox (tecla T).
+        OpenChat,
+        // Con el chat abierto: Enter manda y ESC descarta.
+        ChatSubmit,
+        ChatCancel,
+        // Demo (tecla M): simula que llegó un mensaje de otro jugador;
+        // entra por el mismo embudo que usará la red.
+        SimulateChatMessage,
     };
 
     Kind kind;

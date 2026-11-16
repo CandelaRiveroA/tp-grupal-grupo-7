@@ -64,6 +64,54 @@ TEST(EnemyTest, ElJugadorRecibeDanioYPisaEnCero) {
 }
 
 // ---------------------------------------------------------
+// Muerte: la animación de desmayo primero, la cama después
+// ---------------------------------------------------------
+
+TEST(EnemyTest, ElMuertoEsperaLaAnimacionAntesDeIrALaCama) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));  // no duerme: el día no avanza
+    world.damage_player(1, 100);  // mata
+
+    // La animación de desmayo corre donde cayó: mientras espera no lo
+    // teletransporta ni lo registra para dormir.
+    EXPECT_FALSE(world.is_sleeping(1));
+    bool arrived = false;
+    for (int steps = 0; steps < 10 && !arrived; ++steps) {
+        arrived = world.tick_death_to_bed();
+        if (!arrived) {
+            EXPECT_EQ(world.get_player(1).get_x(), 1);
+            EXPECT_EQ(world.get_player(1).get_y(), 1);
+        }
+    }
+
+    // Al vencer la espera va a la cama con el sueño registrado: el resto
+    // del flujo (pregunta, avance del día, amanecer) es el de siempre.
+    EXPECT_TRUE(arrived);
+    EXPECT_EQ(world.get_player(1).get_x(), 20);
+    EXPECT_EQ(world.get_player(1).get_y(), 13);
+    EXPECT_TRUE(world.is_sleeping(1));
+    EXPECT_FALSE(world.is_sleeping(2));
+}
+
+TEST(EnemyTest, SiReviveMientrasEsperaNoLoMandanALaCama) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));
+    world.damage_player(1, 100);  // mata
+    world.reset_player_for_day(1);  // amaneció mientras esperaba: revive
+
+    for (int steps = 0; steps < 10; ++steps) {
+        world.tick_death_to_bed();
+    }
+
+    // No lo manda a la cama ni lo registra: ya no está muerto.
+    EXPECT_EQ(world.get_player(1).get_x(), 1);
+    EXPECT_EQ(world.get_player(1).get_y(), 1);
+    EXPECT_FALSE(world.is_sleeping(1));
+}
+
+// ---------------------------------------------------------
 // Revive del esqueleto (estado muerto en la celda)
 // ---------------------------------------------------------
 TEST(EnemyTest, ElEsqueletoReviveConVidaLlenaDespuesDeLosTicks) {

@@ -20,27 +20,6 @@ namespace game {
 
 namespace {
 
-// Vocabulario compartido con el servidor (characters.toml).
-std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) {
-    static const std::map<std::string, world::CreatureKind> kinds = {
-            {"chicken", world::CreatureKind::Chicken},
-            {"cow", world::CreatureKind::Cow},
-            {"skeleton", world::CreatureKind::Skeleton},
-            {"orc", world::CreatureKind::Orc},
-            {"vampire", world::CreatureKind::Vampire},
-            // La vampira no tiene hoja propia: se dibuja como el vampiro.
-            {"vampiress", world::CreatureKind::Vampire},
-            {"skull", world::CreatureKind::Skull},
-            {"skull_fire", world::CreatureKind::SkullFire},
-            {"skull_fire_green", world::CreatureKind::SkullFireGreen},
-    };
-    const auto it = kinds.find(kind);
-    if (it == kinds.end()) {
-        return std::nullopt;
-    }
-    return it->second;
-}
-
 // Acción del enemigo (protocolo) -> acción que anima el cliente.
 world::ActionKind actionKindFor(const EnemyAction action) {
     static const std::map<EnemyAction, world::ActionKind> actions = {
@@ -49,12 +28,6 @@ world::ActionKind actionKindFor(const EnemyAction action) {
             {EnemyAction::Damage, world::ActionKind::Damage},
     };
     return actions.at(action);
-}
-
-// Contenido equipado (inventory.toml) -> herramienta. Sin fila = nullopt (manos o producto).
-std::optional<world::ItemKind> toolKindFor(const std::string& contentId) {
-    static const world::ContentIds contentIds;
-    return contentIds.itemKindFor(contentId);
 }
 
 }  // namespace
@@ -71,7 +44,17 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
         characters_(&characters),
         resourceStates_{{ResourceDamage::Intact, world::ResourceState::Intact},
                         {ResourceDamage::Cracked, world::ResourceState::Cracked},
-                        {ResourceDamage::Broken, world::ResourceState::Broken}} {
+                        {ResourceDamage::Broken, world::ResourceState::Broken}},
+        creatureKinds_{{"chicken", world::CreatureKind::Chicken},
+                       {"cow", world::CreatureKind::Cow},
+                       {"skeleton", world::CreatureKind::Skeleton},
+                       {"orc", world::CreatureKind::Orc},
+                       {"vampire", world::CreatureKind::Vampire},
+                       // La vampira no tiene hoja propia: se dibuja como el vampiro.
+                       {"vampiress", world::CreatureKind::Vampire},
+                       {"skull", world::CreatureKind::Skull},
+                       {"skull_fire", world::CreatureKind::SkullFire},
+                       {"skull_fire_green", world::CreatureKind::SkullFireGreen}} {
     clientSender_.start();
     clientReceiver_.start();
 }
@@ -88,6 +71,17 @@ NetworkGameClient::~NetworkGameClient() {
 world::ResourceState NetworkGameClient::resourceStateFor(ResourceDamage damage) const {
     const auto it = resourceStates_.find(damage);
     return it != resourceStates_.end() ? it->second : world::ResourceState::Intact;
+}
+
+std::optional<world::ItemKind> NetworkGameClient::toolKindFor(const std::string& contentId) const {
+    return contentIds_.itemKindFor(contentId);
+}
+
+std::optional<world::CreatureKind> NetworkGameClient::creatureKindFor(
+        const std::string& kind) const {
+    const auto it = creatureKinds_.find(kind);
+    return it != creatureKinds_.end() ? std::optional<world::CreatureKind>(it->second)
+                                      : std::nullopt;
 }
 
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
@@ -238,10 +232,16 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         return;
     }
     if (const auto* ground = std::get_if<ServerGroundEffect>(&message)) {
-        groundEffects_.push_back(ViewGroundEffect{
-                ground->x, ground->y,
-                ground->effect == GroundEffect::Watered ? world::GroundConsequence::Watered
-                                                        : world::GroundConsequence::Dug});
+        // La traducción es una fila por consecuencia; Blood es el charco
+        // de sangre que manda el server (la vampira revive de ahí).
+        const world::GroundConsequence consequence =
+                ground->effect == GroundEffect::Watered
+                        ? world::GroundConsequence::Watered
+                        : ground->effect == GroundEffect::Blood
+                                  ? world::GroundConsequence::Blood
+                                  : world::GroundConsequence::Dug;
+        groundEffects_.push_back(
+                ViewGroundEffect{ground->x, ground->y, consequence});
         return;
     }
     if (const auto* animal = std::get_if<ServerAnimal>(&message)) {
@@ -322,10 +322,27 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         player.cellY = status->y;
         player.facing = world::viewDirectionFrom(status->direction);
         player.appearance = status->appearance;
+        // Flanco de vida: el golpe que bajó la vida titila (ventana de
+        // la animación de daño); la vida en 0 es el desmayo y se queda
+        // hasta que el health vuelva (amanecer); subir la vida corta
+        // cualquier reacción (y un joiner con la vida ya completa no
+        // arranca en reaction de nadie).
+        const int previousHealth = player.health;
         player.health = status->health;
         player.maxHealth = status->max_health;
         player.energy = status->energy;
         player.maxEnergy = status->max_energy;
+        if (status->health == 0) {
+            player.reaction = world::ActionKind::Faint;
+            player.reactionRemaining = 0;
+        } else if (status->health < previousHealth) {
+            player.reaction = world::ActionKind::Damage;
+            player.reactionRemaining = characters_->dataFor(world::CreatureKind::Player)
+                                              .actionCycleTicks(world::ActionKind::Damage);
+        } else if (status->health > previousHealth) {
+            player.reaction = world::ActionKind::Idle;
+            player.reactionRemaining = 0;
+        }
         return;
     }
     if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
@@ -441,6 +458,9 @@ void NetworkGameClient::update(int) {
         if (usingTool) {
             --player.toolUseRemaining;
         }
+        if (player.reactionRemaining > 0) {
+            --player.reactionRemaining;
+        }
         ViewEntity entity{world::CreatureKind::Player,
                           player.cellX,
                           player.cellY,
@@ -453,6 +473,15 @@ void NetworkGameClient::update(int) {
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;
+        }
+        // La reacción al daño manda sobre el golpe en curso: el desmayo
+        // sobre todo (terminal hasta que la vida vuelva), la titilación
+        // solo mientras dura su ventana.
+        if (player.reaction == world::ActionKind::Faint) {
+            entity.action = world::ActionKind::Faint;
+        } else if (player.reaction == world::ActionKind::Damage &&
+                   player.reactionRemaining > 0) {
+            entity.action = world::ActionKind::Damage;
         }
         if (id == localPlayerId_) {
             view_.entities.insert(view_.entities.begin(), entity);

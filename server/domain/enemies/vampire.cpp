@@ -40,12 +40,16 @@ uint8_t Vampire::get_damage() const {
 
 void Vampire::enter_frenzy() { this->attack_frenzy = kFrenzyMultiplier; }
 
+bool Vampire::try_consume_for_revive(World& w) {
+    return w.consume_blood_puddle();
+}
+
 std::string Vampire::kind_name() const { return "vampire"; }
 
 void Vampire::on_death(World& w) {
-    // Particularidad: revive solo si quedaba sangre; consume un charco por
-    // muerte. Sin sangre se queda muerto.
-    if (w.consume_blood_puddle()) {
+    // Revive solo si queda sangre; el charco se consume al revivir (no al
+    // morir), así el cliente ve la eliminación cuando el vampiro vuelve.
+    if (w.has_blood_puddle()) {
         this->ticks_to_revive = kReviveTicks;
     }
     // El que muere enfurece a su pareja aunque él no reviva.

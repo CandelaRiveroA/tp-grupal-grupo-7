@@ -297,7 +297,7 @@ ServerMessage ProtocolReceiver::receive_ground_effect_message() {
     const uint16_t x = receive_uint16();
     const uint16_t y = receive_uint16();
     const uint8_t effect = receive_uint8();
-    if (effect > 1) {
+    if (effect > 2) {
         throw std::invalid_argument("El efecto de suelo no es valido.");
     }
     return ServerGroundEffect{x, y, static_cast<GroundEffect>(effect)};

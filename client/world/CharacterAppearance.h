@@ -46,11 +46,6 @@ enum class ActionKind {
     // Variante de Walk para el mismo caso local (ver
     // ActionResolver::carryVariants_).
     CarryWalk,
-    // Desmayo: secuencia one-shot que termina tirado en el piso y se
-    // queda en la última pose. La acción la enciende la fuente de
-    // estado; mientras dure manda sobre Walk y Carry (el personaje
-    // puede seguir moviéndose, pero la pose no cambia).
-    Faint,
     // Ataque de un enemigo: su propia secuencia one-shot (la enciende la
     // fuente de estado; hoy el server falso con la letra de prueba).
     Attack,
@@ -62,6 +57,19 @@ enum class ActionKind {
     // Muerte de un enemigo: su propia secuencia one-shot, que se queda
     // en el ÚLTIMO frame (loops = false). Terminal: no vuelve a Idle.
     Death,
+    // Desmayo: secuencia one-shot que termina tirado en el piso y se
+    // queda en la última pose. La acción la enciende la fuente de
+    // estado; mientras dure manda sobre Walk y Carry (el personaje
+    // puede seguir moviéndose, pero la pose no cambia).
+    Faint,
+    // Tajo de espada: secuencia one-shot propia del jugador con la
+    // herramienta espada (tabla toolActions_ en ActionResolver). La
+    // enciende la fuente con UseTool + activeTool = Sword.
+    Sword,
+    // Revivir: la animación de muerte de la criatura, AL REVÉS (los
+    // frames de death invertidos, characters.toml `frames_from` +
+    // `reverse`). La enciende la fuente; termina en la pose viva.
+    Revive,
 };
 
 struct ActionData {

@@ -31,7 +31,7 @@
 
 // shortcut: un día de juego de 30s para probar; en la versión final son 15 min
 // (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 60
+#define kDayDurationSeconds 120
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
@@ -179,12 +179,16 @@ void Match::handle(const EnemyTick& /*tick*/) {
     // Solo sincroniza si algo cambió: hay llamas en vuelo o alguien persiguiendo.
     const bool flames_flying = world.tick_flames();
     const bool someone_pursuing = world.tick_enemies_pursuit();
+    // Cuando vence la espera del muerto va a la cama (y queda en
+    // sleepers): hay que mandar el estado aunque no haya enemigos ni
+    // llamas en vuelo.
+    const bool arrived_at_bed = world.tick_death_to_bed();
     // La muerte por daño (enemigo o llama) nace en este tick: sin empujar
     // estos estados el muerto se entera recién cuando manda un comando,
     // es decir, recién cuando se mueve. Los dos deduplican solos.
     sync_day();
     push_sleep_state();
-    if (flames_flying || someone_pursuing) {
+    if (flames_flying || someone_pursuing || arrived_at_bed) {
         sync_all();
     }
 }

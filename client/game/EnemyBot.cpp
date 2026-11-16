@@ -70,17 +70,20 @@ EnemyBot::EnemyBot(const world::CharacterCatalog& characters,
 		  {world::ActionKind::Attack, EnemyActivity::Attacking},
 		  {world::ActionKind::Damage, EnemyActivity::Damaged},
 		  {world::ActionKind::Death, EnemyActivity::Dead},
+		  {world::ActionKind::Revive, EnemyActivity::Reviving},
 	  }
 	// Prioridad de cada actividad: solo se acepta una acción de
 	// prioridad MAYOR que la actividad actual (sin empates: una acción
 	// a la vez). El daño interrumpe un ataque; la caminata no interrumpe
-	// nada; la muerte interrumpe todo y es terminal.
+	// nada; la muerte interrumpe todo; revivir es la ÚNICA que le gana
+	// a la muerte (la animación inversa la saca de Dead).
 	, activityPriority_{
 		  {EnemyActivity::Idle, 0},
 		  {EnemyActivity::Walking, 1},
 		  {EnemyActivity::Attacking, 2},
 		  {EnemyActivity::Damaged, 3},
 		  {EnemyActivity::Dead, 4},
+		  {EnemyActivity::Reviving, 5},
 	  }
 	// Qué proyectiles puede lanzar cada enemigo al atacar (hoy solo el
 	// Skull, con el fuego azul por defecto y el verde como variante).

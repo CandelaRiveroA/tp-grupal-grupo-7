@@ -27,6 +27,10 @@
 // Pareja de vampiros: celdas hasta kVampirePairRadius y al menos kVampirePairMinCells.
 #define kVampirePairRadius 1
 #define kVampirePairMinCells 2
+// Pasos de EnemyTick (400 ms) entre la muerte y la cama: deja correr la
+// animación de desmayo del cliente (30 ticks ≈ 500 ms) más el lote de
+// red (≤400 ms) antes de teletransportar.
+#define kDeathToBedSteps 4
 // Rangos de id: los animales usan uint8 desde 1 y ViewMotion empareja por id
 // en una sola lista, así que enemigos y llamas arrancan en rangos distintos.
 #define kFirstEnemyId 1000
@@ -401,6 +405,12 @@ bool World::tick_flames() {
     return true;
 }
 
+const std::vector<std::pair<uint16_t, uint16_t>>& World::blood_puddle_list() const {
+    return this->blood_puddles;
+}
+
+void World::clear_blood_puddle() { this->blood_puddles.clear(); }
+
 std::vector<ProjectileSnapshot> World::projectile_snapshots() const {
     std::vector<ProjectileSnapshot> out;
     out.reserve(this->flames.size());
@@ -432,6 +442,10 @@ bool World::consume_blood_puddle() {
     }
     this->blood_puddles.pop_back();
     return true;
+}
+
+bool World::has_blood_puddle() const {
+    return !this->blood_puddles.empty();
 }
 
 void World::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
@@ -696,6 +710,7 @@ void World::remove_player(uint8_t player_id) {
     this->sleepers.erase(player_id);
     this->accepted.erase(player_id);
     this->woke.erase(player_id);
+    this->death_to_bed.erase(player_id);
     // Si el que se fue era el único que faltaba aceptar o despertar, el día tiene que avanzar.
     this->try_advance_sleep();
     this->try_start_day();
@@ -709,9 +724,37 @@ void World::kill_player(uint8_t player_id) {
     Player& player = *this->players.at(player_id);
     player.set_health(0);
     player.setDiedInCombat(true);
-    player.set_position(20, 13);
-    this->record_sleep_request(player_id);
-    this->answer_sleep(player_id, true);
+    // La cama y el sueño quedan diferidos: primero el desmayo en el
+    // lugar de la muerte (tick_death_to_bed los despacha).
+    // shortcut: mientras espera, el muerto sigue pudiendo mandar
+    // comandos (bloquear movimiento de muertos queda fuera de alcance);
+    // en ≤1,6 s ya está en la cama, y en sleepers no se mueve.
+    this->death_to_bed.emplace(player_id, kDeathToBedSteps);
+}
+
+bool World::tick_death_to_bed() {
+    bool arrived = false;
+    for (auto it = this->death_to_bed.begin(); it != this->death_to_bed.end();) {
+        const uint8_t id = it->first;
+        if (it->second > 0) {
+            --it->second;
+            ++it;
+            continue;
+        }
+        // Venció la espera: remove_player limpia death_to_bed, así que
+        // el id sigue vivo acá.
+        it = this->death_to_bed.erase(it);
+        Player& player = *this->players.at(id);
+        // Revivió (amaneció) mientras esperaba: no hay cama que buscar.
+        if (player.get_health() > 0) {
+            continue;
+        }
+        player.set_position(20, 13);  // misma cama que kBedX/kBedY (match.cpp)
+        this->record_sleep_request(id);
+        this->answer_sleep(id, true);
+        arrived = true;
+    }
+    return arrived;
 }
 
 void World::mark_all_fainted_by_timeout() {

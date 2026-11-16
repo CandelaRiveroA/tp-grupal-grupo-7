@@ -324,6 +324,23 @@ TEST(CharacterCatalogLoaderTest, LoadsFrontIdleAction) {
 	EXPECT_EQ(idle.frames[0][1].frame.col, 6);
 }
 
+TEST(CharacterCatalogLoaderTest, EmptyFrameIsAnInvisiblePose) {
+	// Un frame sin capas no dibuja nada (la titilación del daño): es
+	// válido y la pose queda vacía (el mismo truco que layers = [] en
+	// los overlays).
+	std::string toml = kPlayerToml;
+	const std::string from = "frames = [ [[0, 1], [6, 1]] ]";
+	const std::string to = "frames = [ [[0, 1], [6, 1]], [] ]";
+	ASSERT_NE(toml.find(from), std::string::npos);
+	toml.replace(toml.find(from), from.size(), to);
+	const CharacterCatalog catalog =
+		CharacterCatalogLoader().loadFromString(toml);
+	const world::ActionData& idle =
+		actionOf(catalog, Direction::Left, ActionKind::Idle);
+	ASSERT_EQ(idle.frames.size(), 2u);
+	EXPECT_TRUE(idle.frames[1].empty());
+}
+
 TEST(CharacterCatalogLoaderTest, LoadsFrontWalkAction) {
 	const CharacterCatalog catalog = loadPlayer();
 	const world::ActionData& walk =

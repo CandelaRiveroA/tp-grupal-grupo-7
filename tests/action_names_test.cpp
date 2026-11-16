@@ -18,6 +18,17 @@ TEST(ActionNamesTest, TranslatesBothWays) {
     EXPECT_EQ(*name, "milk");
 }
 
+TEST(ActionNamesTest, SwordTranslatesBothWays) {
+    const ActionNames names;
+    const ActionKind* kind = names.find("sword");
+    ASSERT_NE(kind, nullptr);
+    EXPECT_EQ(*kind, ActionKind::Sword);
+
+    const std::string* name = names.nameFor(ActionKind::Sword);
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(*name, "sword");
+}
+
 TEST(ActionNamesTest, UnknownLookupsGiveNull) {
     const ActionNames names;
     EXPECT_EQ(names.find("dance"), nullptr);

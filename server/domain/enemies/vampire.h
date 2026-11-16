@@ -15,8 +15,10 @@ public:
     // Enlaza a esta pareja (el enlace mutuo lo hace cada lado).
     void set_partner(Vampire* other);
 
-    // Al morir: consume un charco de sangre para revivir y enfurece a la pareja.
+    // Al morir: programa el revive si queda sangre (se consume al revivir) y
+    // enfurece a la pareja.
     void on_death(World& w) override;
+    bool try_consume_for_revive(World& w) override;
     std::string kind_name() const override;
 
     // Daño del próximo golpe (x2 con frenesí de ataque).

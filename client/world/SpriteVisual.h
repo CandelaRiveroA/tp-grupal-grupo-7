@@ -1,6 +1,9 @@
 #pragma once
 
+#include <optional>
 #include <string>
+
+#include "world/Color.h"
 
 namespace tomlcfg {
 class TomlDocument;
@@ -40,6 +43,14 @@ struct SpriteVisual {
 	int drawnWidth = 0;
 	int drawnHeight = 0;
 	int offsetY = 0;
+	// Bloque de celdas que dibuja el sprite ([col, row] es su esquina
+	// sup-izq): el mismo concepto [col, row, cols, rows] de las capas
+	// de los overlays. 1x1 = una celda (el caso histórico).
+	int cols = 1;
+	int rows = 1;
+	// Tinte opcional (color modulation): los sprites claros de la hoja
+	// se dibujan multiplicados por este color. Sin tinte = tal cual.
+	std::optional<Color> tint;
 
 	SpriteVisual() = default;
 

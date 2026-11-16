@@ -29,28 +29,36 @@ public:
 			   const world::CharacterCatalog& characters,
 			   const world::ContentCatalog& content);
 
+	// Dibuja el overlay de la pasada pedida (detrás/delante del cuerpo):
+	// qué pasa cada frame lo decide el dato `behind` vía
+	// world::ToolOverlayLayout; esto solo pinta lo que la geometría
+	// devuelve. El render llama DOS veces (pasada detrás antes del
+	// cuerpo, pasada delante después).
 	void draw(const game::ViewEntity& entity, const SDL2pp::Rect& drawBox,
 		  int phase, world::ActionKind action,
-		  const world::Pose& pose) const;
+		  const world::Pose& pose, world::OverlayPass pass) const;
 
 private:
 	// Herramienta activa: overlay por ItemKind, hoja fija.
 	void drawTool(const game::ViewEntity& entity, int phase,
 		      world::ActionKind action,
-		      const world::ToolOverlayLayout& layout) const;
+		      const world::ToolOverlayLayout& layout,
+		      world::OverlayPass pass) const;
 
 	// Dibuja los frames de un overlay animado (la herramienta o su
 	// efecto): el mismo bucle de capas para ambos, sin duplicar. No
 	// decide sincronía ni qué overlay: eso lo resuelve drawTool.
 	void drawOverlayFrames(const world::AnimatedOverlay& overlay,
 			       int phase,
-			       const world::ToolOverlayLayout& layout) const;
+			       const world::ToolOverlayLayout& layout,
+			       world::OverlayPass pass) const;
 
 	// Contenido sostenido en las manos ([held.*]): overlay común por
 	// dirección, dibujando el sprite del contenido que se levanta.
 	void drawHeldContent(const game::ViewEntity& entity, int phase,
 			     world::ActionKind action,
-			     const world::ToolOverlayLayout& layout) const;
+			     const world::ToolOverlayLayout& layout,
+			     world::OverlayPass pass) const;
 
 	SheetCache& sheets_;
 	const world::ToolOverlayCatalog& toolOverlay_;

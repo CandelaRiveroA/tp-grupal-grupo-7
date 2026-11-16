@@ -1,5 +1,7 @@
 #include "world/CharacterTomlReader.h"
 
+#include <algorithm>
+
 #include "world/ConfigError.h"
 
 namespace world {
@@ -13,6 +15,8 @@ constexpr std::array<const char*, 4> kDirectionKeys = {
 
 // Claves del TOML (datos, no lógica; sección 1 del contrato).
 constexpr const char* kFrames = "frames";
+constexpr const char* kFramesFrom = "frames_from";
+constexpr const char* kReverse = "reverse";
 constexpr const char* kLoops = "loops";
 constexpr const char* kFrame = "frame";
 constexpr const char* kSheet = "sheet";
@@ -105,10 +109,10 @@ LayerFrame CharacterTomlReader::readLayer(const std::string& posePath,
 }
 
 Pose CharacterTomlReader::readPose(const std::string& posePath) const {
+	// Una pose SIN capas es un frame INVISIBLE (la titilación del daño):
+	// no dibuja nada, como los frames sin layers de los overlays. Lo que
+	// no puede ser vacía es la lista de frames de la acción.
 	const std::size_t layers = doc_.arraySize(posePath);
-	if (layers == 0) {
-		throw ConfigError(Kind::InvalidValue, posePath);
-	}
 	Pose pose;
 	for (std::size_t i = 0; i < layers; ++i) {
 		pose.push_back(readLayer(posePath, i));
@@ -132,12 +136,23 @@ std::vector<Pose> CharacterTomlReader::readFrames(
 ActionData CharacterTomlReader::readAction(const std::string& actionPath,
 					   int defaultFrameTicks) const {
 	ActionData action;
-	action.frames = readFrames(join(actionPath, kFrames));
+	// `frames_from` hereda los frames de otra acción de la MISMA
+	// dirección (la resolución es de readActions, en dos pasadas): en
+	// ese caso la acción NO declara `frames`.
+	const std::string refPath = join(actionPath, kFramesFrom);
+	if (!doc_.hasKey(refPath)) {
+		action.frames = readFrames(join(actionPath, kFrames));
+	}
 	action.loops = doc_.getBool(join(actionPath, kLoops));
 	const std::string framePath = join(actionPath, kFrame);
 	if (doc_.hasKey(framePath)) {
 		action.frameTicks = doc_.getInt(framePath);
 		requirePositive(action.frameTicks, framePath);
+	} else if (doc_.hasKey(refPath)) {
+		// Sin `frame` explícito: 0 = "hereda el ritmo del frames_from"
+		// para que copie el de la acción de origen (contrato §10: la
+		// ventana y la animación no se desfasan).
+		action.frameTicks = 0;
 	} else {
 		action.frameTicks = defaultFrameTicks;
 	}
@@ -166,18 +181,74 @@ ActionData CharacterTomlReader::readAction(const std::string& actionPath,
 			action.frameRows = fc[1];
 		}
 	}
+	// `reverse = true`: los frames (propios o heredados) se animan al
+	// revés. La inversión se aplica sobre los frames ya armados.
+	if (readReverse(actionPath)) {
+		std::reverse(action.frames.begin(), action.frames.end());
+	}
 	return action;
+}
+
+bool CharacterTomlReader::readReverse(const std::string& actionPath) const {
+	const std::string reversePath = join(actionPath, kReverse);
+	return doc_.hasKey(reversePath) && doc_.getBool(reversePath);
+}
+
+void CharacterTomlReader::applyFramesFrom(
+	std::map<ActionKind, ActionData>& actions, const ActionKind kind,
+	const std::string& refName, const std::string& actionPath) const {
+	const std::string refPath = join(actionPath, kFramesFrom);
+	const ActionKind* refKind = actionNames_.find(refName);
+	if (refKind == nullptr) {
+		throw ConfigError(Kind::InvalidValue, refPath);
+	}
+	const auto source = actions.find(*refKind);
+	if (source == actions.end() || source->second.frames.empty()) {
+		throw ConfigError(Kind::InvalidValue, refPath);
+	}
+	// Hereda los frames y, con ellos, la hoja propia de la acción de
+	// origen (sheet/grid/frame_cells) y su ritmo. Un `frame` explícito
+	// en la acción que hereda se respeta.
+	ActionData& target = actions.at(kind);
+	target.frames = source->second.frames;
+	if (target.frameTicks == 0) {
+		target.frameTicks = source->second.frameTicks;
+	}
+	if (target.sheet.empty()) {
+		target.sheet = source->second.sheet;
+		target.cellWidth = source->second.cellWidth;
+		target.cellHeight = source->second.cellHeight;
+		target.frameCols = source->second.frameCols;
+		target.frameRows = source->second.frameRows;
+	}
+	if (readReverse(actionPath)) {
+		std::reverse(target.frames.begin(), target.frames.end());
+	}
 }
 
 std::map<ActionKind, ActionData> CharacterTomlReader::readActions(
 	const std::string& dirBase, int defaultFrameTicks) const {
 	std::map<ActionKind, ActionData> actions;
+	// Referencias frames_from pendientes (acción -> nombre de origen):
+	// se resuelven en una SEGUNDA pasada para no depender del orden en
+	// que se lean las acciones de la dirección.
+	std::map<ActionKind, std::pair<std::string, std::string>> pendingRefs;
 	for (const auto& [name, kind] : actionNames_.entries()) {
 		const std::string actionPath = join(dirBase, name);
-		if (doc_.hasKey(actionPath)) {
-			actions.emplace(
-				kind, readAction(actionPath, defaultFrameTicks));
+		if (!doc_.hasKey(actionPath)) {
+			continue;
 		}
+		const std::string refPath = join(actionPath, kFramesFrom);
+		if (doc_.hasKey(refPath)) {
+			pendingRefs.emplace(
+				kind, std::make_pair(doc_.getString(refPath),
+						     actionPath));
+		}
+		actions.emplace(
+			kind, readAction(actionPath, defaultFrameTicks));
+	}
+	for (const auto& [kind, ref] : pendingRefs) {
+		applyFramesFrom(actions, kind, ref.first, ref.second);
 	}
 	return actions;
 }

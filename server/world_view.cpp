@@ -113,6 +113,13 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         }
     }
 
+    // Charcos de sangre: estado persistente del dia (se secan al terminar
+    // el dia o los consume una vampira). Van en el MISMO transporte que la
+    // tierra tratada, asi el cliente los pinta bajo las entidades.
+    for (const auto& [blood_x, blood_y]: world.blood_puddle_list()) {
+        out.push_back(ServerGroundEffect{blood_x, blood_y, GroundEffect::Blood});
+    }
+
     // Las llamas van después de las celdas (el fuego se dibuja encima), en
     // el mismo orden que EnemyBot::appendEntities.
     for (const ProjectileSnapshot& projectile: world.projectile_snapshots()) {

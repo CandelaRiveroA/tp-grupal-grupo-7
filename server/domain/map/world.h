@@ -50,6 +50,10 @@ private:
     // accepted. Quien está en sleepers no se puede mover.
     std::unordered_set<uint8_t> sleepers;
     std::unordered_set<uint8_t> accepted;
+    // Muertos esperando la animación de desmayo antes de ir a la cama:
+    // id -> pasos de EnemyTick restantes. Match los avanza con
+    // tick_death_to_bed.
+    std::unordered_map<uint8_t, uint8_t> death_to_bed;
     // Día terminado y esperando que todos despierten (woke ⊆ players). Mientras
     // tanto el reloj y los animales están quietos.
     bool waking;
@@ -138,12 +142,30 @@ public:
     // Llamas en vuelo, para que world_view las emita sin conocer Flame.
     std::vector<ProjectileSnapshot> projectile_snapshots() const;
 
+    // Charcos de sangre vivos del día (celda de cada uno): es estado
+    // persistente (se seca al terminar el día o lo consume una vampira).
+    // Seam de lectura para que WorldView los transmita a todos.
+    const std::vector<std::pair<uint16_t, uint16_t>>& blood_puddle_list() const;
+
+    // vacia los charcos de sangre restantes al finalizar el día.
+    void clear_blood_puddle();
+
     // Golpe de un enemigo al jugador. Devuelve true si quedó sin vida.
     bool damage_player(uint8_t player_id, uint8_t damage);
 
     // Consume el último charco de sangre: true = quedaba sangre (la usa el
     // vampiro que murió para programar su revive).
     bool consume_blood_puddle();
+
+    // Hay al menos un charco de sangre en el mapa (lectura sin consumir):
+    // la usa el vampiro al morir para decidir si programa el revive.
+    bool has_blood_puddle() const;
+
+    // Avanza la espera de los muertos hacia la cama; al vencer, los
+    // teletransporta y registra su sueño (el resto del flujo es el de
+    // siempre). Devuelve true si alguien llegó en este paso, para que
+    // Match sincronice aunque no haya enemigos ni llamas en vuelo.
+    bool tick_death_to_bed();
 
     // Mueve una entidad a otra celda; no hace nada si el destino está bloqueado.
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);

@@ -33,6 +33,7 @@ void EnemyController::clear_generation(World& world) {
     this->skull_placed = false;
     world.clear_enemies();
     world.clear_flames();
+    world.clear_blood_puddle();
 }
 
 void EnemyController::spawn_at(World& world, uint16_t x, uint16_t y) {

@@ -43,24 +43,35 @@ int ToolOverlayLayout::frameIndexAt(const int frameTicks,
 	return std::clamp(frameIndex, 0, lastIndex);
 }
 
+bool ToolOverlayLayout::inPass(const OverlayFrame& frame,
+			       const OverlayPass pass) const {
+	return frame.behind == (pass == OverlayPass::Behind);
+}
+
 const ToolOverlayFrame* ToolOverlayLayout::frameAt(
-	const AnimatedOverlay& action, const int phase) const {
+	const AnimatedOverlay& action, const int phase,
+	const OverlayPass pass) const {
 	const int index =
 		frameIndexAt(action.frameTicks, action.frames.size(), phase);
 	if (index < 0) {
 		return nullptr;
 	}
-	return &action.frames[static_cast<std::size_t>(index)];
+	const ToolOverlayFrame& frame =
+		action.frames[static_cast<std::size_t>(index)];
+	return inPass(frame, pass) ? &frame : nullptr;
 }
 
 const HeldOverlayFrame* ToolOverlayLayout::frameAt(
-	const HeldContentOverlay& overlay, const int phase) const {
+	const HeldContentOverlay& overlay, const int phase,
+	const OverlayPass pass) const {
 	const int index = frameIndexAt(overlay.frameTicks,
 				       overlay.frames.size(), phase);
 	if (index < 0) {
 		return nullptr;
 	}
-	return &overlay.frames[static_cast<std::size_t>(index)];
+	const HeldOverlayFrame& frame =
+		overlay.frames[static_cast<std::size_t>(index)];
+	return inPass(frame, pass) ? &frame : nullptr;
 }
 
 PixelRect ToolOverlayLayout::layerRect(const OverlayFrame& frame,

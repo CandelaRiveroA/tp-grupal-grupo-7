@@ -31,9 +31,10 @@ target_sources(taller_editor
 target_link_libraries(taller_editor PRIVATE taller_common taller_world_model
                       Qt6::Widgets)
 
-# Carpeta fija de presets de escenario y de mundos guardados.
+# Carpeta fija de presets de escenario, mundos guardados y assets.
 target_compile_definitions(taller_editor PRIVATE
     TALLER_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
-    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
+    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\"
+    TALLER_ASSETS_DIR=\"${TALLER_ASSETS_DIR}\")
 
 set_target_properties(taller_editor PROPERTIES AUTOMOC ON)

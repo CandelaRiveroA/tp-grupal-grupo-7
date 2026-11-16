@@ -27,4 +27,7 @@ constexpr int kAddMapButtonMinWidth = 130;
 // Margen interno del panel y de cada grupo de la paleta.
 const QMargins kPaletteMargins{4, 4, 4, 4};
 
+// Ruta a los assets del cliente (tilesets de los escenarios).
+const std::string kAssetsDir = TALLER_ASSETS_DIR;
+
 }  // namespace editor

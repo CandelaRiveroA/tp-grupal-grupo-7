@@ -1,20 +1,32 @@
 #pragma once
 
-#include <QScrollArea>
-#include <QStringList>
-#include <QVBoxLayout>
 #include <QWidget>
+#include <string>
 
-// Paleta de objetos para decorar
+#include "world_model/PrefabCatalog.h"
+
+class QComboBox;
+class QListWidget;
+class TilesetCache;
+
+// Panel de prefabs con selector de categoria y previsualizacion completa.
 class PaletteView : public QWidget {
 	Q_OBJECT
 public:
-	explicit PaletteView(QWidget* parent = nullptr);
+	PaletteView(const worldmodel::PrefabCatalog& catalog,
+		    const TilesetCache& tilesets, QWidget* parent = nullptr);
+
+	void clearSelection();
+
+signals:
+	void prefabSelected(const worldmodel::PrefabDef* prefab);
 
 private:
-	void addPaletteGroup(const QString& title,
-			     const QStringList& items);
+	void populateCategory(const std::string& category);
+	QPixmap centeredPreview(const QPixmap& sprite) const;
 
-	QScrollArea* scrollArea_ = nullptr;
-	QVBoxLayout* scrollLayout_ = nullptr;
+	const worldmodel::PrefabCatalog& catalog_;
+	const TilesetCache& tilesets_;
+	QComboBox* categoryCombo_ = nullptr;
+	QListWidget* list_ = nullptr;
 };

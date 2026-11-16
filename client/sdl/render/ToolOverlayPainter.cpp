@@ -22,7 +22,8 @@ ToolOverlayPainter::ToolOverlayPainter(
 void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 			      const SDL2pp::Rect& drawBox, const int phase,
 			      const world::ActionKind action,
-			      const world::Pose& pose) const {
+			      const world::Pose& pose,
+			      const world::OverlayPass pass) const {
 	if (!entity.activeTool.has_value() &&
 	    !entity.activeContent.has_value()) {
 		return;
@@ -37,17 +38,18 @@ void ToolOverlayPainter::draw(const game::ViewEntity& entity,
 	const world::ToolOverlayLayout layout(body, toolOverlay_,
 					      pose.front());
 	if (entity.activeTool.has_value()) {
-		drawTool(entity, phase, action, layout);
+		drawTool(entity, phase, action, layout, pass);
 	}
 	if (entity.activeContent.has_value()) {
-		drawHeldContent(entity, phase, action, layout);
+		drawHeldContent(entity, phase, action, layout, pass);
 	}
 }
 
 void ToolOverlayPainter::drawTool(const game::ViewEntity& entity,
 				  const int phase,
 				  const world::ActionKind action,
-				  const world::ToolOverlayLayout& layout) const {
+				  const world::ToolOverlayLayout& layout,
+				  const world::OverlayPass pass) const {
 	const world::ItemKind tool = *entity.activeTool;
 	const world::Direction dir = entity.facing;
 	const world::ToolOverlayAction* found = toolOverlay_.find(tool, dir);
@@ -67,17 +69,18 @@ void ToolOverlayPainter::drawTool(const game::ViewEntity& entity,
 	// con el MISMO mecanismo: ambos son AnimatedOverlay. El efecto es
 	// opcional y puede sincronizarse con otra acción (dato); si está y
 	// corresponde a la acción en curso, se pinta encima.
-	drawOverlayFrames(overlayAction, phase, layout);
+	drawOverlayFrames(overlayAction, phase, layout, pass);
 	if (overlayAction.effect.has_value() &&
 	    overlayAction.effect->action == action) {
-		drawOverlayFrames(*overlayAction.effect, phase, layout);
+		drawOverlayFrames(*overlayAction.effect, phase, layout, pass);
 	}
 }
 
 void ToolOverlayPainter::drawOverlayFrames(
 	const world::AnimatedOverlay& overlay, const int phase,
-	const world::ToolOverlayLayout& layout) const {
-	const world::ToolOverlayFrame* frame = layout.frameAt(overlay, phase);
+	const world::ToolOverlayLayout& layout,
+	const world::OverlayPass pass) const {
+	const world::ToolOverlayFrame* frame = layout.frameAt(overlay, phase, pass);
 	if (frame == nullptr) {
 		return;
 	}
@@ -106,7 +109,8 @@ void ToolOverlayPainter::drawOverlayFrames(
 void ToolOverlayPainter::drawHeldContent(
 	const game::ViewEntity& entity, const int phase,
 	const world::ActionKind action,
-	const world::ToolOverlayLayout& layout) const {
+	const world::ToolOverlayLayout& layout,
+	const world::OverlayPass pass) const {
 	const world::HeldContentOverlay* overlay =
 		toolOverlay_.findHeldContent(entity.facing);
 	if (overlay == nullptr || overlay->action != action) {
@@ -123,7 +127,7 @@ void ToolOverlayPainter::drawHeldContent(
 	}
 
 	const world::HeldOverlayFrame* frame =
-		layout.frameAt(*overlay, phase);
+		layout.frameAt(*overlay, phase, pass);
 	if (frame == nullptr || !frame->drawn) {
 		return;
 	}

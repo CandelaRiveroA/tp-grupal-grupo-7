@@ -50,7 +50,7 @@ TEST(ToolOverlayLayoutTest, EmptyActionHasNoFrame) {
 	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
 
 	ToolOverlayAction action;
-	EXPECT_EQ(layout.frameAt(action, 0), nullptr);
+	EXPECT_EQ(layout.frameAt(action, 0, world::OverlayPass::Front), nullptr);
 }
 
 TEST(ToolOverlayLayoutTest, FrameAdvancesWithPhaseAndClampsToLast) {
@@ -64,10 +64,10 @@ TEST(ToolOverlayLayoutTest, FrameAdvancesWithPhaseAndClampsToLast) {
 			 makeFrame(FrameAnchor::Body),
 			 makeFrame(FrameAnchor::Bottom)};
 
-	EXPECT_EQ(layout.frameAt(action, 0), &action.frames[0]);
-	EXPECT_EQ(layout.frameAt(action, 10), &action.frames[1]);
-	EXPECT_EQ(layout.frameAt(action, 25), &action.frames[2]);
-	EXPECT_EQ(layout.frameAt(action, 1000), &action.frames[2]);
+	EXPECT_EQ(layout.frameAt(action, 0, world::OverlayPass::Front), &action.frames[0]);
+	EXPECT_EQ(layout.frameAt(action, 10, world::OverlayPass::Front), &action.frames[1]);
+	EXPECT_EQ(layout.frameAt(action, 25, world::OverlayPass::Front), &action.frames[2]);
+	EXPECT_EQ(layout.frameAt(action, 1000, world::OverlayPass::Front), &action.frames[2]);
 }
 
 TEST(ToolOverlayLayoutTest, NonPositiveFrameTicksUsesFirstFrame) {
@@ -80,7 +80,31 @@ TEST(ToolOverlayLayoutTest, NonPositiveFrameTicksUsesFirstFrame) {
 	action.frames = {makeFrame(FrameAnchor::Top),
 			 makeFrame(FrameAnchor::Body)};
 
-	EXPECT_EQ(layout.frameAt(action, 99), &action.frames[0]);
+	EXPECT_EQ(layout.frameAt(action, 99, world::OverlayPass::Front), &action.frames[0]);
+}
+
+TEST(ToolOverlayLayoutTest, BehindFramesOnlyDrawOnTheBehindPass) {
+	const CharacterLayout body(PixelRect{0, 0, 128, 128}, 64, 64);
+	const ToolOverlayCatalog catalog = makeCatalog();
+	const ToolOverlayLayout layout(body, catalog, makeLayer(1, 2));
+
+	ToolOverlayAction action;
+	action.frameTicks = 10;
+	ToolOverlayFrame front = makeFrame(FrameAnchor::Body);
+	ToolOverlayFrame behind = makeFrame(FrameAnchor::Body);
+	behind.behind = true;
+	action.frames = {front, behind};
+
+	// Frame 0 (delante del cuerpo): solo la pasada Front lo dibuja.
+	EXPECT_EQ(layout.frameAt(action, 0, world::OverlayPass::Front),
+		  &action.frames[0]);
+	EXPECT_EQ(layout.frameAt(action, 0, world::OverlayPass::Behind),
+		  nullptr);
+	// Frame 1 (detrás del cuerpo): solo la pasada Behind lo dibuja.
+	EXPECT_EQ(layout.frameAt(action, 10, world::OverlayPass::Front),
+		  nullptr);
+	EXPECT_EQ(layout.frameAt(action, 10, world::OverlayPass::Behind),
+		  &action.frames[1]);
 }
 
 TEST(ToolOverlayLayoutTest, AnchorSelectsTheBaseOfTheLayer) {

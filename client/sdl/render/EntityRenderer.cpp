@@ -61,47 +61,49 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const world::EntityAppearance appearance =
 		resolver.appearanceFor(entity.facing, action, phase);
 
-	// La acción puede traer su PROPIA hoja (enemigos: una por acción);
-	// si no la declara, se usa la de la criatura (el jugador).
-	const world::ActionData& actionData = *appearance.action;
-	const bool ownSheet = !actionData.sheet.empty();
-	const std::string& sheetFile =
-		ownSheet ? actionData.sheet : characters_.sheetFile(entity.kind);
-	const int cellW = ownSheet ? actionData.cellWidth
-				   : characters_.sheetCellWidth(entity.kind);
-	const int cellH = ownSheet ? actionData.cellHeight
-				   : characters_.sheetCellHeight(entity.kind);
-	const int frameCols = ownSheet ? actionData.frameCols
-				       : characters_.frameCols(entity.kind);
-	const int frameRows = ownSheet ? actionData.frameRows
-				       : characters_.frameRows(entity.kind);
-
-	SpriteSheet& sheet = sheets_.sheet(sheetFile, core::assetPath(sheetFile),
-					   cellW, cellH);
-	CharacterSprite sprite(sheet, characters_.drawnWidth(entity.kind),
-			      characters_.drawnHeight(entity.kind), frameCols,
-			      frameRows);
-
 	const Flip flip =
 		appearance.mirrored ? Flip::Horizontal : Flip::None;
 	const SDL2pp::Rect drawBox(box.x, box.y, box.width, box.height);
+
+	// El overlay se dibuja en DOS pasadas alrededor del cuerpo: los
+	// frames con `behind` (la espada de espaldas) detrás —el cuerpo los
+	// tapa donde se superponen— y el resto delante (caso histórico).
+	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose,
+			  world::OverlayPass::Behind);
 	if (characters_.hasAppearance(entity.kind)) {
+		// Apariencia por capas (ropa/pelo): la dibuja su pintor.
 		const int frame =
 			resolver.frameIndexFor(entity.facing, action, phase);
 		appearancePainter_.draw(entity, *appearance.pose, action,
 					frame, drawBox, flip);
 	} else {
-		SpriteSheet& sheet = sheets_.sheet(
-			characters_.sheetFile(entity.kind),
-			core::assetPath(characters_.sheetFile(entity.kind)),
-			characters_.sheetCellWidth(entity.kind),
-			characters_.sheetCellHeight(entity.kind));
+		// La acción puede traer su PROPIA hoja (enemigos: una por
+		// acción); si no la declara, se usa la de la criatura (el
+		// jugador).
+		const world::ActionData& actionData = *appearance.action;
+		const bool ownSheet = !actionData.sheet.empty();
+		const std::string& sheetFile =
+			ownSheet ? actionData.sheet
+				 : characters_.sheetFile(entity.kind);
+		const int cellW = ownSheet ? actionData.cellWidth
+					   : characters_.sheetCellWidth(entity.kind);
+		const int cellH = ownSheet ? actionData.cellHeight
+					   : characters_.sheetCellHeight(entity.kind);
+		const int frameCols = ownSheet ? actionData.frameCols
+					       : characters_.frameCols(entity.kind);
+		const int frameRows = ownSheet ? actionData.frameRows
+					       : characters_.frameRows(entity.kind);
+		SpriteSheet& sheet =
+			sheets_.sheet(sheetFile, core::assetPath(sheetFile),
+				      cellW, cellH);
 		CharacterSprite sprite(
 			sheet, characters_.drawnWidth(entity.kind),
-			characters_.drawnHeight(entity.kind));
+			characters_.drawnHeight(entity.kind), frameCols,
+			frameRows);
 		sprite.draw(*appearance.pose, drawBox, flip);
 	}
-	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose);
+	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose,
+			  world::OverlayPass::Front);
 
 	// El contenido sostenido (poses "sosteniendo", una por variante de
 	// carry) va sobre la cabeza: el MISMO sprite que el del inventario.

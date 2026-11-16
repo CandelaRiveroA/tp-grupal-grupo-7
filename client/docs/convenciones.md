@@ -189,10 +189,12 @@
   cuadros; manda "qué acción": el reparto no se reversiona al conectar la red.
 - **Usar herramienta es genérico.** La tecla de "usar" (hoy Espacio) NO está
   acoplada a "picar": es una acción de input **rebindeable**. La acción
-  concreta (picar, regar, …) dependerá de la **herramienta activa**
-  (seleccionada del inventario, ej. tecla 2 = pico, 3 = regadera). El mapeo
-  herramienta→acción debe ser dato/tabla, no casos hardcodeados. Hoy:
-  herramienta activa fija = pico, un toque de "usar" = un golpe (one-shot).
+  concreta (picar, regar, tajar con la espada, …) dependerá de la
+  **herramienta activa** (seleccionada del inventario, ej. tecla 2 = pico,
+  3 = regadera). El mapeo herramienta→acción debe ser dato/tabla, no casos
+  hardcodeados. La herramienta activa la manda la fuente
+  (`ViewEntity::activeTool`, §12); un toque de "usar" = un golpe
+  (one-shot).
 - **Un toque = una acción.** "Usar" se dispara en el evento de tecla (keydown),
   una vez por pulsación (no sostenido): el golpe se reproduce entero y vuelve
   a idle. Quién prende/apaga la acción es la fuente de estado (mock/servidor),
@@ -222,6 +224,18 @@
   distribuye en 2D (las gotas del chorro) en vez de apilarlas en el mismo
   punto. La geometría la resuelve `world::ToolOverlayLayout::layerRect`; el
   render no reimplementa la aritmética.
+- **Frames detrás del cuerpo (`behind`).** Un frame del overlay puede
+  declarar `behind = true`: se dibuja en la pasada ANTES del cuerpo (el
+  cuerpo lo tapa donde se superpone) en vez de encima. Es lo que hace que
+  la espada de espaldas se vea igual que de frente pero "la tape un poco"
+  el personaje: el arco es el mismo y la ocultación sale del orden de
+  dibujo, sin arte nuevo. Vive en `OverlayFrame` (dato, default
+  `false` = delante, el caso histórico); la selección de cuadro por
+  pasada la resuelve `world::ToolOverlayLayout::frameAt(...,
+  world::OverlayPass)` y `sdl::EntityRenderer` llama DOS veces a
+  `ToolOverlayPainter::draw` (pasada `Behind` antes del cuerpo, pasada
+  `Front` después). Cualquier overlay puede usarlo (un arma grande, una
+  capa) sin tocar el dibujo.
 - **Tamaño normalizado a una celda (`cell_span`).** Un frame puede declarar
   `cell_span = [cols, rows]`: la caja del patrón en celdas. Si está, el frame
   entero se dibuja metido en UNA celda lógica (cada capa mide

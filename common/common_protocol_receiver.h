@@ -41,6 +41,8 @@ private:
     ServerMessage receive_reset_message();
     ServerMessage receive_sync_end_message();
     ServerMessage receive_animal_message();
+    ServerMessage receive_enemy_message();
+    ServerMessage receive_projectile_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();
     ServerMessage receive_day_end_message();

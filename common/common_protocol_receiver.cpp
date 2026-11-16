@@ -28,6 +28,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Reset, &ProtocolReceiver::receive_reset_message},
                 {ServerMessageType::SyncEnd, &ProtocolReceiver::receive_sync_end_message},
                 {ServerMessageType::Animal, &ProtocolReceiver::receive_animal_message},
+                {ServerMessageType::Enemy, &ProtocolReceiver::receive_enemy_message},
+                {ServerMessageType::Projectile, &ProtocolReceiver::receive_projectile_message},
                 {ServerMessageType::Sleep, &ProtocolReceiver::receive_server_sleep_message},
                 {ServerMessageType::Furniture, &ProtocolReceiver::receive_furniture_message},
                 {ServerMessageType::DayEnd, &ProtocolReceiver::receive_day_end_message},
@@ -147,7 +149,11 @@ ServerMessage ProtocolReceiver::receive_status_message() {
     const uint16_t y = receive_uint16();
     const Direction direction = direction_from_byte(receive_uint8());
     const CharacterAppearance appearance = receive_appearance();
-    return ServerStatus(player_id, x, y, direction, appearance);
+    const uint16_t health = receive_uint16();
+    const uint16_t max_health = receive_uint16();
+    const uint16_t energy = receive_uint16();
+    const uint16_t max_energy = receive_uint16();
+    return ServerStatus(player_id, x, y, direction, appearance, health, max_health, energy, max_energy);
 }
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }
@@ -212,6 +218,30 @@ ServerMessage ProtocolReceiver::receive_animal_message() {
         throw std::invalid_argument("El indicador de ordeñe no es valido.");
     }
     return ServerAnimal{id, std::move(kind), x, y, direction, ready == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_enemy_message() {
+    const uint16_t id = receive_uint16();
+    std::string kind = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const Direction direction = direction_from_byte(receive_uint8());
+    const uint8_t health = receive_uint8();
+    const uint8_t action = receive_uint8();
+    if (action > static_cast<uint8_t>(EnemyAction::Damage)) {
+        throw std::invalid_argument("La accion del enemigo no es valida.");
+    }
+    return ServerEnemy{id, std::move(kind), x, y, direction, health,
+                       static_cast<EnemyAction>(action)};
+}
+
+ServerMessage ProtocolReceiver::receive_projectile_message() {
+    const uint16_t id = receive_uint16();
+    std::string kind = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    const Direction direction = direction_from_byte(receive_uint8());
+    return ServerProjectile{id, std::move(kind), x, y, direction};
 }
 
 ServerMessage ProtocolReceiver::receive_server_sleep_message() {

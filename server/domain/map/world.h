@@ -2,6 +2,7 @@
 #define WORLD_H
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -10,6 +11,7 @@
 #include "../entities/player.h"
 
 #include "cell.h"
+#include "flame.h"
 #include "player_pickup.h"
 #include "resource_hit.h"
 
@@ -28,6 +30,13 @@ private:
     // No poseen: los dueños son las celdas. Se mantienen para tick_enemies;
     // remove_entity también los saca de acá.
     std::vector<Enemy*> enemies;
+    // Próximo id de enemigo (lo ve el cliente para seguirlo entre mensajes).
+    uint16_t next_enemy_id;
+    // Llamas en vuelo (poseídas por el mundo, no por las celdas: no bloquean).
+    std::vector<Flame> flames;
+    // Próximo id de proyectil (rango distinto al de enemigos y animales:
+    // ViewMotion empareja las entidades por id en una sola lista).
+    uint16_t next_projectile_id;
     std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
@@ -105,9 +114,29 @@ public:
     // punteros colgantes en la lista de ticks. Lo usa EnemyController.
     void clear_enemies();
 
-    // Un paso del reloj de enemigos: revive a los muertos y ejecuta la IA
-    // (perseguir / atacar) de los vivos.
+    // Borra las llamas en vuelo. Lo usa EnemyController al regenerar.
+    void clear_flames();
+
+    // Un paso del reloj lento de enemigos (4 s): revive a los muertos, limpia
+    // la acción, deambula (si nadie está en rango) y el skull lanza llamas.
     void tick_enemies();
+
+    // Un paso del reloj rápido de enemigos (400 ms, el paso del jugador):
+    // cada enemigo vivo da un paso de persecución y pega con cooldown.
+    // Devuelve true si cambió algo (posición o acción) y hay que sincronizar.
+    bool tick_enemies_pursuit();
+
+    // Un paso de vuelo de las llamas: daña al contacto, muere contra una
+    // pared o al llegar a su celda objetivo. Devuelve true si había llamas.
+    bool tick_flames();
+
+    // Lanza una llama desde (x, y) hacia la celda objetivo; la dirección
+    // inicial la elige el mundo hacia el objetivo.
+    void spawn_flame(uint16_t x, uint16_t y, uint16_t target_x, uint16_t target_y,
+                     uint8_t damage, const std::string& kind);
+
+    // Llamas en vuelo, para que world_view las emita sin conocer Flame.
+    std::vector<ProjectileSnapshot> projectile_snapshots() const;
 
     // Golpe de un enemigo al jugador. Devuelve true si quedó sin vida.
     bool damage_player(uint8_t player_id, uint8_t damage);
@@ -152,6 +181,9 @@ public:
     // Cancela la votación abierta sin mover a nadie.
     void clear_sleep();
     void set_player_position(uint8_t player_id, uint16_t x, uint16_t y);
+    void kill_player(uint8_t player_id);
+    void reset_player_for_day(uint8_t player_id);
+    void mark_all_fainted_by_timeout();
 
     // --- Fin de día: todos tienen que despertar (OK) antes de arrancar el siguiente ---
     // Termina el día (timeout o sueño) y congela el reloj hasta despertar.
@@ -166,6 +198,9 @@ public:
 private:
     void try_advance_sleep();
     void try_start_day();
+    // Daña al jugador vivo que esté parado en (x, y); true si pegó (y la
+    // llama se consume).
+    bool damage_players_at(uint16_t x, uint16_t y, uint8_t damage);
 };
 
 #endif  // WORLD_H

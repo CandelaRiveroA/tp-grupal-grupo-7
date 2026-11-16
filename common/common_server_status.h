@@ -30,6 +30,8 @@ enum class ServerMessageType : uint8_t {
     SyncEnd = 18,
     Crop = 19,
     GroundEffect = 20,
+    Enemy = 21,
+    Projectile = 22,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -48,10 +50,17 @@ struct ServerStatus {
     // al dibujar y cae al 0 (default) si estan fuera de rango. Viaja en cada
     // lote para que un joiner tarde la reciba de todos los jugadores.
     CharacterAppearance appearance;
+    // Vida y energia del jugador (energia escalada x100).
+    uint16_t health;
+    uint16_t max_health;
+    uint16_t energy;      // x100
+    uint16_t max_energy;  // x100
 
     ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
-                 const CharacterAppearance& appearance):
-            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance) {}
+                 const CharacterAppearance& appearance,
+                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy):
+            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance),
+            health(health), max_health(max_health), energy(energy), max_energy(max_energy) {}
 };
 
 struct ServerWelcome {
@@ -123,6 +132,28 @@ struct ServerAnimal {
     bool ready_to_milk;
 };
 
+// Enemigo del mundo (esqueleto, orco, vampiro, skull). kind es el vocabulario de
+// enemies.toml; health 0 = muerto (el cliente muestra la pose de muerte).
+struct ServerEnemy {
+    uint16_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    Direction direction;
+    uint8_t health;
+    EnemyAction action;
+};
+
+// Llama de un skull: viaja en línea recta por celdas. kind es el vocabulario de
+// enemies.toml (skull_fire, skull_fire_green); no lleva vida ni acción.
+struct ServerProjectile {
+    uint16_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    Direction direction;
+};
+
 // Aviso de sueño: sleeping de total jugadores están en la cama. Mientras
 // sleeping > 0 el aviso queda abierto; en 0 se cierra (nadie duerme más).
 struct ServerSleep {
@@ -182,6 +213,6 @@ using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect>;
+                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile>;
 
 #endif

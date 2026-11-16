@@ -8,16 +8,6 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 			       const CarrySelection& carry)
 	: motion_(motion)
 	, carry_(carry)
-	, phaseClocks_{
-		  {world::ActionKind::Idle, PhaseClock::Action},
-		  {world::ActionKind::Walk, PhaseClock::Step},
-		  {world::ActionKind::UseTool, PhaseClock::Action},
-		  {world::ActionKind::Water, PhaseClock::Action},
-		  {world::ActionKind::Milk, PhaseClock::Action},
-		  {world::ActionKind::Pickup, PhaseClock::Action},
-		  {world::ActionKind::Carry, PhaseClock::Action},
-		  {world::ActionKind::CarryWalk, PhaseClock::Step},
-		  {world::ActionKind::Faint, PhaseClock::Action},
 	, actionSpecs_{
 		  // Locomoción: la caminata la deduce la presentación
 		  // (relajo del paso) y las piernas van con el paso.
@@ -44,6 +34,8 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		  {world::ActionKind::Damage,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 		  {world::ActionKind::Death,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Faint,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 	  }
 	, carryVariants_{
@@ -74,10 +66,6 @@ world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 	if (entity.action == world::ActionKind::Faint) {
 		return world::ActionKind::Faint;
 	}
-	// La caminata es presentación local (la interpolación del paso).
-	const world::ActionKind base = motion_.isWalking(index, it, entity.moving)
-					       ? world::ActionKind::Walk
-					       : toolAction(entity);
 	// La caminata es presentación local (la interpolación del paso) y
 	// solo pisa a las acciones de LOCOMOCIÓN. Las que enciende la
 	// fuente (golpe, daño, muerte, ...) se animan tal cual aunque la

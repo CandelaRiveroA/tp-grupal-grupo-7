@@ -176,8 +176,9 @@ struct ViewCrop {
 
 // Estado del sueño del jugador local (ServerSleep). Persiste entre lotes:
 // el server solo lo manda cuando cambia. sleeping > 0 = estoy en la cama.
-// Presentación (fase pendiente): sleeping > 0 y sin votar → showQuestion();
-// sleeping > 0 y votado → showWaiting(sleeping, total); sleeping == 0 → hide().
+// Presentación (fase pendiente, la resuelve PopupState::showSleepState):
+// sleeping > 0 sin votar y vivo → showQuestion(); votado o muerto →
+// showWaiting(sleeping, total); sleeping == 0 → hide().
 struct ViewSleep {
     int sleeping = 0;
     int total = 0;
@@ -210,6 +211,12 @@ struct LocalWorldView {
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+
+    // Vida y energía del jugador local (0..max).
+    int playerHealth = 0;
+    int playerMaxHealth = 0;
+    int playerEnergy = 0;      // x100
+    int playerMaxEnergy = 0;   // x100
 
     // Historial del chat
     std::vector<ViewChatLine> chatLog;

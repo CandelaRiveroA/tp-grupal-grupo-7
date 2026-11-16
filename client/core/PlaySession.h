@@ -77,10 +77,10 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt, const world::ChatLayout& chat, const world::HudOverlayCatalog& hudOverlays,
+                const world::PromptLayout& prompt, const world::ChatLayout& chat,
                 const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
-                const world::CharacterPalettes& palettes);
+                const world::CharacterPalettes& palettes,
                 game::EnemyTestTrigger* enemyTestTrigger = nullptr);
 
     // Corre el game loop hasta que se pida salir.

@@ -95,7 +95,6 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-<<<<<<< HEAD
     // Demo del gasto de energía: cada pulsación simula una acción que
     // cansa al jugador (gastar). Es un one-shot rebindeable; cuando el
     // server mande el gasto real, esta tecla se puede quitar sin tocar
@@ -114,19 +113,6 @@ auto InputManager::defaultCommandBindings() const
     // Demo del chat (M): como G/H/F, se quita cuando el server mande el
     // chat.
     bindings.insert({SDLK_m, game::InputCommand{Kind::SimulateChatMessage, 0}});
-=======
-    // ANDAMIAJE TEMPORAL (prueba): G/F/H/K disparan las acciones de los
-    // enemigos (mover, atacar, daño, muerte), J/L mueven/borran los
-    // proyectiles y V hace que el Skull ataque con el fuego verde. Se
-    // sacan cuando el server mande esas acciones.
-    bindings.insert({SDLK_g, game::InputCommand{Kind::TestMove, 0}});
-    bindings.insert({SDLK_f, game::InputCommand{Kind::TestAttack, 0}});
-    bindings.insert({SDLK_h, game::InputCommand{Kind::TestDamage, 0}});
-    bindings.insert({SDLK_k, game::InputCommand{Kind::TestDeath, 0}});
-    bindings.insert({SDLK_j, game::InputCommand{Kind::TestProjectileAdvance, 0}});
-    bindings.insert({SDLK_l, game::InputCommand{Kind::TestProjectileDespawn, 0}});
-    bindings.insert({SDLK_v, game::InputCommand{Kind::TestGreenFire, 0}});
->>>>>>> feat/SDL_enemigos
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

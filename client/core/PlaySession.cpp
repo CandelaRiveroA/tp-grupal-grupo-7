@@ -53,6 +53,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::PromptLayout& prompt, const world::ChatLayout& chat,
                          const world::HudOverlayCatalog& hudOverlays,
                          const world::HudOverlayCatalog& lighting,
+                         const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
         gameClient_(gameClient),
@@ -240,17 +241,25 @@ void PlaySession::tick(int iteration) {
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
     // que se reacciona a la transición y no a cada tick.
+    // Muerto (vida o energía): el server lo da por aceptado en la cama y
+    // no puede levantarse, así que espera sin pregunta y sin cancelar.
+    const bool localDied =
+            state.playerMaxHealth > 0 && state.playerHealth == 0;
+    popupState_.setWaitingCancelable(!localDied);
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
         if (lastSleeping_ == 0) {
             voted_ = false;
-            popupState_.hide();
-        } else if (voted_) {
-            popupState_.showWaiting(lastSleeping_, lastTotal_);
-        } else {
-            popupState_.showQuestion();
         }
+        popupState_.showSleepState(lastSleeping_, lastTotal_, voted_, localDied);
+    }
+    // Murió con la pregunta abierta (sin flanco de sueño: el sleepers no
+    // cambió): la pregunta salta al avance, que es lo que el server ya
+    // registró.
+    if (localDied && popupState_.view() == game::PopupView::Question) {
+        voted_ = true;
+        popupState_.showWaiting(lastSleeping_, lastTotal_);
     }
 
     // Lo tipeado y los backspaces del frame entran al buffer.
@@ -290,6 +299,8 @@ void PlaySession::tick(int iteration) {
         }
         if (command.kind == game::InputCommand::Kind::ChatCancel) {
             closeChat();
+            continue;
+        }
         const auto test = testActions_.find(command.kind);
         if (test != testActions_.end()) {
             if (enemyTestTrigger_ != nullptr) {
@@ -448,10 +459,21 @@ void PlaySession::tick(int iteration) {
     // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
     // antes del popup y del puntero para que queden encima.
     std::map<std::string, double> hudFillValues;
-    hudFillValues[game::kHudEnergyKey] =
-            stats_.at(game::StatKind::Energy).fraction();
-    hudFillValues[game::kHudLifeKey] =
-            stats_.at(game::StatKind::Life).fraction();
+    // Con el server en línea manda su vida/energía; sin server (offline)
+    // sigue mandando la simulación local.
+    if (state.playerMaxHealth > 0) {
+        hudFillValues[game::kHudLifeKey] =
+                static_cast<double>(state.playerHealth) / state.playerMaxHealth;
+        if (state.playerMaxEnergy > 0) {
+            hudFillValues[game::kHudEnergyKey] =
+                    static_cast<double>(state.playerEnergy) / state.playerMaxEnergy;
+        }
+    } else {
+        hudFillValues[game::kHudEnergyKey] =
+                stats_.at(game::StatKind::Energy).fraction();
+        hudFillValues[game::kHudLifeKey] =
+                stats_.at(game::StatKind::Life).fraction();
+    }
     hudOverlayPainter_.draw(hudFillValues);
     hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
     // Abierto: historial + tipeo (el cursor parpadea con el tick).
@@ -478,8 +500,9 @@ void PlaySession::tick(int iteration) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
         // El botón de cancelar del popup "Esperando..." sale de la cama
-        // (el server borra el OK de este jugador).
+        // (el server borra el OK de este jugador). Un muerto no cancela.
         if (popupState_.view() == game::PopupView::Waiting &&
+            popupState_.waitingCancelable() &&
             promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
                                    world::PixelPoint{click.x, click.y})) {
             gameClient_.sendCommand(protocol::SleepMessage{false});
@@ -541,6 +564,7 @@ void PlaySession::tick(int iteration) {
         interactive = (popupState_.view() == game::PopupView::Question &&
                        promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
                       (popupState_.view() == game::PopupView::Waiting &&
+                       popupState_.waitingCancelable() &&
                        promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
     }
     cursorPainter_.draw(cursorCatalog_,

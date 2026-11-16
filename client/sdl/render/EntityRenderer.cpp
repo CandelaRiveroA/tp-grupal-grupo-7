@@ -61,8 +61,6 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	const world::EntityAppearance appearance =
 		resolver.appearanceFor(entity.facing, action, phase);
 
-<<<<<<< HEAD
-=======
 	// La acción puede traer su PROPIA hoja (enemigos: una por acción);
 	// si no la declara, se usa la de la criatura (el jugador).
 	const world::ActionData& actionData = *appearance.action;
@@ -84,7 +82,6 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 			      characters_.drawnHeight(entity.kind), frameCols,
 			      frameRows);
 
->>>>>>> feat/SDL_enemigos
 	const Flip flip =
 		appearance.mirrored ? Flip::Horizontal : Flip::None;
 	const SDL2pp::Rect drawBox(box.x, box.y, box.width, box.height);
@@ -94,14 +91,9 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 		appearancePainter_.draw(entity, *appearance.pose, action,
 					frame, drawBox, flip);
 	} else {
-		SpriteSheet& sheet = sheets_.sheet(
-			characters_.sheetFile(entity.kind),
-			core::assetPath(characters_.sheetFile(entity.kind)),
-			characters_.sheetCellWidth(entity.kind),
-			characters_.sheetCellHeight(entity.kind));
-		CharacterSprite sprite(
-			sheet, characters_.drawnWidth(entity.kind),
-			characters_.drawnHeight(entity.kind));
+		// `sheet` ya resolvió la hoja PROPIA de la acción si la trae
+		// (enemigos: una por acción); redibujar con la de la criatura
+		// pintaría el frame de ataque con los píxeles de la caminata.
 		sprite.draw(*appearance.pose, drawBox, flip);
 	}
 	toolOverlay_.draw(entity, drawBox, phase, action, *appearance.pose);

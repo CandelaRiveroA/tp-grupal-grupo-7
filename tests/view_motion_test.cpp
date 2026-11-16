@@ -338,6 +338,25 @@ TEST(ViewMotionTest, TeleportSnapsWithoutSliding) {
 	EXPECT_EQ(offset.y, 0);
 }
 
+TEST(ViewMotionTest, MultiCellStepSlidesInsteadOfSnapping) {
+	// La vampira salta 2 celdas por tick (4 con frenesí): ese salto se
+	// interpola desde la celda anterior, sin plantar el sprite.
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(7, 5), 100);
+
+	const PixelOffset start = motion.offsetFor(0, 100, kCellPixels);
+	EXPECT_EQ(start.x, -2 * kCellPixels);
+	EXPECT_EQ(start.y, 0);
+
+	const PixelOffset middle =
+		motion.offsetFor(0, 100 + kStepTicks / 2, kCellPixels);
+	EXPECT_EQ(middle.x, -kCellPixels);
+
+	// El paso sigue "en tránsito": la pose es de caminata, no idle.
+	EXPECT_TRUE(motion.isWalking(0, 101, false));
+}
+
 TEST(ViewMotionTest, AnimationPhaseRestartsAtEveryObservedStep) {
 	ViewMotion motion = makeMotion();
 	motion.observe(viewAt(5, 5), 0);

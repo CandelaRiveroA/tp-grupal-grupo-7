@@ -72,6 +72,8 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | 18 | `SyncEnd` | (sin payload) | Último mensaje de cada lote de estado: el cliente aplica el lote acumulado recién acá (evita el frame a medias = parpadeo) |
 | 19 | `Crop` | `x u16, y u16, crop_id str, stage u8, needs_water u8, interactive u8, quality u8` | Cultivo plantado. `crop_id` = contentId del producto (`strawberry`, `onion`...); `stage` 0 semilla, 1..5 crecimiento, 6 cosecha; `needs_water` pide riego; `interactive` = cosechable con Take; `quality` 1..5 = BASE..PERFECT (misma línea que `qualities` de crops.toml; solo cambia la apariencia en la cosecha) |
 | 20 | `GroundEffect` | `x u16, y u16, effect u8` | Tierra tratada en la celda: `0` = arada (Dug), `1` = regada (Watered). Una celda regada manda ambos, en ese orden |
+| 21 | `Enemy` | `id u16, kind str, x u16, y u16, direction u8, health u8, action u8` | Enemigo del mundo. `kind` = `skeleton`, `orc`, `vampire`, `vampiress`, `skull` (vocabulario de `enemies.toml`; la vampira se dibuja como el vampiro). `health` 0 = muerto (pose de muerte). `action` (`EnemyAction`): 0 quieto, 1 ataque, 2 daño. El cliente anima el paso por interpolación y cuenta la ventana de la acción desde el cambio de `action` |
+| 22 | `Projectile` | `id u16, kind str, x u16, y u16, direction u8` | Llama del skull en vuelo. `kind` = `skull_fire` o `skull_fire_green` (vocabulario de `enemies.toml`). Sin vida ni acción: vuela hasta la celda que ocupaba el jugador al lanzar, daña al contacto (5 / 10) y desaparece al chocar contra una pared, contra el borde o al llegar a su destino. Las llamas no bloquean celdas |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).
@@ -81,6 +83,18 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
   inventario inicial.
 - Las dimensiones del mundo **no viajan por la red**: el servidor usa el mismo
   tamaño que la escena del cliente (`bedroom`, 30x20).
+- **Cadencia de enemigos.** El lote `Reset…SyncEnd` es el estado completo: el
+  cliente poda en el cierre a los enemigos y proyectiles que el lote no volvió
+  (por eso `Reset` ya no vacía `enemies_`: borrarlo en cada lote reiniciaría
+  la ventana de animación). El servidor corre dos relojes: el lento
+  (`CreatureTick`, 4 s) revive, deambula y hace que el skull lance llamas; el
+  rápido (`EnemyTick`, 400 ms = el paso del jugador) mueve a quien está
+  persiguiendo — el skull también, hasta su distancia de tiro `kShotDistance`,
+  sin pegarle — y vuela las llamas. El `action` se limpia en cada tick rápido,
+  así cada golpe viaja como flanco `Idle → Attack` y el cliente abre su
+  ventana de animación (`actionCycleTicks`) sin que un `Idle` la corte.
+  Cooldown de ataque: 1 golpe cada 10 ticks rápidos (4 s), el mismo daño por
+  segundo de antes del reloj rápido.
 
 ---
 

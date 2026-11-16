@@ -52,11 +52,28 @@ private:
         // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
         std::optional<world::ItemKind> activeTool;
         CharacterAppearance appearance;
+        int health = 0;
+        int maxHealth = 0;
+        int energy = 0;      // x100
+        int maxEnergy = 0;  // x100
+    };
+
+    // Enemigo del server: la vista lo sigue por id; la acción dura su ventana.
+    struct RemoteEnemy {
+        ViewEntity entity;
+        // Última acción recibida: detecta el flanco que enciende la ventana.
+        EnemyAction lastReceived = EnemyAction::Idle;
+        // Ticks que faltan para que el golpe o el daño vuelvan a quieto.
+        int actionRemaining = 0;
     };
 
     void apply(const ServerMessage& message);
     // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
     void applyNow(const ServerMessage& message);
+    // El lote es el estado completo: enemigos y proyectiles que no volvieron
+    // en él ya no existen en el server (una llama que llegó a su destino o un
+    // cadáver viejo tras regenerar).
+    void pruneToBatch();
 
     // Estado de daño del protocolo -> estado visible de la vista. Lo que
     // no llega a ser el golpe final cae en Intact (seguro ante wire roto).
@@ -89,6 +106,9 @@ private:
     // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).
     std::vector<uint8_t> sleepers_;
     std::map<uint8_t, ViewEntity> animals_;
+    std::map<uint16_t, RemoteEnemy> enemies_;
+    // Proyectiles (llamas del skull): sin ventana de acción, solo la celda.
+    std::map<uint16_t, ViewEntity> projectiles_;
     std::map<std::pair<int, int>, ViewResource> resources_;
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;

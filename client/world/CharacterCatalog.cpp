@@ -62,6 +62,8 @@ bool CharacterCatalog::hasAppearance(CreatureKind kind) const {
 const AppearanceData& CharacterCatalog::appearanceFor(
 	CreatureKind kind) const {
 	return entryFor(kind).appearance;
+}
+
 int CharacterCatalog::frameCols(CreatureKind kind) const {
 	return entryFor(kind).frameCols;
 }

@@ -47,8 +47,12 @@ struct ClockStep {
 // Dispara el paso de movimiento de animales y enemigos (un paso por segundo).
 struct CreatureTick {};
 
-using MatchEvent =
-        std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick, ClockStep>;
+// Dispara la persecución de enemigos y el vuelo de las llamas. Va 10 veces
+// más seguido que CreatureTick: es el mismo ritmo que el jugador (400 ms).
+struct EnemyTick {};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick,
+                                EnemyTick, ClockStep>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
 // restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
@@ -89,6 +93,7 @@ private:
     void handle(const PlayerLeft& left);
     void handle(const DayPassed& day);
     void handle(const CreatureTick& tick);
+    void handle(const EnemyTick& tick);
     void handle(const ClockStep& step);
     void sync_all();
     void place_minerals();

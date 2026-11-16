@@ -8,6 +8,9 @@
 
 #include "domain/animals/chicken.h"
 #include "domain/crops/potato.h"
+#include "domain/enemies/orc.h"
+#include "domain/enemies/skeleton.h"
+#include "domain/enemies/skull.h"
 #include "domain/entities/player.h"
 #include "domain/map/world.h"
 #include "domain/minerals/coal_rock.h"
@@ -335,4 +338,88 @@ TEST(WorldViewTest, CropsAndSeedsUseTheSharedContentIds) {
     EXPECT_EQ(content_id_for(ItemID::PUMPKIN_SEED), "pumpkin_seeds");
 }
 
+TEST(WorldViewTest, UnEnemigoVivoSeEnviaConSuIdentidadVidaYPosicion) {
+    World world(5, 5);
+    populate(world);
+    world.add_enemy(std::make_unique<Skeleton>(3, 3));
+    WorldView view;
+
+    const auto enemies = only<ServerEnemy>(view.sync(world, 1));
+    ASSERT_EQ(enemies.size(), 1u);
+    EXPECT_EQ(enemies[0].id, 1000);
+    EXPECT_EQ(enemies[0].kind, "skeleton");
+    EXPECT_EQ(enemies[0].x, 3);
+    EXPECT_EQ(enemies[0].y, 3);
+    EXPECT_EQ(enemies[0].health, 10);
+    EXPECT_EQ(enemies[0].action, EnemyAction::Idle);
+}
+
+TEST(WorldViewTest, UnGolpeMandaDanoYLaMuerteSigueVisibleConVidaCero) {
+    World world(5, 5);
+    populate(world);
+    auto skeleton = std::make_unique<Skeleton>(3, 3);
+    Skeleton* ptr = skeleton.get();
+    world.add_enemy(std::move(skeleton));
+    WorldView view;
+
+    ptr->take_damage(4);
+    const auto hurt = only<ServerEnemy>(view.sync(world, 1));
+    ASSERT_EQ(hurt.size(), 1u);
+    EXPECT_EQ(hurt[0].health, 6);
+    EXPECT_EQ(hurt[0].action, EnemyAction::Damage);
+
+    ptr->take_damage(6);
+    const auto dead = only<ServerEnemy>(view.sync(world, 1));
+    ASSERT_EQ(dead.size(), 1u);
+    EXPECT_EQ(dead[0].health, 0);
+}
+
+TEST(WorldViewTest, UnEnemigoQuePegaEnviaAtaque) {
+    World world(5, 5);
+    populate(world);
+    world.add_enemy(std::make_unique<Skeleton>(2, 2));  // diagonal al jugador (1,1)
+    WorldView view;
+
+    world.tick_enemies_pursuit();
+    const auto enemies = only<ServerEnemy>(view.sync(world, 1));
+    ASSERT_EQ(enemies.size(), 1u);
+    EXPECT_EQ(enemies[0].action, EnemyAction::Attack);
+}
+
+TEST(WorldViewTest, CadaEnemigoTieneSuPropioId) {
+    World world(5, 5);
+    populate(world);
+    world.add_enemy(std::make_unique<Skeleton>(3, 3));
+    world.add_enemy(std::make_unique<Orc>(4, 4));
+    WorldView view;
+
+    const auto enemies = only<ServerEnemy>(view.sync(world, 1));
+    ASSERT_EQ(enemies.size(), 2u);
+    EXPECT_NE(enemies[0].id, enemies[1].id);
+    EXPECT_EQ(enemies[1].kind, "orc");
+}
+
+TEST(WorldViewTest, SinEnemigosNoSeEnviaNinguno) {
+    World world(5, 5);
+    populate(world);
+    WorldView view;
+
+    EXPECT_TRUE(only<ServerEnemy>(view.sync(world, 1)).empty());
+}
+
 }  // namespace
+
+TEST(WorldViewTest, LaLlamaSeEnviaComoProyectil) {
+    World world(5, 5);
+    populate(world);
+    world.add_enemy(std::make_unique<Skull>(2, 2));  // a 1 de diagonal del jugador (1,1)
+    WorldView view;
+
+    world.tick_enemies();
+    const auto projectiles = only<ServerProjectile>(view.sync(world, 1));
+    ASSERT_EQ(projectiles.size(), 1u);
+    EXPECT_EQ(projectiles[0].kind, "skull_fire");
+    EXPECT_EQ(projectiles[0].x, 2);
+    EXPECT_EQ(projectiles[0].y, 2);
+    EXPECT_EQ(projectiles[0].direction, Direction::LEFT);
+}

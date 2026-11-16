@@ -5,6 +5,7 @@ target_sources(taller_tests
     index_cycle.cpp
     invite_code_format.cpp
     matches_monitor_test.cpp
+    popup_state_test.cpp
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp

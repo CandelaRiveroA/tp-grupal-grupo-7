@@ -13,7 +13,8 @@
 
 Player::Player(uint8_t id, uint16_t x, uint16_t y)
         : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
-          energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth) {
+          energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
+          died_in_combat(false), fainted_by_timeout(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
@@ -36,6 +37,9 @@ const CharacterAppearance& Player::get_appearance() const { return this->appeara
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
 uint16_t Player::get_health() const { return this->hp; }
+uint16_t Player::get_max_health() const { return this->max_hp; }
+float Player::get_energy() const { return this->energy; }
+float Player::get_max_energy() const { return this->max_energy; }
 
 bool Player::is_gravely_wounded() const {
     return this->hp * kPercentMax < this->max_hp * kGravelyWoundedPercent;

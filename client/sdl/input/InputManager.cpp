@@ -122,6 +122,9 @@ auto InputManager::defaultCommandBindings() const
     // del jugador (aparece/desaparece). Cuando el server mande el daño,
     // esta tecla se puede quitar sin tocar el dibujo.
     bindings.insert({SDLK_r, game::InputCommand{Kind::Hurt, 0}});
+    // Demo del charco de sangre: one-shot local que deja un charco en
+    // la celda del jugador. Cuando la fuente mande sangre, se quita.
+    bindings.insert({SDLK_c, game::InputCommand{Kind::BloodPuddle, 0}});
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
     // Demo del chat (M): como U/I/O, se quita cuando el server mande el

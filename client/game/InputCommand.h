@@ -42,6 +42,10 @@ struct InputCommand {
         // el server no mande el daño. Lo consume PlaySession con
         // game::LocalActionWindow; NO viaja al GameClient.
         Hurt,
+        // Demo del charco de sangre (tecla C por ahora): deja un charco
+        // en la celda del jugador. Lo consume PlaySession; NO viaja al
+        // GameClient.
+        BloodPuddle,
         // Abrir el chatbox (tecla T).
         OpenChat,
         // Con el chat abierto: Enter manda y ESC descarta.

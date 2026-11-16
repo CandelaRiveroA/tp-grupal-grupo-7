@@ -17,6 +17,9 @@ enum class GroundConsequence {
 	Dug,
 	// Regada: la tierra tratada queda regada (el set oscuro de hoeDirt).
 	Watered,
+	// Charco de sangre: la salpicadura tintada de Animations.png a los
+	// pies (hoy la deja la demo de la tecla C; mañana la fuente).
+	Blood,
 };
 
 // Cómo se ve una consecuencia de terreno: el sprite simple (fallback y

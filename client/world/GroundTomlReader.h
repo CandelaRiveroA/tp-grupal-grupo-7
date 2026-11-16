@@ -35,6 +35,12 @@ private:
 				int cellHeight,
 				const std::string& cellPath) const;
 
+	// Opcionales del sprite de una consecuencia: `block` (bloque de
+	// celdas), `tint` (recoloreo) y `drawn` (tamaño en el mapa). Todo
+	// validado: lanza ConfigError(InvalidValue, clave) si no cumple.
+	void readSpriteExtras(const std::string& base,
+			      SpriteVisual& sprite) const;
+
 	// Lee `[ground.<n>.tiles]`: pieza -> variantes de sprite. Si la
 	// tabla no está, la consecuencia se dibuja con su sprite simple.
 	void readPieces(const std::string& tilesPath, const std::string& sheet,

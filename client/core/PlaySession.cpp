@@ -1,5 +1,6 @@
 #include "core/PlaySession.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -142,6 +143,17 @@ void PlaySession::tick(int iteration) {
     // Las ventanas de presentación local corren con el tick (la del daño
     // recibido se suelta sola).
     actionWindow_.advance();
+    // Los charcos de sangre vencen con su reloj (ANDAMIAJE): al llegar
+    // a 0 desaparecen de la vista de una.
+    for (BloodPuddle& puddle : bloodPuddles_) {
+        --puddle.ticksRemaining;
+    }
+    bloodPuddles_.erase(std::remove_if(bloodPuddles_.begin(),
+                                       bloodPuddles_.end(),
+                                       [](const BloodPuddle& puddle) {
+                                           return puddle.ticksRemaining <= 0;
+                                       }),
+                        bloodPuddles_.end());
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
@@ -358,6 +370,19 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
+        if (command.kind == game::InputCommand::Kind::BloodPuddle) {
+            // ANDAMIAJE TEMPORAL: la demo del charco de sangre (tecla
+            // C) deja un charco en la celda del jugador (se acumulan),
+            // con su reloj de vida.
+            if (!state.entities.empty()) {
+                const game::ViewEntity& local =
+                        state.entities[game::kLocalPlayerIndex];
+                bloodPuddles_.push_back(BloodPuddle{
+                    world::GridCell{local.cellX, local.cellY},
+                    game::kBloodPuddleTicks});
+            }
+            continue;
+        }
         playerCommands.push_back(command);
     }
     // Mientras el popup es modal no hay input manual: la auto-caminata
@@ -571,13 +596,23 @@ void PlaySession::tick(int iteration) {
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
     // Primero la pose de "meterse" (EnterSelection) y encima los
-    // overrides locales: la ventana de acción (demo de daño recibido) y
-    // el desmayo, que manda sobre todo lo demás.
+    // overrides locales: la ventana de acción (demo de daño recibido),
+    // los charcos de sangre (demo) y el desmayo, que manda sobre todo
+    // lo demás.
     game::LocalWorldView display = enterSelection_.displayView(view);
     if (actionWindow_.active() && !display.entities.empty()) {
         // Ventana de acción local: su acción manda hasta que se suelte
         // (presentación local; la fuente la mandará tal cual).
         display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
+    }
+    // Los charcos de sangre (ANDAMIAJE) entran como consecuencia de
+    // terreno: así se dibujan bajo las entidades (el personaje pisa el
+    // charco) y mañana la fuente los manda tal cual. Solo los vivos:
+    // los vencidos ya salieron del estado.
+    for (const BloodPuddle& puddle : bloodPuddles_) {
+        display.groundEffects.push_back(game::ViewGroundEffect{
+            puddle.cell.column, puddle.cell.row,
+            world::GroundConsequence::Blood});
     }
     if (!faintRequested_ || display.entities.empty()) {
         return display;

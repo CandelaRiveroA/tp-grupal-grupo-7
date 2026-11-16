@@ -228,6 +228,15 @@ private:
     game::PlayerController player_;
     game::ObjectPicker picker_;
     sdl::BuildPlacePainter markerPainter_;
+    // Charcos de sangre (ANDAMIAJE): la demo de la tecla C los deja
+    // donde está el jugador y se acumulan; cada uno vence a los
+    // kBloodPuddleTicks y desaparece. Se van cuando la fuente mande la
+    // sangre del terreno (ViewGroundEffect).
+    struct BloodPuddle {
+        world::GridCell cell;
+        int ticksRemaining;
+    };
+    std::vector<BloodPuddle> bloodPuddles_;
     world::CursorCatalog cursorCatalog_;
     sdl::CursorPainter cursorPainter_;
     game::DialogAnimator dialogAnimator_;

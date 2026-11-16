@@ -23,6 +23,10 @@ constexpr int kPickupCycles = 1;
 // dice cuántas vueltas de titilación. Se va con la tecla.
 constexpr int kHurtDemoCycles = 2;
 
+// ANDAMIAJE TEMPORAL: vida de un charco de sangre (tecla C), en ticks.
+// Cuando la fuente mande la sangre del terreno, la duración la decide
+// ella. Se va con la tecla.
+constexpr int kBloodPuddleTicks = 600;
 
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;

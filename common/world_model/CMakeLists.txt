@@ -19,6 +19,9 @@ target_sources(taller_world_model
     ScenarioSerializer.cpp
     ScenarioLibrary.cpp
     ScenarioLibraryLoader.cpp
+    PrefabCatalog.cpp
+    PrefabCatalogLoader.cpp
+    PrefabCatalogReader.cpp
     WorldFactory.cpp
     WorldValidator.cpp
     WorldRepository.cpp
@@ -48,6 +51,9 @@ target_sources(taller_world_model
     ScenarioSerializer.h
     ScenarioLibrary.h
     ScenarioLibraryLoader.h
+    PrefabCatalog.h
+    PrefabCatalogLoader.h
+    PrefabCatalogReader.h
     WorldFactory.h
     WorldValidator.h
     WorldRepository.h

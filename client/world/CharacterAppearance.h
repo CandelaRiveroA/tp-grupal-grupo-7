@@ -66,6 +66,10 @@ enum class ActionKind {
     // herramienta espada (tabla toolActions_ en ActionResolver). La
     // enciende la fuente con UseTool + activeTool = Sword.
     Sword,
+    // Revivir: la animación de muerte de la criatura, AL REVÉS (los
+    // frames de death invertidos, characters.toml `frames_from` +
+    // `reverse`). La enciende la fuente; termina en la pose viva.
+    Revive,
 };
 
 struct ActionData {

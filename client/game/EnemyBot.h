@@ -17,6 +17,9 @@ enum class EnemyActivity {
 	Attacking,
 	Damaged,
 	Dead,
+	// Revivir: la muerte al revés. Única que le gana a Dead (la pone
+	// en marcha la tecla de prueba; mañana la fuente).
+	Reviving,
 };
 
 // Estado de UN enemigo: DATOS puros (convención §1); los vuelca a la

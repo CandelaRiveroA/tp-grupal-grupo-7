@@ -23,6 +23,9 @@ struct InputCommand {
         TestAttack,
         TestDamage,
         TestDeath,
+        // Revivir (V): la animación de muerte de los enemigos, al revés
+        // (la acción Revive). Se va con el disparador.
+        TestRevive,
         TestProjectileAdvance,
         TestProjectileDespawn,
         // Gasto de energía simulado (tecla U por ahora): representa una

@@ -62,7 +62,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
                      {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
                      {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
-                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death}},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death},
+                     {game::InputCommand::Kind::TestRevive,
+                      world::ActionKind::Revive}},
         projectileTests_{
                 {game::InputCommand::Kind::TestProjectileAdvance,
                  &game::EnemyTestTrigger::advanceProjectiles},

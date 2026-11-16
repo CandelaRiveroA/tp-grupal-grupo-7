@@ -102,6 +102,7 @@ auto InputManager::defaultCommandBindings() const
     bindings.insert({SDLK_f, game::InputCommand{Kind::TestAttack, 0}});
     bindings.insert({SDLK_h, game::InputCommand{Kind::TestDamage, 0}});
     bindings.insert({SDLK_k, game::InputCommand{Kind::TestDeath, 0}});
+    bindings.insert({SDLK_v, game::InputCommand{Kind::TestRevive, 0}});
     bindings.insert({SDLK_j, game::InputCommand{Kind::TestProjectileAdvance, 0}});
     bindings.insert({SDLK_l, game::InputCommand{Kind::TestProjectileDespawn, 0}});
     // Demo del gasto de energía: cada pulsación simula una acción que

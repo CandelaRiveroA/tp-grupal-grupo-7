@@ -66,6 +66,12 @@ cadence     = { step = 48, frame = 6 }
       [ [6, 1, 2, 1] ],
     ]
 
+
+    [characters.orc.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.orc.back]
   mirrored = false
     [characters.orc.back.idle]
@@ -121,6 +127,12 @@ cadence     = { step = 48, frame = 6 }
       [ [4, 0, 2, 2] ],
       [ [6, 1, 2, 1] ],
     ]
+
+
+    [characters.orc.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
 
   [characters.orc.left]
   mirrored = true
@@ -178,6 +190,12 @@ cadence     = { step = 48, frame = 6 }
       [ [6, 1, 2, 1] ],
     ]
 
+
+    [characters.orc.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.orc.right]
   mirrored = false
     [characters.orc.right.idle]
@@ -233,6 +251,12 @@ cadence     = { step = 48, frame = 6 }
       [ [4, 0, 2, 2] ],
       [ [6, 1, 2, 1] ],
     ]
+
+
+    [characters.orc.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
 
 [characters.skeleton]
 sheet       = "Cavern/skeleton/skeleton_movement.png"
@@ -320,6 +344,12 @@ cadence     = { step = 60, frame = 6 }
       [ [28, 1, 2, 1] ],
     ]
 
+
+    [characters.skeleton.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.skeleton.back]
   mirrored = false
     [characters.skeleton.back.idle]
@@ -399,6 +429,12 @@ cadence     = { step = 60, frame = 6 }
       [ [28, 1, 2, 1] ],
     ]
 
+
+    [characters.skeleton.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.skeleton.left]
   mirrored = true
     [characters.skeleton.left.idle]
@@ -477,6 +513,12 @@ cadence     = { step = 60, frame = 6 }
       [ [26, 1, 2, 1] ],
       [ [28, 1, 2, 1] ],
     ]
+
+
+    [characters.skeleton.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
 
   [characters.skeleton.right]
   mirrored = false
@@ -559,6 +601,12 @@ cadence     = { step = 60, frame = 6 }
 
 # --- Vampiro (vampire_movement.png). 8 frames contiguos de 2x2 celdas.
 # Mira a la derecha: left es el espejo; front y back repiten esas celdas.
+
+    [characters.skeleton.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
 [characters.vampire]
 sheet       = "Cavern/vampire/vampire_movement.png"
 grid        = [16, 16]
@@ -643,6 +691,12 @@ cadence     = { step = 48, frame = 6 }
       [ [26, 1, 2, 1] ],
     ]
 
+
+    [characters.vampire.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.vampire.back]
   mirrored = false
     [characters.vampire.back.idle]
@@ -720,6 +774,12 @@ cadence     = { step = 48, frame = 6 }
       [ [26, 1, 2, 1] ],
     ]
 
+
+    [characters.vampire.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
   [characters.vampire.left]
   mirrored = true
     [characters.vampire.left.idle]
@@ -796,6 +856,12 @@ cadence     = { step = 48, frame = 6 }
       [ [24, 1, 2, 1] ],
       [ [26, 1, 2, 1] ],
     ]
+
+
+    [characters.vampire.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
 
   [characters.vampire.right]
   mirrored = false
@@ -879,6 +945,12 @@ cadence     = { step = 48, frame = 6 }
 # que se anime SIEMPRE aunque la fuente lo deje quieto, y el walk usa
 # los MISMOS 4 frames (la animacion de movimiento es una sola).
 # `skull_move.png` (64x16) es la tira move1..move4 en ese orden.
+
+    [characters.vampire.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
 [characters.skull]
 sheet       = "Cavern/skull/skull_move.png"
 grid        = [16, 16]

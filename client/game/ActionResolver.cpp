@@ -42,6 +42,8 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action, true}},
 		  {world::ActionKind::Sword,
 		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Revive,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 	  }
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},

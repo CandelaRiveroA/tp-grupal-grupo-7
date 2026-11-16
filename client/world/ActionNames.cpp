@@ -17,6 +17,7 @@ ActionNames::ActionNames()
 		  {"death", ActionKind::Death},
 		  {"faint", ActionKind::Faint},
 		  {"sword", ActionKind::Sword},
+		  {"revive", ActionKind::Revive},
 	  } {}
 
 const ActionKind* ActionNames::find(const std::string& name) const {

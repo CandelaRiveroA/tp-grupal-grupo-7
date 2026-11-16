@@ -254,7 +254,7 @@ void WorldFactory::addObject(Map& map, ObjectRole role, const TileRef& tile,
 		}
 	}
 	map.objects.push_back(
-		MapObject{role, tile, cell, width, height, blocked, door});
+		MapObject{role, tile, cell, width, height, blocked, door, {}});
 }
 
 void WorldFactory::addMarker(Map& map, MarkerKind kind,

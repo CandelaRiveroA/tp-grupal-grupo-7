@@ -88,6 +88,18 @@ TileGrid FieldReader::readGrid(
 	return grid;
 }
 
+TileRef FieldReader::readTileRef(
+	const std::string& path,
+	const std::map<std::string, TilesetDef>& tilesets) const {
+	const std::optional<TileRef> tile =
+		TileCodec::decode(doc_.getString(path), path);
+	if (!tile.has_value()) {
+		throw FormatError(FormatErrorKind::InvalidValue, path);
+	}
+	checkTileset(tilesets, *tile, path);
+	return *tile;
+}
+
 void FieldReader::checkTileset(
 	const std::map<std::string, TilesetDef>& tilesets,
 	const TileRef& tile, const std::string& path) const {

@@ -89,6 +89,11 @@ toml::array WorldTomlWriter::writeObjects(const Map& map) const {
 					     object.door->column,
 					     object.door->row));
 		}
+		if (!object.collisionGrid.empty()) {
+			entry.insert("collision_grid",
+				     FieldWriter::writeBooleans(
+					     object.collisionGrid));
+		}
 		array.push_back(std::move(entry));
 	}
 	return array;

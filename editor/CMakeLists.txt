@@ -10,10 +10,12 @@ target_sources(taller_editor
     WorkspaceView.cpp
     NewWorldDialog.cpp
     MapTreeWidget.cpp
-    MapPlaceholderView.cpp
+    MapCanvasView.cpp
+    MapLayerItem.cpp
     ValidationPanel.cpp
     AddExtraMapDialog.cpp
     PaletteView.cpp
+    TilesetCache.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los procesa)
     Constants.h
@@ -22,10 +24,12 @@ target_sources(taller_editor
     WorkspaceView.h
     NewWorldDialog.h
     MapTreeWidget.h
-    MapPlaceholderView.h
+    MapCanvasView.h
+    MapLayerItem.h
     ValidationPanel.h
     AddExtraMapDialog.h
     PaletteView.h
+    TilesetCache.h
     )
 
 target_link_libraries(taller_editor PRIVATE taller_common taller_world_model
@@ -35,6 +39,7 @@ target_link_libraries(taller_editor PRIVATE taller_common taller_world_model
 target_compile_definitions(taller_editor PRIVATE
     TALLER_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
     TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\"
+    TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
     TALLER_ASSETS_DIR=\"${TALLER_ASSETS_DIR}\")
 
 set_target_properties(taller_editor PROPERTIES AUTOMOC ON)

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core/StartupScreens.h"
+#include "core/ActionSounds.h"
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
@@ -172,6 +173,7 @@ private:
     game::ViewMotion motion_;
     game::FootstepCue footstepCue_;
     ToolUseSounds toolUseSounds_;
+    ActionSounds actionSounds_;
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;

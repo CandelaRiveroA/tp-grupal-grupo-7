@@ -285,7 +285,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
         client/game/ToolUseCue.cpp
+        client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp
+        client/core/ActionSounds.cpp
         client/game/CarrySelection.cpp
         client/game/PlantingSelection.cpp
         client/core/StartupSequence.cpp

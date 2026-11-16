@@ -96,6 +96,7 @@ target_sources(taller_client
     core/PlaySession.h
     core/FarmConstants.h
     core/ToolUseSounds.h
+    core/ActionSounds.h
     core/StartupSequence.h
     core/StartupScreens.h
     core/WindowConfig.h

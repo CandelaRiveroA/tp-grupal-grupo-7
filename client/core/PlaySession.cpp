@@ -86,6 +86,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
         motion_(characters),
+        actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
@@ -392,6 +393,14 @@ void PlaySession::tick(int iteration) {
         }
     }
 
+    // Un sonido por cada acción que ACABA de empezar (el daño recibido:
+    // golpe al jugador o al enemigo, según la criatura), o al entrar a
+    // su último cuadro (el momento lo decide la tabla de ActionSounds).
+    // Va sobre la vista de PRESENTACIÓN: así suenan también las
+    // acciones locales.
+    for (const sdl::SoundId sound : actionSounds_.update(presentation, iteration)) {
+        audio_.play(sound);
+    }
 
     // Un sonido por impacto confirmado, aunque el aspecto no cambie.
     for (const auto event: resourceAudioCue_.update(state.resourceHits)) {

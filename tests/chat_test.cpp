@@ -99,6 +99,71 @@ TEST(ChatRouterTest, UnknownCommandExplains) {
     EXPECT_TRUE(chat->system);
 }
 
+TEST(ChatRouterTest, VidaZeroKillsPlayer) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    ChatRouter router;
+    router.route("/vida 0", 1, world, names_with(1, "Pandamos"));
+    EXPECT_EQ(world.get_player(1).get_health(), 0u);
+    EXPECT_TRUE(world.get_player(1).diedInCombat());
+}
+
+TEST(ChatRouterTest, VidaPositiveRevivesDeadPlayer) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.kill_player(1);
+    ASSERT_TRUE(world.get_player(1).diedInCombat());
+    ChatRouter router;
+    router.route("/vida 50", 1, world, names_with(1, "Pandamos"));
+    EXPECT_EQ(world.get_player(1).get_health(), 50u);
+    EXPECT_FALSE(world.get_player(1).diedInCombat());
+}
+
+TEST(ChatRouterTest, EnergiaZeroFaintsPlayer) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    ChatRouter router;
+    router.route("/energia 0", 1, world, names_with(1, "Pandamos"));
+    EXPECT_EQ(world.get_player(1).get_health(), 100u);  // la vida queda intacta
+    EXPECT_FALSE(world.get_player(1).diedInCombat());
+    EXPECT_TRUE(world.get_player(1).faintedByEnergy());
+}
+
+TEST(ChatRouterTest, EnergiaPositiveClearsFaint) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.faint_player(1);
+    ASSERT_TRUE(world.get_player(1).faintedByEnergy());
+    ChatRouter router;
+    router.route("/energia 50", 1, world, names_with(1, "Pandamos"));
+    EXPECT_FALSE(world.get_player(1).faintedByEnergy());
+    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+}
+
+TEST(ChatRouterTest, EnergiaFaintBlocksCancelBed) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));  // no duerme: el día no avanza
+    ChatRouter router;
+    router.route("/energia 0", 1, world, names_with(1, "Pandamos"));
+    // death_to_bed tarda <=1,6 s; avanzamos para que llegue a la cama.
+    for (int i = 0; i < 10; ++i) world.tick_death_to_bed();
+    ASSERT_TRUE(world.is_sleeping(1));
+    world.answer_sleep(1, false);   // quiere levantarse
+    EXPECT_TRUE(world.is_sleeping(1));  // no le dejan
+}
+
+TEST(ChatRouterTest, EnergiaFaintPenalizedAtDawn) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    ChatRouter router;
+    router.route("/energia 0", 1, world, names_with(1, "Pandamos"));
+    world.reset_player_for_day(1);
+    EXPECT_EQ(world.get_player(1).get_health(), 50u);
+    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+    EXPECT_FALSE(world.get_player(1).faintedByEnergy());
+}
+
 TEST(ChatContractTest, EnumValues) {
     EXPECT_EQ(static_cast<uint8_t>(protocol::ClientMessageType::Chat), 6);
     EXPECT_EQ(static_cast<uint8_t>(ServerMessageType::Chat), 23);

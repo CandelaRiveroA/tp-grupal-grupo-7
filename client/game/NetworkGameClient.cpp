@@ -333,20 +333,23 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // cualquier reacción (y un joiner con la vida ya completa no
         // arranca en reaction de nadie).
         const int previousHealth = player.health;
+        const bool previousFainted = player.fainted;
         player.health = status->health;
         player.maxHealth = status->max_health;
         player.energy = status->energy;
         player.maxEnergy = status->max_energy;
-        if (status->health == 0) {
+        player.fainted = (status->fainted != 0);
+        if (status->health == 0 || player.fainted) {
             player.reaction = world::ActionKind::Faint;
+            player.reactionRemaining = 0;
+        } else if (previousFainted || status->health > previousHealth) {
+            // Despertó o revivió: limpia el desmayo (y el daño no cuenta).
+            player.reaction = world::ActionKind::Idle;
             player.reactionRemaining = 0;
         } else if (status->health < previousHealth) {
             player.reaction = world::ActionKind::Damage;
             player.reactionRemaining = characters_->dataFor(world::CreatureKind::Player)
                                               .actionCycleTicks(world::ActionKind::Damage);
-        } else if (status->health > previousHealth) {
-            player.reaction = world::ActionKind::Idle;
-            player.reactionRemaining = 0;
         }
         return;
     }
@@ -519,6 +522,7 @@ void NetworkGameClient::update(int) {
         view_.playerMaxHealth = localIt->second.maxHealth;
         view_.playerEnergy = localIt->second.energy;
         view_.playerMaxEnergy = localIt->second.maxEnergy;
+        view_.playerFainted = localIt->second.fainted;
     }
     session_.advance();
     if (!view_.entities.empty()) {

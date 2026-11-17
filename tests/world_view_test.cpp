@@ -423,6 +423,15 @@ TEST(WorldViewTest, SinEnemigosNoSeEnviaNinguno) {
     EXPECT_TRUE(only<ServerEnemy>(view.sync(world, 1)).empty());
 }
 
+TEST(WorldViewTest, StatusCarriesFaintedFlag) {
+    World world(5, 5);
+    populate(world);
+    WorldView view;
+    EXPECT_EQ(only<ServerStatus>(view.sync(world, 1))[0].fainted, 0u);
+    world.faint_player(1);
+    EXPECT_EQ(only<ServerStatus>(view.sync(world, 1))[0].fainted, 1u);
+}
+
 }  // namespace
 
 TEST(WorldViewTest, LaLlamaSeEnviaComoProyectil) {

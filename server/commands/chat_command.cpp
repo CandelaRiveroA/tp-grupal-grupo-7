@@ -136,7 +136,12 @@ std::string ChatRouter::cmd_vida(World& world, uint8_t sender,
     if (!parse_int(args[0], value)) return "cantidad invalida";
     Player& p = world.get_player(sender);
     value = std::clamp(value, 0, static_cast<int>(p.get_max_health()));
-    p.set_health(static_cast<uint16_t>(value));
+    if (value == 0) {
+        world.kill_player(sender);   // hp 0 + died_in_combat + agenda death_to_bed
+    } else {
+        p.set_health(static_cast<uint16_t>(value));
+        p.setDiedInCombat(false);    // revive: limpia el estado de muerte
+    }
     return "vida: " + std::to_string(value);
 }
 
@@ -148,6 +153,11 @@ std::string ChatRouter::cmd_energia(World& world, uint8_t sender,
     Player& p = world.get_player(sender);
     value = std::clamp(value, 0.0f, p.get_max_energy());
     p.set_energy(value);
+    if (value == 0.0f) {
+        world.faint_player(sender);  // igual que apply_consume_energy al agotarse
+    } else {
+        p.setFaintedByEnergy(false);
+    }
     return "energia: " + std::to_string(static_cast<int>(value));
 }
 

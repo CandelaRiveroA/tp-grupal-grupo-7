@@ -14,7 +14,7 @@
 Player::Player(uint8_t id, uint16_t x, uint16_t y)
         : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
           energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
-          died_in_combat(false), fainted_by_timeout(false) {
+          died_in_combat(false), fainted_by_timeout(false), fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
     this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));

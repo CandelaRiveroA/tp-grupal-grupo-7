@@ -159,7 +159,8 @@ ServerMessage ProtocolReceiver::receive_status_message() {
     const uint16_t max_health = receive_uint16();
     const uint16_t energy = receive_uint16();
     const uint16_t max_energy = receive_uint16();
-    return ServerStatus(player_id, x, y, direction, appearance, health, max_health, energy, max_energy);
+    const uint8_t fainted = receive_uint8();
+    return ServerStatus(player_id, x, y, direction, appearance, health, max_health, energy, max_energy, fainted);
 }
 
 ServerMessage ProtocolReceiver::receive_leave_message() { return ServerLeave{receive_uint8()}; }

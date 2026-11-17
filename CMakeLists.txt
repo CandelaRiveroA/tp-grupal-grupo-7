@@ -257,7 +257,6 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
-        client/game/LocalActionWindow.cpp
         client/game/InventorySelector.cpp
         # SDL: cultivos, terreno, build-place y contenido en las manos.
         client/world/ContentTraits.cpp

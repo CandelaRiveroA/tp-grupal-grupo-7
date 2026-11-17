@@ -103,8 +103,8 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.max_health);
     send_uint16(status.energy);
     send_uint16(status.max_energy);
+    send_uint8(status.fainted);
 }
-
 void ProtocolSender::send_message(const ServerLeave& leave) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Leave));
     send_uint8(leave.player_id);

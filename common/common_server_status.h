@@ -57,12 +57,15 @@ struct ServerStatus {
     uint16_t max_health;
     uint16_t energy;      // x100
     uint16_t max_energy;  // x100
-
+    // 1 = desmayado por falta de energía (vida intacta). 0 = no.
+    uint8_t fainted;
     ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
                  const CharacterAppearance& appearance,
-                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy):
+                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy,
+                 uint8_t fainted):
             player_id(player_id), x(x), y(y), direction(direction), appearance(appearance),
-            health(health), max_health(max_health), energy(energy), max_energy(max_energy) {}
+            health(health), max_health(max_health), energy(energy), max_energy(max_energy),
+            fainted(fainted) {}
 };
 
 struct ServerWelcome {

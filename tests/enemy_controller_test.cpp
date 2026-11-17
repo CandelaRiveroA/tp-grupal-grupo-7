@@ -71,10 +71,14 @@ TEST(EnemyControllerTest, RegeneraSinAcumularNiBorrarLosMinerales) {
 
     EnemyController enemies(1, 7);
     enemies.populate(world, 15, 10);
+    // Una llama en vuelo de la generación vieja.
+    world.spawn_flame(5, 5, 5, 8, 5, "skull_fire");
     enemies.populate(world, 15, 10);
 
     // La segunda pasada limpia la generación vieja: un solo Skull.
     EXPECT_EQ(count_type<Skull>(world), 1u);
+    // Y también las llamas que quedaron en el aire.
+    EXPECT_TRUE(world.projectile_snapshots().empty());
     // Los minerales no son enemigos: quedan donde estaban.
     EXPECT_EQ(world.get_entity_at(0, 0).size(), 1u);
     EXPECT_EQ(world.get_entity_at(1, 0).size(), 1u);

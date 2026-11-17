@@ -1,5 +1,6 @@
 #include "game/AnimalSystem.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <span>
@@ -28,7 +29,8 @@ constexpr std::array<world::GridCell, 3> kCowSpawns = {{
 }};
 
 // Una fila por especie de la simulación: kind + sus celdas. Sumar una
-// especie = una fila acá + la apariencia en characters.toml.
+// especie = una fila acá + la apariencia en characters.toml. Los
+// enemigos NO van acá: tienen su propio módulo (EnemyBot).
 struct AnimalBinding {
 	world::CreatureKind kind;
 	std::span<const world::GridCell> cells;
@@ -57,8 +59,17 @@ AnimalSystem::~AnimalSystem() = default;
 
 void AnimalSystem::spawnAnimals(const world::CharacterCatalog& characters,
 				const int playerCellX,
-				const int playerCellY) {
+				const int playerCellY,
+				const std::vector<world::CreatureKind>& only) {
 	for (const AnimalBinding& binding : kAnimalBindings) {
+		// Filtro opcional: con `only` no vacío, spawnea SOLO esas
+		// especies (el resto las trae otra fuente, p. ej. el server);
+		// vacío = todas (el mock standalone y sus tests).
+		if (!only.empty() &&
+		    std::find(only.begin(), only.end(), binding.kind) ==
+			    only.end()) {
+			continue;
+		}
 		// Sin apariencia declarada, el kind no entra: si characters
 		// no lo describe, el render no lo sabría dibujar.
 		const world::CreatureData* creature =

@@ -64,6 +64,54 @@ TEST(EnemyTest, ElJugadorRecibeDanioYPisaEnCero) {
 }
 
 // ---------------------------------------------------------
+// Muerte: la animación de desmayo primero, la cama después
+// ---------------------------------------------------------
+
+TEST(EnemyTest, ElMuertoEsperaLaAnimacionAntesDeIrALaCama) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));  // no duerme: el día no avanza
+    world.damage_player(1, 100);  // mata
+
+    // La animación de desmayo corre donde cayó: mientras espera no lo
+    // teletransporta ni lo registra para dormir.
+    EXPECT_FALSE(world.is_sleeping(1));
+    bool arrived = false;
+    for (int steps = 0; steps < 10 && !arrived; ++steps) {
+        arrived = world.tick_death_to_bed();
+        if (!arrived) {
+            EXPECT_EQ(world.get_player(1).get_x(), 1);
+            EXPECT_EQ(world.get_player(1).get_y(), 1);
+        }
+    }
+
+    // Al vencer la espera va a la cama con el sueño registrado: el resto
+    // del flujo (pregunta, avance del día, amanecer) es el de siempre.
+    EXPECT_TRUE(arrived);
+    EXPECT_EQ(world.get_player(1).get_x(), 20);
+    EXPECT_EQ(world.get_player(1).get_y(), 13);
+    EXPECT_TRUE(world.is_sleeping(1));
+    EXPECT_FALSE(world.is_sleeping(2));
+}
+
+TEST(EnemyTest, SiReviveMientrasEsperaNoLoMandanALaCama) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4));
+    world.damage_player(1, 100);  // mata
+    world.reset_player_for_day(1);  // amaneció mientras esperaba: revive
+
+    for (int steps = 0; steps < 10; ++steps) {
+        world.tick_death_to_bed();
+    }
+
+    // No lo manda a la cama ni lo registra: ya no está muerto.
+    EXPECT_EQ(world.get_player(1).get_x(), 1);
+    EXPECT_EQ(world.get_player(1).get_y(), 1);
+    EXPECT_FALSE(world.is_sleeping(1));
+}
+
+// ---------------------------------------------------------
 // Revive del esqueleto (estado muerto en la celda)
 // ---------------------------------------------------------
 TEST(EnemyTest, ElEsqueletoReviveConVidaLlenaDespuesDeLosTicks) {
@@ -117,7 +165,7 @@ TEST(EnemyTest, ElEsqueletoPersigueAlJugadorDentroDelRango) {
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
 
     EXPECT_EQ(skeleton->get_x(), 2);  // un paso hacia el jugador
     EXPECT_EQ(skeleton->get_y(), 1);
@@ -131,7 +179,7 @@ TEST(EnemyTest, ElEsqueletoGolpeaAlJugadorAdyacente) {
     auto owned = std::make_unique<Skeleton>(1, 1);
     world.add_enemy(std::move(owned));
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
 
     EXPECT_EQ(world.get_player(1).get_health(), 95);  // 5 de daño cuerpo a cuerpo
 }
@@ -143,7 +191,7 @@ TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
 
     EXPECT_EQ(skeleton->get_x(), 0);  // fuera de rango (distancia 9 > 5)
     EXPECT_EQ(skeleton->get_y(), 0);
@@ -154,12 +202,12 @@ TEST(EnemyTest, ElEsqueletoNoPersigueAUnJugadorMuerto) {
     World world(10, 10);
     world.add_player(1, std::make_unique<Player>(1, 1, 2));
     world.add_player(2, std::make_unique<Player>(2, 4, 1));
-    world.get_player(1).take_damage(100);
+    world.damage_player(1, 100);
     auto owned = std::make_unique<Skeleton>(1, 1);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
 
     EXPECT_EQ(skeleton->get_x(), 2);  // va hacia el vivo, no pega al muerto
     EXPECT_EQ(skeleton->get_y(), 1);
@@ -251,6 +299,7 @@ class GoldEnemy: public Enemy {
 public:
     GoldEnemy(uint16_t x, uint16_t y, uint8_t gold_percent): Enemy(x, y, 1, 0, gold_percent) {}
     void on_death(World& /*w*/) override {}
+    std::string kind_name() const override { return "gold"; }
 
 protected:
     void behave(World& /*w*/) override {}
@@ -283,7 +332,7 @@ TEST(EnemyTest, AgregarUnEnemigoFueraDelMapaNoRompe) {
     auto owned = std::make_unique<Skeleton>(0, 0);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
 
     EXPECT_EQ(skeleton->get_x(), 0);  // el válido sigue funcionando: baja un paso
     EXPECT_EQ(skeleton->get_y(), 1);
@@ -385,7 +434,7 @@ TEST(VampireTest, AlMorirLaVampiraElVampiroEnfureceYPegaElDoble) {
     ASSERT_EQ(female_ptr->get_health(), 0);
     EXPECT_EQ(male_ptr->get_damage(), 30);  // muerte de la pareja: daño x2
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
     EXPECT_EQ(world.get_player(1).get_health(), 70);  // 30 del golpe frenético
 }
 
@@ -407,7 +456,7 @@ TEST(VampireTest, AlMorirElVampiroLaVampiraEnfureceYCorreElDoble) {
     }
     ASSERT_EQ(male_ptr->get_health(), 0);
 
-    world.tick_enemies();
+    world.tick_enemies_pursuit();
     // 2 de speed x 2 de frenesí = 4 pasos: de 5 a 1 (sin frenesí serían 2).
     EXPECT_EQ(female_ptr->get_x(), 1);
     EXPECT_EQ(female_ptr->get_y(), 0);
@@ -493,7 +542,7 @@ TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {
 }
 
 // ---------------------------------------------------------
-// Skull: invulnerable y de llamas a distancia
+// Skull: invulnerable y de llamas a distancia (proyectil)
 // ---------------------------------------------------------
 TEST(SkullTest, NoPuedeSerAsesinadoNiSueltaOro) {
     World world(10, 10);
@@ -510,35 +559,175 @@ TEST(SkullTest, NoPuedeSerAsesinadoNiSueltaOro) {
     EXPECT_EQ(world.get_entity_at(3, 3).size(), 1u);  // solo el skull, sin orbe
 }
 
-TEST(SkullTest, LanzaLlamaAzulSinMoverseDentroDeRango) {
+TEST(SkullTest, LanzaLlamaQueVuelaHaciaElJugadorSinMoverse) {
     World world(10, 10);
     world.add_player(1, std::make_unique<Player>(1, 3, 6));  // a distancia 3
     auto owned = std::make_unique<Skull>(3, 3);
     Skull* skull = owned.get();
     world.add_enemy(std::move(owned));
 
-    world.tick_enemies();
-    EXPECT_EQ(world.get_player(1).get_health(), 95);
+    world.tick_enemies();  // el reloj lento lanza la llama
     EXPECT_EQ(skull->get_x(), 3);
     EXPECT_EQ(skull->get_y(), 3);
+    ASSERT_EQ(world.projectile_snapshots().size(), 1u);
+    EXPECT_EQ(world.projectile_snapshots()[0].kind, "skull_fire");
+    EXPECT_EQ(world.get_player(1).get_health(), 100);  // el daño lo da el vuelo
+
+    world.tick_flames();  // un paso de vuelo (400 ms)
+    EXPECT_EQ(world.projectile_snapshots()[0].y, 4);
+    EXPECT_EQ(world.get_player(1).get_health(), 100);
+
+    world.tick_flames();
+    world.tick_flames();  // tercero: pega en la celda del jugador
+    EXPECT_EQ(world.get_player(1).get_health(), 95);  // 5 de daño al contacto
+    EXPECT_TRUE(world.projectile_snapshots().empty());  // se apagó al pegar
 }
 
-TEST(SkullTest, FueraDeRangoNoDaniaAlJugador) {
+TEST(SkullTest, FueraDeRangoNoLanzaLlama) {
     World world(10, 10);
-    world.add_player(1, std::make_unique<Player>(1, 3, 7));  // a distancia 4
+    world.add_player(1, std::make_unique<Player>(1, 3, 11));  // a distancia 8
     world.add_enemy(std::make_unique<Skull>(3, 3));
 
     world.tick_enemies();
+    EXPECT_TRUE(world.projectile_snapshots().empty());
     EXPECT_EQ(world.get_player(1).get_health(), 100);
 }
 
-TEST(SkullTest, LaLlamaVerdeHaceElDobleCadaDosTicks) {
+TEST(SkullTest, LaLlamaVerdeSaleCadaDosTicks) {
     World world(10, 10);
     world.add_player(1, std::make_unique<Player>(1, 3, 6));
     world.add_enemy(std::make_unique<Skull>(3, 3));
 
     world.tick_enemies();  // tick 1: solo azul
+    ASSERT_EQ(world.projectile_snapshots().size(), 1u);
+    EXPECT_EQ(world.projectile_snapshots()[0].kind, "skull_fire");
+
+    world.tick_enemies();  // tick 2: azul + verde
+    const std::vector<ProjectileSnapshot> projectiles = world.projectile_snapshots();
+    ASSERT_EQ(projectiles.size(), 3u);  // las dos anteriores siguen volando
+    EXPECT_EQ(projectiles[2].kind, "skull_fire_green");
+    EXPECT_EQ(world.get_player(1).get_health(), 100);
+}
+
+TEST(SkullTest, SeAcercaAlJugadorHastaLaDistanciaDeTiro) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 3, 9));
+    auto owned = std::make_unique<Skull>(3, 3);
+    const Skull* skull = owned.get();
+    world.add_enemy(std::move(owned));
+
+    world.tick_enemies_pursuit();  // distancia 4 > 3: da un paso
+    EXPECT_EQ(skull->get_x(), 3);
+    EXPECT_EQ(skull->get_y(), 4);
+
+    world.tick_enemies_pursuit();  // distancia 3: ya está a tiro y se queda
+    EXPECT_EQ(skull->get_x(), 3);
+    EXPECT_EQ(skull->get_y(), 4);
+
+    world.tick_enemies();  // el reloj lento dispara, no deambula
+    EXPECT_EQ(skull->get_x(), 3);
+    EXPECT_EQ(skull->get_y(), 4);
+}
+
+TEST(SkullTest, FueraDeRangoDeAggroNoSeMueve) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 9, 9));  // distancia 9 > 7
+    auto owned = std::make_unique<Skull>(0, 0);
+    const Skull* skull = owned.get();
+    world.add_enemy(std::move(owned));
+
+    world.tick_enemies_pursuit();
+
+    EXPECT_EQ(skull->get_x(), 0);
+    EXPECT_EQ(skull->get_y(), 0);
+}
+
+
+// ---------------------------------------------------------
+// Llamas: proyectil que vuela, pega al contacto y no bloquea
+// ---------------------------------------------------------
+TEST(FlameTest, LaLlamaPegaAlContactoYSeApaga) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 4, 1));
+    world.spawn_flame(4, 4, 4, 1, 5, "skull_fire");  // sube hacia el jugador
+
+    ASSERT_EQ(world.projectile_snapshots().size(), 1u);
+    for (int step = 0; step < 3; ++step) {
+        world.tick_flames();
+    }
     EXPECT_EQ(world.get_player(1).get_health(), 95);
-    world.tick_enemies();  // tick 2: azul + verde (10)
-    EXPECT_EQ(world.get_player(1).get_health(), 80);
+    EXPECT_TRUE(world.projectile_snapshots().empty());
+}
+
+TEST(FlameTest, LaLlamaMuereContraUnaPared) {
+    World world(5, 5);
+    world.get_cell(2, 1).is_wall = true;  // el objetivo está del otro lado
+    world.spawn_flame(2, 2, 2, 0, 5, "skull_fire");
+
+    world.tick_flames();
+    EXPECT_TRUE(world.projectile_snapshots().empty());
+    EXPECT_EQ(world.get_entity_at(2, 1).size(), 0u);
+}
+
+TEST(FlameTest, LaLlamaMuereContraElBordeDelMapa) {
+    World world(5, 5);
+    world.spawn_flame(0, 4, 0, 9, 5, "skull_fire");  // objetivo fuera del mapa
+
+    world.tick_flames();
+    EXPECT_TRUE(world.projectile_snapshots().empty());
+}
+
+TEST(FlameTest, LaLlamaNoBloqueaLasCeldas) {
+    World world(5, 5);
+    world.spawn_flame(2, 2, 2, 4, 5, "skull_fire");
+
+    EXPECT_TRUE(world.can_walk_to(2, 2));
+    EXPECT_TRUE(world.get_entity_at(2, 2).empty());
+}
+
+// ---------------------------------------------------------
+// Cadencia de persecución (reloj rápido de 400 ms)
+// ---------------------------------------------------------
+TEST(EnemyTest, ElGolpeTieneCooldownDeDiezTicksDePersecucion) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 2, 1));
+    world.add_enemy(std::make_unique<Skeleton>(1, 1));  // adyacente
+
+    world.tick_enemies_pursuit();
+    EXPECT_EQ(world.get_player(1).get_health(), 95);  // golpea de entrada
+
+    for (int tick = 0; tick < 9; ++tick) {  // 9 ticks esperando el cooldown
+        world.tick_enemies_pursuit();
+    }
+    EXPECT_EQ(world.get_player(1).get_health(), 95);
+
+    world.tick_enemies_pursuit();  // décimo: vuelve a pegar (4 s después)
+    EXPECT_EQ(world.get_player(1).get_health(), 90);
+}
+
+TEST(EnemyTest, SinJugadorEnRangoDeambulaSinSalirseDelMapa) {
+    World world(5, 5);
+    auto owned = std::make_unique<Skeleton>(2, 2);
+    const Skeleton* skeleton = owned.get();
+    world.add_enemy(std::move(owned));
+
+    for (int tick = 0; tick < 30; ++tick) {
+        world.tick_enemies();
+    }
+    EXPECT_LT(skeleton->get_x(), 5);
+    EXPECT_LT(skeleton->get_y(), 5);
+    EXPECT_EQ(world.get_entity_at(skeleton->get_x(), skeleton->get_y()).size(), 1u);
+}
+
+TEST(EnemyTest, NoDeambulaMientrasHayUnJugadorEnRango) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 0, 4));  // en rango de aggro
+    auto owned = std::make_unique<Skeleton>(0, 0);
+    const Skeleton* skeleton = owned.get();
+    world.add_enemy(std::move(owned));
+
+    world.tick_enemies();  // reloj lento: sin persecución ni deambular
+    EXPECT_EQ(skeleton->get_x(), 0);
+    EXPECT_EQ(skeleton->get_y(), 0);
+    EXPECT_EQ(world.get_player(1).get_health(), 100);
 }

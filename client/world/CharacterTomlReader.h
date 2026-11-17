@@ -24,6 +24,12 @@ public:
 
 	CharacterCatalog readCatalog() const;
 
+	// Vuelca las criaturas de este documento SOBRE un catálogo ya
+	// armado (fusiona): el loader lee characters.toml y luego
+	// enemies.toml sobre el mismo catálogo. Solo agrega las tablas
+	// presentes (§9: un reader, dos archivos).
+	void mergeInto(CharacterCatalog& catalog) const;
+
 private:
 	std::string join(const std::string& base,
 			 const std::string& key) const;
@@ -39,6 +45,17 @@ private:
 
 	ActionData readAction(const std::string& actionPath,
 			      int defaultFrameTicks) const;
+
+	// Resuelve un `frames_from`: la acción hereda los frames (y la
+	// hoja propia) de otra acción de la MISMA dirección; `reverse`
+	// (si lo declara) los deja en orden inverso. La referencia
+	// inválida lanza ConfigError(InvalidValue, "frames_from").
+	void applyFramesFrom(std::map<ActionKind, ActionData>& actions,
+			     ActionKind kind, const std::string& refName,
+			     const std::string& actionPath) const;
+
+	// true si la acción declara `reverse = true` (frames al revés).
+	bool readReverse(const std::string& actionPath) const;
 
 	std::map<ActionKind, ActionData> readActions(
 		const std::string& dirBase, int defaultFrameTicks) const;

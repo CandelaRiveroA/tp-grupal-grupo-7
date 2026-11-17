@@ -1,5 +1,6 @@
 #include "core/PlaySession.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,6 +13,7 @@
 #include "core/StartupSequence.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
+#include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
@@ -41,18 +43,35 @@ constexpr std::array<DemoChatMessage, 3> kDemoChatMessages{{
 
 namespace core {
 
-PlaySession::PlaySession(
-        const WindowConfig& config, const world::Scenario& scenario, game::GameClient& gameClient,
-        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
-        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
-        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
-        const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
-        const world::FontCatalog& font, const world::PromptLayout& prompt,
-        const world::ChatLayout& chat, const world::HudOverlayCatalog& hudOverlays,
-        const world::HudOverlayCatalog& lighting,
-        const world::CharacterPalettes& palettes):
+PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
+                         game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                         const world::InventoryLayout& inventory,
+                         const world::ToolOverlayCatalog& toolOverlay,
+                         const world::ResourceCatalog& resources,
+                         const world::ObtainedBannerCatalog& banner,
+                         const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
+                         const world::DialogCatalog& dialogs, const world::FontCatalog& font,
+                         const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                         const world::HudOverlayCatalog& hudOverlays,
+                         const world::HudOverlayCatalog& lighting,
+                         const world::CharacterPalettes& palettes,
+                         game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
         gameClient_(gameClient),
+        enemyTestTrigger_(enemyTestTrigger),
+        testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
+                     {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
+                     {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death},
+                     {game::InputCommand::Kind::TestRevive,
+                      world::ActionKind::Revive}},
+        projectileTests_{
+                {game::InputCommand::Kind::TestProjectileAdvance,
+                 &game::EnemyTestTrigger::advanceProjectiles},
+                {game::InputCommand::Kind::TestProjectileDespawn,
+                 &game::EnemyTestTrigger::despawnProjectiles}},
+        attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
+                            world::CreatureKind::SkullFireGreen}},
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -72,6 +91,7 @@ PlaySession::PlaySession(
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
         motion_(characters),
+        actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
@@ -87,6 +107,8 @@ PlaySession::PlaySession(
                 {game::InputCommand::Kind::SpendLife,
                  {game::StatKind::Life, game::kLifeCostPerAction}},
         },
+        localActions_{{game::InputCommand::Kind::Hurt,
+                       {world::ActionKind::Damage, game::kHurtDemoCycles}}},
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -122,6 +144,20 @@ void PlaySession::tick(int iteration) {
     if (faintRequested_) {
         ++faintFallTicks_;
     }
+    // Las ventanas de presentación local corren con el tick (la del daño
+    // recibido se suelta sola).
+    actionWindow_.advance();
+    // Los charcos de sangre vencen con su reloj (ANDAMIAJE): al llegar
+    // a 0 desaparecen de la vista de una.
+    for (BloodPuddle& puddle : bloodPuddles_) {
+        --puddle.ticksRemaining;
+    }
+    bloodPuddles_.erase(std::remove_if(bloodPuddles_.begin(),
+                                       bloodPuddles_.end(),
+                                       [](const BloodPuddle& puddle) {
+                                           return puddle.ticksRemaining <= 0;
+                                       }),
+                        bloodPuddles_.end());
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
@@ -225,17 +261,25 @@ void PlaySession::tick(int iteration) {
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
     // que se reacciona a la transición y no a cada tick.
+    // Muerto (vida o energía): el server lo da por aceptado en la cama y
+    // no puede levantarse, así que espera sin pregunta y sin cancelar.
+    const bool localDied =
+            state.playerMaxHealth > 0 && state.playerHealth == 0;
+    popupState_.setWaitingCancelable(!localDied);
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
         if (lastSleeping_ == 0) {
             voted_ = false;
-            popupState_.hide();
-        } else if (voted_) {
-            popupState_.showWaiting(lastSleeping_, lastTotal_);
-        } else {
-            popupState_.showQuestion();
         }
+        popupState_.showSleepState(lastSleeping_, lastTotal_, voted_, localDied);
+    }
+    // Murió con la pregunta abierta (sin flanco de sueño: el sleepers no
+    // cambió): la pregunta salta al avance, que es lo que el server ya
+    // registró.
+    if (localDied && popupState_.view() == game::PopupView::Question) {
+        voted_ = true;
+        popupState_.showWaiting(lastSleeping_, lastTotal_);
     }
 
     // Lo tipeado y los backspaces del frame entran al buffer.
@@ -258,6 +302,11 @@ void PlaySession::tick(int iteration) {
 
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
+    // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
+    // de los enemigos en el mundo simulado (si hay), J/L mueven/borran
+    // sus proyectiles y V hace que el Skull ataque con el fuego verde.
+    // El server real pondrá la acción/posición directo en la vista y
+    // esto se saca.
     for (const game::InputCommand& command: commands) {
         // Enter manda y deja el chat ABIERTO; ESC lo cierra. Los dos
         // pasan aunque el popup sea modal.
@@ -270,6 +319,27 @@ void PlaySession::tick(int iteration) {
         }
         if (command.kind == game::InputCommand::Kind::ChatCancel) {
             closeChat();
+            continue;
+        }
+        const auto test = testActions_.find(command.kind);
+        if (test != testActions_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAll(test->second);
+            }
+            continue;
+        }
+        const auto projectileTest = projectileTests_.find(command.kind);
+        if (projectileTest != projectileTests_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                (enemyTestTrigger_->*(projectileTest->second))();
+            }
+            continue;
+        }
+        const auto attackProjectile = attackProjectiles_.find(command.kind);
+        if (attackProjectile != attackProjectiles_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAttackWith(attackProjectile->second);
+            }
             continue;
         }
         if (popupState_.modal()) {
@@ -298,6 +368,18 @@ void PlaySession::tick(int iteration) {
             stats_.at(spend->second.stat).spend(spend->second.cost);
             continue;
         }
+        if (const auto demo = localActions_.find(command.kind);
+            demo != localActions_.end()) {
+            // Demo local de una acción de la fuente (andamiaje): corre
+            // por la ventana de presentación local. La ventana se arma
+            // de los MISMOS datos de la acción (contrato §10).
+            const world::CreatureData& creature =
+                    characters_.dataFor(world::CreatureKind::Player);
+            actionWindow_.open(demo->second.action,
+                               creature.actionCycleTicks(demo->second.action) *
+                                       demo->second.cycles);
+            continue;
+        }
         if (command.kind == game::InputCommand::Kind::Faint) {
             // Demo local: la primera pulsación dispara la caída; con el
             // personaje ya desmayado no se reinicia.
@@ -305,6 +387,19 @@ void PlaySession::tick(int iteration) {
                 faintRequested_ = true;
                 faintFallTicks_ = 0;
                 audio_.play(sdl::SoundId::Death);
+            }
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::BloodPuddle) {
+            // ANDAMIAJE TEMPORAL: la demo del charco de sangre (tecla
+            // C) deja un charco en la celda del jugador (se acumulan),
+            // con su reloj de vida.
+            if (!state.entities.empty()) {
+                const game::ViewEntity& local =
+                        state.entities[game::kLocalPlayerIndex];
+                bloodPuddles_.push_back(BloodPuddle{
+                    world::GridCell{local.cellX, local.cellY},
+                    game::kBloodPuddleTicks});
             }
             continue;
         }
@@ -341,6 +436,15 @@ void PlaySession::tick(int iteration) {
         if (const std::optional<sdl::SoundId> sound = toolUseSounds_.update(local.activeTool)) {
             audio_.play(*sound);
         }
+    }
+
+    // Un sonido por cada acción que ACABA de empezar (el daño recibido:
+    // golpe al jugador o al enemigo, según la criatura), o al entrar a
+    // su último cuadro (el momento lo decide la tabla de ActionSounds).
+    // Va sobre la vista de PRESENTACIÓN: así suenan también las
+    // acciones locales.
+    for (const sdl::SoundId sound : actionSounds_.update(presentation, iteration)) {
+        audio_.play(sound);
     }
 
     // Un sonido por impacto confirmado, aunque el aspecto no cambie.
@@ -409,10 +513,21 @@ void PlaySession::tick(int iteration) {
     // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
     // antes del popup y del puntero para que queden encima.
     std::map<std::string, double> hudFillValues;
-    hudFillValues[game::kHudEnergyKey] =
-            stats_.at(game::StatKind::Energy).fraction();
-    hudFillValues[game::kHudLifeKey] =
-            stats_.at(game::StatKind::Life).fraction();
+    // Con el server en línea manda su vida/energía; sin server (offline)
+    // sigue mandando la simulación local.
+    if (state.playerMaxHealth > 0) {
+        hudFillValues[game::kHudLifeKey] =
+                static_cast<double>(state.playerHealth) / state.playerMaxHealth;
+        if (state.playerMaxEnergy > 0) {
+            hudFillValues[game::kHudEnergyKey] =
+                    static_cast<double>(state.playerEnergy) / state.playerMaxEnergy;
+        }
+    } else {
+        hudFillValues[game::kHudEnergyKey] =
+                stats_.at(game::StatKind::Energy).fraction();
+        hudFillValues[game::kHudLifeKey] =
+                stats_.at(game::StatKind::Life).fraction();
+    }
     hudOverlayPainter_.draw(hudFillValues);
     hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
     // Abierto: historial + tipeo (el cursor parpadea con el tick).
@@ -439,8 +554,9 @@ void PlaySession::tick(int iteration) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
         // El botón de cancelar del popup "Esperando..." sale de la cama
-        // (el server borra el OK de este jugador).
+        // (el server borra el OK de este jugador). Un muerto no cancela.
         if (popupState_.view() == game::PopupView::Waiting &&
+            popupState_.waitingCancelable() &&
             promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
                                    world::PixelPoint{click.x, click.y})) {
             gameClient_.sendCommand(protocol::SleepMessage{false});
@@ -502,6 +618,7 @@ void PlaySession::tick(int iteration) {
         interactive = (popupState_.view() == game::PopupView::Question &&
                        promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
                       (popupState_.view() == game::PopupView::Waiting &&
+                       popupState_.waitingCancelable() &&
                        promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
     }
     cursorPainter_.draw(cursorCatalog_,
@@ -511,9 +628,27 @@ void PlaySession::tick(int iteration) {
 }
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima el override
-    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    // Primero la pose de "meterse" (EnterSelection) y encima los
+    // overrides locales: la ventana de acción (demo de daño recibido),
+    // los charcos de sangre (demo) y el desmayo, que manda sobre todo
+    // lo demás.
     game::LocalWorldView display = enterSelection_.displayView(view);
+    if (actionWindow_.active() && !display.entities.empty() &&
+        display.entities[game::kLocalPlayerIndex].action != world::ActionKind::Faint) {
+        // Ventana de acción local: su acción manda hasta que se suelte
+        // (presentación local; la fuente la mandará tal cual). No pisa
+        // el desmayo que llegó por red: la fuente manda.
+        display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
+    }
+    // Los charcos de sangre (ANDAMIAJE) entran como consecuencia de
+    // terreno: así se dibujan bajo las entidades (el personaje pisa el
+    // charco) y mañana la fuente los manda tal cual. Solo los vivos:
+    // los vencidos ya salieron del estado.
+    for (const BloodPuddle& puddle : bloodPuddles_) {
+        display.groundEffects.push_back(game::ViewGroundEffect{
+            puddle.cell.column, puddle.cell.row,
+            world::GroundConsequence::Blood});
+    }
     if (!faintRequested_ || display.entities.empty()) {
         return display;
     }

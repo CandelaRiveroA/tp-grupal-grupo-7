@@ -94,6 +94,10 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.y);
     send_uint8(static_cast<uint8_t>(status.direction));
     send_appearance(status.appearance);
+    send_uint16(status.health);
+    send_uint16(status.max_health);
+    send_uint16(status.energy);
+    send_uint16(status.max_energy);
 }
 
 void ProtocolSender::send_message(const ServerLeave& leave) {
@@ -160,6 +164,30 @@ void ProtocolSender::send_message(const ServerAnimal& animal) {
     send_uint16(animal.y);
     send_uint8(static_cast<uint8_t>(animal.direction));
     send_uint8(animal.ready_to_milk ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerEnemy& enemy) {
+    validate_direction(enemy.direction);
+
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Enemy));
+    send_uint16(enemy.id);
+    send_string(enemy.kind);
+    send_uint16(enemy.x);
+    send_uint16(enemy.y);
+    send_uint8(static_cast<uint8_t>(enemy.direction));
+    send_uint8(enemy.health);
+    send_uint8(static_cast<uint8_t>(enemy.action));
+}
+
+void ProtocolSender::send_message(const ServerProjectile& projectile) {
+    validate_direction(projectile.direction);
+
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Projectile));
+    send_uint16(projectile.id);
+    send_string(projectile.kind);
+    send_uint16(projectile.x);
+    send_uint16(projectile.y);
+    send_uint8(static_cast<uint8_t>(projectile.direction));
 }
 
 void ProtocolSender::send_message(const ServerSleep& sleep) {

@@ -170,6 +170,90 @@ frames = [
   { anchor = "body",   flip = true, angle = -100, offset_x = -34, offset_y = 10, scale = 0.85, pivot = [0.5, 0.5], layers = [ [2, 1, 1, 2] ] },
 ]
 
+# --- Espada (sword, de Weapons.png) -----------------------------------
+# La espada se dibuja con UN solo sprite (Weapons.png, celda [0,0]) que
+# ROTA siguiendo el brazo, el mismo mecanismo que el pico: angle por
+# frame (grados horarios), pivot en la EMPUÑADURA (la esquina inferior
+# izquierda del sprite, donde está la empuñadura del arte) y offset por
+# frame para mantener la mano en su pose. El arco es una "media U":
+# el frame 1 sale IGUAL QUE EL ASSET (angle 0, hoja arriba-derecha) y
+# los frames 2-6 barren la hoja de arriba-derecha hacia abajo-izquierda
+# por delante del cuerpo. Los números de angle/offset se afinan a ojo
+# mirando cómo sigue el brazo (igual que pico y pala).
+#
+# 6 frames, frame_ticks = 5 = los de la acción "sword" en
+# characters.toml (6x5 = 30 ticks, la ventana uniforme del golpe).
+
+# Dirección front: el barrido va por DELANTE del cuerpo (pasada Front).
+# El pivot de cada frame es la empuñadura; el ángulo crece ~35° por
+# cuadro hasta cerrar la media U (~185°).
+[sword.front]
+sheet       = "Players/main/tools/Weapons.png"
+cell        = [16, 16]
+action      = "sword"
+frame_ticks = 5
+frames = [
+  { anchor = "body",   angle = 0,   offset_x = 12, offset_y = 10, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 35,  offset_x = 13, offset_y = 13, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 75,  offset_x = 13, offset_y = 17, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 115, offset_x = 11, offset_y = 19, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 150, offset_x = 7,  offset_y = 19, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 185, offset_x = 3,  offset_y = 16, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección back: media U INVERTIDA respecto de frente: la espada arranca
+# apuntando arriba-izquierda (angle -90) y barre hacia abajo-derecha
+# hasta quedar apuntando abajo (+135), pasando por la corona. Todos los
+# frames con behind = true: la espada se dibuja DETRÁS del cuerpo (pasada
+# Behind). El cuerpo la tapa donde cruza la espalda y se ve donde
+# sobresale (arriba de los hombros en la primera mitad del barrido).
+[sword.back]
+sheet       = "Players/main/tools/Weapons.png"
+cell        = [16, 16]
+action      = "sword"
+frame_ticks = 5
+frames = [
+  { anchor = "body",   behind = true, angle = -90,  offset_x = 2,  offset_y = 10, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "top",    behind = true, angle = -45,  offset_x = 6,  offset_y = 12, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "top",    behind = true, angle = 0,    offset_x = 11, offset_y = 14, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "top",    behind = true, angle = 45,   offset_x = 15, offset_y = 12, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   behind = true, angle = 90,   offset_x = 18, offset_y = 6,  pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   behind = true, angle = 135,  offset_x = 16, offset_y = 12, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección right: la espada sigue el brazo de costado; el barrido se
+# desplaza hacia adelante (offset_x positivo) con el mismo patrón que el
+# pico de costado (frames 1-2 arriba, 3-6 bajando hasta cerrar la U).
+[sword.right]
+sheet       = "Players/main/tools/Weapons.png"
+cell        = [16, 16]
+action      = "sword"
+frame_ticks = 5
+frames = [
+  { anchor = "top",    angle = -30, offset_x = -4, offset_y = 10, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "top",    angle = 15,  offset_x = 4,  offset_y = 12, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 60,  offset_x = 18, offset_y = 2,  pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 100, offset_x = 22, offset_y = 12, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 140, offset_x = 18, offset_y = 22, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   angle = 185, offset_x = 10, offset_y = 26, pivot = [0.2, 0.85], layers = [ [0, 0, 1, 1] ] },
+]
+
+# Dirección left: ESPEJO de right (flip = true, angle y offset_x con
+# signo invertido; el espejo invierte el sentido de giro).
+[sword.left]
+sheet       = "Players/main/tools/Weapons.png"
+cell        = [16, 16]
+action      = "sword"
+frame_ticks = 5
+frames = [
+  { anchor = "top",    flip = true, angle = 30,   offset_x = 4,   offset_y = 10, pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "top",    flip = true, angle = -15,  offset_x = -4,  offset_y = 12, pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   flip = true, angle = -60,  offset_x = -18, offset_y = 2,  pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   flip = true, angle = -100, offset_x = -22, offset_y = 12, pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   flip = true, angle = -140, offset_x = -18, offset_y = 22, pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+  { anchor = "body",   flip = true, angle = -185, offset_x = -10, offset_y = 26, pivot = [0.8, 0.85], layers = [ [0, 0, 1, 1] ] },
+]
+
 # --- Regadera (watering_can) ------------------------------------------
 # Sincronizada con la acción "water" (characters.toml): 3 cuadros de
 # costado (frame_ticks = 10), 5 de frente (frame_ticks = 6) y 1 de

@@ -8,6 +8,7 @@
 class Vampiress: public Vampire {
 public:
     Vampiress(uint16_t x, uint16_t y);
+    std::string kind_name() const override;
     ~Vampiress() override = default;
 
     void enter_frenzy() override;

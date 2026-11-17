@@ -15,9 +15,7 @@ public:
 
     // Al morir suelta plata con la probabilidad de la especie.
     void on_death(World& w) override;
-
-protected:
-    void behave(World& w) override;
+    std::string kind_name() const override;
 
 private:
     uint8_t silver_drop_percent;

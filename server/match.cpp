@@ -31,13 +31,16 @@
 
 // shortcut: un día de juego de 30s para probar; en la versión final son 15 min
 // (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 60
+#define kDayDurationSeconds 120
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
 #define kClockStepMs 100
-// Pasos de kClockStepMs entre movimiento de animales y enemigos (10 = 1 s). Ajustable.
+// Pasos de kClockStepMs entre el reloj lento de criaturas (40 = 4 s). Ajustable.
 #define kCreatureTickSteps 40
+// Pasos de kClockStepMs entre persecución de enemigos y vuelo de llamas
+// (4 = 400 ms, el mismo ritmo que da un paso el jugador).
+#define kEnemyTickSteps 4
 
 DayClock::DayClock(Queue<MatchEvent>& events):
         events(events), restart_requested(false), day_generation(0) {}
@@ -59,6 +62,7 @@ void DayClock::execute() {
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
         uint8_t creature_steps = 0;
+        uint8_t enemy_steps = 0;
         uint16_t clock_minutes = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
@@ -90,6 +94,15 @@ void DayClock::execute() {
                 creature_steps = 0;
                 try {
                     events.push(MatchEvent(CreatureTick{}));
+                } catch (const ClosedQueue&) {
+                    return;
+                }
+            }
+            // Persecución y llamas: 10 veces más seguido que el reloj lento.
+            if (++enemy_steps >= kEnemyTickSteps) {
+                enemy_steps = 0;
+                try {
+                    events.push(MatchEvent(EnemyTick{}));
                 } catch (const ClosedQueue&) {
                     return;
                 }
@@ -144,6 +157,7 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
 // Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
 // donde están y amanecen en la cama cuando despiertan.
 void Match::handle(const DayPassed& /*day*/) {
+    world.mark_all_fainted_by_timeout();
     world.end_day();
     sync_day();
     push_sleep_state();
@@ -156,6 +170,27 @@ void Match::handle(const CreatureTick& /*tick*/) {
         world.tick_enemies();
     }
     sync_all();
+}
+
+void Match::handle(const EnemyTick& /*tick*/) {
+    if (world.is_waking()) {
+        return;
+    }
+    // Solo sincroniza si algo cambió: hay llamas en vuelo o alguien persiguiendo.
+    const bool flames_flying = world.tick_flames();
+    const bool someone_pursuing = world.tick_enemies_pursuit();
+    // Cuando vence la espera del muerto va a la cama (y queda en
+    // sleepers): hay que mandar el estado aunque no haya enemigos ni
+    // llamas en vuelo.
+    const bool arrived_at_bed = world.tick_death_to_bed();
+    // La muerte por daño (enemigo o llama) nace en este tick: sin empujar
+    // estos estados el muerto se entera recién cuando manda un comando,
+    // es decir, recién cuando se mueve. Los dos deduplican solos.
+    sync_day();
+    push_sleep_state();
+    if (flames_flying || someone_pursuing || arrived_at_bed) {
+        sync_all();
+    }
 }
 
 void Match::handle(const ClockStep& step) {
@@ -182,6 +217,7 @@ void Match::sync_day() {
     if (world.take_day_started()) {
         for (const uint8_t id: world.get_player_ids()) {
             world.set_player_position(id, kBedX, kBedY);
+            world.reset_player_for_day(id);
         }
         clock.restart();
         broadcast(ServerDay{});

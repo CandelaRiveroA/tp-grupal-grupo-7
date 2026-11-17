@@ -12,9 +12,7 @@ public:
 
     // Al morir programa el revive; el mundo no se toca (sigue en la celda).
     void on_death(World& w) override;
-
-protected:
-    void behave(World& w) override;
+    std::string kind_name() const override;
 };
 
 #endif  // SKELETON_H

@@ -40,10 +40,16 @@ uint8_t Vampire::get_damage() const {
 
 void Vampire::enter_frenzy() { this->attack_frenzy = kFrenzyMultiplier; }
 
+bool Vampire::try_consume_for_revive(World& w) {
+    return w.consume_blood_puddle();
+}
+
+std::string Vampire::kind_name() const { return "vampire"; }
+
 void Vampire::on_death(World& w) {
-    // Particularidad: revive solo si quedaba sangre; consume un charco por
-    // muerte. Sin sangre se queda muerto.
-    if (w.consume_blood_puddle()) {
+    // Revive solo si queda sangre; el charco se consume al revivir (no al
+    // morir), así el cliente ve la eliminación cuando el vampiro vuelve.
+    if (w.has_blood_puddle()) {
         this->ticks_to_revive = kReviveTicks;
     }
     // El que muere enfurece a su pareja aunque él no reviva.
@@ -52,9 +58,7 @@ void Vampire::on_death(World& w) {
     }
 }
 
-void Vampire::behave(World& w) {
-    // Una acción (mover o pegar) por cada punto de speed por tick.
-    for (uint8_t i = 0; i < this->speed * this->speed_frenzy; ++i) {
-        this->chase_player(w);
-    }
+bool Vampire::pursue(World& w) {
+    // Un paso de persecución por punto de speed por tick (400 ms).
+    return this->pursue_steps(w, this->speed * this->speed_frenzy);
 }

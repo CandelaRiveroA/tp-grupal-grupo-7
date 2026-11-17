@@ -27,6 +27,7 @@ private:
     void send_message(const protocol::TakeMessage& message);
     void send_message(const protocol::SleepMessage& message);
     void send_message(const protocol::WakeMessage& message);
+    void send_message(const protocol::ChatMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -48,6 +49,7 @@ private:
     void send_message(const ServerClock& clock);
     void send_message(const ServerCrop& crop);
     void send_message(const ServerGroundEffect& ground);
+    void send_message(const ServerChat& chat);
 
 public:
     explicit ProtocolSender(Socket& socket);

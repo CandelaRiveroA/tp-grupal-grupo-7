@@ -82,6 +82,7 @@ public:
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
     const Player& get_player(uint8_t player_id) const;
+    Player& get_player(uint8_t player_id);
     std::vector<uint8_t> get_player_ids() const;
 
     uint16_t get_width() const;

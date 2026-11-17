@@ -94,11 +94,9 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
 }
 
 void NetworkGameClient::sendChat(const std::string& text) {
-    // Eco local: el día que el server reparta el mensaje hay que sacarlo
-    // o se ve dos veces.
-    view_.addChatLine(ViewChatLine{localPlayerId_, kLocalPlayerName, text});
-
-    // TODO(protocolo): acá viaja el texto cuando el protocolo lo conecte.
+    // El servidor reparte el mensaje (broadcast o privado) y lo devuelve en un
+    // ServerChat: no hacemos eco local para no verlo dos veces.
+    commands_.push(protocol::ChatMessage{text});
 }
 
 void NetworkGameClient::receiveChat(const std::uint8_t playerId,
@@ -180,6 +178,13 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El chat es un evento, no estado: se aplica ya (fuera del lote).
+    if (const auto* chat = std::get_if<ServerChat>(&message)) {
+        receiveChat(chat->player_id,
+                    chat->system ? std::string("Servidor") : chat->characterName,
+                    chat->text);
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {

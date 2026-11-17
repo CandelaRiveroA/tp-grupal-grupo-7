@@ -32,6 +32,7 @@ enum class ServerMessageType : uint8_t {
     GroundEffect = 20,
     Enemy = 21,
     Projectile = 22,
+    Chat = 23,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -213,10 +214,21 @@ struct ServerGroundEffect {
     GroundEffect effect;
 };
 
+// Mensaje de chat: player_id y characterName identifican al emisor (0/vacío si
+// es un mensaje de sistema, ej. respuesta de un cheat o error). system = true
+// indica que el cliente debe mostrarlo sin prefijo de jugador ("Servidor: ...").
+struct ServerChat {
+    uint8_t player_id;
+    std::string characterName;
+    std::string text;
+    bool system;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile>;
+                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
+                     ServerChat>;
 
 #endif

@@ -50,6 +50,8 @@ public:
     uint16_t get_health() const;
     uint16_t get_max_health() const;
     void set_health(uint16_t hp) { this->hp = hp; }
+    uint16_t get_gold() const { return this->gold; }
+    void set_gold(uint16_t g) { this->gold = g; }
     void set_energy(float e) { this->energy = e; }
     float get_energy() const;
     float get_max_energy() const;

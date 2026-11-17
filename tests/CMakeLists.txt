@@ -2,6 +2,7 @@ target_sources(taller_tests
     PRIVATE
     # .cpp files
     character_layers.cpp
+    chat_test.cpp
     index_cycle.cpp
     invite_code_format.cpp
     matches_monitor_test.cpp
@@ -24,6 +25,7 @@ target_sources(taller_tests
     ../server/commands/pick_command.cpp
     ../server/commands/take_command.cpp
     ../server/commands/sleep_command.cpp
+    ../server/commands/chat_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/decoration_item.cpp

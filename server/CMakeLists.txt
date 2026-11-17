@@ -14,6 +14,7 @@ target_sources(taller_server
     commands/pick_command.cpp
     commands/take_command.cpp
     commands/sleep_command.cpp
+    commands/chat_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp

@@ -130,6 +130,7 @@ void World::move_player(uint8_t player_id, Direction dir) {
 }
 
 const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }
+Player& World::get_player(uint8_t player_id) { return *this->players.at(player_id); }
 
 std::vector<uint8_t> World::get_player_ids() const {
     std::vector<uint8_t> ids;

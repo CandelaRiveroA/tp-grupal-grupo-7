@@ -14,6 +14,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
                 {protocol::ClientMessageType::Sleep, &ProtocolReceiver::receive_sleep_message},
                 {protocol::ClientMessageType::Wake, &ProtocolReceiver::receive_wake_message},
+                {protocol::ClientMessageType::Chat, &ProtocolReceiver::receive_chat_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -39,6 +40,7 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Clock, &ProtocolReceiver::receive_clock_message},
                 {ServerMessageType::Crop, &ProtocolReceiver::receive_crop_message},
                 {ServerMessageType::GroundEffect, &ProtocolReceiver::receive_ground_effect_message},
+                {ServerMessageType::Chat, &ProtocolReceiver::receive_server_chat_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -127,6 +129,10 @@ protocol::ClientMessage ProtocolReceiver::receive_sleep_message() {
 }
 
 protocol::ClientMessage ProtocolReceiver::receive_wake_message() { return protocol::WakeMessage{}; }
+
+protocol::ClientMessage ProtocolReceiver::receive_chat_message() {
+    return protocol::ChatMessage{receive_string()};
+}
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
     const std::optional<uint8_t> type_byte = receive_uint8_or_end();
@@ -301,6 +307,14 @@ ServerMessage ProtocolReceiver::receive_ground_effect_message() {
         throw std::invalid_argument("El efecto de suelo no es valido.");
     }
     return ServerGroundEffect{x, y, static_cast<GroundEffect>(effect)};
+}
+
+ServerMessage ProtocolReceiver::receive_server_chat_message() {
+    const uint8_t player_id = receive_uint8();
+    const std::string characterName = receive_string();
+    const std::string text = receive_string();
+    const uint8_t system = receive_uint8();
+    return ServerChat{player_id, characterName, text, system == 1};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {

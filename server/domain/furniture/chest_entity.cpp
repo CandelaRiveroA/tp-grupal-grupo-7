@@ -27,7 +27,6 @@ void ChestEntity::interact(Player& p, ToolType tool, World& w) {
         // Recorremos los 30 espacios posibles del cofre
         for (uint8_t i = 0; i < CHEST_INVENTORY_SIZE; ++i) {
             
-            // Mientras haya unidades apiladas en este slot (gracias al nuevo remove_item)
             while (!this->storage.is_slot_empty(i)) {
                 
                 // 1. Extraemos 1 sola unidad

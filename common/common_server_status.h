@@ -33,6 +33,7 @@ enum class ServerMessageType : uint8_t {
     Enemy = 21,
     Projectile = 22,
     Chat = 23,
+    GiftRequest = 24,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -227,11 +228,16 @@ struct ServerChat {
     bool system;
 };
 
+struct ServerGiftRequest {
+    uint8_t sender_id;
+    std::string content_id;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat>;
+                     ServerChat, ServerGiftRequest>;
 
 #endif

@@ -2,6 +2,7 @@
 #define DECORATION_ITEM_H
 
 #include <cstdint>
+#include <memory>
 
 #include "item.h"
 
@@ -21,6 +22,7 @@ public:
     DecorationItem& operator=(DecorationItem&&) = default;
 
     uint16_t get_model_id() const;
+    std::unique_ptr<Item> clone() const override;
 };
 
 #endif  // DECORATION_ITEM_H

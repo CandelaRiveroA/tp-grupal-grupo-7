@@ -306,6 +306,7 @@ endif()
 # Program section
 # ---------------
 if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_QT_HARNESS)
+    set(QT_NO_STANDARD_PROJECT_SETUP ON)
     find_package(Qt6 COMPONENTS Widgets REQUIRED)
 endif()
 

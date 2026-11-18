@@ -268,6 +268,9 @@ void Match::handle(const PlayerMessage& event) {
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
+    for (const GiftOffer& offer : world.take_gift_requests()) {
+        send_to(offer.receiver_id, ServerGiftRequest{offer.sender_id, content_id_for(offer.item)});
+    }
     sync_day();
     push_sleep_state();
     sync_all();

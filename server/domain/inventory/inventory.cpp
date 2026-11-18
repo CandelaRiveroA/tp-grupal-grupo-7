@@ -84,3 +84,18 @@ std::unique_ptr<Item> Inventory::remove_item(uint8_t index) {
 
     return extracted;
 }
+
+std::unique_ptr<Item> Inventory::pop_one_item(uint8_t slot_idx) {
+    if (slot_idx >= this->max_slots || this->slots[slot_idx].is_empty()) {
+        return nullptr;
+    }
+
+    std::unique_ptr<Item> item_to_return = this->slots[slot_idx].item->clone();
+
+    this->slots[slot_idx].amount--;
+    if (this->slots[slot_idx].amount == 0) {
+        this->slots[slot_idx].item.reset();
+    }
+
+    return item_to_return;
+}

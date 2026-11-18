@@ -50,15 +50,17 @@ private:
     void send_message(const ServerCrop& crop);
     void send_message(const ServerGroundEffect& ground);
     void send_message(const ServerChat& chat);
+    void send_message(const ServerGiftRequest& gift);
 
 public:
     explicit ProtocolSender(Socket& socket);
-
+    
     void send_client_message(const protocol::ClientMessage& message);
     void send_server_message(const ServerMessage& message);
     void send_welcome(const ServerWelcome& welcome);
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
+    void send_message(const protocol::GiftResponseMessage& message);
 };
 
 #endif

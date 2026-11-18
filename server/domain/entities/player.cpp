@@ -2,6 +2,8 @@
 #include <cstdlib>
 
 #include "i_movable.h"
+#include "../inventory/tool.h"
+#include "../inventory/product.h"
 
 // Vida máxima del jugador. La baja enemiga es 5-10 por golpe (kDamage de
 // esqueleto y orco), así que un esqueleto mata en 20 golpes y un orco en 10.
@@ -16,16 +18,16 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y)
           energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
           died_in_combat(false), fainted_by_timeout(false), fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
-    this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::WATERING_CAN, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::SWORD, false));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::PICKAXE));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::SHOVEL));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::WATERING_CAN));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::SWORD));
         // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
     // se compren o se cosechen semillas (hoy no hay tienda).
-    this->backpack.add_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::ONION_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::POTATO_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::PUMPKIN_SEED, false));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::STRAWBERRY_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::ONION_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::POTATO_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::PUMPKIN_SEED, 20, Quality::BASE));
     this->gold = std::rand() % 101;
 }
 uint8_t Player::get_id() const { return this->player_id; }
@@ -37,9 +39,28 @@ const CharacterAppearance& Player::get_appearance() const { return this->appeara
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
 uint16_t Player::get_health() const { return this->hp; }
+void Player::set_health(uint16_t hp) { this->hp = hp; }
+uint16_t Player::get_gold() const { return this->gold; }
+void Player::set_gold(uint16_t g) { this->gold = g; }
 uint16_t Player::get_max_health() const { return this->max_hp; }
 float Player::get_energy() const { return this->energy; }
+void Player::set_energy(float e) { this->energy = e; }
 float Player::get_max_energy() const { return this->max_energy; }
+
+void Player::add_gold(uint16_t amount) { this->gold += amount; }
+bool Player::try_remove_gold(uint16_t amount) {
+    if (this->gold >= amount) {
+        this->gold -= amount;
+        return true;
+    }
+    return false;
+}
+bool Player::diedInCombat() const { return this->died_in_combat; }
+bool Player::faintedByTimeout() const { return this->fainted_by_timeout; }
+bool Player::faintedByEnergy() const { return this->fainted_by_energy; }
+void Player::setDiedInCombat(bool v) { this->died_in_combat = v; }
+void Player::setFaintedByTimeout(bool v) { this->fainted_by_timeout = v; }
+void Player::setFaintedByEnergy(bool v) { this->fainted_by_energy = v; }
 
 bool Player::is_gravely_wounded() const {
     return this->hp * kPercentMax < this->max_hp * kGravelyWoundedPercent;
@@ -133,6 +154,32 @@ bool Player::is_energy_depleted() const {
 
 bool Player::is_walkable() const { return true; }
 
-void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {}
+void Player::interact(Player& p, ToolType tool, World& w) {
+    if (tool != ToolType::HAND) return;
+    const Item* item_to_give = p.peek_equipped_item();
+    if (!item_to_give || !item_to_give->can_be_traded()) {
+        return; 
+    }
+    w.notify_gift_request(p.get_id(), this->get_id(), item_to_give->get_id());   
+}
+
+bool Player::finalize_gift_reception(Player& receiver) {
+    const Item* equipped = this->peek_equipped_item();
+    
+    if (!equipped || !equipped->can_be_traded()) {
+        return false; 
+    }
+    
+    std::unique_ptr<Item> gift = equipped->clone();
+    bool success = receiver.pick_up_item(std::move(gift));
+
+    if (success) {
+        this->consume_equipped_item();
+        return true;
+    }
+
+    //TODO: disparar una notificación de inventario lleno si lo deseas.
+    return false;
+}
 
 void Player::update(World& /*w*/) {}

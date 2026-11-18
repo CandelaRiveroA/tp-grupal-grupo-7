@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
-#include "domain/map/world.h"
+#include "../domain/map/world.h"
 
-#include "common_command.h"
+#include "../../common/common_command.h"
 
 // Cada comando del protocolo tiene su overload de apply. Si se agrega un
 // alternativo a protocol::ClientMessage sin su overload, Match no compila.
@@ -17,6 +17,7 @@ void apply(World& world, uint8_t player_id, const protocol::TakeMessage& message
 void apply(World& world, uint8_t player_id, const protocol::SleepMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::WakeMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::ChatMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::GiftResponseMessage& message);
 }  // namespace commands
 
 #endif

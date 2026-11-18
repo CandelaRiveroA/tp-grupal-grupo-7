@@ -277,3 +277,15 @@ void ProtocolSender::send_match_request(const MatchRequest& request) {
 void ProtocolSender::send_lobby_status(LobbyStatus status) {
     send_uint8(static_cast<uint8_t>(status));
 }
+
+void ProtocolSender::send_message(const protocol::GiftResponseMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::GiftResponse));
+    send_uint8(message.sender_id);
+    send_uint8(message.accept ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerGiftRequest& request) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GiftRequest));
+    send_uint8(request.sender_id);
+    send_string(request.content_id);
+}

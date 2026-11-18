@@ -867,6 +867,28 @@ void World::try_start_day() {
     this->day_started = true;
 }
 
+void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    this->pending_gifts.push_back({sender, receiver, item});
+}
+
+std::vector<GiftOffer> World::take_gift_requests() {
+    return std::move(this->pending_gifts);
+}
+
+void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
+    auto sender_it = this->players.find(sender_id);
+    auto receiver_it = this->players.find(receiver_id);
+    
+    if (sender_it == this->players.end() || receiver_it == this->players.end()) {
+        return;
+    }
+
+    Player& sender = *sender_it->second;
+    Player& receiver = *receiver_it->second;
+
+    sender.finalize_gift_reception(receiver);
+}
+
 bool World::is_waking() const { return this->waking; }
 
 bool World::take_day_ended() {

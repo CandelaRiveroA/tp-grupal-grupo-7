@@ -40,6 +40,7 @@ target_sources(taller_server
     domain/inventory/product.cpp
     domain/inventory/decoration_item.cpp
     domain/inventory/slot.cpp
+    domain/inventory/tool.cpp
     domain/minerals/mineral.cpp
     domain/minerals/coal_rock.cpp
     domain/minerals/lapis_rock.cpp

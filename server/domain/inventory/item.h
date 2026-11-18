@@ -2,6 +2,7 @@
 #define ITEM_H
 
 #include "item_types.h"
+#include <memory>
 
 class Item {
 protected:

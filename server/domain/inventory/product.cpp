@@ -24,3 +24,8 @@ bool Product::is_stackable_with(const Item& other) const {
 }
 
 Quality Product::get_quality() const { return this->quality; }
+
+std::unique_ptr<Item> Product::clone() const {
+    return std::make_unique<Product>(this->id, this->base_price, this->quality);
+}
+

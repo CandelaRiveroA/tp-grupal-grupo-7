@@ -2,6 +2,8 @@
 #include <cstdlib>
 
 #include "i_movable.h"
+#include "../inventory/tool.h"
+#include "../inventory/product.h"
 
 // Vida máxima del jugador. La baja enemiga es 5-10 por golpe (kDamage de
 // esqueleto y orco), así que un esqueleto mata en 20 golpes y un orco en 10.
@@ -16,16 +18,16 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y)
           energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
           died_in_combat(false), fainted_by_timeout(false), fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
-    this->backpack.add_item(std::make_unique<Item>(ItemID::PICKAXE, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::SHOVEL, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::WATERING_CAN, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::SWORD, false));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::PICKAXE));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::SHOVEL));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::WATERING_CAN));
+    this->backpack.add_item(std::make_unique<Tool>(ItemID::SWORD));
         // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
     // se compren o se cosechen semillas (hoy no hay tienda).
-    this->backpack.add_item(std::make_unique<Item>(ItemID::STRAWBERRY_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::ONION_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::POTATO_SEED, false));
-    this->backpack.add_item(std::make_unique<Item>(ItemID::PUMPKIN_SEED, false));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::STRAWBERRY_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::ONION_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::POTATO_SEED, 20, Quality::BASE));
+    this->backpack.add_item(std::make_unique<Product>(ItemID::PUMPKIN_SEED, 20, Quality::BASE));
     this->gold = std::rand() % 101;
 }
 uint8_t Player::get_id() const { return this->player_id; }

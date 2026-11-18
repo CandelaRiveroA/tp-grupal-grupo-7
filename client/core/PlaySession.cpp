@@ -253,6 +253,20 @@ void PlaySession::tick(int iteration) {
         popupState_.showWaiting(lastSleeping_, lastTotal_);
     }
 
+    // Llegó un pedido de regalo (ServerGiftRequest): abre el popup del
+    // receptor con el nombre del emisor y guarda a quién se le contesta.
+    if (state.giftRequest.has_value()) {
+        pendingGiftSenderId_ = state.giftRequest->senderId;
+        popupState_.showGiftReceived(state.giftRequest->senderName);
+    }
+
+    // El receptor contestó MI oferta (acepte o rechace): se cierra la
+    // espera. Solo si sigue abierta: la respuesta puede llegar tarde,
+    // después de cancelar a mano.
+    if (state.giftAnswered && popupState_.view() == game::PopupView::GiftWaiting) {
+        popupState_.hide();
+    }
+
     // Lo tipeado y los backspaces del frame entran al buffer.
     if (input_.chatOpen()) {
         chatInput_ += input_.takeText();
@@ -279,17 +293,6 @@ void PlaySession::tick(int iteration) {
     // El server real pondrá la acción/posición directo en la vista y
     // esto se saca.
     for (const game::InputCommand& command: commands) {
-        // Los comandos demo de regalos simulan eventos del SERVER (no
-        // intenciones del jugador): se atienden aunque el popup sea
-        // modal. Cuando exista la conexión, los reemplaza la vista.
-        if (command.kind == game::InputCommand::Kind::GiftSent) {
-            popupState_.showGiftWaiting();
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::GiftReceived) {
-            popupState_.showGiftReceived(game::kDemoGiftSenderName);
-            continue;
-        }
         // Enter manda y deja el chat ABIERTO; ESC lo cierra. Los dos
         // pasan aunque el popup sea modal.
         if (command.kind == game::InputCommand::Kind::ChatSubmit) {
@@ -520,16 +523,27 @@ void PlaySession::tick(int iteration) {
                         popupState_.hide();
                     }
                 } else if (view == game::PopupView::GiftOffer) {
-                    // Sí no avanza localmente: lo hará el server. La
-                    // tecla demo R simula ese evento.
-                    if (option != 0) {
+                    // Sí manda la intención (Take con la mano, igual que
+                    // cualquier interact): el server dispara el pedido de
+                    // regalo hacia el otro jugador. No: solo cierra.
+                    if (option == 0) {
+                        player_.interact();
+                        popupState_.showGiftWaiting();
+                    } else {
                         popupState_.hide();
                     }
                 } else if (view == game::PopupView::GiftReceived) {
+                    // La respuesta va al emisor del pedido (si el popup no
+                    // lo abrió la red, no hay a quién contestarle).
                     popupState_.hide();
-                    if (option == 0) {
-                        giftThanksActive_ = true;
-                        giftThanksTicks_ = 0;
+                    if (pendingGiftSenderId_.has_value()) {
+                        gameClient_.sendCommand(protocol::GiftResponseMessage{
+                                *pendingGiftSenderId_, option == 0});
+                        pendingGiftSenderId_.reset();
+                        if (option == 0) {
+                            giftThanksActive_ = true;
+                            giftThanksTicks_ = 0;
+                        }
                     }
                 }
                 continue;
@@ -709,7 +723,18 @@ bool PlaySession::isGiftTarget(const game::PickTarget& target,
         target.index >= view.entities.size()) {
         return false;
     }
-    return view.entities[target.index].kind == world::CreatureKind::Player;
+    if (view.entities[target.index].kind != world::CreatureKind::Player) {
+        return false;
+    }
+    // Solo se ofrece con algo transferible en el casillero activo: lo dice
+    // el servidor (slot.tradable); con una herramienta o el casillero vacío
+    // no se arma el pedido y el emisor quedaría esperando en vano.
+    const int slot = player_.activeSlot();
+    const auto held = std::find_if(view.inventory.begin(), view.inventory.end(),
+                                   [slot](const game::ViewInventorySlot& inventorySlot) {
+                                       return inventorySlot.slotIndex == slot;
+                                   });
+    return held != view.inventory.end() && held->tradable;
 }
 
 }  // namespace core

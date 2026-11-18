@@ -61,8 +61,10 @@ public:
     void showNextDay();
 
     // Punto de ENTRADA del flujo de regalos. GiftOffer lo dispara el
-    // click sobre otro jugador; GiftWaiting y GiftReceived llegarán
-    // del server (hoy los simulan las teclas demo).
+    // click sobre otro jugador (con algo transferible en el casillero
+    // activo) y, al responder Sí, el cliente abre GiftWaiting;
+    // GiftReceived lo abre el cliente con el pedido que manda el server
+    // (ServerGiftRequest) y el nombre de su emisor.
     void showGiftOffer();
     void showGiftWaiting();
     void showGiftReceived(const std::string& senderName);

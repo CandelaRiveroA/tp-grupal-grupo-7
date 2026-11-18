@@ -23,9 +23,12 @@ struct PickMessage {
     uint8_t slot;
 };
 
-// Take: recoge el item caído sobre la celda propia del jugador.
+// Take: recoge el item caído sobre la celda propia del jugador. El casillero
+// `slot` viaja igual que en Pick: la selección del inventario es local y el
+// server la necesita para saber qué tiene equipado (p. ej. para el regalo).
 struct TakeMessage {
     Direction direction;
+    uint8_t slot;
 };
 
 // Sleep: responde al aviso de la cama. accept = true confirma dormir (y

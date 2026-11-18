@@ -61,9 +61,4 @@ constexpr std::size_t kChatHistoryMax = 10;
 // Nombre del jugador local: el lobby todavía no lo pasa al cliente.
 constexpr const char* kLocalPlayerName = "Vos";
 
-// Valor DEMO de {0} en el popup del receptor: el server lo reemplazará
-// por el nombre real del jugador que regala (el copy solo tiene el
-// token, nunca el nombre escrito a mano).
-constexpr const char* kDemoGiftSenderName = "Jugador";
-
 }

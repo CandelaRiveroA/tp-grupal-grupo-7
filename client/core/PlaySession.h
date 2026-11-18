@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 
 #include "core/StartupScreens.h"
@@ -131,6 +133,8 @@ private:
 
     // ¿El objetivo es OTRO jugador (no el local)? Lo decide la vista:
     // mismo tipo Player y un índice distinto de kLocalPlayerIndex.
+    // Además exige algo transferible en el casillero activo: con una
+    // herramienta el server no arma el pedido (ver isGiftTarget).
     bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
@@ -210,6 +214,10 @@ private:
     // que la animación (dato del catálogo), así se puede repetir.
     bool giftThanksActive_ = false;
     int giftThanksTicks_ = 0;
+    // Pedido de regalo pendiente de respuesta: el emisor (senderId del
+    // ServerGiftRequest que abrió el popup), que viaja en el
+    // protocol::GiftResponseMessage. Sin pedido = nullopt.
+    std::optional<std::uint8_t> pendingGiftSenderId_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

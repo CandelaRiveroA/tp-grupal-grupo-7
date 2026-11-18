@@ -87,10 +87,15 @@ struct ViewResource {
 //            servidor (ej. "pickaxe", "silver", futuro "egg").
 // count:     cantidad acumulada en el slot. Convención de dibujo: 1 no
 //            muestra número; >1 muestra el número.
+// tradable:  si se puede regalar. Lo manda el servidor (ServerInventorySlot)
+//            y es la fuente única de esa regla; true por defecto para que
+//            las fuentes locales (mock, recompensas) sigan compiland sin
+//            declararlo.
 struct ViewInventorySlot {
     int slotIndex;
     std::string contentId;
     int count;
+    bool tradable = true;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un
@@ -99,6 +104,16 @@ struct ViewInventorySlot {
 // del piso): el panel de obtenidos muestra cualquier cosa.
 struct ViewObtained {
     std::string contentId;
+};
+
+// Pedido de regalo entrante (ServerGiftRequest): el emisor ofreció su ítem
+// equipado y el server lo reenvía al receptor. Evento de UN tick (igual que
+// obtained): el que lo dibuja abre el popup del receptor y responde con
+// protocol::GiftResponseMessage (senderId = emisor a contestar, senderName
+// = nombre real para el token {0} del copy).
+struct ViewGiftRequest {
+    std::uint8_t senderId;
+    std::string senderName;
 };
 
 // Item caído al piso, recogible por el jugador. GENÉRICO: lo identifica un
@@ -188,6 +203,11 @@ struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
+    std::optional<ViewGiftRequest> giftRequest;
+    // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
+    // evento, como dayEnded, vale solo en el tick en que llega.
+    bool giftAnswered = false;
     std::vector<ViewDroppedItem> droppedItems;
     std::vector<ViewInventorySlot> inventory;
     world::GridSpan grid{0, 0};

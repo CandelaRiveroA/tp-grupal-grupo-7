@@ -42,12 +42,17 @@ text   = "¿Avanzamos al siguiente día?"
 button = "ok"
 
 # --- Regalos ------------------------------------------------------------
-# Gift offer: el popup del que da el regalo (click sobre otro jugador).
-# Gift waiting: el estado de espera (lo abrirá el server; hoy la tecla R).
-# Gift received: el popup del receptor (lo abrirá el server; hoy la tecla T).
-#   {0} = nombre del jugador que regala. Hoy la demo manda "Jugador";
-#   cuando exista la conexión lo reemplaza el nombre real que envíe el
-#   server (no se escribe a mano en el copy).
+# Gift offer: el popup del que da el regalo (click sobre otro jugador,
+#   solo con algo transferible en el casillero activo: una herramienta
+#   no ofrece).
+#   "Sí" manda la intención (Take con la mano) al server.
+# Gift waiting: espera del emisor (lo abre el cliente tras ofrecer; hoy
+#   el server no manda estado del regalo al emisor, se cierra con el
+#   botón).
+# Gift received: el popup del receptor (lo abre el cliente con el pedido
+#   del server).
+#   {0} = nombre del jugador que regala: lo manda el server
+#   (characterName) y nunca se escribe a mano en el copy.
 #   option_offset_y = cuántos px baja la fila Sí/No respecto de la
 #   pregunta (2 acá: la pregunta es larga y quedaban muy juntos).
 [prompt.copy.gift_offer]

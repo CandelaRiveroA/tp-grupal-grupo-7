@@ -15,6 +15,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Sleep, &ProtocolReceiver::receive_sleep_message},
                 {protocol::ClientMessageType::Wake, &ProtocolReceiver::receive_wake_message},
                 {protocol::ClientMessageType::Chat, &ProtocolReceiver::receive_chat_message},
+                {protocol::ClientMessageType::GiftResponse,
+                 &ProtocolReceiver::receive_gift_response_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -41,6 +43,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Crop, &ProtocolReceiver::receive_crop_message},
                 {ServerMessageType::GroundEffect, &ProtocolReceiver::receive_ground_effect_message},
                 {ServerMessageType::Chat, &ProtocolReceiver::receive_server_chat_message},
+                {ServerMessageType::GiftRequest, &ProtocolReceiver::receive_gift_request_message},
+                {ServerMessageType::GiftAnswered, &ProtocolReceiver::receive_gift_answered_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -117,7 +121,8 @@ protocol::ClientMessage ProtocolReceiver::receive_pick_message() {
 
 protocol::ClientMessage ProtocolReceiver::receive_take_message() {
     const Direction direction = direction_from_byte(receive_uint8());
-    return protocol::TakeMessage{direction};
+    const uint8_t slot = receive_uint8();
+    return protocol::TakeMessage{direction, slot};
 }
 
 protocol::ClientMessage ProtocolReceiver::receive_sleep_message() {
@@ -188,7 +193,11 @@ ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
     const uint8_t slot = receive_uint8();
     const uint8_t count = receive_uint8();
     std::string content_id = receive_string();
-    return ServerInventorySlot{slot, count, std::move(content_id)};
+    const uint8_t tradable = receive_uint8();
+    if (tradable > 1) {
+        throw std::invalid_argument("El indicador de transferibilidad no es valido.");
+    }
+    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1};
 }
 
 ServerMessage ProtocolReceiver::receive_obtained_message() {
@@ -372,7 +381,10 @@ protocol::ClientMessage ProtocolReceiver::receive_gift_response_message() {
 
 ServerMessage ProtocolReceiver::receive_gift_request_message() {
     const uint8_t sender = receive_uint8();
+    std::string name = receive_string();
     std::string content = receive_string();
-    return ServerGiftRequest{sender, std::move(content)};
+    return ServerGiftRequest{sender, std::move(name), std::move(content)};
 }
+
+ServerMessage ProtocolReceiver::receive_gift_answered_message() { return ServerGiftAnswered{}; }
 

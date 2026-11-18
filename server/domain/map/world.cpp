@@ -648,6 +648,22 @@ void World::take_item(uint8_t player_id) {
             ent->interact(p, ToolType::HAND, *this);
         }
     }
+
+    // Otro jugador en la celda propia o en las 8 vecinas: pide el regalo del
+    // ítem equipado (Player::interact). Los jugadores no son entidades de la
+    // celda (viven solo en players), así que se los recorre a mano, con el
+    // mismo radio que los animales y los huevos.
+    for (const auto& [id, other]: this->players) {
+        if (id == player_id) {
+            continue;
+        }
+        const int dx = other->get_x() - p.get_x();
+        const int dy = other->get_y() - p.get_y();
+        if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+            other->interact(p, ToolType::HAND, *this);
+            return;
+        }
+    }
 }
 
 void World::dry_soil() {
@@ -871,8 +887,16 @@ void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
     this->pending_gifts.push_back({sender, receiver, item});
 }
 
+void World::notify_gift_answered(uint8_t sender_id) {
+    this->gift_answers.push_back(sender_id);
+}
+
 std::vector<GiftOffer> World::take_gift_requests() {
     return std::move(this->pending_gifts);
+}
+
+std::vector<uint8_t> World::take_gift_answers() {
+    return std::move(this->gift_answers);
 }
 
 void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {

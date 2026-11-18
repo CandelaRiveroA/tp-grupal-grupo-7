@@ -102,13 +102,6 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
-    // Demo de regalos: R simula "regalo enviado / el server confirma"
-    // (abre el popup de espera) e Y simula "me llega un regalo" (abre
-    // el popup del receptor). Cuando exista la conexión, estos eventos
-    // llegarán del server y las teclas se pueden quitar sin tocar el
-    // dibujo.
-    bindings.insert({SDLK_r, game::InputCommand{Kind::GiftSent, 0}});
-    bindings.insert({SDLK_y, game::InputCommand{Kind::GiftReceived, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

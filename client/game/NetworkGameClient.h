@@ -143,6 +143,8 @@ private:
     std::vector<ServerMessage> batch_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
     std::vector<ViewObtained> obtained_;
+    // Pedido de regalo desde el último update(); update() lo pasa a view_.giftRequest.
+    std::optional<ViewGiftRequest> giftRequest_;
     LocalWorldView view_;
 };
 

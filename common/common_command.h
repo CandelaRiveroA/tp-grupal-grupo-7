@@ -9,7 +9,7 @@
 
 namespace protocol {
 
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7 };
 
 // Move: camina en la dirección dada (y la fija como facing).
 struct MoveMessage {
@@ -44,8 +44,15 @@ struct ChatMessage {
     std::string text;
 };
 
+// GiftResponse: respuesta a un regalo de item de otro jugador. accept = true
+// confirma recibirlo (y lo suma al inventario); false cancela: no lo recibe.
+struct GiftResponseMessage {
+    uint8_t sender_id;
+    bool accept;
+};
+
 using ClientMessage =
-        std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage>;
+        std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage>;
 
 }  // namespace protocol
 

@@ -117,15 +117,8 @@ void WorldTomlReader::readObjects(const World& world,
 		}
 		object.role = *role;
 
-		const std::string tilePath = fields_.join(path, "tile");
-		const std::optional<TileRef> tile = TileCodec::decode(
-			doc_.getString(tilePath), tilePath);
-		if (!tile.has_value()) {
-			throw FormatError(FormatErrorKind::InvalidValue,
-					  tilePath);
-		}
-		fields_.checkTileset(world.tilesets, *tile, tilePath);
-		object.tile = *tile;
+		object.tile = fields_.readTileRef(fields_.join(path, "tile"),
+						  world.tilesets);
 
 		object.cell = fields_.readTilePos(fields_.join(path, "cell"));
 
@@ -146,6 +139,26 @@ void WorldTomlReader::readObjects(const World& world,
 		const std::string doorPath = fields_.join(path, "door");
 		if (doc_.hasKey(doorPath)) {
 			object.door = fields_.readTilePos(doorPath);
+		}
+
+		const std::string collisionGridPath =
+			fields_.join(path, "collision_grid");
+		if (doc_.hasKey(collisionGridPath)) {
+			object.collisionGrid =
+				doc_.getBoolArray(collisionGridPath);
+			const bool validDims =
+				object.width > 0 && object.height > 0;
+			const std::size_t expected =
+				validDims
+					? static_cast<std::size_t>(object.width) *
+						  static_cast<std::size_t>(
+							  object.height)
+					: 0;
+			if (!validDims ||
+			    object.collisionGrid.size() != expected) {
+				throw FormatError(FormatErrorKind::InvalidValue,
+						  collisionGridPath);
+			}
 		}
 
 		map.objects.push_back(object);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <vector>
 
 #include "world_model/Geometry.h"
 #include "world_model/Tile.h"
@@ -22,6 +23,7 @@ struct MapObject {
 	int height = 1;
 	bool blocked = false;
 	std::optional<TilePos> door;   // celda absoluta en este mapa
+	std::vector<bool> collisionGrid;
 };
 
 }

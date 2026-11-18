@@ -7,6 +7,12 @@ bool Map::contains(TilePos pos) const {
 	       pos.row < height;
 }
 
+bool Map::fits(TilePos origin, int rectWidth, int rectHeight) const {
+	return rectWidth > 0 && rectHeight > 0 && origin.column >= 0 &&
+	       origin.row >= 0 && origin.column + rectWidth <= width &&
+	       origin.row + rectHeight <= height;
+}
+
 std::size_t Map::cellIndex(TilePos pos) const {
 	return static_cast<std::size_t>(pos.row) *
 		       static_cast<std::size_t>(width) +
@@ -27,11 +33,26 @@ bool Map::isWalkable(TilePos pos) const {
 std::vector<bool> Map::composeCollision() const {
 	std::vector<bool> composed = baseCollision;
 	for (const MapObject& object : objects) {
-		if (!object.blocked) {
+		const bool hasGrid =
+			object.width > 0 && object.height > 0 &&
+			object.collisionGrid.size() ==
+				static_cast<std::size_t>(object.width) *
+					static_cast<std::size_t>(object.height);
+		if (!hasGrid && !object.blocked) {
 			continue;
 		}
 		for (int row = 0; row < object.height; ++row) {
 			for (int column = 0; column < object.width; ++column) {
+				if (hasGrid) {
+					const std::size_t cell =
+						static_cast<std::size_t>(row) *
+							static_cast<std::size_t>(
+								object.width) +
+						static_cast<std::size_t>(column);
+					if (!object.collisionGrid[cell]) {
+						continue;
+					}
+				}
 				const TilePos pos{object.cell.column + column,
 						  object.cell.row + row};
 				if (!contains(pos)) {

@@ -37,6 +37,8 @@ option(TALLER_TILE_INSPECTOR "Enable / disable provisional tile inspector." OFF)
 option(TALLER_QT_HARNESS "Enable / disable the Qt UI harnesses (offscreen)." OFF)
 option(TALLER_MAKE_WARNINGS_AS_ERRORS "Enable / disable warnings as errors." ON)
 
+set(TALLER_ASSETS_DIR "${CMAKE_SOURCE_DIR}/client/sdl/assets")
+
 message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}")
 
 # Define target: lib common between client, server and editor programs

@@ -3,20 +3,23 @@
 #include <string>
 #include <vector>
 
-#include <QHBoxLayout>
-#include <QLabel>
 #include <QWidget>
 
+#include "TilesetCache.h"
 #include "world_model/MapRules.h"
+#include "world_model/PrefabCatalog.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/World.h"
 #include "world_model/WorldRepository.h"
 
-class MapPlaceholderView;
+class MapCanvasView;
 class MapTreeWidget;
 class PaletteView;
 class ValidationPanel;
 class QDialog;
+class QHBoxLayout;
+class QLabel;
+class QToolButton;
 
 // Mundo en memoria, mapa activo, mapas extra por demanda.
 class WorkspaceView : public QWidget {
@@ -40,19 +43,26 @@ private:
 	void addExtraMap();
 	void removeExtraMap();
 	void replaceScenario();
+	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
+	void setActivePrefab(const worldmodel::PrefabDef* prefab);
 	void setDirty();
 	void updateHeading();
+	bool hasTilesetConflict(const std::string& tilesetId) const;
 
 	const worldmodel::ScenarioLibrary& scenarios_;
 	const worldmodel::WorldRepository& worlds_;
+	worldmodel::PrefabCatalog catalog_;
+	TilesetCache tilesets_;
 	worldmodel::World world_;
 	worldmodel::MapRules rules_;
 	std::string activeMapId_;
+	const worldmodel::PrefabDef* activePrefab_ = nullptr;
 	bool dirty_ = false;
 
 	QLabel* heading_ = nullptr;
+	QToolButton* placeButton_ = nullptr;
 	MapTreeWidget* tree_ = nullptr;
-	MapPlaceholderView* placeholder_ = nullptr;
+	MapCanvasView* canvas_ = nullptr;
 	ValidationPanel* validationPanel_ = nullptr;
 	PaletteView* palette_ = nullptr;
 	QDialog* validationDialog_ = nullptr;

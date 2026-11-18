@@ -26,5 +26,24 @@ constexpr int kAddMapButtonMinWidth = 130;
 // PaletteView.cpp
 // Margen interno del panel y de cada grupo de la paleta.
 const QMargins kPaletteMargins{4, 4, 4, 4};
+constexpr int kPaletteIconSize = 96;
+const QSize kPaletteGridSize{132, 140};
+constexpr int kPaletteItemSpacing = 6;
+
+// MapCanvasView.cpp / MapLayerItem.cpp
+constexpr double kMinZoom = 0.25;
+constexpr double kMaxZoom = 8.0;
+constexpr double kZoomStep = 1.25;
+constexpr double kGhostOpacity = 0.65;
+
+// TilesetCache.cpp
+constexpr int kDefaultCellSize = 16;
+constexpr int kFallbackSquareSize = 8;
+
+// Ruta a los assets del cliente (tilesets de los escenarios).
+const std::string kAssetsDir = TALLER_ASSETS_DIR;
+
+// Catalogo de prefabs generados para la paleta del editor.
+const std::string kPrefabsTomlPath = TALLER_PREFABS_TOML;
 
 }  // namespace editor

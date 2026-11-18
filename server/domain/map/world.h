@@ -19,6 +19,12 @@ class Animal;
 class Enemy;
 class Crop;
 
+struct GiftOffer {
+    uint8_t sender_id;
+    uint8_t receiver_id;
+    ItemID item;
+};
+
 class World {
 private:
     uint16_t width;
@@ -63,6 +69,9 @@ private:
     bool day_started;
     // Día de juego: de 1 a 28, después del 28 vuelve al 1.
     uint8_t day;
+    // Para manejo de regalos
+    std::vector<GiftOffer> pending_gifts;
+
     // TODO: Persistencia del inventario del jugador.
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
@@ -222,6 +231,7 @@ public:
     //funcion para avisar del regalo de un item a otro jugador
     void notify_gift_request(uint8_t sender_id, uint8_t receiver_id, ItemID item_id);
     void process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id);
+    std::vector<GiftOffer> take_gift_requests();
 
 private:
     void try_advance_sleep();

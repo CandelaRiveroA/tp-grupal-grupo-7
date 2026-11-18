@@ -867,8 +867,12 @@ void World::try_start_day() {
     this->day_started = true;
 }
 
-void World::notify_gift_request(uint8_t sender_id, uint8_t receiver_id, ItemID item_id) {
-    //Para empaquetar el DTO de regalo y enviarlo al cliente del receptor, se puede implementar aquí.
+void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    this->pending_gifts.push_back({sender, receiver, item});
+}
+
+std::vector<GiftOffer> World::take_gift_requests() {
+    return std::move(this->pending_gifts);
 }
 
 void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {

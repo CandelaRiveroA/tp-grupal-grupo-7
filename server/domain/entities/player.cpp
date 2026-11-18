@@ -53,7 +53,6 @@ bool Player::try_remove_gold(uint16_t amount) {
     }
     return false;
 }
-void Player::remove_gold(uint16_t amount) { this->gold -= amount; }
 bool Player::diedInCombat() const { return this->died_in_combat; }
 bool Player::faintedByTimeout() const { return this->fainted_by_timeout; }
 bool Player::faintedByEnergy() const { return this->fainted_by_energy; }
@@ -153,6 +152,32 @@ bool Player::is_energy_depleted() const {
 
 bool Player::is_walkable() const { return true; }
 
-void Player::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {}
+void Player::interact(Player& p, ToolType tool, World& w) {
+    if (tool != ToolType::HAND) return;
+    const Item* item_to_give = p.peek_equipped_item();
+    if (!item_to_give || !item_to_give->can_be_traded()) {
+        return; 
+    }
+    w.notify_gift_request(p.get_id(), this->get_id(), item_to_give->get_id());   
+}
+
+bool Player::finalize_gift_reception(Player& receiver) {
+    const Item* equipped = this->peek_equipped_item();
+    
+    if (!equipped || !equipped->can_be_traded()) {
+        return false; 
+    }
+    
+    std::unique_ptr<Item> gift = equipped->clone();
+    bool success = receiver.pick_up_item(std::move(gift));
+
+    if (success) {
+        this->consume_equipped_item();
+        return true;
+    }
+
+    //TODO: disparar una notificación de inventario lleno si lo deseas.
+    return false;
+}
 
 void Player::update(World& /*w*/) {}

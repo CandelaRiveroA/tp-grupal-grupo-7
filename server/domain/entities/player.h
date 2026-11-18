@@ -9,6 +9,7 @@
 #include "../../../common/model/draft/CharacterAppearance.h"
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
+#include "../map/world.h"
 
 #include "i_attackable.h"
 #include "i_entity.h"
@@ -89,6 +90,7 @@ public:
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
+    bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity
     bool is_walkable() const override;

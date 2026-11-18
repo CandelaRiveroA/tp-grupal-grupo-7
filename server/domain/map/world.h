@@ -82,6 +82,7 @@ public:
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
     const Player& get_player(uint8_t player_id) const;
+    Player& get_player(uint8_t player_id);
     std::vector<uint8_t> get_player_ids() const;
 
     uint16_t get_width() const;
@@ -204,6 +205,7 @@ public:
     void clear_sleep();
     void set_player_position(uint8_t player_id, uint16_t x, uint16_t y);
     void kill_player(uint8_t player_id);
+    void faint_player(uint8_t player_id);
     void reset_player_for_day(uint8_t player_id);
     void mark_all_fainted_by_timeout();
 

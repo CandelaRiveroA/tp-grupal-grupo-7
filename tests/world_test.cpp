@@ -86,3 +86,20 @@ TEST(WorldTest, JugadorChocaContraEntidadSolida) {
     EXPECT_EQ(p->get_y(), 2);
     EXPECT_EQ(p->get_facing(), Direction::RIGHT);
 }
+
+// ---------------------------------------------------------
+// TEST 4: agotar la energía desmaya, no mata
+// ---------------------------------------------------------
+TEST(WorldTest, GastarTodaLaEnergiaDesmayaSinBajarLaVida) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+
+    // PICKAXE en el slot 0 contra una celda vacía: cada uso gasta 1 de
+    // energía. Con 100 de energía hacen falta 100 usos.
+    for (int i = 0; i < 200 && !world.get_player(1).faintedByEnergy(); ++i) {
+        world.use_tool(1);
+    }
+
+    EXPECT_TRUE(world.get_player(1).faintedByEnergy());
+    EXPECT_EQ(world.get_player(1).get_health(), 100u);
+}

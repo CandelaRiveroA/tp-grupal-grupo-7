@@ -217,6 +217,7 @@ struct LocalWorldView {
     int playerMaxHealth = 0;
     int playerEnergy = 0;      // x100
     int playerMaxEnergy = 0;   // x100
+    bool playerFainted = false;  // desmayado por falta de energía
 
     // Historial del chat
     std::vector<ViewChatLine> chatLog;

@@ -81,6 +81,11 @@ void ProtocolSender::send_message(const protocol::WakeMessage& /*message*/) {
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Wake));
 }
 
+void ProtocolSender::send_message(const protocol::ChatMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Chat));
+    send_string(message.text);
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -98,8 +103,8 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.max_health);
     send_uint16(status.energy);
     send_uint16(status.max_energy);
+    send_uint8(status.fainted);
 }
-
 void ProtocolSender::send_message(const ServerLeave& leave) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Leave));
     send_uint8(leave.player_id);
@@ -241,6 +246,14 @@ void ProtocolSender::send_message(const ServerGroundEffect& ground) {
     send_uint16(ground.x);
     send_uint16(ground.y);
     send_uint8(static_cast<uint8_t>(ground.effect));
+}
+
+void ProtocolSender::send_message(const ServerChat& chat) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Chat));
+    send_uint8(chat.player_id);
+    send_string(chat.characterName);
+    send_string(chat.text);
+    send_uint8(chat.system ? 1 : 0);
 }
 
 void ProtocolSender::send_server_message(const ServerMessage& message) {

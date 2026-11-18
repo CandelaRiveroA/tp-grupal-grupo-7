@@ -24,23 +24,6 @@
 #include "world/ViewDirection.h"
 #include "world/WorldConstants.h"
 
-namespace {
-
-// Mensajes de la demo (tecla M): corto, con wrap y sin espacios.
-struct DemoChatMessage {
-    std::uint8_t playerId;
-    const char* name;
-    const char* text;
-};
-
-constexpr std::array<DemoChatMessage, 3> kDemoChatMessages{{
-        {1, "Juan", "¡Hola!"},
-        {2, "Maria", "Nos vemos en la granja en un rato, llevo las semillas"},
-        {1, "Juan", "jajajajajajajajajajajajajajajajajajajajajajajajajajajajajajajaja"},
-}};
-
-}  // namespace
-
 namespace core {
 
 PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
@@ -101,14 +84,6 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::StatKind::Energy, game::FractionStat{}},
                 {game::StatKind::Life, game::FractionStat{}},
         },
-        statSpends_{
-                {game::InputCommand::Kind::SpendEnergy,
-                 {game::StatKind::Energy, game::kEnergyCostPerAction}},
-                {game::InputCommand::Kind::SpendLife,
-                 {game::StatKind::Life, game::kLifeCostPerAction}},
-        },
-        localActions_{{game::InputCommand::Kind::Hurt,
-                       {world::ActionKind::Damage, game::kHurtDemoCycles}}},
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -141,26 +116,9 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    if (faintRequested_) {
-        ++faintFallTicks_;
-    }
-    // Las ventanas de presentación local corren con el tick (la del daño
-    // recibido se suelta sola).
-    actionWindow_.advance();
-    // Los charcos de sangre vencen con su reloj (ANDAMIAJE): al llegar
-    // a 0 desaparecen de la vista de una.
-    for (BloodPuddle& puddle : bloodPuddles_) {
-        --puddle.ticksRemaining;
-    }
-    bloodPuddles_.erase(std::remove_if(bloodPuddles_.begin(),
-                                       bloodPuddles_.end(),
-                                       [](const BloodPuddle& puddle) {
-                                           return puddle.ticksRemaining <= 0;
-                                       }),
-                        bloodPuddles_.end());
-    // La presentación local del tick (desmayo incluido) es la que ven
-    // el movimiento, el renderer y los diálogos.
-    const game::LocalWorldView presentation = presentationView(state);
+    // La presentación local del tick (la pose de "meterse") es la que
+    // ven el movimiento, el renderer y los diálogos.
+    const game::LocalWorldView presentation = enterSelection_.displayView(state);
     motion_.observe(presentation, iteration);
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
@@ -264,7 +222,8 @@ void PlaySession::tick(int iteration) {
     // Muerto (vida o energía): el server lo da por aceptado en la cama y
     // no puede levantarse, así que espera sin pregunta y sin cancelar.
     const bool localDied =
-            state.playerMaxHealth > 0 && state.playerHealth == 0;
+            (state.playerMaxHealth > 0 && state.playerHealth == 0) ||
+            state.playerFainted;
     popupState_.setWaitingCancelable(!localDied);
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
@@ -342,65 +301,14 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
-        if (popupState_.modal()) {
-            // El popup manda: el resto de las intenciones se descartan
-            // (no se encolan para cuando cierre).
-            continue;
-        }
         if (command.kind == game::InputCommand::Kind::OpenChat) {
             input_.setTextMode(true);
             sdlContext_.startTextInput();
             continue;
         }
-        // Demo (tecla M): el mensaje entra por el mismo embudo que usará
-        // la red; esta rama se borra sin tocar el resto.
-        if (command.kind == game::InputCommand::Kind::SimulateChatMessage) {
-            const DemoChatMessage& demo =
-                    kDemoChatMessages[demoChatNext_ % kDemoChatMessages.size()];
-            ++demoChatNext_;
-            gameClient_.receiveChat(demo.playerId, demo.name, demo.text);
-            continue;
-        }
-        if (const auto spend = statSpends_.find(command.kind);
-            spend != statSpends_.end()) {
-            // Simulación local del gasto: no es una intención para el
-            // GameClient, la consumen los stats del cliente.
-            stats_.at(spend->second.stat).spend(spend->second.cost);
-            continue;
-        }
-        if (const auto demo = localActions_.find(command.kind);
-            demo != localActions_.end()) {
-            // Demo local de una acción de la fuente (andamiaje): corre
-            // por la ventana de presentación local. La ventana se arma
-            // de los MISMOS datos de la acción (contrato §10).
-            const world::CreatureData& creature =
-                    characters_.dataFor(world::CreatureKind::Player);
-            actionWindow_.open(demo->second.action,
-                               creature.actionCycleTicks(demo->second.action) *
-                                       demo->second.cycles);
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::Faint) {
-            // Demo local: la primera pulsación dispara la caída; con el
-            // personaje ya desmayado no se reinicia.
-            if (!faintRequested_) {
-                faintRequested_ = true;
-                faintFallTicks_ = 0;
-                audio_.play(sdl::SoundId::Death);
-            }
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::BloodPuddle) {
-            // ANDAMIAJE TEMPORAL: la demo del charco de sangre (tecla
-            // C) deja un charco en la celda del jugador (se acumulan),
-            // con su reloj de vida.
-            if (!state.entities.empty()) {
-                const game::ViewEntity& local =
-                        state.entities[game::kLocalPlayerIndex];
-                bloodPuddles_.push_back(BloodPuddle{
-                    world::GridCell{local.cellX, local.cellY},
-                    game::kBloodPuddleTicks});
-            }
+        if (popupState_.modal()) {
+            // El popup manda: el resto de las intenciones se descartan
+            // (no se encolan para cuando cierre).
             continue;
         }
         playerCommands.push_back(command);
@@ -625,45 +533,6 @@ void PlaySession::tick(int iteration) {
                         interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
                         input_.mousePosition());
     sdlContext_.present();
-}
-
-game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima los
-    // overrides locales: la ventana de acción (demo de daño recibido),
-    // los charcos de sangre (demo) y el desmayo, que manda sobre todo
-    // lo demás.
-    game::LocalWorldView display = enterSelection_.displayView(view);
-    if (actionWindow_.active() && !display.entities.empty() &&
-        display.entities[game::kLocalPlayerIndex].action != world::ActionKind::Faint) {
-        // Ventana de acción local: su acción manda hasta que se suelte
-        // (presentación local; la fuente la mandará tal cual). No pisa
-        // el desmayo que llegó por red: la fuente manda.
-        display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
-    }
-    // Los charcos de sangre (ANDAMIAJE) entran como consecuencia de
-    // terreno: así se dibujan bajo las entidades (el personaje pisa el
-    // charco) y mañana la fuente los manda tal cual. Solo los vivos:
-    // los vencidos ya salieron del estado.
-    for (const BloodPuddle& puddle : bloodPuddles_) {
-        display.groundEffects.push_back(game::ViewGroundEffect{
-            puddle.cell.column, puddle.cell.row,
-            world::GroundConsequence::Blood});
-    }
-    if (!faintRequested_ || display.entities.empty()) {
-        return display;
-    }
-    game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
-    local.action = world::ActionKind::Faint;
-    local.facing = world::Direction::Front;
-    local.moving = false;
-    // Las Z aparecen recién cuando la caída mostró todas sus poses. La
-    // duración sale de los MISMOS datos de la acción (contrato §10), no
-    // de una constante duplicada.
-    const world::CreatureData& creature = characters_.dataFor(local.kind);
-    if (faintFallTicks_ >= creature.actionCycleTicks(world::ActionKind::Faint)) {
-        local.indication = world::Indication::NoEnergy;
-    }
-    return display;
 }
 
 void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {

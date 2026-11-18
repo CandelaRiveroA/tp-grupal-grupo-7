@@ -25,14 +25,16 @@ Archivo: `common/common_command.h`. El cliente envía **intenciones** por
 dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 
 ```cpp
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6 };
 
 struct MoveMessage { Direction direction; };  // caminar; fija el facing
 struct PickMessage { Direction direction; uint8_t slot; };  // usar el casillero `slot` sobre la celda enfrentada
 struct TakeMessage { Direction direction; };  // recoger en la celda propia
 struct SleepMessage { bool accept; };         // voto del aviso de la cama
+struct WakeMessage {};                       // OK del popup del nuevo día
+struct ChatMessage { std::string text; };    // texto libre: broadcast, @nombre privado o /comando
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage>;
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage>;
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
@@ -54,7 +56,7 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
 | 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
-| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100)` | Pose, personalización y vida/energía de un jugador. El cliente reacciona al flanco de `health`: bajó = titilación (acción Damage, con su sonido); 0 = desmayo terminal (Faint + sonido, hasta que vuelva a subir al amanecer; el server difiere la teletransportación a la cama unos ~1,2 s para que el desmayo se vea donde cayó); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100), fainted u8` | Pose, personalización y vida/energía de un jugador. `fainted` = 1 cuando el jugador se desmayó por falta de energía (la vida se conserva): dispara la pose Faint y el popup no cancelable, igual que la muerte en combate. El cliente reacciona al flanco de `health` y de `fainted`: 0 = desmayo terminal (Faint + sonido, hasta que la vida/energía vuelvan); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
 | 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |
@@ -74,6 +76,7 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | 20 | `GroundEffect` | `x u16, y u16, effect u8` | Consecuencia en la celda: `0` = arada (Dug), `1` = regada (Watered), `2` = charco de sangre (Blood). Una celda regada manda ambos, en ese orden. El charco lo manda el server con la regla de `World::damage_player` (golpe que dejó al jugador por debajo del 20 %, muerte incluida): es **estado persistente del día** (se seca al terminar el día o lo consume una vampira, `World::process_end_of_day_floor`/`consume_blood_puddle`) y va a **todos** los jugadores para que vean de dónde pueden revivir los vampiros |
 | 21 | `Enemy` | `id u16, kind str, x u16, y u16, direction u8, health u8, action u8` | Enemigo del mundo. `kind` = `skeleton`, `orc`, `vampire`, `vampiress`, `skull` (vocabulario de `enemies.toml`; la vampira se dibuja como el vampiro). `health` 0 = muerto (pose de muerte). `action` (`EnemyAction`): 0 quieto, 1 ataque, 2 daño. El cliente anima el paso por interpolación y cuenta la ventana de la acción desde el cambio de `action` |
 | 22 | `Projectile` | `id u16, kind str, x u16, y u16, direction u8` | Llama del skull en vuelo. `kind` = `skull_fire` o `skull_fire_green` (vocabulario de `enemies.toml`). Sin vida ni acción: vuela hasta la celda que ocupaba el jugador al lanzar, daña al contacto (5 / 10) y desaparece al chocar contra una pared, contra el borde o al llegar a su destino. Las llamas no bloquean celdas |
+| 23 | `Chat` | `player_id u8, characterName str, text str, system u8` | Mensaje de chat. `system = 1` = mensaje del servidor (respuesta de cheat/error): se muestra sin prefijo de jugador; si no, prefijo `characterName`. Evento (no estado): se aplica inmediato, fuera del lote Reset…SyncEnd |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

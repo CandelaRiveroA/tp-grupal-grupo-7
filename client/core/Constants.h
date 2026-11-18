@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <string>
 
+#include "common/common_constants.h"
+
 namespace core {
 
 
@@ -70,7 +72,7 @@ constexpr const char* kLightingFile = "ui/lighting.toml";
 constexpr int kChatBlinkTicks = 20;
 
 // Tope del texto tipeado: un paste largo encarece el wrap.
-constexpr std::size_t kChatMaxLength = 256;
+constexpr std::size_t kChatMaxLength = kMaxChatLength;
 
 // Cuánto se queda el preview del chat cerrado después de un mensaje.
 constexpr int kChatPreviewMs = 3000;

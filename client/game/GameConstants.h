@@ -18,16 +18,6 @@ constexpr int kMaxGroundItems = 3;
 constexpr int kDefaultMilkCycles = 2;
 constexpr int kPickupCycles = 1;
 
-// ANDAMIAJE TEMPORAL: ciclos de la demo de daño recibido (tecla R). La
-// ventana sale de los MISMOS datos de la acción (ActionData); esto solo
-// dice cuántas vueltas de titilación. Se va con la tecla.
-constexpr int kHurtDemoCycles = 2;
-
-// ANDAMIAJE TEMPORAL: vida de un charco de sangre (tecla C), en ticks.
-// Cuando la fuente mande la sangre del terreno, la duración la decide
-// ella. Se va con la tecla.
-constexpr int kBloodPuddleTicks = 600;
-
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
 
@@ -62,12 +52,6 @@ constexpr const char* kClockMinuteKey = "minuto";
 // (`[overlay.fill].value` en ui/hud.toml).
 constexpr const char* kHudEnergyKey = "energia";
 constexpr const char* kHudLifeKey = "vida";
-
-// Costo de UNA acción simulada por tecla (hoy G para energía y H para
-// vida; mañana el gasto que mande el server por acción). 2% => unas 50
-// acciones para vaciar una barra en una partida de 14 minutos.
-constexpr double kEnergyCostPerAction = 0.02;
-constexpr double kLifeCostPerAction = 0.02;
 
 // --- Chat --------------------------------------------------------------
 

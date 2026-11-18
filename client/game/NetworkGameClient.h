@@ -57,6 +57,7 @@ private:
         int maxHealth = 0;
         int energy = 0;      // x100
         int maxEnergy = 0;  // x100
+        bool fainted = false;  // desmayado por falta de energía
         // Reacción al daño: la enciende el flanco de health en
         // ServerStatus (bajó = titilación con ventana; 0 = desmayo, se
         // queda tirado hasta que la vida vuelva a subir). Mismo dato y

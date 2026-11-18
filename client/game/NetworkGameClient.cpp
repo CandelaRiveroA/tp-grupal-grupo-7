@@ -94,11 +94,9 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
 }
 
 void NetworkGameClient::sendChat(const std::string& text) {
-    // Eco local: el día que el server reparta el mensaje hay que sacarlo
-    // o se ve dos veces.
-    view_.addChatLine(ViewChatLine{localPlayerId_, kLocalPlayerName, text});
-
-    // TODO(protocolo): acá viaja el texto cuando el protocolo lo conecte.
+    // El servidor reparte el mensaje (broadcast o privado) y lo devuelve en un
+    // ServerChat: no hacemos eco local para no verlo dos veces.
+    commands_.push(protocol::ChatMessage{text});
 }
 
 void NetworkGameClient::receiveChat(const std::uint8_t playerId,
@@ -180,6 +178,13 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El chat es un evento, no estado: se aplica ya (fuera del lote).
+    if (const auto* chat = std::get_if<ServerChat>(&message)) {
+        receiveChat(chat->player_id,
+                    chat->system ? std::string("Servidor") : chat->characterName,
+                    chat->text);
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {
@@ -328,20 +333,23 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // cualquier reacción (y un joiner con la vida ya completa no
         // arranca en reaction de nadie).
         const int previousHealth = player.health;
+        const bool previousFainted = player.fainted;
         player.health = status->health;
         player.maxHealth = status->max_health;
         player.energy = status->energy;
         player.maxEnergy = status->max_energy;
-        if (status->health == 0) {
+        player.fainted = (status->fainted != 0);
+        if (status->health == 0 || player.fainted) {
             player.reaction = world::ActionKind::Faint;
+            player.reactionRemaining = 0;
+        } else if (previousFainted || status->health > previousHealth) {
+            // Despertó o revivió: limpia el desmayo (y el daño no cuenta).
+            player.reaction = world::ActionKind::Idle;
             player.reactionRemaining = 0;
         } else if (status->health < previousHealth) {
             player.reaction = world::ActionKind::Damage;
             player.reactionRemaining = characters_->dataFor(world::CreatureKind::Player)
                                               .actionCycleTicks(world::ActionKind::Damage);
-        } else if (status->health > previousHealth) {
-            player.reaction = world::ActionKind::Idle;
-            player.reactionRemaining = 0;
         }
         return;
     }
@@ -514,6 +522,7 @@ void NetworkGameClient::update(int) {
         view_.playerMaxHealth = localIt->second.maxHealth;
         view_.playerEnergy = localIt->second.energy;
         view_.playerMaxEnergy = localIt->second.maxEnergy;
+        view_.playerFainted = localIt->second.fainted;
     }
     session_.advance();
     if (!view_.entities.empty()) {

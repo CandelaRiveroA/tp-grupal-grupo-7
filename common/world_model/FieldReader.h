@@ -25,6 +25,9 @@ public:
 		const std::string& path) const;
 	TileGrid readGrid(const std::string& path, int width, int height,
 			  const std::map<std::string, TilesetDef>& tilesets) const;
+	TileRef readTileRef(
+		const std::string& path,
+		const std::map<std::string, TilesetDef>& tilesets) const;
 	void checkTileset(const std::map<std::string, TilesetDef>& tilesets,
 			  const TileRef& tile, const std::string& path) const;
 

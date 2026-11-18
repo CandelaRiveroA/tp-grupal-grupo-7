@@ -37,6 +37,7 @@ struct Map {
 	std::vector<Portal> portals;
 
 	bool contains(TilePos pos) const;
+	bool fits(TilePos origin, int rectWidth, int rectHeight) const;
 	std::size_t cellIndex(TilePos pos) const;
 	bool isWalkable(TilePos pos) const;
 	std::vector<bool> composeCollision() const;   // no muta

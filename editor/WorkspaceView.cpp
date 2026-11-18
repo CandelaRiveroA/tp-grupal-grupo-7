@@ -3,6 +3,7 @@
 #include <exception>
 #include <vector>
 
+#include <QButtonGroup>
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -16,22 +17,35 @@
 
 #include "AddExtraMapDialog.h"
 #include "Constants.h"
-#include "MapPlaceholderView.h"
+#include "MapCanvasView.h"
 #include "MapTreeWidget.h"
 #include "PaletteView.h"
 #include "ScenarioLabel.h"
 #include "ValidationPanel.h"
 #include "world_model/FormatError.h"
+#include "world_model/PrefabCatalogLoader.h"
 #include "world_model/WorldFactory.h"
 #include "world_model/WorldValidator.h"
 
 WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 			     const worldmodel::WorldRepository& worlds,
 			     QWidget* parent)
-	: QWidget(parent), scenarios_(scenarios), worlds_(worlds) {
+	: QWidget(parent),
+	  scenarios_(scenarios),
+	  worlds_(worlds),
+	  tilesets_(editor::kAssetsDir) {
+	try {
+		catalog_ = worldmodel::PrefabCatalogLoader().loadFromFile(
+			editor::kPrefabsTomlPath);
+	} catch (const std::exception& error) {
+		QMessageBox::warning(this, "No se pudo cargar prefabs",
+				     QString::fromStdString(error.what()));
+	}
+	tilesets_.loadTilesets(catalog_.tilesets());
+
 	tree_ = new MapTreeWidget(this);
-	placeholder_ = new MapPlaceholderView(this);
-	palette_ = new PaletteView(this);
+	canvas_ = new MapCanvasView(tilesets_, this);
+	palette_ = new PaletteView(catalog_, tilesets_, this);
 
 	// La validacion vive en un dialogio
 	validationDialog_ = new QDialog(this);
@@ -43,7 +57,7 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 
 	QSplitter* bodySplit = new QSplitter(Qt::Horizontal, this);
 	bodySplit->addWidget(tree_);
-	bodySplit->addWidget(placeholder_);
+	bodySplit->addWidget(canvas_);
 	bodySplit->addWidget(palette_);
 	bodySplit->setStretchFactor(0, 0);
 	bodySplit->setStretchFactor(1, 1);
@@ -61,8 +75,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		&WorkspaceView::addExtraMap);
 	connect(tree_, &MapTreeWidget::removeExtraMapRequested, this,
 		&WorkspaceView::removeExtraMap);
-	connect(placeholder_, &MapPlaceholderView::changeScenarioRequested,
-		this, &WorkspaceView::replaceScenario);
+	connect(tree_, &MapTreeWidget::changeScenarioRequested, this,
+		&WorkspaceView::replaceScenario);
 	connect(validationPanel_, &ValidationPanel::mapSelected, this,
 		[this](const std::string& mapId) {
 			// Problemas del mundo (mapId vacio) o de un mapa que falta.
@@ -70,6 +84,21 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 				selectMap(mapId);
 			}
 		});
+	connect(palette_, &PaletteView::prefabSelected, this,
+		&WorkspaceView::onPrefabSelected);
+	connect(canvas_, &MapCanvasView::mapEdited, this, [this] {
+		if (placeButton_->isChecked() && activePrefab_ != nullptr) {
+			const std::string& tilesetId =
+				activePrefab_->tile.tileset;
+			const auto catIt = catalog_.tilesets().find(tilesetId);
+			if (catIt != catalog_.tilesets().end() &&
+			    !world_.tilesets.contains(tilesetId)) {
+				world_.tilesets.emplace(tilesetId,
+							catIt->second);
+			}
+		}
+		setDirty();
+	});
 }
 
 QHBoxLayout* WorkspaceView::buildTopBar() {
@@ -82,19 +111,67 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	mapsButton->setText("Mapas");
 	mapsButton->setCheckable(true);
 	mapsButton->setChecked(true);
+
+	QToolButton* navigateButton = new QToolButton(this);
+	navigateButton->setText("Navegar");
+	navigateButton->setCheckable(true);
+	navigateButton->setChecked(true);
+	placeButton_ = new QToolButton(this);
+	placeButton_->setText("Colocar");
+	placeButton_->setCheckable(true);
+	QToolButton* eraseButton = new QToolButton(this);
+	eraseButton->setText("Borrar");
+	eraseButton->setCheckable(true);
+
+	QButtonGroup* toolGroup = new QButtonGroup(this);
+	toolGroup->setExclusive(true);
+	toolGroup->addButton(navigateButton, static_cast<int>(EditorTool::Navigate));
+	toolGroup->addButton(placeButton_, static_cast<int>(EditorTool::Place));
+	toolGroup->addButton(eraseButton, static_cast<int>(EditorTool::Erase));
+
+	QToolButton* collisionButton = new QToolButton(this);
+	collisionButton->setText("Colision");
+	collisionButton->setCheckable(true);
+	QToolButton* zoomOutButton = new QToolButton(this);
+	zoomOutButton->setText("-");
+	QToolButton* zoomResetButton = new QToolButton(this);
+	zoomResetButton->setText("100%");
+	QToolButton* zoomInButton = new QToolButton(this);
+	zoomInButton->setText("+");
+
 	QHBoxLayout* top = new QHBoxLayout;
 	top->addWidget(mapsButton);
 	top->addWidget(heading_);
 	top->addStretch();
-	// Herramientas de la Fase 3.
-	top->addWidget(new QPushButton("Herramienta A", this));
-	top->addWidget(new QPushButton("Herramienta B", this));
+	top->addWidget(navigateButton);
+	top->addWidget(placeButton_);
+	top->addWidget(eraseButton);
+	top->addSpacing(editor::kTopBarSpacing);
+	top->addWidget(collisionButton);
+	top->addSpacing(editor::kTopBarSpacing);
+	top->addWidget(zoomOutButton);
+	top->addWidget(zoomResetButton);
+	top->addWidget(zoomInButton);
 	top->addSpacing(editor::kTopBarSpacing);
 	top->addWidget(backButton);
 	top->addWidget(validateButton);
 	top->addWidget(saveButton);
 
 	connect(mapsButton, &QToolButton::toggled, tree_, &QWidget::setVisible);
+	connect(toolGroup, &QButtonGroup::idToggled, this,
+		[this](int id, bool checked) {
+			if (checked) {
+				canvas_->setTool(static_cast<EditorTool>(id));
+			}
+		});
+	connect(collisionButton, &QToolButton::toggled, canvas_,
+		&MapCanvasView::setShowCollision);
+	connect(zoomOutButton, &QToolButton::clicked, canvas_,
+		&MapCanvasView::zoomOut);
+	connect(zoomResetButton, &QToolButton::clicked, canvas_,
+		&MapCanvasView::resetZoom);
+	connect(zoomInButton, &QToolButton::clicked, canvas_,
+		&MapCanvasView::zoomIn);
 	connect(backButton, &QPushButton::clicked, this, [this] {
 		if (dirty_) {
 			const QMessageBox::StandardButton answer =
@@ -116,8 +193,13 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 }
 
 void WorkspaceView::setWorld(const worldmodel::World& world) {
+	canvas_->setMap(nullptr);
 	world_ = world;
 	dirty_ = false;
+	palette_->clearSelection();
+	setActivePrefab(nullptr);
+	tilesets_.loadTilesets(catalog_.tilesets());
+	tilesets_.loadTilesets(world_.tilesets);
 	validationPanel_->showIssues({});
 	updateHeading();
 	tree_->setExtraMaps(world_);
@@ -127,7 +209,8 @@ void WorkspaceView::setWorld(const worldmodel::World& world) {
 void WorkspaceView::selectMap(const std::string& mapId) {
 	activeMapId_ = mapId;
 	tree_->selectMap(mapId);
-	placeholder_->setActiveMap(world_.maps.at(mapId));
+	canvas_->setMap(world_.maps.contains(mapId) ? &world_.maps.at(mapId)
+						    : nullptr);
 }
 
 void WorkspaceView::validateNow() {
@@ -177,6 +260,7 @@ void WorkspaceView::addExtraMap() {
 			QString::fromStdString(error.what()));
 		return;
 	}
+	tilesets_.loadTilesets(world_.tilesets);
 	setDirty();
 	tree_->setExtraMaps(world_);
 	selectMap(dialog.mapId());
@@ -190,6 +274,7 @@ void WorkspaceView::removeExtraMap() {
 	if (answer != QMessageBox::Yes) {
 		return;
 	}
+	canvas_->setMap(nullptr);
 	worldmodel::WorldFactory().removeExtraMap(world_, activeMapId_);
 	setDirty();
 	tree_->setExtraMaps(world_);
@@ -233,18 +318,24 @@ void WorkspaceView::replaceScenario() {
 	if (answer != QMessageBox::Yes) {
 		return;
 	}
+	canvas_->setMap(nullptr);
 	try {
 		worldmodel::WorldFactory().replaceMapScenario(
 			world_, activeMapId_, scenario);
 	} catch (const worldmodel::FormatError& error) {
 		// replaceMapScenario opera sobre copia, asi que world_ queda intacta.
+		if (world_.maps.contains(activeMapId_)) {
+			canvas_->setMap(&world_.maps.at(activeMapId_));
+		}
 		QMessageBox::critical(
 			this, "No se pudo reemplazar",
 			QString::fromStdString(error.what()));
 		return;
 	}
+	tilesets_.loadTilesets(catalog_.tilesets());
+	tilesets_.loadTilesets(world_.tilesets);
 	setDirty();
-	placeholder_->setActiveMap(world_.maps.at(activeMapId_));
+	canvas_->setMap(&world_.maps.at(activeMapId_));
 }
 
 // Obligatorio: solo escenarios del tipo del slot. Extra: todos.
@@ -260,6 +351,32 @@ std::vector<const worldmodel::Scenario*> WorkspaceView::scenarioOptions()
 	return all;
 }
 
+void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
+	if (prefab == nullptr) {
+		setActivePrefab(nullptr);
+		return;
+	}
+	if (hasTilesetConflict(prefab->tile.tileset)) {
+		QMessageBox::warning(
+			this, "Conflicto de tileset",
+			QString::fromStdString(
+				"El tileset '" + prefab->tile.tileset +
+				"' del mundo no coincide con "
+				"el catalogo de prefabs."));
+		palette_->clearSelection();
+		setActivePrefab(nullptr);
+		return;
+	}
+	setActivePrefab(prefab);
+	placeButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Place);
+}
+
+void WorkspaceView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
+	activePrefab_ = prefab;
+	canvas_->setActivePrefab(prefab);
+}
+
 void WorkspaceView::setDirty() {
 	dirty_ = true;
 	updateHeading();
@@ -268,4 +385,14 @@ void WorkspaceView::setDirty() {
 void WorkspaceView::updateHeading() {
 	heading_->setText(QString::fromStdString(world_.name +
 						 (dirty_ ? " *" : "")));
+}
+
+bool WorkspaceView::hasTilesetConflict(const std::string& tilesetId) const {
+	const auto worldIt = world_.tilesets.find(tilesetId);
+	if (worldIt == world_.tilesets.end()) {
+		return false;
+	}
+	const auto catIt = catalog_.tilesets().find(tilesetId);
+	return catIt == catalog_.tilesets().end() ||
+	       !(worldIt->second == catIt->second);
 }

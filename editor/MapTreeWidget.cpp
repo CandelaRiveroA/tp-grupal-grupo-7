@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <QPushButton>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 
 #include "Constants.h"
@@ -34,16 +36,21 @@ MapTreeWidget::MapTreeWidget(QWidget* parent) : QWidget(parent) {
 	addButton_->setMinimumWidth(editor::kAddMapButtonMinWidth);
 	removeButton_ = new QPushButton("Eliminar mapa extra", this);
 	removeButton_->setEnabled(false);
+	changeScenarioButton_ =
+		new QPushButton("Cambiar escenario base...", this);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->addWidget(tree_);
 	layout->addWidget(addButton_);
 	layout->addWidget(removeButton_);
+	layout->addWidget(changeScenarioButton_);
 
 	connect(addButton_, &QPushButton::clicked, this,
 		&MapTreeWidget::addExtraMapRequested);
 	connect(removeButton_, &QPushButton::clicked, this,
 		&MapTreeWidget::removeExtraMapRequested);
+	connect(changeScenarioButton_, &QPushButton::clicked, this,
+		&MapTreeWidget::changeScenarioRequested);
 	connect(tree_, &QTreeWidget::itemClicked, this,
 		[this](QTreeWidgetItem* item) {
 			// Los grupos no tienen padre: solo las hojas son mapas.

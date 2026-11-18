@@ -37,9 +37,29 @@ const CharacterAppearance& Player::get_appearance() const { return this->appeara
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
 uint16_t Player::get_health() const { return this->hp; }
+void Player::set_health(uint16_t hp) { this->hp = hp; }
+uint16_t Player::get_gold() const { return this->gold; }
+void Player::set_gold(uint16_t g) { this->gold = g; }
 uint16_t Player::get_max_health() const { return this->max_hp; }
 float Player::get_energy() const { return this->energy; }
+void Player::set_energy(float e) { this->energy = e; }
 float Player::get_max_energy() const { return this->max_energy; }
+
+void Player::add_gold(uint16_t amount) { this->gold += amount; }
+bool Player::try_remove_gold(uint16_t amount) {
+    if (this->gold >= amount) {
+        this->gold -= amount;
+        return true;
+    }
+    return false;
+}
+void Player::remove_gold(uint16_t amount) { this->gold -= amount; }
+bool Player::diedInCombat() const { return this->died_in_combat; }
+bool Player::faintedByTimeout() const { return this->fainted_by_timeout; }
+bool Player::faintedByEnergy() const { return this->fainted_by_energy; }
+void Player::setDiedInCombat(bool v) { this->died_in_combat = v; }
+void Player::setFaintedByTimeout(bool v) { this->fainted_by_timeout = v; }
+void Player::setFaintedByEnergy(bool v) { this->fainted_by_energy = v; }
 
 bool Player::is_gravely_wounded() const {
     return this->hp * kPercentMax < this->max_hp * kGravelyWoundedPercent;

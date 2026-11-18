@@ -50,19 +50,21 @@ public:
     const Inventory& get_inventory() const;
     uint16_t get_health() const;
     uint16_t get_max_health() const;
-    void set_health(uint16_t hp) { this->hp = hp; }
-    uint16_t get_gold() const { return this->gold; }
-    void set_gold(uint16_t g) { this->gold = g; }
-    void set_energy(float e) { this->energy = e; }
+    void set_health(uint16_t hp);
+    uint16_t get_gold() const;
+    void set_gold(uint16_t g);
+    void set_energy(float e);
     float get_energy() const;
     float get_max_energy() const;
 
-    bool diedInCombat() const { return this->died_in_combat; }
-    bool faintedByTimeout() const { return this->fainted_by_timeout; }
-    bool faintedByEnergy() const { return this->fainted_by_energy; }
-    void setDiedInCombat(bool v) { this->died_in_combat = v; }
-    void setFaintedByTimeout(bool v) { this->fainted_by_timeout = v; }
-    void setFaintedByEnergy(bool v) { this->fainted_by_energy = v; }
+    void add_gold(uint16_t amount);
+    bool try_remove_gold(uint16_t amount);
+    bool diedInCombat() const;
+    bool faintedByTimeout() const;
+    bool faintedByEnergy() const;
+    void setDiedInCombat(bool v);
+    void setFaintedByTimeout(bool v);
+    void setFaintedByEnergy(bool v);
 
     // true si la vida quedó por debajo del 20 % del tope (herido grave o
     // muerto): con eso World decide si queda un charco de sangre.

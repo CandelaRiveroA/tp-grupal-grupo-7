@@ -1,4 +1,6 @@
 #include "chest_entity.h"
+#include "../entities/dropped_item.h"
+#include "../map/world.h"
 
 ChestEntity::ChestEntity(uint16_t x, uint16_t y, ItemID drop_id, uint16_t model_id)
     : Furniture(x, y, drop_id, model_id), storage(CHEST_INVENTORY_SIZE) {}
@@ -22,11 +24,26 @@ bool ChestEntity::is_empty() const {
 
 void ChestEntity::interact(Player& p, ToolType tool, World& w) {
     if (tool == ToolType::PICKAXE) {
-        // Un cofre con ítems adentro absorbe el golpe sin romperse.
-        // TODO: Cambiar para que si se rompa y los objetos internos se
-        // tiren al piso (como un DroppedItem). Por ahora, solo bloqueamos el golpe.
-        if (!this->is_empty()) {
-            return; 
+        // Recorremos los 30 espacios posibles del cofre
+        for (uint8_t i = 0; i < CHEST_INVENTORY_SIZE; ++i) {
+            
+            // Mientras haya unidades apiladas en este slot (gracias al nuevo remove_item)
+            while (!this->storage.is_slot_empty(i)) {
+                
+                // 1. Extraemos 1 sola unidad
+                std::unique_ptr<Item> unidad_extraida = this->storage.remove_item(i);
+                
+                // 2. La envolvemos en su DroppedItem físico en las mismas coordenadas del cofre
+                auto drop = std::make_unique<DroppedItem>(
+                    std::move(unidad_extraida), 
+                    this->pos_x, 
+                    this->pos_y
+                );
+                
+                // 3. El mundo la inserta en el std::vector de la celda,
+                // conviviendo pacíficamente en la misma coordenada O(1)
+                w.set_entity_at(this->pos_x, this->pos_y, std::move(drop));
+            }
         }
     }
     

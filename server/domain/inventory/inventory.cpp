@@ -66,3 +66,21 @@ void Inventory::consume_item(uint8_t slot_idx) {
         }
     }
 }
+
+std::unique_ptr<Item> Inventory::remove_item(uint8_t index) {
+    if (index >= this->max_slots || this->slots[index].is_empty()) {
+        return nullptr;
+    }
+
+    std::unique_ptr<Item> extracted;
+
+    if (this->slots[index].amount == 1) {
+        extracted = std::move(this->slots[index].item);
+        this->slots[index].amount = 0;
+    } else {
+        extracted = this->slots[index].item->clone();
+        this->slots[index].amount--;
+    }
+
+    return extracted;
+}

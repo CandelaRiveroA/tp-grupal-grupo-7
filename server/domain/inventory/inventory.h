@@ -28,6 +28,7 @@ public:
     uint8_t get_amount(uint8_t index) const;
     uint8_t get_max_slots() const;
     void consume_item(uint8_t slot_idx);
+    std::unique_ptr<Item> remove_item(uint8_t index);
 };
 
 #endif  // INVENTORY_H

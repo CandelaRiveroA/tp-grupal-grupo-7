@@ -30,7 +30,8 @@ enum class ItemID : uint16_t {
     ROCK_3,
     ROCK_4,
     ROCK_5,
-    ROCK_6
+    ROCK_6,
+    CHESTS
 };
 
 enum class Quality : uint8_t { BASE = 1, GOOD = 2, EXCELLENT = 3, INCREDIBLE = 4, PERFECT = 5 };

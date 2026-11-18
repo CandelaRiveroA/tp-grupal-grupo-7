@@ -1,5 +1,5 @@
 # Texto del HUD: la fuente que usa todo el cliente para dibujar letras
-# y el copy/apariencia del prompt de "terminar el día".
+# y el copy/apariencia de los popups (dormir, cambio de día, regalos).
 #
 # Cambiar lo que dice un texto o sus colores = datos. Otro texto u otra
 # fuente futuro = otra entrada, sin tocar el dibujo (sdl::TextRenderer).
@@ -12,25 +12,56 @@
 file = "fonts/StardewValley.ttf"
 size = 26
 
-# --- El prompt del popup ("¿Terminamos el día?") ------------------------
-# question/options/waiting: el copy. {0}/{1} en `waiting` se reemplazan
-# por los números del avance (los manda la fuente de estado).
+# --- El prompt del popup -------------------------------------------------
 # text_color/hover_color: RGBA. hover es el marrón de las opciones bajo
 # el mouse.
 # text_size/line_gap: layout del prompt, en px.
 # grid: la forma del panel en slots [columnas, filas] (hoy 9x2; un
 # panel 9x1 o 3x4 es solo otro dato — bordes y relleno se adaptan
 # solos).
+# Cada popup tiene su copia en [prompt.copy.<clave>]: text + options
+# (pregunta) o button (texto con botón). {0}/{1} se reemplazan por los
+# datos que manda la fuente de estado (avance, nombre del jugador).
 [prompt]
-question    = "¿Terminamos el día?"
-options     = ["Sí", "No"]
-waiting     = "Esperando al resto de jugadores... ({0}/{1})"
-next_day    = "¿Avanzamos al siguiente día?"
 text_color  = [62, 39, 17, 255]
 hover_color = [195, 160, 100, 255]
 text_size   = 18
 line_gap    = 6
 grid        = [9, 2]
+
+[prompt.copy.sleep_question]
+text    = "¿Terminamos el día?"
+options = ["Sí", "No"]
+
+[prompt.copy.sleep_waiting]
+text   = "Esperando al resto de jugadores... ({0}/{1})"
+button = "cancel"
+
+[prompt.copy.next_day]
+text   = "¿Avanzamos al siguiente día?"
+button = "ok"
+
+# --- Regalos ------------------------------------------------------------
+# Gift offer: el popup del que da el regalo (click sobre otro jugador).
+# Gift waiting: el estado de espera (lo abrirá el server; hoy la tecla R).
+# Gift received: el popup del receptor (lo abrirá el server; hoy la tecla T).
+#   {0} = nombre del jugador que regala. Hoy la demo manda "Jugador";
+#   cuando exista la conexión lo reemplaza el nombre real que envíe el
+#   server (no se escribe a mano en el copy).
+#   option_offset_y = cuántos px baja la fila Sí/No respecto de la
+#   pregunta (2 acá: la pregunta es larga y quedaban muy juntos).
+[prompt.copy.gift_offer]
+text    = "¿Queres darle este regalo?"
+options = ["Sí", "No"]
+
+[prompt.copy.gift_waiting]
+text   = "Esperando la respuesta del jugador..."
+button = "cancel"
+
+[prompt.copy.gift_received]
+text            = "{0} te quiere hacer un regalo. ¿Lo aceptas?"
+options         = ["Sí", "No"]
+option_offset_y = 2
 
 # --- El botón de cancelar del popup "Esperando..." ---------------------
 # Un 9-slice de cursors.png: las 9 piezas [col, row, cols, rows] (las

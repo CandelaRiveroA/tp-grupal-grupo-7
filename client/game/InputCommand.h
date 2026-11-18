@@ -14,6 +14,11 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Demo del flujo de regalos (teclas R/Y por ahora): simulan
+        // eventos que mandará el server, no intenciones del jugador.
+        // Los consume PlaySession; NO viajan al GameClient.
+        GiftSent,
+        GiftReceived,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
         // muerte), de sus proyectiles (J avanzar, L desaparecer) y el

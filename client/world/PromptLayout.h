@@ -41,32 +41,59 @@ struct ButtonFrame {
 	Anchor anchor = Anchor::BottomRight;
 };
 
-// El prompt del popup ("¿Terminamos el día?"): copy, colores y layout
-// (datos de la sección [prompt] de ui/text.toml, traducidos en su
-// constructor, que lanza ConfigError) + la geometría de dónde cae cada
-// cosa dentro del panel. Estilo InventoryLayout: datos y geometría
-// juntos; el que dibuja (sdl::PromptPainter) solo pinta lo que esto
-// calcula. Todo recibe la caja del panel: sirve para la grilla que sea.
-struct PromptLayout {
-	std::string question;
+// El copy de un popup: el texto que muestra y, según el tipo, sus
+// opciones o el botón del panel. Todo es presentación (ui/text.toml).
+struct PromptCopy {
+	std::string text;
+	// Vacío = no es una pregunta (no dibuja opciones).
 	std::vector<std::string> options;
-	std::string waiting;
-	// La pregunta del cambio de día ("¿Avanzamos al siguiente día?").
-	std::string nextDay;
+	// Nombre del botón ([prompt.<botón>]) o vacío = sin botón.
+	std::string button;
+	// Cuántos px baja la fila de opciones respecto de la pregunta
+	// (0 = la separación normal de `line_gap`).
+	int optionsOffsetY = 0;
+};
+
+// Qué popup pide cada copia. Sumar un popup = un valor acá + su sección
+// [prompt.copy.<clave>] en ui/text.toml; el dibujo no cambia.
+enum class PromptId {
+	SleepQuestion,
+	SleepWaiting,
+	NextDay,
+	GiftOffer,
+	GiftWaiting,
+	GiftReceived,
+};
+
+// El prompt del popup: copy, colores y layout (datos de la sección
+// [prompt] de ui/text.toml, traducidos en su constructor, que lanza
+// ConfigError) + la geometría de dónde cae cada cosa dentro del panel.
+// Estilo InventoryLayout: datos y geometría juntos; el que dibuja
+// (sdl::PromptPainter) solo pinta lo que esto calcula. Todo recibe la
+// caja del panel: sirve para la grilla que sea.
+struct PromptLayout {
 	Color textColor;
 	Color hoverColor;
 	int textSize = 0;
 	int lineGap = 0;
 
-	// La forma del panel en slots [columnas, filas] (hoy la barra:
-	// 9x1; un panel 2x9 o 3x4 es solo otro dato).
+	// La forma del panel en slots [columnas, filas] (hoy 9x2; un
+	// panel 9x1 o 3x4 es solo otro dato).
 	GridSpan grid{0, 0};
 
 	// Los botones del popup por nombre (kPromptCancelButton,
 	// kPromptOkButton): mismo 9-slice, distinto dato.
 	std::map<std::string, ButtonFrame> buttons;
 
+	// El copy de cada popup, por identidad. Un popup nuevo no agrega
+	// campos a esta clase: agrega una entrada acá (la lee el reader).
+	std::map<PromptId, PromptCopy> prompts;
+
 	explicit PromptLayout(const std::string& path);
+
+	// Copy del popup pedido. El loader garantiza que estén todas las
+	// entradas conocidas.
+	const PromptCopy& prompt(PromptId id) const;
 
 	// La pregunta arriba y la fila de opciones debajo: el bloque,
 	// centrado verticalmente en el panel y con el ancho del panel (el
@@ -75,8 +102,10 @@ struct PromptLayout {
 
 	// Las opciones en UNA fila debajo de la pregunta, repartidas por
 	// igual: una columna por opción (con dos: la primera a la
-	// izquierda, la segunda a la derecha, a la misma altura).
-	std::vector<PixelBox> optionBoxes(const PixelBox& panel) const;
+	// izquierda, la segunda a la derecha, a la misma altura). El copy
+	// aporta cuántas son y su ajuste vertical.
+	std::vector<PixelBox> optionBoxes(const PixelBox& panel,
+					  const PromptCopy& copy) const;
 
 	// El avance ("Esperando al resto..."), centrado en el panel.
 	PixelBox waitingBox(const PixelBox& panel) const;
@@ -87,7 +116,8 @@ struct PromptLayout {
 
 	// Índice de la opción bajo el punto (-1 si no hay ninguna): las
 	// MISMAS cajas que se dibujan, así lo que se toca es lo que se ve.
-	int optionAt(const PixelBox& panel, const PixelPoint& point) const;
+	int optionAt(const PixelBox& panel, const PixelPoint& point,
+		     const PromptCopy& copy) const;
 
 	// Un botón (por nombre): su caja en el panel según su anchor, si el
 	// punto la pega, y sus piezas 9-slice estiradas a esa caja.
@@ -106,6 +136,10 @@ private:
 	// Traduce y valida la sección [prompt.<name>] de un botón.
 	void readButton(const tomlcfg::TomlDocument& doc,
 			const std::string& name);
+
+	// Traduce y valida una copia [prompt.copy.<key>].
+	void readPrompt(const tomlcfg::TomlDocument& doc, PromptId id,
+			const std::string& key);
 
 	bool contains(const PixelBox& box, const PixelPoint& point) const;
 };

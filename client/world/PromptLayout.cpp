@@ -11,40 +11,76 @@
 
 namespace world {
 
+namespace {
+
+using tomlcfg::TomlDocument;
+
+// Claves del TOML.
+constexpr const char* kPrompt = "prompt";
+constexpr const char* kPromptCopy = "copy";
+constexpr const char* kText = "text";
+constexpr const char* kOptions = "options";
+constexpr const char* kButton = "button";
+constexpr const char* kOptionOffsetY = "option_offset_y";
+
+// Popup -> clave de su sección [prompt.copy.<clave>]. Sumar un popup =
+// un valor en PromptId + una fila acá + su sección en ui/text.toml.
+struct PromptBinding {
+	PromptId id;
+	const char* tableKey;
+};
+
+constexpr std::array<PromptBinding, 6> kPromptBindings = {{
+	{PromptId::SleepQuestion, "sleep_question"},
+	{PromptId::SleepWaiting, "sleep_waiting"},
+	{PromptId::NextDay, "next_day"},
+	{PromptId::GiftOffer, "gift_offer"},
+	{PromptId::GiftWaiting, "gift_waiting"},
+	{PromptId::GiftReceived, "gift_received"},
+}};
+
+}  // namespace
+
 PromptLayout::PromptLayout(const std::string& path) {
 	try {
-		const tomlcfg::TomlDocument doc(path,
-						tomlcfg::TomlDocument::Source::File);
-		const tomlcfg::TomlDocument prompt = doc.getSubtable("prompt");
-		question = prompt.getString("question");
-		options = prompt.getStringArray("options");
-		waiting = prompt.getString("waiting");
-		nextDay = prompt.getString("next_day");
-		const std::array<int, 4> text = prompt.getIntArray<4>("text_color");
+		const TomlDocument doc(path, TomlDocument::Source::File);
+		const std::string base = std::string(kPrompt) + ".";
+		const std::array<int, 4> text =
+			doc.getIntArray<4>(base + "text_color");
 		textColor = {text[0], text[1], text[2], text[3]};
-		const std::array<int, 4> hover = prompt.getIntArray<4>("hover_color");
+		const std::array<int, 4> hover =
+			doc.getIntArray<4>(base + "hover_color");
 		hoverColor = {hover[0], hover[1], hover[2], hover[3]};
-		textSize = prompt.getInt("text_size");
-		lineGap = prompt.getInt("line_gap");
-		const std::array<int, 2> gridData = prompt.getIntArray<2>("grid");
+		textSize = doc.getInt(base + "text_size");
+		lineGap = doc.getInt(base + "line_gap");
+		const std::array<int, 2> gridData =
+			doc.getIntArray<2>(base + "grid");
 		grid = {gridData[0], gridData[1]};
+		// Los botones primero: las copias validan que el botón que
+		// nombran exista.
 		readButton(doc, kPromptCancelButton);
 		readButton(doc, kPromptOkButton);
+		for (const PromptBinding& binding : kPromptBindings) {
+			readPrompt(doc, binding.id, binding.tableKey);
+		}
 	} catch (const tomlcfg::TomlError& error) {
 		throw ConfigError(error);
 	}
-	if (options.empty()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, "prompt.options");
-	}
 	if (textSize <= 0) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, "prompt.text_size");
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  "prompt.text_size");
 	}
 	if (lineGap < 0) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, "prompt.line_gap");
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  "prompt.line_gap");
 	}
 	if (grid.columns <= 0 || grid.rows <= 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue, "prompt.grid");
 	}
+}
+
+const PromptCopy& PromptLayout::prompt(const PromptId id) const {
+	return prompts.at(id);
 }
 
 PixelBox PromptLayout::questionBox(const PixelBox& panel) const {
@@ -55,18 +91,23 @@ PixelBox PromptLayout::questionBox(const PixelBox& panel) const {
 	return PixelBox{panel.x, startY, panel.width, textSize};
 }
 
-std::vector<PixelBox> PromptLayout::optionBoxes(const PixelBox& panel) const {
-	// Una columna por opción, en la fila de abajo del bloque.
+std::vector<PixelBox> PromptLayout::optionBoxes(const PixelBox& panel,
+						const PromptCopy& copy) const {
+	// Una columna por opción, en la fila de abajo del bloque. El copy
+	// manda: cuántas opciones hay y cuánto baja la fila.
+	const int optionCount = static_cast<int>(copy.options.size());
 	std::vector<PixelBox> boxes;
-	boxes.reserve(options.size());
+	if (optionCount <= 0) {
+		return boxes;
+	}
+	boxes.reserve(static_cast<std::size_t>(optionCount));
 	const PixelBox question = questionBox(panel);
-	const int rowY = question.y + question.height + lineGap;
-	const int columnWidth =
-		panel.width / static_cast<int>(options.size());
-	for (std::size_t i = 0; i < options.size(); ++i) {
-		boxes.push_back(PixelBox{
-			panel.x + static_cast<int>(i) * columnWidth, rowY,
-			columnWidth, textSize});
+	const int rowY =
+		question.y + question.height + lineGap + copy.optionsOffsetY;
+	const int columnWidth = panel.width / optionCount;
+	for (int i = 0; i < optionCount; ++i) {
+		boxes.push_back(PixelBox{panel.x + i * columnWidth, rowY,
+					 columnWidth, textSize});
 	}
 	return boxes;
 }
@@ -82,9 +123,9 @@ PixelBox PromptLayout::nextDayBox(const PixelBox& panel) const {
 			panel.width, textSize};
 }
 
-int PromptLayout::optionAt(const PixelBox& panel,
-			   const PixelPoint& point) const {
-	const std::vector<PixelBox> boxes = optionBoxes(panel);
+int PromptLayout::optionAt(const PixelBox& panel, const PixelPoint& point,
+			   const PromptCopy& copy) const {
+	const std::vector<PixelBox> boxes = optionBoxes(panel, copy);
 	for (std::size_t i = 0; i < boxes.size(); ++i) {
 		if (contains(boxes[i], point)) {
 			return static_cast<int>(i);
@@ -217,6 +258,36 @@ void PromptLayout::readButton(const tomlcfg::TomlDocument& doc,
 				  base + "margin");
 	}
 	buttons.emplace(name, frame);
+}
+
+void PromptLayout::readPrompt(const tomlcfg::TomlDocument& doc,
+			      const PromptId id, const std::string& key) {
+	const std::string base =
+		std::string(kPrompt) + "." + kPromptCopy + "." + key + ".";
+	PromptCopy copy;
+	copy.text = doc.getString(base + kText);
+	if (doc.hasKey(base + kOptions)) {
+		copy.options = doc.getStringArray(base + kOptions);
+	}
+	if (doc.hasKey(base + kButton)) {
+		copy.button = doc.getString(base + kButton);
+	}
+	if (doc.hasKey(base + kOptionOffsetY)) {
+		copy.optionsOffsetY = doc.getInt(base + kOptionOffsetY);
+	}
+	if (copy.text.empty()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, base + kText);
+	}
+	if (copy.options.empty() && copy.button.empty()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  base + kOptions);
+	}
+	if (!copy.button.empty() &&
+	    buttons.find(copy.button) == buttons.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  base + kButton);
+	}
+	prompts.emplace(id, copy);
 }
 
 bool PromptLayout::contains(const PixelBox& box,

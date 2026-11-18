@@ -75,11 +75,13 @@ void Crop::update(World& /*w*/) {
     // El agua se evapora/consume, reseteamos para el nuevo día
     this->times_watered_today = 0;
 
-    if (this->days_alive >= this->required_days_to_harvest) {
+    if (this->days_alive == this->required_days_to_harvest) {
         this->is_ready_to_harvest = true;
-        // La calidad se decide al llegar la cosecha (riego + suerte) y mientras
-        // espera se pudre (degrade_quality_over_time).
+        // La calidad se decide al llegar la cosecha (riego + suerte)
         this->current_quality = this->calculate_quality();
+    } else if (this->days_alive > this->required_days_to_harvest) {
+        // Si el jugador no cosechó a tiempo, el cultivo se pudre y baja de calidad.
+        this->degrade_quality_over_time();
     }
 }
 

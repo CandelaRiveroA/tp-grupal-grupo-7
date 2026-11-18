@@ -219,6 +219,10 @@ public:
     bool take_day_ended();
     bool take_day_started();
 
+    //funcion para avisar del regalo de un item a otro jugador
+    void notify_gift_request(uint8_t sender_id, uint8_t receiver_id, ItemID item_id);
+    void process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id);
+
 private:
     void try_advance_sleep();
     void try_start_day();

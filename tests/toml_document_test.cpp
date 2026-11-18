@@ -139,4 +139,97 @@ TEST(TomlDocumentTest, InvalidTomlThrowsParseError) {
 	}
 }
 
+TEST(TomlDocumentTest, IntArrayReturnsVariableLengthVector) {
+	const tomlcfg::TomlDocument doc = parse("tiles = [1, 2, 3]");
+	const std::vector<int> values = doc.getIntArray("tiles");
+	ASSERT_EQ(values.size(), 3u);
+	EXPECT_EQ(values[0], 1);
+	EXPECT_EQ(values[1], 2);
+	EXPECT_EQ(values[2], 3);
+}
+
+TEST(TomlDocumentTest, IntArrayEmptyReturnsEmptyVector) {
+	const tomlcfg::TomlDocument doc = parse("tiles = []");
+	EXPECT_TRUE(doc.getIntArray("tiles").empty());
+}
+
+TEST(TomlDocumentTest, BoolArrayReturnsBooleans) {
+	const tomlcfg::TomlDocument doc = parse("blocked = [true, false, true]");
+	const std::vector<bool> values = doc.getBoolArray("blocked");
+	ASSERT_EQ(values.size(), 3u);
+	EXPECT_TRUE(values[0]);
+	EXPECT_FALSE(values[1]);
+	EXPECT_TRUE(values[2]);
+}
+
+TEST(TomlDocumentTest, IntArrayWithStringElementThrowsWrongType) {
+	const tomlcfg::TomlDocument doc = parse("mixed = [\"a\", 3]");
+	try {
+		doc.getIntArray("mixed");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::WrongType);
+	}
+}
+
+TEST(TomlDocumentTest, IntArrayWithDoubleElementThrowsWrongType) {
+	const tomlcfg::TomlDocument doc = parse("mixed = [1.5, 3]");
+	try {
+		doc.getIntArray("mixed");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::WrongType);
+	}
+}
+
+TEST(TomlDocumentTest, IntArrayMissingKeyThrowsMissingKind) {
+	const tomlcfg::TomlDocument doc = parse("tiles = [1]");
+	try {
+		doc.getIntArray("nope");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::MissingKey);
+	}
+}
+
+TEST(TomlDocumentTest, BoolArrayWithIntElementThrowsWrongType) {
+	const tomlcfg::TomlDocument doc = parse("mixed = [true, 1]");
+	try {
+		doc.getBoolArray("mixed");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::WrongType);
+	}
+}
+
+TEST(TomlDocumentTest, BoolArrayMissingKeyThrowsMissingKind) {
+	const tomlcfg::TomlDocument doc = parse("blocked = [true]");
+	try {
+		doc.getBoolArray("nope");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::MissingKey);
+	}
+}
+
+TEST(TomlDocumentTest, IntArrayOutOfRangeThrowsWrongType) {
+	const tomlcfg::TomlDocument doc = parse("big = [2147483648]");
+	try {
+		doc.getIntArray("big");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::WrongType);
+	}
+}
+
+TEST(TomlDocumentTest, FixedIntArrayOutOfRangeThrowsWrongType) {
+	const tomlcfg::TomlDocument doc = parse("big = [-2147483649]");
+	try {
+		doc.getIntArray<1>("big");
+		FAIL() << "se esperaba TomlError";
+	} catch (const tomlcfg::TomlError& error) {
+		EXPECT_EQ(error.kind(), tomlcfg::TomlErrorKind::WrongType);
+	}
+}
+
 }

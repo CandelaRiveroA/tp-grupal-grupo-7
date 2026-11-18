@@ -27,6 +27,7 @@ private:
     void send_message(const protocol::TakeMessage& message);
     void send_message(const protocol::SleepMessage& message);
     void send_message(const protocol::WakeMessage& message);
+    void send_message(const protocol::ChatMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -38,6 +39,8 @@ private:
     void send_message(const ServerReset& reset);
     void send_message(const ServerSyncEnd& end);
     void send_message(const ServerAnimal& animal);
+    void send_message(const ServerEnemy& enemy);
+    void send_message(const ServerProjectile& projectile);
     void send_message(const ServerSleep& sleep);
     void send_message(const ServerFurniture& furniture);
     void send_message(const ServerDayEnd& day);
@@ -46,15 +49,18 @@ private:
     void send_message(const ServerClock& clock);
     void send_message(const ServerCrop& crop);
     void send_message(const ServerGroundEffect& ground);
+    void send_message(const ServerChat& chat);
+    void send_message(const ServerGiftRequest& gift);
 
 public:
     explicit ProtocolSender(Socket& socket);
-
+    
     void send_client_message(const protocol::ClientMessage& message);
     void send_server_message(const ServerMessage& message);
     void send_welcome(const ServerWelcome& welcome);
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
+    void send_message(const protocol::GiftResponseMessage& message);
 };
 
 #endif

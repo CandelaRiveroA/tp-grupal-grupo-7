@@ -3,6 +3,7 @@
 #include <array>
 #include <deque>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -50,6 +51,18 @@ public:
 	// movimiento del mouse.
 	const game::PointerPosition& mousePosition() const;
 
+	// Modo texto del chat: mientras está activo el input de juego se
+	// ignora y los caracteres se acumulan
+	void setTextMode(bool open);
+
+	bool chatOpen() const { return textMode_; }
+
+	// Caracteres acumulados (crudos); vacía la cola.
+	std::string takeText();
+
+	// Backspaces pendientes (el repeat borra en cadena); vacía el contador.
+	int takeBackspaces();
+
 private:
 
 	std::unordered_map<SDL_Keycode, Action> defaultBindings() const;
@@ -68,6 +81,9 @@ private:
 		Action action;
 		world::Direction direction;
 	};
+
+	// Traducción de eventos con el chat abierto.
+	void handleTextEvent(const SDL_Event& event);
 
 	std::unordered_map<SDL_Keycode, Action> keymap_;
 
@@ -88,6 +104,11 @@ private:
 	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame
 	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
 	game::PointerPosition pointerPosition_{};
+
+	// Estado del modo texto: caracteres y backspaces pendientes.
+	bool textMode_ = false;
+	std::string textPending_;
+	int backspacePending_ = 0;
 };
 
 }

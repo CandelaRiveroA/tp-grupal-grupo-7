@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core/StartupScreens.h"
+#include "core/ActionSounds.h"
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
@@ -27,6 +28,7 @@
 #include "sdl/input/InputManager.h"
 #include "sdl/render/BuildPlacePainter.h"
 #include "sdl/render/Camera.h"
+#include "sdl/render/ChatPainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/HudOverlayPainter.h"
@@ -36,6 +38,7 @@
 #include "sdl/render/Renderer.h"
 #include "sdl/render/TextRenderer.h"
 #include "world/CursorCatalog.h"
+#include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
 #include "world/InventoryLayout.h"
@@ -44,6 +47,7 @@
 
 namespace game {
 class GameClient;
+class EnemyTestTrigger;
 struct LocalWorldView;
 }  // namespace game
 
@@ -51,6 +55,7 @@ namespace world {
 class Scenario;
 class ScenePixelMapper;
 class CharacterCatalog;
+struct CharacterPalettes;
 struct DigitCatalog;
 struct InventoryLayout;
 struct ObtainedBannerCatalog;
@@ -73,8 +78,11 @@ public:
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
-                const world::PromptLayout& prompt, const world::HudOverlayCatalog& hudOverlays,
-                const world::HudOverlayCatalog& lighting);
+                const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                const world::HudOverlayCatalog& hudOverlays,
+                const world::HudOverlayCatalog& lighting,
+                const world::CharacterPalettes& palettes,
+                game::EnemyTestTrigger* enemyTestTrigger = nullptr);
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -83,9 +91,8 @@ private:
     void tick(int iteration);
 
     // Vista de presentación del tick: la de "meterse" (EnterSelection)
-    // más el override LOCAL del desmayo (pose, frente y, al terminar la
-    // caída, la indicación de las Z). La consumen el movimiento, el
-    // renderer y los diálogos; el estado de juego queda intacto.
+    // más el agradecimiento LOCAL del regalo. La consumen el movimiento,
+    // el renderer y los diálogos; el estado de juego queda intacto.
     game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
@@ -101,6 +108,12 @@ private:
     // PopupState, el dónde InventoryLayout y el cómo los painters;
     // esto solo compone la llamada.
     void drawPopup(const world::PixelBox& panel);
+
+    // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
+    void closeChat();
+
+    // Borra el último caracter UTF-8 escrito
+    void eraseLastCodepoint(std::string& text);
 
     // Cambia la escena actual (en el negro de la transición): carga la
     // sala pedida, reconstruye el índice del renderer y la cámara. El
@@ -124,6 +137,19 @@ private:
     // ventana la sigue dando el Scenario).
     world::SceneDescription scene_;
     game::GameClient& gameClient_;
+    // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
+    // del mundo simulado (null si no hay). Se va con las teclas de
+    // prueba (G/F/H/K/J/L/V).
+    game::EnemyTestTrigger* enemyTestTrigger_;
+    // ANDAMIAJE TEMPORAL (prueba): despacho de esas teclas a la acción
+    // que disparan (una fila por tecla). Se va con el disparador.
+    std::map<game::InputCommand::Kind, world::ActionKind> testActions_;
+    // Las dos teclas del proyectil (avanzar / desaparecer) también por
+    // tabla: Kind -> método del disparador. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, void (game::EnemyTestTrigger::*)()> projectileTests_;
+    // Tecla de ataque con un proyectil concreto (hoy el fuego verde V):
+    // Kind -> tipo de proyectil. Se va con el andamiaje.
+    std::map<game::InputCommand::Kind, world::CreatureKind> attackProjectiles_;
     const world::CharacterCatalog& characters_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario
@@ -153,6 +179,7 @@ private:
     game::ViewMotion motion_;
     game::FootstepCue footstepCue_;
     ToolUseSounds toolUseSounds_;
+    ActionSounds actionSounds_;
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
@@ -163,26 +190,21 @@ private:
     bool voted_ = false;
     // Día terminado: ya apretó OK y espera a que despierten los demás.
     bool woke_ = false;
+    // Texto tipeado; al Enter sale por gameClient_.sendChat.
+    std::string chatInput_;
+    // Última versión vista del historial: al cambiar, llegó un mensaje y
+    // el preview se muestra hasta chatPreviewUntilTick_.
+    int seenChatVersion_ = 0;
+    int chatPreviewUntilTick_ = -1;
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
     // tick).
     game::DayPhase dayPhase_;
     // Stats simulados del jugador: hoy los simula el cliente y el server
-    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
-    // qué comando gasta cuál. La traducción a las claves del HUD queda en
-    // el borde de dibujo, no en el estado.
-    struct StatSpend {
-        game::StatKind stat;
-        double cost = 0.0;
-    };
+    // los reemplazará. La traducción a las claves del HUD queda en el
+    // borde de dibujo, no en el estado.
     std::map<game::StatKind, game::FractionStat> stats_;
-    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
-    // Demo del desmayo (tecla F): presentación local mientras el server
-    // no manda la acción. El reloj cuenta desde el inicio de la caída
-    // para recién entonces mostrar las Z.
-    bool faintRequested_ = false;
-    int faintFallTicks_ = 0;
     // Regalo aceptado: el diálogo de agradecimiento es presentación
     // local hasta que el server mande la indicación. El reloj dura lo
     // que la animación (dato del catálogo), así se puede repetir.
@@ -199,6 +221,7 @@ private:
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
     sdl::PromptPainter promptPainter_;
+    sdl::ChatPainter chatPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

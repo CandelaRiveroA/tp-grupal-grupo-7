@@ -12,8 +12,14 @@ namespace world {
 // coincide con bodyBottom.
 class CharacterLayout {
 public:
+	// referenceCols/Rows (opcionales, 0 = sin referencia): el tamaño en
+	// celdas del frame de referencia de la criatura. Con referencia, los
+	// píxeles por celda salen de ella y no del frame que se dibuja: un
+	// frame más ancho se ve más ancho en vez de aplastarse al mismo
+	// tamaño que los demás.
 	CharacterLayout(const PixelRect& bodyBox, int drawnWidth,
-			int drawnHeight);
+			int drawnHeight, int referenceCols = 0,
+			int referenceRows = 0);
 
 	int bodyX() const;
 	int bodyTop() const;
@@ -33,6 +39,8 @@ private:
 	PixelRect bodyBox_;
 	int drawnWidth_;
 	int drawnHeight_;
+	int referenceCols_;
+	int referenceRows_;
 };
 
 }  // namespace world

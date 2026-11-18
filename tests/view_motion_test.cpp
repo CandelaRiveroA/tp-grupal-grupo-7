@@ -129,6 +129,120 @@ cadence = { step = 8, frame = 8 }
     [characters.cow.left.walk]
     loops  = true
     frames = [ [[0, 0]] ]
+
+[characters.orc]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.orc.front]
+  mirrored = false
+    [characters.orc.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.right]
+  mirrored = false
+    [characters.orc.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.back]
+  mirrored = false
+    [characters.orc.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.orc.left]
+  mirrored = false
+    [characters.orc.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.orc.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.skeleton]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.skeleton.front]
+  mirrored = false
+    [characters.skeleton.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.right]
+  mirrored = false
+    [characters.skeleton.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.back]
+  mirrored = false
+    [characters.skeleton.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.skeleton.left]
+  mirrored = false
+    [characters.skeleton.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.skeleton.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+
+[characters.vampire]
+sheet   = "Cow.png"
+grid    = [32, 32]
+drawn   = [64, 64]
+cadence = { step = 8, frame = 8 }
+  [characters.vampire.front]
+  mirrored = false
+    [characters.vampire.front.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.front.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.right]
+  mirrored = false
+    [characters.vampire.right.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.right.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.back]
+  mirrored = false
+    [characters.vampire.back.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.back.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
+  [characters.vampire.left]
+  mirrored = false
+    [characters.vampire.left.idle]
+    loops  = false
+    frames = [ [[0, 0]] ]
+    [characters.vampire.left.walk]
+    loops  = true
+    frames = [ [[0, 0]] ]
 )";
 
 const world::CharacterCatalog& catalog() {
@@ -222,6 +336,25 @@ TEST(ViewMotionTest, TeleportSnapsWithoutSliding) {
 	const PixelOffset offset = motion.offsetFor(0, 100, kCellPixels);
 	EXPECT_EQ(offset.x, 0);
 	EXPECT_EQ(offset.y, 0);
+}
+
+TEST(ViewMotionTest, MultiCellStepSlidesInsteadOfSnapping) {
+	// La vampira salta 2 celdas por tick (4 con frenesí): ese salto se
+	// interpola desde la celda anterior, sin plantar el sprite.
+	ViewMotion motion = makeMotion();
+	motion.observe(viewAt(5, 5), 0);
+	motion.observe(viewAt(7, 5), 100);
+
+	const PixelOffset start = motion.offsetFor(0, 100, kCellPixels);
+	EXPECT_EQ(start.x, -2 * kCellPixels);
+	EXPECT_EQ(start.y, 0);
+
+	const PixelOffset middle =
+		motion.offsetFor(0, 100 + kStepTicks / 2, kCellPixels);
+	EXPECT_EQ(middle.x, -kCellPixels);
+
+	// El paso sigue "en tránsito": la pose es de caminata, no idle.
+	EXPECT_TRUE(motion.isWalking(0, 101, false));
 }
 
 TEST(ViewMotionTest, AnimationPhaseRestartsAtEveryObservedStep) {

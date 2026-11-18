@@ -9,6 +9,13 @@
 
 namespace game {
 
+// Máximo de celdas que un tick de servidor mueve una entidad y la vista
+// todavía interpola en vez de plantar: la vampira da 2 celdas por tick y
+// 4 con frenesí. Más que eso es un teletransporte (cama al amanecer).
+// shortcut: el techo es el de pasos por tick; si sube la velocidad
+// máxima de un enemigo, subir kMaxStepCells.
+constexpr int kMaxStepCells = 4;
+
 ViewMotion::ViewMotion(const world::CharacterCatalog& catalog)
 	: catalog_(catalog) {}
 
@@ -70,11 +77,15 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 		double drawnY = 0.0;
 		drawnCellPosition(track, iteration, drawnX, drawnY);
 
-		const bool singleStep = (std::abs(deltaX) + std::abs(deltaY) == 1);
+		// Un salto de hasta kMaxStepCells es un paso múltiple: se
+		// interpola desde la posición dibujada, sin saltos ni pose
+		// plantada. Más que eso es un teletransporte y se planta.
+		const bool inReach =
+			std::abs(deltaX) + std::abs(deltaY) <= kMaxStepCells;
 		track.fromX =
-			singleStep ? drawnX : static_cast<double>(entity.cellX);
+			inReach ? drawnX : static_cast<double>(entity.cellX);
 		track.fromY =
-			singleStep ? drawnY : static_cast<double>(entity.cellY);
+			inReach ? drawnY : static_cast<double>(entity.cellY);
 		track.cellX = entity.cellX;
 		track.cellY = entity.cellY;
 		track.stepIteration = iteration;

@@ -1,0 +1,1327 @@
+# Enemigos de la cueva (orco, esqueleto, vampiro, skull) y sus
+# proyectiles (el fuego del skull). Mismo formato que characters.toml;
+# separado para mantener ese archivo chico (contrato 9). Cada accion
+# puede declarar su propia hoja (sheet/grid/frame_cells).
+
+[characters.orc]
+sheet       = "Cavern/orc/orc_movement.png"
+grid        = [16, 16]
+drawn       = [64, 64]
+frame_cells = [2, 2]
+cadence     = { step = 48, frame = 6 }
+
+  [characters.orc.front]
+  mirrored = false
+    [characters.orc.front.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.orc.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.orc.front.attack]
+    loops  = false
+    sheet  = "Cavern/orc/orc_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.front.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.front.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
+
+    [characters.orc.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.orc.back]
+  mirrored = false
+    [characters.orc.back.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.orc.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.orc.back.attack]
+    loops  = false
+    sheet  = "Cavern/orc/orc_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.back.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.back.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
+
+    [characters.orc.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.orc.left]
+  mirrored = true
+    [characters.orc.left.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.orc.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.orc.left.attack]
+    loops  = false
+    sheet  = "Cavern/orc/orc_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.left.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.left.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
+
+    [characters.orc.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.orc.right]
+  mirrored = false
+    [characters.orc.right.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.orc.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.orc.right.attack]
+    loops  = false
+    sheet  = "Cavern/orc/orc_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+    ]
+
+    [characters.orc.right.damage]
+    loops  = false
+    sheet  = "Cavern/orc/orc_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+    ]
+
+    [characters.orc.right.death]
+    loops  = false
+    sheet  = "Cavern/orc/orc_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 1, 2, 1] ],
+    ]
+
+
+    [characters.orc.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+[characters.skeleton]
+sheet       = "Cavern/skeleton/skeleton_movement.png"
+grid        = [16, 16]
+drawn       = [64, 64]
+frame_cells = [2, 2]
+cadence     = { step = 60, frame = 6 }
+
+  [characters.skeleton.front]
+  mirrored = false
+    [characters.skeleton.front.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.skeleton.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.front.attack]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.front.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.front.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
+
+    [characters.skeleton.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.skeleton.back]
+  mirrored = false
+    [characters.skeleton.back.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.skeleton.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.back.attack]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.back.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.back.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
+
+    [characters.skeleton.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.skeleton.left]
+  mirrored = true
+    [characters.skeleton.left.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.skeleton.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.left.attack]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.left.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.left.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
+
+    [characters.skeleton.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.skeleton.right]
+  mirrored = false
+    [characters.skeleton.right.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.skeleton.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.right.attack]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.right.damage]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.skeleton.right.death]
+    loops  = false
+    sheet  = "Cavern/skeleton/skeleton_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 1, 1, 1] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+      [ [28, 1, 2, 1] ],
+    ]
+
+# --- Vampiro (vampire_movement.png). 8 frames contiguos de 2x2 celdas.
+# Mira a la derecha: left es el espejo; front y back repiten esas celdas.
+
+    [characters.skeleton.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+[characters.vampire]
+sheet       = "Cavern/vampire/vampire_movement.png"
+grid        = [16, 16]
+drawn       = [64, 64]
+frame_cells = [2, 2]
+cadence     = { step = 48, frame = 6 }
+
+  [characters.vampire.front]
+  mirrored = false
+    [characters.vampire.front.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.vampire.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.front.attack]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+      [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.front.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.front.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
+
+    [characters.vampire.front.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.vampire.back]
+  mirrored = false
+    [characters.vampire.back.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.vampire.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.back.attack]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+      [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.back.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.back.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
+
+    [characters.vampire.back.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.vampire.left]
+  mirrored = true
+    [characters.vampire.left.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.vampire.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.left.attack]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+      [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.left.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.left.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
+
+    [characters.vampire.left.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+  [characters.vampire.right]
+  mirrored = false
+    [characters.vampire.right.idle]
+    loops  = false
+    frames = [ [ [0, 0, 2, 2] ] ]
+    [characters.vampire.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.right.attack]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_attack.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+      [ [10, 0, 2, 2] ],
+      [ [12, 0, 2, 2] ],
+      [ [14, 0, 2, 2] ],
+      [ [16, 0, 2, 2] ],
+      [ [18, 0, 2, 2] ],
+      [ [20, 0, 2, 2] ],
+      [ [22, 0, 2, 2] ],
+      [ [24, 0, 2, 2] ],
+      [ [26, 0, 2, 2] ],
+      [ [28, 0, 2, 2] ],
+      [ [30, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.right.damage]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_damage.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 2, 2] ],
+      [ [6, 0, 2, 2] ],
+      [ [8, 0, 2, 2] ],
+    ]
+
+    [characters.vampire.right.death]
+    loops  = false
+    sheet  = "Cavern/vampire/vampire_death.png"
+    grid   = [16, 16]
+    frame_cells = [2, 2]
+    frames = [
+      [ [0, 0, 2, 2] ],
+      [ [2, 0, 2, 2] ],
+      [ [4, 0, 1, 2] ],
+      [ [6, 0, 1, 2] ],
+      [ [8, 0, 1, 2] ],
+      [ [10, 0, 1, 2] ],
+      [ [12, 0, 1, 2] ],
+      [ [14, 0, 1, 2] ],
+      [ [16, 0, 1, 2] ],
+      [ [18, 1, 2, 1] ],
+      [ [20, 1, 2, 1] ],
+      [ [22, 1, 2, 1] ],
+      [ [24, 1, 2, 1] ],
+      [ [26, 1, 2, 1] ],
+    ]
+
+    [characters.vampire.right.revive]
+    loops       = false
+    frames_from = "death"
+    reverse     = true
+
+# --- Skull -------------------------------------------------------------
+# No tiene damage ni death: solo idle/walk/attack. El idle loopea para
+# que se anime SIEMPRE aunque la fuente lo deje quieto, y el walk usa
+# los MISMOS 4 frames (la animacion de movimiento es una sola).
+# `skull_move.png` (64x16) es la tira de 4 frames que usan idle, walk y
+# attack (un solo sprite de Skull, sin frames sueltos).
+[characters.skull]
+sheet       = "Cavern/skull/skull_move.png"
+grid        = [16, 16]
+drawn       = [32, 32]
+cadence     = { step = 32, frame = 8 }
+
+  [characters.skull.front]
+  mirrored = false
+    [characters.skull.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.front.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  [characters.skull.back]
+  mirrored = false
+    [characters.skull.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.back.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  # Izquierda: la hoja es de perfil DERECHO, asi que se reusan las
+  # mismas celdas espejadas (mismo patron que characters.player.left).
+  [characters.skull.left]
+  mirrored = true
+    [characters.skull.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.left.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+  [characters.skull.right]
+  mirrored = false
+    [characters.skull.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+    [characters.skull.right.attack]
+    loops  = false
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [3, 0] ],
+    ]
+
+# --- Fuego del Skull ---------------------------------------------------
+# Hoja derivada de 3x3 celdas de 16x16: `fire_skull_sheet.png` sale de
+# la llama unica `fire_skull.png` (original intacto), con 9 variantes
+# de aleteo. El orden de frames define la animacion. Se dibuja como una
+# ViewEntity mas (kind SkullFire): la fuente decide en que celda esta y
+# el cliente solo lo anima. La hoja mira a la derecha; `left` usa las
+# mismas celdas espejadas para acompanar la direccion del disparo.
+[characters.skull_fire]
+sheet       = "Cavern/skull/fire_skull_sheet.png"
+grid        = [16, 16]
+drawn       = [28, 28]
+cadence     = { step = 36, frame = 4 }
+
+  [characters.skull_fire.front]
+  mirrored = false
+    [characters.skull_fire.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire.back]
+  mirrored = false
+    [characters.skull_fire.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  # Izquierda: el fuego tambien mira a la derecha en la hoja; espejarlo
+  # hace que acompanie la direccion en la que viaja.
+  [characters.skull_fire.left]
+  mirrored = true
+    [characters.skull_fire.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire.right]
+  mirrored = false
+    [characters.skull_fire.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+# --- Fuego verde -------------------------------------------------------
+# Misma hoja de 3x3 celdas y misma animacion que el fuego del Skull:
+# `fire_green_sheet.png` es `fire_skull_sheet.png` recoloreado a verde
+# (misma forma y alfa), a partir de la llama `fire_green.png`. Se dibuja
+# como una ViewEntity mas (kind SkullFireGreen) con el MISMO tamano
+# (`drawn` = 28) y las mismas teclas de avance/borrado.
+[characters.skull_fire_green]
+sheet       = "Cavern/skull/fire_green_sheet.png"
+grid        = [16, 16]
+drawn       = [28, 28]
+cadence     = { step = 36, frame = 4 }
+
+  [characters.skull_fire_green.front]
+  mirrored = false
+    [characters.skull_fire_green.front.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.front.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.back]
+  mirrored = false
+    [characters.skull_fire_green.back.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.back.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.left]
+  mirrored = true
+    [characters.skull_fire_green.left.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.left.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+
+  [characters.skull_fire_green.right]
+  mirrored = false
+    [characters.skull_fire_green.right.idle]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]
+    [characters.skull_fire_green.right.walk]
+    loops  = true
+    frames = [
+      [ [0, 0] ],
+      [ [1, 0] ],
+      [ [2, 0] ],
+      [ [2, 1] ],
+      [ [1, 1] ],
+      [ [0, 1] ],
+      [ [0, 2] ],
+      [ [1, 2] ],
+      [ [2, 2] ],
+    ]

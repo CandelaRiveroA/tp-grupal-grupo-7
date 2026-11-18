@@ -72,7 +72,9 @@ void PromptPainter::drawWaiting(const game::PopupState& state, const int,
 	};
 	text_.draw(fillTokens(copy.text, tokens), layout_.waitingBox(panel),
 		   layout_.textColor);
-	if (!copy.button.empty()) {
+	// Un muerto no cancela: en el sueño el botón no aparece.
+	if (!copy.button.empty() &&
+	    (state.view() != game::PopupView::Waiting || state.waitingCancelable())) {
 		drawButton(copy.button, panel);
 	}
 }

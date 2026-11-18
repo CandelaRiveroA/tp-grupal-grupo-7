@@ -60,7 +60,11 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     for (const uint8_t id: world.get_player_ids()) {
         const Player& player = world.get_player(id);
         out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
-                                   player.get_appearance()));
+                                   player.get_appearance(),
+                                   player.get_health(), player.get_max_health(),
+                                   static_cast<uint16_t>(player.get_energy() * 100.0f),
+                                   static_cast<uint16_t>(player.get_max_energy() * 100.0f),
+                                    player.faintedByEnergy() ? 1u : 0u));
     }
 
     for (uint16_t y = 0; y < world.get_height(); ++y) {
@@ -77,6 +81,11 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                 if (const auto animal = entity->animal_snapshot()) {
                     out.push_back(ServerAnimal{animal->id, animal->kind, x, y, animal->facing,
                                                animal->ready_to_milk});
+                    continue;
+                }
+                if (const auto enemy = entity->enemy_snapshot()) {
+                    out.push_back(ServerEnemy{enemy->id, enemy->kind, x, y, enemy->facing,
+                                              enemy->health, enemy->action});
                     continue;
                 }
                 if (const auto crop = entity->crop_snapshot()) {
@@ -103,6 +112,20 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                 }
             }
         }
+    }
+
+    // Charcos de sangre: estado persistente del dia (se secan al terminar
+    // el dia o los consume una vampira). Van en el MISMO transporte que la
+    // tierra tratada, asi el cliente los pinta bajo las entidades.
+    for (const auto& [blood_x, blood_y]: world.blood_puddle_list()) {
+        out.push_back(ServerGroundEffect{blood_x, blood_y, GroundEffect::Blood});
+    }
+
+    // Las llamas van después de las celdas (el fuego se dibuja encima), en
+    // el mismo orden que EnemyBot::appendEntities.
+    for (const ProjectileSnapshot& projectile: world.projectile_snapshots()) {
+        out.push_back(ServerProjectile{projectile.id, projectile.kind, projectile.x, projectile.y,
+                                       projectile.direction});
     }
 
     // Los slots vacíos no se mandan: el reset ya los borró del cliente.

@@ -30,6 +30,26 @@ struct AnimalSnapshot {
     Direction facing;
 };
 
+// Estado visible de un enemigo: vida, hacia dónde mira y la acción que anima el cliente.
+struct EnemySnapshot {
+    uint16_t id;
+    std::string kind;
+    Direction facing;
+    uint8_t health;
+    EnemyAction action;
+};
+
+// Estado visible de un proyectil (llama del skull), para que el mundo lo
+// envíe sin conocer su tipo. No lleva vida ni acción: solo dónde va y hacia
+// dónde mira.
+struct ProjectileSnapshot {
+    uint16_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    Direction direction;
+};
+
 // Estado visible de un cultivo: el producto que da y la etapa (0 semilla,
 // 1..5 crecimiento, 6 cosecha), si pide agua, si ya se puede cosechar y la
 // calidad de esa cosecha (BASE..PERFECT).
@@ -72,6 +92,9 @@ public:
 
     // Nullopt si la entidad no es un animal.
     virtual std::optional<AnimalSnapshot> animal_snapshot() const;
+
+    // Nullopt si la entidad no es un enemigo.
+    virtual std::optional<EnemySnapshot> enemy_snapshot() const;
 
     // Nullopt si la entidad no es un cultivo.
     virtual std::optional<CropSnapshot> crop_snapshot() const;

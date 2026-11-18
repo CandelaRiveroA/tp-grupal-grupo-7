@@ -21,6 +21,15 @@ constexpr int kPickupCycles = 1;
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
 
+// ANDAMIAJE TEMPORAL: primer id de los enemigos del bot de prueba
+// (los del mundo simulado de granja arrancan en 1). Se va con el bot
+// cuando el server mande los enemigos.
+constexpr int kEnemyBotFirstId = 1000;
+
+// ANDAMIAJE TEMPORAL: primer id de los proyectiles del bot (arranca
+// lejos de enemigos y animales: ViewMotion enlaza sus tracks por id).
+constexpr int kEnemyProjectileFirstId = 2000;
+
 // --- Reloj de juego (ServerClock) ---------------------------------------
 
 // El server manda los minutos desde esta hora (0 = 6:00).
@@ -44,11 +53,13 @@ constexpr const char* kClockMinuteKey = "minuto";
 constexpr const char* kHudEnergyKey = "energia";
 constexpr const char* kHudLifeKey = "vida";
 
-// Costo de UNA acción simulada por tecla (hoy G para energía y H para
-// vida; mañana el gasto que mande el server por acción). 2% => unas 50
-// acciones para vaciar una barra en una partida de 14 minutos.
-constexpr double kEnergyCostPerAction = 0.02;
-constexpr double kLifeCostPerAction = 0.02;
+// --- Chat --------------------------------------------------------------
+
+// Mensajes que guarda el historial; el más viejo se descarta.
+constexpr std::size_t kChatHistoryMax = 10;
+
+// Nombre del jugador local: el lobby todavía no lo pasa al cliente.
+constexpr const char* kLocalPlayerName = "Vos";
 
 // Valor DEMO de {0} en el popup del receptor: el server lo reemplazará
 // por el nombre real del jugador que regala (el copy solo tiene el

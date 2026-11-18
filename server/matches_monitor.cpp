@@ -37,7 +37,7 @@ MatchSeat MatchesMonitor::joinLocked(MatchEntry& entry, const std::string& usern
     }
     const uint8_t player_id = entry.next_player_id;
     try {
-        entry.events.push(MatchEvent(PlayerJoined{player_id, statuses, appearance}));
+        entry.events.push(MatchEvent(PlayerJoined{player_id, statuses, appearance, characterName}));
     } catch (const ClosedQueue&) {
         // El match ya terminó por un error: no admite jugadores.
         return MatchSeat{LobbyStatus::NotFound, 0, nullptr};

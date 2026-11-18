@@ -25,6 +25,8 @@ std::optional<CellSnapshot> IEntity::snapshot() const { return std::nullopt; }
 
 std::optional<AnimalSnapshot> IEntity::animal_snapshot() const { return std::nullopt; }
 
+std::optional<EnemySnapshot> IEntity::enemy_snapshot() const { return std::nullopt; }
+
 std::optional<CropSnapshot> IEntity::crop_snapshot() const { return std::nullopt; }
 
 void IEntity::update(World& /*w*/) {}

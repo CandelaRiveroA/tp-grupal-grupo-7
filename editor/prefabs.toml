@@ -1,0 +1,1494 @@
+format_version = 1
+
+[tilesets.prefab_arboles_y_vegetacion]
+image = "World/prefabs/arboles_y_vegetacion.png"
+cell = [16, 16]
+
+[tilesets.prefab_caminos]
+image = "World/prefabs/caminos.png"
+cell = [16, 16]
+
+[tilesets.prefab_cesped_y_flores]
+image = "World/prefabs/cesped_y_flores.png"
+cell = [16, 16]
+
+[tilesets.prefab_estructuras_granja]
+image = "World/prefabs/estructuras_granja.png"
+cell = [16, 16]
+
+[tilesets.prefab_vallas]
+image = "World/prefabs/vallas.png"
+cell = [16, 16]
+
+[tilesets.prefab_casas_y_comercios]
+image = "World/prefabs/casas_y_comercios.png"
+cell = [16, 16]
+
+[tilesets.prefab_mobiliario_urbano]
+image = "World/prefabs/mobiliario_urbano.png"
+cell = [16, 16]
+
+[tilesets.prefab_parque_y_ocio]
+image = "World/prefabs/parque_y_ocio.png"
+cell = [16, 16]
+
+[tilesets.prefab_granero]
+image = "World/prefabs/granero.png"
+cell = [16, 16]
+
+[tilesets.prefab_mazmorra]
+image = "World/prefabs/mazmorra.png"
+cell = [16, 16]
+
+[[prefabs]]
+id = "arbol_caduco_verde"
+name = "Árbol Caduco Verde"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:0,0"
+size = [4, 7]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, true , true , false,
+  false, true , true , false,
+]
+
+[[prefabs]]
+id = "arbol_cerezo_rosa"
+name = "Árbol Cerezo Rosa"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:4,0"
+size = [6, 7]
+collision_grid = [
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, true , true , false, false,
+  false, false, true , true , false, false,
+]
+
+[[prefabs]]
+id = "pino_alto"
+name = "Pino Alto (Conífera)"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:10,0"
+size = [3, 6]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+  false, false, false,
+  false, false, false,
+  false, true , false,
+]
+
+[[prefabs]]
+id = "arbusto_2x2"
+name = "Arbusto Mediano (2×2)"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:13,0"
+size = [2, 2]
+collision_grid = [
+  true , true,
+  true , true,
+]
+
+[[prefabs]]
+id = "arbusto_3x3"
+name = "Arbusto Grande (3×3)"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:15,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  true , true , true,
+  true , true , true,
+]
+
+[[prefabs]]
+id = "parche_flores_mix"
+name = "Parche de Flores Primaverales"
+category = "arboles_y_vegetacion"
+category_label = "Arboles y vegetacion"
+tile = "prefab_arboles_y_vegetacion:18,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_vertical"
+name = "Camino 1× Vertical"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:0,0"
+size = [3, 2]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_horizontal"
+name = "Camino 1× Horizontal"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:3,0"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_esquina_se"
+name = "Camino 1× Esquina SE (Arriba↔Der / Abajo+Der)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:5,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_esquina_so"
+name = "Camino 1× Esquina SO (Abajo+Izq)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:8,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_esquina_ne"
+name = "Camino 1× Esquina NE (Arriba+Der)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:11,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_esquina_no"
+name = "Camino 1× Esquina NO (Arriba+Izq)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:14,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_t_norte"
+name = "Camino 1× Cruce en T (Arriba)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:17,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_t_sur"
+name = "Camino 1× Cruce en T (Abajo)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:20,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_t_este"
+name = "Camino 1× Cruce en T (Derecha)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:23,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_t_oeste"
+name = "Camino 1× Cruce en T (Izquierda)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:26,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_cruce"
+name = "Camino 1× Cruce 4 Vías"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:29,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_fin_norte"
+name = "Camino 1× Tope Norte"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:0,3"
+size = [3, 2]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_fin_sur"
+name = "Camino 1× Tope Sur"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:3,3"
+size = [3, 2]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_fin_oeste"
+name = "Camino 1× Tope Oeste"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:6,3"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "camino_1x_fin_este"
+name = "Camino 1× Tope Este"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:8,3"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_vertical"
+name = "Camino 2× Vertical"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:10,3"
+size = [4, 2]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_horizontal"
+name = "Camino 2× Horizontal"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:14,3"
+size = [2, 4]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_esquina_se"
+name = "Camino 2× Esquina SE (Abajo+Der)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:16,3"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_esquina_so"
+name = "Camino 2× Esquina SO (Abajo+Izq)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:20,3"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_esquina_ne"
+name = "Camino 2× Esquina NE (Arriba+Der)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:24,3"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_esquina_no"
+name = "Camino 2× Esquina NO (Arriba+Izq)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:28,3"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_t_norte"
+name = "Camino 2× Cruce en T (Arriba)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:0,7"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_t_sur"
+name = "Camino 2× Cruce en T (Abajo)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:4,7"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_t_este"
+name = "Camino 2× Cruce en T (Derecha)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:8,7"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_t_oeste"
+name = "Camino 2× Cruce en T (Izquierda)"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:12,7"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_cruce"
+name = "Camino 2× Cruce 4 Vías"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:16,7"
+size = [4, 4]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_fin_norte"
+name = "Camino 2× Tope Norte"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:20,7"
+size = [4, 2]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_fin_sur"
+name = "Camino 2× Tope Sur"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:24,7"
+size = [4, 2]
+collision_grid = [
+  false, false, false, false,
+  false, false, false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_fin_oeste"
+name = "Camino 2× Tope Oeste"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:28,7"
+size = [2, 4]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "camino_2x_fin_este"
+name = "Camino 2× Tope Este"
+category = "caminos"
+category_label = "Caminos"
+tile = "prefab_caminos:30,7"
+size = [2, 4]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "cesped_pequeno"
+name = "Césped Pequeño Redondeado (5×4)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:0,0"
+size = [5, 4]
+collision_grid = [
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+]
+
+[[prefabs]]
+id = "cesped_isla_ovalada"
+name = "Césped Isla Ovalada (7×6)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:5,0"
+size = [7, 6]
+collision_grid = [
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+]
+
+[[prefabs]]
+id = "cesped_mancha_bicolor"
+name = "Césped Mancha Bicolor (7×6)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:12,0"
+size = [7, 6]
+collision_grid = [
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+]
+
+[[prefabs]]
+id = "cesped_pradera_ancha"
+name = "Césped Pradera Ancha (9×5)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:19,0"
+size = [9, 5]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+]
+
+[[prefabs]]
+id = "flor_rosa_cesped"
+name = "Flores Rosas de Granja (1×1)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:28,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "flor_azul_cesped"
+name = "Flores Azules de Granja (1×1)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:29,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "flor_blanca_cesped"
+name = "Florecillas Blancas en Césped (1×1)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:30,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "parche_flores_cesped"
+name = "Parche Mixto de Flores de Granja (3×3)"
+category = "cesped_y_flores"
+category_label = "Cesped y flores"
+tile = "prefab_cesped_y_flores:0,6"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "casa_granja_1"
+name = "Casa de Granja (Nivel 1)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+tile = "prefab_estructuras_granja:0,0"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "gallinero"
+name = "Gallinero (Coop)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+tile = "prefab_estructuras_granja:9,0"
+size = [6, 7]
+collision_grid = [
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  false, false, false, false, false, false,
+  true , true , true , true , true , true,
+  true , true , true , true , true , true,
+  true , true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "buzon_granja"
+name = "Buzón de Granja"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+tile = "prefab_estructuras_granja:15,0"
+size = [1, 2]
+collision_grid = [
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "valla_horizontal"
+name = "Valla Horizontal (2×2)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:0,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "valla_vertical"
+name = "Valla Vertical (1×2)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:2,0"
+size = [1, 2]
+collision_grid = [
+  true,
+  true,
+]
+
+[[prefabs]]
+id = "valla_esquina_se"
+name = "Valla Esquina SE (Abajo + Der)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:3,0"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  true , true,
+  true , false,
+]
+
+[[prefabs]]
+id = "valla_esquina_so"
+name = "Valla Esquina SO (Abajo + Izq)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:5,0"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  true , true,
+  false, true,
+]
+
+[[prefabs]]
+id = "valla_esquina_ne"
+name = "Valla Esquina NE (Arriba + Der)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:7,0"
+size = [2, 3]
+collision_grid = [
+  true , false,
+  true , false,
+  true , true,
+]
+
+[[prefabs]]
+id = "valla_esquina_no"
+name = "Valla Esquina NO (Arriba + Izq)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:9,0"
+size = [2, 3]
+collision_grid = [
+  false, true,
+  false, true,
+  true , true,
+]
+
+[[prefabs]]
+id = "valla_t_sur"
+name = "Valla Unión en T (Sur)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:11,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  true , true , true,
+  false, true , false,
+]
+
+[[prefabs]]
+id = "valla_t_norte"
+name = "Valla Unión en T (Norte)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:14,0"
+size = [3, 3]
+collision_grid = [
+  false, true , false,
+  false, true , false,
+  true , true , true,
+]
+
+[[prefabs]]
+id = "valla_t_este"
+name = "Valla Unión en T (Este)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:17,0"
+size = [2, 4]
+collision_grid = [
+  true , false,
+  true , false,
+  true , true,
+  true , false,
+]
+
+[[prefabs]]
+id = "valla_t_oeste"
+name = "Valla Unión en T (Oeste)"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:19,0"
+size = [2, 4]
+collision_grid = [
+  false, true,
+  false, true,
+  true , true,
+  false, true,
+]
+
+[[prefabs]]
+id = "valla_cruce"
+name = "Valla Cruce 4 Vías"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:21,0"
+size = [3, 4]
+collision_grid = [
+  false, true , false,
+  false, true , false,
+  true , true , true,
+  false, true , false,
+]
+
+[[prefabs]]
+id = "valla_fin_norte"
+name = "Valla Tope Norte"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:24,0"
+size = [1, 2]
+collision_grid = [
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "valla_fin_sur"
+name = "Valla Tope Sur"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:25,0"
+size = [1, 2]
+collision_grid = [
+  true,
+  true,
+]
+
+[[prefabs]]
+id = "valla_fin_oeste"
+name = "Valla Tope Oeste"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:26,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "valla_fin_este"
+name = "Valla Tope Este"
+category = "vallas"
+category_label = "Vallas"
+tile = "prefab_vallas:28,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "casa_naranja_emily"
+name = "Casa Naranja (estilo Emily)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:0,0"
+size = [8, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "casa_azul_jodi"
+name = "Casa Azul Náutica (estilo Sam/Jodi)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:8,0"
+size = [8, 11]
+collision_grid = [
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "casa_gris_alex"
+name = "Casa Gris de Piedra (estilo Evelyn/Alex)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:16,0"
+size = [9, 10]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "cabana_verde"
+name = "Cabaña Verde (techo musgo)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:0,11"
+size = [8, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , false, true , true , true , true,
+]
+
+[[prefabs]]
+id = "herreria"
+name = "Herrería (Blacksmith)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:8,11"
+size = [5, 8]
+collision_grid = [
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  true , true , true , true , true,
+  true , true , true , true , true,
+  true , true , true , true , true,
+  true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "saloon"
+name = "Taberna (Stardrop Saloon)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:13,11"
+size = [7, 9]
+collision_grid = [
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true,
+]
+
+[[prefabs]]
+id = "museo_biblioteca"
+name = "Museo y Biblioteca"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:20,11"
+size = [9, 8]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+]
+
+[[prefabs]]
+id = "trailer"
+name = "Casa Rodante (Tráiler)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:0,20"
+size = [8, 4]
+collision_grid = [
+  false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "centro_comunitario"
+name = "Centro Comunitario (Restaurado)"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+tile = "prefab_casas_y_comercios:8,20"
+size = [12, 10]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, false, true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "farol_vereda"
+name = "Farol Clásico de Vereda"
+category = "mobiliario_urbano"
+category_label = "Mobiliario urbano"
+tile = "prefab_mobiliario_urbano:0,0"
+size = [1, 4]
+collision_grid = [
+  false,
+  false,
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "banco_madera"
+name = "Banco de Madera de Parque"
+category = "mobiliario_urbano"
+category_label = "Mobiliario urbano"
+tile = "prefab_mobiliario_urbano:1,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  true , true , true,
+  true , true , true,
+]
+
+[[prefabs]]
+id = "buzon_y_tacho"
+name = "Buzón + Tacho de Basura"
+category = "mobiliario_urbano"
+category_label = "Mobiliario urbano"
+tile = "prefab_mobiliario_urbano:4,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "cartelera_anuncios"
+name = "Cartelera de Anuncios"
+category = "mobiliario_urbano"
+category_label = "Mobiliario urbano"
+tile = "prefab_mobiliario_urbano:6,0"
+size = [3, 2]
+collision_grid = [
+  false, false, false,
+  true , true , true,
+]
+
+[[prefabs]]
+id = "jardinera_urbana"
+name = "Jardinera Grande con Flores"
+category = "mobiliario_urbano"
+category_label = "Mobiliario urbano"
+tile = "prefab_mobiliario_urbano:9,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  true , true , true,
+  true , true , true,
+]
+
+[[prefabs]]
+id = "fuente_plaza"
+name = "Fuente Central de Piedra"
+category = "parque_y_ocio"
+category_label = "Parque y ocio"
+tile = "prefab_parque_y_ocio:0,0"
+size = [5, 6]
+collision_grid = [
+  false, false, false, false, false,
+  false, false, false, false, false,
+  true , true , true , true , true,
+  true , true , true , true , true,
+  true , true , true , true , true,
+  true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "hamacas"
+name = "Hamacas / Columpios"
+category = "parque_y_ocio"
+category_label = "Parque y ocio"
+tile = "prefab_parque_y_ocio:5,0"
+size = [5, 5]
+collision_grid = [
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  true , true , false, true , true,
+]
+
+[[prefabs]]
+id = "tobogan"
+name = "Tobogán con Torre Escaladora"
+category = "parque_y_ocio"
+category_label = "Parque y ocio"
+tile = "prefab_parque_y_ocio:10,0"
+size = [5, 5]
+collision_grid = [
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  false, false, false, false, false,
+  true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "arenero"
+name = "Arenero Infantil de Madera"
+category = "parque_y_ocio"
+category_label = "Parque y ocio"
+tile = "prefab_parque_y_ocio:15,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "barril_madera"
+name = "Barril de Madera"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:0,0"
+size = [1, 2]
+collision_grid = [
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "bebedero_agua"
+name = "Bebedero Metálico con Agua"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:1,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "balde_agua"
+name = "Balde con Agua"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:3,0"
+size = [1, 1]
+collision_grid = [
+  true,
+]
+
+[[prefabs]]
+id = "balde_alimento"
+name = "Balde con Alimento"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:4,0"
+size = [1, 1]
+collision_grid = [
+  true,
+]
+
+[[prefabs]]
+id = "saco_granos"
+name = "Saco de Granos"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:5,0"
+size = [1, 2]
+collision_grid = [
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "cubo_grano"
+name = "Cubo / Recipiente de Grano"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:6,0"
+size = [1, 1]
+collision_grid = [
+  true,
+]
+
+[[prefabs]]
+id = "fardo_compacto"
+name = "Fardo Compacto de Heno"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:7,0"
+size = [1, 1]
+collision_grid = [
+  true,
+]
+
+[[prefabs]]
+id = "monticulo_heno_grande"
+name = "Montículo Grande de Heno"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:8,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "heno_chico"
+name = "Manojo de Heno Suelto"
+category = "granero"
+category_label = "Granero"
+tile = "prefab_granero:11,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "vagoneta_vacia"
+name = "Vagoneta Vacía"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:0,0"
+size = [2, 2]
+collision_grid = [
+  false, false,
+  true , true,
+]
+
+[[prefabs]]
+id = "tunel_riel"
+name = "Entrada de Túnel con Riel"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:2,0"
+size = [2, 4]
+collision_grid = [
+  true , true,
+  true , true,
+  true , true,
+  false, false,
+]
+
+[[prefabs]]
+id = "tunel_madera"
+name = "Boca de Túnel Entibada"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:4,0"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  true , true,
+  true , true,
+]
+
+[[prefabs]]
+id = "via_horizontal"
+name = "Vía Recta Horizontal"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:6,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_vertical"
+name = "Vía Recta Vertical"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:7,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_paso_tablas"
+name = "Vía con Tablas / Tope"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:8,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_curva_abajo_izq"
+name = "Curva Vía (Izq. → Abajo)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:9,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_curva_abajo_der"
+name = "Curva Vía (Der. → Abajo)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:10,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_curva_arriba_der"
+name = "Curva Vía (Arriba → Der.)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:11,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "via_curva_arriba_izq"
+name = "Curva Vía (Arriba → Izq.)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:12,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "puente_madera_3x3"
+name = "Puente / Plataforma Madera 3×3"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:13,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  false, false, false,
+  false, false, false,
+]
+
+[[prefabs]]
+id = "puente_madera_2x3"
+name = "Pasarela Madera Estrecha 2×3"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:16,0"
+size = [2, 3]
+collision_grid = [
+  false, false,
+  false, false,
+  false, false,
+]
+
+[[prefabs]]
+id = "marco_vigas_mina"
+name = "Pórtico de Vigas de Mina"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:18,0"
+size = [3, 3]
+collision_grid = [
+  false, false, false,
+  true , false, true,
+  true , false, true,
+]
+
+[[prefabs]]
+id = "escalera_pared"
+name = "Escalera Vertical de Pared"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:21,0"
+size = [1, 4]
+collision_grid = [
+  true,
+  true,
+  true,
+  false,
+]
+
+[[prefabs]]
+id = "escalera_bajada"
+name = "Escalera Descendente"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:22,0"
+size = [1, 1]
+collision_grid = [
+  true,
+]
+
+[[prefabs]]
+id = "cartel_calavera"
+name = "Cartel de Peligro (Calavera)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:23,0"
+size = [1, 2]
+collision_grid = [
+  false,
+  true,
+]
+
+[[prefabs]]
+id = "farol_colgante"
+name = "Farol Colgante de Mina"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:24,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "farol_brillante"
+name = "Farol Colgante Brillante"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:25,0"
+size = [1, 1]
+collision_grid = [
+  false,
+]
+
+[[prefabs]]
+id = "ascensor_mina"
+name = "Puerta de Ascensor de Mina"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:26,0"
+size = [1, 3]
+collision_grid = [
+  false,
+  true,
+  true,
+]

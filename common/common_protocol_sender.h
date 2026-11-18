@@ -51,6 +51,7 @@ private:
     void send_message(const ServerGroundEffect& ground);
     void send_message(const ServerChat& chat);
     void send_message(const ServerGiftRequest& gift);
+    void send_message(const ServerGiftAnswered& answered);
 
 public:
     explicit ProtocolSender(Socket& socket);

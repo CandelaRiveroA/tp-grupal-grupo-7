@@ -64,7 +64,7 @@ protocol::ClientMessage walk(world::Direction direction) {
 }
 
 protocol::ClientMessage take(world::Direction direction) {
-    return protocol::TakeMessage{world::wireDirectionFrom(direction)};
+    return protocol::TakeMessage{world::wireDirectionFrom(direction), 0};
 }
 
 world::Direction toward(int fromX, int fromY, int toX, int toY) {

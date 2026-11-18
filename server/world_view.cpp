@@ -133,8 +133,11 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     for (uint8_t slot = 0; slot < inventory.get_max_slots(); ++slot) {
         const Item* item = inventory.peek_item(slot);
         if (item != nullptr) {
+            // tradable lo decide el dominio: es la única fuente de la
+            // regla "herramienta no se regala" (el cliente solo la lee).
             out.push_back(ServerInventorySlot{slot, inventory.get_amount(slot),
-                                              content_id_for(item->get_id())});
+                                              content_id_for(item->get_id()),
+                                              item->can_be_traded()});
         }
     }
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.

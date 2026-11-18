@@ -27,12 +27,16 @@ constexpr const char* kAt = "at";
 struct IndicationBinding {
 	Indication kind;
 	const char* tableKey;
+	// Las indicaciones nuevas son opcionales: un TOML viejo sigue
+	// cargando. Las históricas son obligatorias.
+	bool required;
 };
 
-constexpr std::array<IndicationBinding, 3> kIndicationBindings = {{
-	{Indication::ReadyToMilk, "ready_to_milk"},
-	{Indication::ReadyToWater, "ready_to_water"},
-	{Indication::NoEnergy, "no_energy"},
+constexpr std::array<IndicationBinding, 4> kIndicationBindings = {{
+	{Indication::ReadyToMilk, "ready_to_milk", true},
+	{Indication::ReadyToWater, "ready_to_water", true},
+	{Indication::NoEnergy, "no_energy", true},
+	{Indication::GiftThanks, "gift_thanks", false},
 }};
 
 }
@@ -112,6 +116,9 @@ PixelPoint DialogTomlReader::readOffset(const std::string& key) const {
 DialogCatalog DialogTomlReader::read() const {
 	DialogCatalog catalog;
 	for (const IndicationBinding& binding : kIndicationBindings) {
+		if (!binding.required && !doc_.hasKey(binding.tableKey)) {
+			continue;
+		}
 		catalog.dialogs.emplace(binding.kind,
 					readDialog(binding.tableKey));
 	}

@@ -50,6 +50,8 @@ private:
     // cuando un jugador queda por debajo del 20 % de vida y los consumen los
     // vampiros al morir. La posición queda para un futuro render.
     std::vector<std::pair<uint16_t, uint16_t>> blood_puddles;
+    // Emisor de un pedido de regalo ya contestado (los consume Match).
+    std::vector<uint8_t> gift_answers;
 
     // Sueño: jugadores en la cama (sleepers) y los que ya dieron OK
     // (accepted). accepted ⊆ sleepers, así que vaciar sleepers vacía
@@ -230,8 +232,12 @@ public:
 
     //funcion para avisar del regalo de un item a otro jugador
     void notify_gift_request(uint8_t sender_id, uint8_t receiver_id, ItemID item_id);
+    // El receptor contestó (acepte o no): Match lo manda como
+    // ServerGiftAnswered para que el emisor cierre su popup de espera.
+    void notify_gift_answered(uint8_t sender_id);
     void process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id);
     std::vector<GiftOffer> take_gift_requests();
+    std::vector<uint8_t> take_gift_answers();
 
 private:
     void try_advance_sleep();

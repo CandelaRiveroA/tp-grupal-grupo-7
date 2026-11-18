@@ -269,7 +269,19 @@ void Match::handle(const PlayerMessage& event) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
     for (const GiftOffer& offer : world.take_gift_requests()) {
-        send_to(offer.receiver_id, ServerGiftRequest{offer.sender_id, content_id_for(offer.item)});
+        // El nombre va en el mensaje: el cliente no conoce a los jugadores
+        // (mismo dato que usa el chat). Si el emisor ya no está en la sala,
+        // se manda vacío y el copy cae en el token sin nombre.
+        const auto sender = character_names.find(offer.sender_id);
+        const std::string characterName =
+                sender != character_names.end() ? sender->second : std::string{};
+        send_to(offer.receiver_id,
+                ServerGiftRequest{offer.sender_id, characterName, content_id_for(offer.item)});
+    }
+    // El emisor sigue esperando con el popup abierto: la respuesta del
+    // receptor (acepte o rechace) se lo cierra.
+    for (const uint8_t answered : world.take_gift_answers()) {
+        send_to(answered, ServerGiftAnswered{});
     }
     sync_day();
     push_sleep_state();

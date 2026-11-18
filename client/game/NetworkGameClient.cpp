@@ -7,6 +7,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <utility>
 #include <variant>
 
 #include <sys/socket.h>
@@ -396,7 +397,8 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         if (slot->count == 0) {
             inventory_.erase(slot->slot);
         } else {
-            inventory_[slot->slot] = ViewInventorySlot{slot->slot, slot->content_id, slot->count};
+            inventory_[slot->slot] =
+                    ViewInventorySlot{slot->slot, slot->content_id, slot->count, slot->tradable};
         }
         return;
     }
@@ -404,6 +406,20 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // El evento de obtención viaja por content_id (vocabulario
         // genérico): el view lo refleja tal cual.
         obtained_.push_back(ViewObtained{obtained->content_id});
+        return;
+    }
+    if (const auto* gift = std::get_if<ServerGiftRequest>(&message)) {
+        // Pedido de regalo: evento (no estado), como Obtained. Lo consume
+        // PlaySession en el mismo tick y contesta con GiftResponseMessage.
+        // shortcut: si llegan dos pedidos en el mismo tick pisa el anterior
+        // (el primer emisor queda esperando); pasar a cola cuando dos
+        // regalos simultáneos dejen de ser un caso raro.
+        giftRequest_ = ViewGiftRequest{gift->sender_id, gift->characterName};
+        return;
+    }
+    if (std::holds_alternative<ServerGiftAnswered>(message)) {
+        // El receptor contestó: PlaySession cierra su popup de espera.
+        view_.giftAnswered = true;
         return;
     }
     if (const auto* used = std::get_if<ServerToolUsed>(&message)) {
@@ -440,6 +456,7 @@ void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
     view_.dayEnded = false;
     view_.dayChanged = false;
+    view_.giftAnswered = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -534,6 +551,7 @@ void NetworkGameClient::update(int) {
     }
     view_.obtained = std::move(obtained_);
     obtained_.clear();
+    view_.giftRequest = std::exchange(giftRequest_, std::nullopt);
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }

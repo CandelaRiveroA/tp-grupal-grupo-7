@@ -34,6 +34,7 @@ enum class ServerMessageType : uint8_t {
     Projectile = 22,
     Chat = 23,
     GiftRequest = 24,
+    GiftAnswered = 25,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -92,11 +93,15 @@ struct ServerDropped {
     bool interactive;
 };
 
-// count 0 = slot vacío (content_id vacío).
+// count 0 = slot vacío (content_id vacío, tradable indiferente).
+// tradable: lo decide el servidor (Item::can_be_traded): las herramientas
+// no se regalan y el cliente ni ofrece el intercambio. Es la fuente única
+// de esa regla, así no se duplica el vocabulario en el cliente.
 struct ServerInventorySlot {
     uint8_t slot;
     uint8_t count;
     std::string content_id;
+    bool tradable;
 };
 
 // El jugador local obtuvo un contenido (evento puntual, no estado).
@@ -228,16 +233,25 @@ struct ServerChat {
     bool system;
 };
 
+// Pedido de regalo hacia el receptor: el emisor ofreció su ítem equipado
+// (content_id) y el server lo reenvía junto con su characterName (el mismo
+// que ServerChat) para el copy del popup del receptor.
 struct ServerGiftRequest {
     uint8_t sender_id;
+    std::string characterName;
     std::string content_id;
 };
+
+// El receptor contestó el pedido de regalo (aceptando o rechazando): el
+// server lo manda SOLO al emisor, que así cierra su popup de espera.
+// Evento sin payload, igual que ServerDayEnd.
+struct ServerGiftAnswered {};
 
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat, ServerGiftRequest>;
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered>;
 
 #endif

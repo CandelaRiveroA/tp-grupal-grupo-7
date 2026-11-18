@@ -47,4 +47,27 @@ TEST(PopupStateTest, ElMuertoNoTieneCancelacion) {
     EXPECT_TRUE(popup.waitingCancelable());
 }
 
+TEST(PopupStateTest, ElPedidoDeRegaloMuestraElNombreDelEmisor) {
+    // El nombre viene de la red (ServerGiftRequest.characterName) y el
+    // popup lo usa como {0}. Se sobreescribe en cada pedido: no queda
+    // ninguno viejo visible (hide solo oculta, el valor no se lee).
+    PopupState popup;
+    popup.showGiftReceived("Teo");
+    EXPECT_EQ(popup.view(), PopupView::GiftReceived);
+    EXPECT_EQ(popup.promptId(), world::PromptId::GiftReceived);
+    EXPECT_EQ(popup.giftSenderName(), "Teo");
+}
+
+TEST(PopupStateTest, OfrecerRegaloAbreLaOfertaYLaEspera) {
+    // El click sobre otro jugador abre GiftOffer; al responder Sí el
+    // cliente pasa a GiftWaiting (mismo popup modal, otra copia).
+    PopupState popup;
+    popup.showGiftOffer();
+    EXPECT_EQ(popup.view(), PopupView::GiftOffer);
+    EXPECT_TRUE(popup.modal());
+    popup.showGiftWaiting();
+    EXPECT_EQ(popup.view(), PopupView::GiftWaiting);
+    EXPECT_EQ(popup.promptId(), world::PromptId::GiftWaiting);
+}
+
 }  // namespace

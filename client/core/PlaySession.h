@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 
 #include "core/StartupScreens.h"
@@ -90,6 +92,11 @@ public:
 private:
     void tick(int iteration);
 
+    // Vista de presentación del tick: la de "meterse" (EnterSelection)
+    // más el agradecimiento LOCAL del regalo. La consumen el movimiento,
+    // el renderer y los diálogos; el estado de juego queda intacto.
+    game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
+
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
 
@@ -123,6 +130,12 @@ private:
     // ¿El objetivo del pick es interactivo? Lo dice el estado (la fuente
     // decide); esto solo lo lee para elegir la variante del cursor.
     bool isInteractive(const game::PickTarget& target, const game::LocalWorldView& view) const;
+
+    // ¿El objetivo es OTRO jugador (no el local)? Lo decide la vista:
+    // mismo tipo Player y un índice distinto de kLocalPlayerIndex.
+    // Además exige algo transferible en el casillero activo: con una
+    // herramienta el server no arma el pedido (ver isGiftTarget).
+    bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario).
@@ -196,6 +209,15 @@ private:
     // los reemplazará. La traducción a las claves del HUD queda en el
     // borde de dibujo, no en el estado.
     std::map<game::StatKind, game::FractionStat> stats_;
+    // Regalo aceptado: el diálogo de agradecimiento es presentación
+    // local hasta que el server mande la indicación. El reloj dura lo
+    // que la animación (dato del catálogo), así se puede repetir.
+    bool giftThanksActive_ = false;
+    int giftThanksTicks_ = 0;
+    // Pedido de regalo pendiente de respuesta: el emisor (senderId del
+    // ServerGiftRequest que abrió el popup), que viaja en el
+    // protocol::GiftResponseMessage. Sin pedido = nullopt.
+    std::optional<std::uint8_t> pendingGiftSenderId_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;

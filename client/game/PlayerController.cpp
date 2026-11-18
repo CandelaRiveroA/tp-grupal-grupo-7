@@ -69,7 +69,7 @@ PlayerEvents PlayerController::tick(int iteration, const std::optional<world::Di
 int PlayerController::activeSlot() const { return inventorySelector_.active(); }
 
 void PlayerController::interact() {
-    client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection()));
+    client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection(), activeSlot()));
 }
 
 void PlayerController::useToward(const world::GridCell& target,
@@ -158,7 +158,7 @@ void PlayerController::handleUseTool(const std::optional<world::Direction>& pres
 
 void PlayerController::handleCollect(const std::optional<world::Direction>& pressed) {
     if (!pressed.has_value()) {
-        client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection()));
+        client_.sendCommand(moveCommand_.take(walkPacer_.lastDirection(), activeSlot()));
     }
 }
 

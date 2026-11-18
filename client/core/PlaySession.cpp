@@ -116,9 +116,21 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    // La presentación local del tick (la pose de "meterse") es la que
-    // ven el movimiento, el renderer y los diálogos.
-    const game::LocalWorldView presentation = enterSelection_.displayView(state);
+    // El diálogo de agradecimiento dura lo que digan sus datos. Al
+    // terminar se limpia el flag local para que un regalo nuevo lo
+    // vuelva a disparar desde cero.
+    if (giftThanksActive_) {
+        const world::DialogData* thanks =
+                dialogCatalog_.find(world::Indication::GiftThanks);
+        if (thanks == nullptr || giftThanksTicks_ >= thanks->animation.durationTicks()) {
+            giftThanksActive_ = false;
+        } else {
+            ++giftThanksTicks_;
+        }
+    }
+    // La presentación local del tick (desmayo incluido) es la que ven
+    // el movimiento, el renderer y los diálogos.
+    const game::LocalWorldView presentation = presentationView(state);
     motion_.observe(presentation, iteration);
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
@@ -239,6 +251,20 @@ void PlaySession::tick(int iteration) {
     if (localDied && popupState_.view() == game::PopupView::Question) {
         voted_ = true;
         popupState_.showWaiting(lastSleeping_, lastTotal_);
+    }
+
+    // Llegó un pedido de regalo (ServerGiftRequest): abre el popup del
+    // receptor con el nombre del emisor y guarda a quién se le contesta.
+    if (state.giftRequest.has_value()) {
+        pendingGiftSenderId_ = state.giftRequest->senderId;
+        popupState_.showGiftReceived(state.giftRequest->senderName);
+    }
+
+    // El receptor contestó MI oferta (acepte o rechace): se cierra la
+    // espera. Solo si sigue abierta: la respuesta puede llegar tarde,
+    // después de cancelar a mano.
+    if (state.giftAnswered && popupState_.view() == game::PopupView::GiftWaiting) {
+        popupState_.hide();
     }
 
     // Lo tipeado y los backspaces del frame entran al buffer.
@@ -461,35 +487,69 @@ void PlaySession::tick(int iteration) {
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
-        // El botón de cancelar del popup "Esperando..." sale de la cama
-        // (el server borra el OK de este jugador). Un muerto no cancela.
-        if (popupState_.view() == game::PopupView::Waiting &&
-            popupState_.waitingCancelable() &&
-            promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
-                                   world::PixelPoint{click.x, click.y})) {
-            gameClient_.sendCommand(protocol::SleepMessage{false});
-            voted_ = false;
+        const world::PixelPoint screenClick{click.x, click.y};
+        const game::PopupView view = popupState_.view();
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+
+        // El botón de cancelar de los popups de espera (sueño y regalo)
+        // reutiliza el botón del layout. Cancelar el regalo solo cierra a
+        // nivel dibujo: la consecuencia la decidirá el server.
+        const bool cancelShown = view == game::PopupView::GiftWaiting ||
+                                 (view == game::PopupView::Waiting &&
+                                  popupState_.waitingCancelable());
+        if (cancelShown &&
+            !prompt.button.empty() &&
+            promptLayout_.buttonAt(prompt.button, popupBox, screenClick)) {
+            if (view == game::PopupView::Waiting) {
+                gameClient_.sendCommand(protocol::SleepMessage{false});
+                voted_ = false;
+            }
             popupState_.hide();
             continue;
         }
-        // El popup con la pregunta está encima de todo: sus opciones se
-        // resuelven primero (coords de pantalla: es HUD), con las
-        // MISMAS cajas que se dibujan. Sí (índice 0) confirma dormir; No
-        // sale de la cama.
-        if (popupState_.view() == game::PopupView::Question) {
-            const int option =
-                    promptLayout_.optionAt(popupBox, world::PixelPoint{click.x, click.y});
+
+        // Las preguntas (sueño, ofrecer regalo, aceptar regalo) usan las
+        // MISMAS cajas que se dibujan.
+        if (view != game::PopupView::Hidden && !prompt.options.empty()) {
+            const int option = promptLayout_.optionAt(
+                    popupBox, screenClick, prompt);
             if (option >= 0) {
-                voted_ = option == 0;
-                gameClient_.sendCommand(protocol::SleepMessage{voted_});
-                if (voted_) {
-                    popupState_.showWaiting(lastSleeping_, lastTotal_);
-                } else {
+                if (view == game::PopupView::Question) {
+                    voted_ = option == 0;
+                    gameClient_.sendCommand(protocol::SleepMessage{voted_});
+                    if (voted_) {
+                        popupState_.showWaiting(lastSleeping_, lastTotal_);
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftOffer) {
+                    // Sí manda la intención (Take con la mano, igual que
+                    // cualquier interact): el server dispara el pedido de
+                    // regalo hacia el otro jugador. No: solo cierra.
+                    if (option == 0) {
+                        player_.interact();
+                        popupState_.showGiftWaiting();
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftReceived) {
+                    // La respuesta va al emisor del pedido (si el popup no
+                    // lo abrió la red, no hay a quién contestarle).
                     popupState_.hide();
+                    if (pendingGiftSenderId_.has_value()) {
+                        gameClient_.sendCommand(protocol::GiftResponseMessage{
+                                *pendingGiftSenderId_, option == 0});
+                        pendingGiftSenderId_.reset();
+                        if (option == 0) {
+                            giftThanksActive_ = true;
+                            giftThanksTicks_ = 0;
+                        }
+                    }
                 }
                 continue;
             }
         }
+
         // Modal: con el popup abierto el mundo está bloqueado; el resto
         // de los clicks no hace nada (se drenan para que no se disparen
         // en cascada al cerrar).
@@ -510,6 +570,12 @@ void PlaySession::tick(int iteration) {
         }
         const game::PickTarget clicked =
                 picker_.pick(worldClick, state, motion_, iteration, scene_.cellPixelSize);
+        // Otro jugador: ofrecer un regalo. El click no dispara la
+        // herramienta ni la interacción.
+        if (isGiftTarget(clicked, state)) {
+            popupState_.showGiftOffer();
+            continue;
+        }
         if (clicked.kind != game::PickTarget::Kind::None && isInteractive(clicked, state)) {
             player_.interact();
             continue;
@@ -518,21 +584,45 @@ void PlaySession::tick(int iteration) {
     }
 
     // El puntero: mientras el popup es modal, el mundo está bloqueado y
-    // solo es apretable lo del popup (las opciones de la pregunta o el
-    // botón de cancelar).
+    // solo es apretable lo del popup (las opciones o el botón de su
+    // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
-    bool interactive = isInteractive(target, state) || enterSelection_.hits(worldCursor, state);
+    world::CursorKind cursorKind = world::CursorKind::Normal;
     if (popupState_.modal()) {
-        interactive = (popupState_.view() == game::PopupView::Question &&
-                       promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
-                      (popupState_.view() == game::PopupView::Waiting &&
-                       popupState_.waitingCancelable() &&
-                       promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+        bool overPopup = false;
+        if (!prompt.options.empty()) {
+            overPopup = promptLayout_.optionAt(
+                    popupBox, mousePoint, prompt) >= 0;
+        } else if (!prompt.button.empty() &&
+                   (popupState_.view() != game::PopupView::Waiting ||
+                    popupState_.waitingCancelable())) {
+            overPopup = promptLayout_.buttonAt(prompt.button, popupBox, mousePoint);
+        }
+        cursorKind = overPopup ? world::CursorKind::Interactive : world::CursorKind::Normal;
+    } else if (isGiftTarget(target, state)) {
+        cursorKind = world::CursorKind::Gift;
+    } else if (isInteractive(target, state) || enterSelection_.hits(worldCursor, state)) {
+        cursorKind = world::CursorKind::Interactive;
     }
-    cursorPainter_.draw(cursorCatalog_,
-                        interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
-                        input_.mousePosition());
+    cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
     sdlContext_.present();
+}
+
+game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
+    // Primero la pose de "meterse" (EnterSelection) y encima el
+    // agradecimiento local del regalo.
+    game::LocalWorldView display = enterSelection_.displayView(view);
+    if (display.entities.empty()) {
+        return display;
+    }
+    game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
+    // El agradecimiento del regalo es presentación local mientras el
+    // server no mande la indicación.
+    if (giftThanksActive_) {
+        local.indication = world::Indication::GiftThanks;
+    }
+    return display;
 }
 
 void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {
@@ -578,7 +668,11 @@ void PlaySession::drawPopup(const world::PixelBox& panel) {
     }
     inventoryHud_.drawPanel(panel, promptLayout_.grid.columns, promptLayout_.grid.rows);
     const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
-    promptPainter_.draw(popupState_, promptLayout_.optionAt(panel, mouse), panel);
+    const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+    const int hovered = prompt.options.empty()
+            ? -1
+            : promptLayout_.optionAt(panel, mouse, prompt);
+    promptPainter_.draw(popupState_, hovered, panel);
 }
 
 void PlaySession::closeChat() {
@@ -618,6 +712,29 @@ bool PlaySession::isInteractive(const game::PickTarget& target,
         return view.plantedCrops[target.index].interactive;
     }
     return false;
+}
+
+bool PlaySession::isGiftTarget(const game::PickTarget& target,
+                               const game::LocalWorldView& view) const {
+    // "Otro humano como nosotros, pero NO nosotros": mismo tipo Player y
+    // un índice distinto del local. Lo decide la vista, no el render.
+    if (target.kind != game::PickTarget::Kind::Entity ||
+        target.index == game::kLocalPlayerIndex ||
+        target.index >= view.entities.size()) {
+        return false;
+    }
+    if (view.entities[target.index].kind != world::CreatureKind::Player) {
+        return false;
+    }
+    // Solo se ofrece con algo transferible en el casillero activo: lo dice
+    // el servidor (slot.tradable); con una herramienta o el casillero vacío
+    // no se arma el pedido y el emisor quedaría esperando en vano.
+    const int slot = player_.activeSlot();
+    const auto held = std::find_if(view.inventory.begin(), view.inventory.end(),
+                                   [slot](const game::ViewInventorySlot& inventorySlot) {
+                                       return inventorySlot.slotIndex == slot;
+                                   });
+    return held != view.inventory.end() && held->tradable;
 }
 
 }  // namespace core

@@ -360,3 +360,19 @@ LobbyStatus ProtocolReceiver::receive_lobby_status() {
     }
     return static_cast<LobbyStatus>(status);
 }
+
+protocol::ClientMessage ProtocolReceiver::receive_gift_response_message() {
+    const uint8_t sender = receive_uint8();
+    const uint8_t accept = receive_uint8();
+    if (accept > 1) {
+        throw std::invalid_argument("El indicador de aceptacion de regalo no es valido.");
+    }
+    return protocol::GiftResponseMessage{sender, accept == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_gift_request_message() {
+    const uint8_t sender = receive_uint8();
+    std::string content = receive_string();
+    return ServerGiftRequest{sender, std::move(content)};
+}
+

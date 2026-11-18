@@ -20,6 +20,7 @@ public:
     bool can_be_traded() const;
     
     virtual bool is_stackable_with(const Item& other) const;
+    virtual std::unique_ptr<Item> clone() const = 0;
 };
 
 #endif // ITEM_H

@@ -636,7 +636,72 @@ id = "casa_granja_1"
 name = "Casa de Granja (Nivel 1)"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
 tile = "prefab_estructuras_granja:0,0"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_2"
+name = "Casa de Granja (Azul)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:0,9"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_3"
+name = "Casa de Granja (Verde)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:9,9"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_4"
+name = "Casa de Granja (Violeta)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:18,9"
 size = [9, 9]
 collision_grid = [
   false, false, false, false, false, false, false, false, false,
@@ -1024,6 +1089,8 @@ id = "centro_comunitario"
 name = "Centro Comunitario (Restaurado)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
+role = "community_center"
+door = [5, 9]
 tile = "prefab_casas_y_comercios:8,20"
 size = [12, 10]
 collision_grid = [

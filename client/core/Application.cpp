@@ -32,6 +32,8 @@
 #include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
+#include "world/MarketCatalog.h"
+#include "world/NpcCatalog.h"
 #include "world/ObtainedBannerCatalog.h"
 #include "world/ObtainedBannerConfigLoader.h"
 #include "world/PromptLayout.h"
@@ -115,6 +117,8 @@ int Application::runGame(SessionConfig session) {
         world::Scenario scenario(config_, std::move(scene));
         const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
+        const world::NpcCatalog npcs(core::assetPath(core::kNpcsFile));
+        const world::MarketCatalog market(core::assetPath(core::kMarketFile));
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -145,8 +149,9 @@ int Application::runGame(SessionConfig session) {
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
-        PlaySession playSession(config_, scenario, *gameClient, characters, inventory, toolOverlay,
-                                resources, banner, digits, cursors, dialogs, font, prompt, hudOverlays, lighting);
+        PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
+                                toolOverlay, resources, banner, digits, cursors, dialogs, font,
+                                prompt, hudOverlays, lighting);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

@@ -102,6 +102,12 @@ auto InputManager::defaultCommandBindings() const
     // Faint + el diálogo de las Z. Cuando el server mande la acción,
     // esta tecla se puede quitar sin tocar el dibujo.
     bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
+    // Cambio de escenario local: mercado / dormitorio.
+    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleMarket, 0}});
+    // DEMO: catálogo del mercado (lo reemplaza el server).
+    bindings.insert({SDLK_b, game::InputCommand{Kind::OpenCatalog, 0}});
+    // DEMO: rota el estilo del catálogo (lo reemplaza el server).
+    bindings.insert({SDLK_n, game::InputCommand{Kind::NextMarketSet, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

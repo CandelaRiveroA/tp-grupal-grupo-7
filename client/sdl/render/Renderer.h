@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "game/ActionResolver.h"
@@ -10,7 +12,9 @@
 #include "game/ViewSpatialIndex.h"
 #include "sdl/render/EntityRenderer.h"
 #include "sdl/render/CropPainter.h"
+#include "game/NpcPlacementResolver.h"
 #include "sdl/render/GroundEffectPainter.h"
+#include "sdl/render/NpcRenderer.h"
 #include "sdl/render/SheetCache.h"
 #include "world/ContentCatalog.h"
 #include "world/CropCatalog.h"
@@ -41,6 +45,11 @@ public:
 	// Reconstruye el índice de elementos estáticos. Se llama cuando se
 	// entra a una escena o cuando cambia su contenido, no por frame.
 	void prepareScene(const world::SceneDescription& scene);
+
+	// NPCs de la sala actual: se dibujan antes de las entidades.
+	void setNpcs(const std::vector<const world::NpcDef*>& npcs);
+	// Cuadro actual de los NPCs animados (cofres), por id.
+	void setNpcFrames(const std::map<std::string, int>& frames);
 
 	// `timeOfDay` filtra los elementos con `when` (scenes.toml):
 	// qué momento es lo dice el dueño de DayPhase, no esto.
@@ -91,6 +100,8 @@ private:
 
 	SheetCache sheetCache_;
 	EntityRenderer entityRenderer_;
+	NpcRenderer npcRenderer_;
+	game::NpcPlacementResolver npcPlacements_;
 	GroundEffectPainter groundPainter_;
 	CropPainter cropPainter_;
 

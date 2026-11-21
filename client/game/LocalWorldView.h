@@ -8,6 +8,7 @@
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
+#include "world/MarketOffer.h"
 #include "world/Grid.h"
 #include "world/GroundCatalog.h"
 #include "world/Indication.h"
@@ -175,6 +176,16 @@ struct ViewSleep {
     int total = 0;
 };
 
+// Dónde está parado un NPC del mercado. Es estado PERSISTENTE del mundo: lo
+// manda la fuente de estado (el servidor). `id` es el de npcs.toml. El
+// cliente solo lo dibuja y lo hace clickeable ahí; lo visual (hoja, retrato,
+// texto) sigue siendo del TOML.
+struct ViewNpcPlacement {
+    std::string id;
+    int cellX;
+    int cellY;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -189,6 +200,10 @@ struct LocalWorldView {
     // Los cultivos plantados (persistente; ver ViewCrop). Los manda el
     // servidor (ServerCrop).
     std::vector<ViewCrop> plantedCrops;
+    // Posición de cada NPC (persistente; ver ViewNpcPlacement). La manda el
+    // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
+    // un NPC que la fuente no menciona también usa la suya.
+    std::vector<ViewNpcPlacement> npcPlacements;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
@@ -202,6 +217,13 @@ struct LocalWorldView {
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
+    // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
+    // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de
+    // npcs.toml; sin entradas = SDL muestra la oferta por defecto de ese
+    // comerciante (market.toml); con entradas, esas (las que SDL conoce) con el
+    // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
+    std::optional<world::MarketOffer> marketOffer;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve

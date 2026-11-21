@@ -25,4 +25,8 @@ constexpr std::uint8_t kNeighborWest = 8;
 constexpr const char* kPromptCancelButton = "cancel";
 constexpr const char* kPromptOkButton = "ok";
 
+// Tope de filas que se prueba al buscar cuántas necesita un popup
+// (InventoryLayout::rowsFitting): corta el cálculo ante datos absurdos.
+constexpr int kMaxPanelRows = 32;
+
 }

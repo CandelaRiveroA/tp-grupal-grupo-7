@@ -26,6 +26,17 @@ struct InputCommand {
         // mientras el server no manda la acción. Lo consume PlaySession;
         // NO viaja al GameClient.
         Faint,
+        // Cambio de escenario local (tecla M): alterna mercado y
+        // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
+        ToggleMarket,
+        // DEMO (tecla B): abre el catálogo del mercado. Lo reemplaza el
+        // mensaje del server; borrar junto con su tecla. Lo consume
+        // PlaySession; NO viaja al GameClient.
+        OpenCatalog,
+        // DEMO (tecla N): rota el estilo del catálogo del comerciante. Lo
+        // consume PlaySession; NO viaja al GameClient. Se borra cuando el
+        // servidor rote los estilos.
+        NextMarketSet,
     };
 
     Kind kind;

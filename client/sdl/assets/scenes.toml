@@ -202,3 +202,24 @@ sounds      = ["chicken_cluck", "cow_moo"]
   draw    = { mode = "single", scale = 2 }
   at      = [10, 0]
   span    = [9, 9]
+
+# --- Mercado -----------------------------------------------------------
+# Misma grilla que el dormitorio: el server sigue simulando 30×20 y el
+# cambio de sala es solo presentación local (tecla M).
+[tilesets.market]
+image = "Ambience/Market/PierreMarket.png"
+cell  = [16, 16]
+
+[rooms.market]
+floor_color = [0, 0, 0, 255]
+grid        = [30, 20]
+scale       = 2
+
+  # Fondo: PierreMarket.png (18×18 celdas de 16px), scale=2 → 576×576px,
+  # centrado igual que el dormitorio.
+  [[rooms.market.elements]]
+  tileset = "market"
+  region  = [0, 0, 18, 18]
+  draw    = { mode = "single", scale = 2 }
+  at      = [6, 1]
+  span    = [18, 18]

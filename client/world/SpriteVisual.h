@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "world/PixelBox.h"
+
 namespace tomlcfg {
 class TomlDocument;
 }
@@ -27,8 +29,9 @@ struct SheetCell {
 // Referencia visual de un sprite: qué hoja, qué celda y cómo se dibuja
 // en el mundo. Es EL struct común de todo lo que se muestra (ítems,
 // íconos, productos): una cosa nueva comparte este mecanismo y solo
-// agrega sus datos al TOML. drawn = tamaño en el mapa (0 = el nativo de
-// la celda de la hoja); offset_y = ajuste vertical al apoyarlo en el
+// agrega sus datos al TOML. cols/rows = celdas de la hoja que abarca
+// (`span`, default 1x1: los muebles ocupan varias). drawn = tamaño en el
+// mapa (0 = el nativo: celda * cols/rows); offset_y = ajuste vertical al apoyarlo en el
 // piso (0 = pegado a los pies; para hojas con aire transparente
 // abajo). La hoja se resuelve por SheetCache al dibujar.
 struct SpriteVisual {
@@ -37,20 +40,23 @@ struct SpriteVisual {
 	int row = 0;
 	int cellWidth = 0;
 	int cellHeight = 0;
+	int cols = 1;
+	int rows = 1;
 	int drawnWidth = 0;
 	int drawnHeight = 0;
 	int offsetY = 0;
 
 	SpriteVisual() = default;
 
-	// Lee sheet/cell/drawn de la subtabla `base`, SIN celda de posición:
+	// Lee sheet/cell/span/drawn de la subtabla `base`, SIN celda de posición:
 	// para hojas cuyas celdas las da otro dato (ej. los frames de un
 	// diálogo, cada uno en su propia celda).
 	SpriteVisual(const tomlcfg::TomlDocument& doc, const std::string& base);
 
 	// Lee el sprite completo de la subtabla `base`: `<base>.sheet`,
 	// `<base>.cell`, `<base>.<posKey>` ([col, row]) y `<base>.drawn`
-	// (opcional; 0 = nativo). Cada formato TOML nombra distinto a la
+	// (opcional; 0 = nativo). `<base>.span` = [cols, rows] (opcional,
+	// ambos > 0; default 1x1). Cada formato TOML nombra distinto a la
 	// celda de posición ("at", "icon", ...), por eso `posKey`.
 	// Validado: lanza ConfigError(InvalidValue, clave exacta) con la
 	// clave que falló.
@@ -58,10 +64,15 @@ struct SpriteVisual {
 		     const std::string& posKey);
 
 	// Tamaño final en pantalla: `drawn` si lo declara, si no el nativo
-	// de la celda de la hoja. Todos los que dibujan un sprite usan
+	// de la región (celda * cols/rows). Todos los que dibujan un sprite usan
 	// esta regla (ítems, cursores, diálogos).
 	int displayWidth() const;
 	int displayHeight() const;
+
+	// Caja centrada dentro de `box` que conserva la proporción del
+	// tamaño en pantalla (el sprite entra sin deformarse). Si el
+	// tamaño no es válido devuelve `box`.
+	PixelBox fitIn(const PixelBox& box) const;
 };
 
 // Región rectangular de una hoja: la celda de origen (arriba-izquierda) y

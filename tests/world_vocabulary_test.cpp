@@ -38,7 +38,6 @@ TEST(WorldVocabularyTest, ObjectRoleRoundTrip) {
 
 TEST(WorldVocabularyTest, MarkerKindRoundTrip) {
 	const std::pair<std::string, worldmodel::MarkerKind> cases[] = {
-		{"player_spawn", worldmodel::MarkerKind::PlayerSpawn},
 		{"bed", worldmodel::MarkerKind::Bed},
 		{"merchant_marnie", worldmodel::MarkerKind::MerchantMarnie},
 		{"merchant_clint", worldmodel::MarkerKind::MerchantClint},

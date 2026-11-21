@@ -224,15 +224,34 @@ TEST(WorldValidatorTest, CollisionOutOfSync) {
 
 TEST(WorldValidatorTest, MissingObject) {
 	World world = defaultWorld();
-	mapOf(world, "farm").objects.clear();
+	mapOf(world, "town").objects.clear();
 	expectIssue(world, IssueCode::MissingObject);
 }
 
 TEST(WorldValidatorTest, DuplicateObject) {
 	World world = defaultWorld();
-	Map& farm = mapOf(world, "farm");
-	farm.objects.push_back(objectOf(farm, ObjectRole::Cabin));
+	Map& town = mapOf(world, "town");
+	town.objects.push_back(objectOf(town, ObjectRole::Market));
 	expectIssue(world, IssueCode::DuplicateObject);
+}
+
+TEST(WorldValidatorTest, TooManyCabinsIsDuplicateObject) {
+	World world = defaultWorld();
+	Map& farm = mapOf(world, "farm");
+	for (int k = 2; k <= 5; ++k) {
+		worldmodel::MapObject extra = farm.objects[0];
+		extra.cell.column += 2;
+		farm.objects.push_back(extra);
+	}
+	farm.rebuildCollision();
+	expectIssue(world, IssueCode::DuplicateObject);
+}
+
+TEST(WorldValidatorTest, ExtraCabinMapAboveCabinCountIsInvalidMapId) {
+	World world = defaultWorld();
+	world.maps.emplace("cabin_2", world.maps.at("cabin_1"));
+	world.maps.at("cabin_2").id = "cabin_2";
+	expectIssue(world, IssueCode::InvalidMapId);
 }
 
 TEST(WorldValidatorTest, ObjectOutOfBounds) {
@@ -260,19 +279,16 @@ TEST(WorldValidatorTest, ObjectDoorNotWalkable) {
 	expectIssue(world, IssueCode::ObjectDoorNotWalkable);
 }
 
-TEST(WorldValidatorTest, RepeatedSpawnAndBedAreAllowed) {
+TEST(WorldValidatorTest, DuplicateBedIsRejected) {
 	World world = defaultWorld();
-	mapOf(world, "farm")
-		.markers.push_back(Marker{MarkerKind::PlayerSpawn, {4, 7}});
-	mapOf(world, "cabin")
+	mapOf(world, "cabin_1")
 		.markers.push_back(Marker{MarkerKind::Bed, {2, 3}});
-
-	EXPECT_TRUE(WorldValidator().validate(world).empty());
+	expectIssue(world, IssueCode::DuplicateMarker);
 }
 
 TEST(WorldValidatorTest, MissingMarker) {
 	World world = defaultWorld();
-	mapOf(world, "farm").markers.clear();
+	mapOf(world, "cabin_1").markers.clear();
 	expectIssue(world, IssueCode::MissingMarker);
 }
 
@@ -307,21 +323,23 @@ TEST(WorldValidatorTest, UnexpectedMarker) {
 
 TEST(WorldValidatorTest, MarkerOutOfBounds) {
 	World world = defaultWorld();
-	markerOf(mapOf(world, "farm"), MarkerKind::PlayerSpawn).cell = {
+	markerOf(mapOf(world, "cabin_1"), MarkerKind::Bed).cell = {
 		-1, 0};
 	expectIssue(world, IssueCode::MarkerOutOfBounds);
 }
 
 TEST(WorldValidatorTest, MarkerNotWalkable) {
 	World world = defaultWorld();
-	markerOf(mapOf(world, "farm"), MarkerKind::PlayerSpawn).cell = {
-		2, 2};
+	Map& cabin = mapOf(world, "cabin_1");
+	cabin.baseCollision[0] = true;
+	cabin.rebuildCollision();
+	markerOf(cabin, MarkerKind::Bed).cell = {0, 0};
 	expectIssue(world, IssueCode::MarkerNotWalkable);
 }
 
 TEST(WorldValidatorTest, MissingPortal) {
 	World world = defaultWorld();
-	mapOf(world, "cabin").portals.clear();
+	mapOf(world, "cabin_1").portals.clear();
 	expectIssue(world, IssueCode::MissingPortal);
 }
 
@@ -379,14 +397,14 @@ TEST(WorldValidatorTest, PortalTargetOutOfBounds) {
 TEST(WorldValidatorTest, PortalTargetNotWalkable) {
 	World world = defaultWorld();
 	portalOf(mapOf(world, "farm"), PortalKind::TownEntrance)
-		.targetCell = {2, 7};
+		.targetCell = {2, 9};
 	expectIssue(world, IssueCode::PortalTargetNotWalkable);
 }
 
 TEST(WorldValidatorTest, LinkTargetNotWalkable) {
 	World world = defaultWorld();
 	mapOf(world, "farm").portals.push_back(
-		Portal{PortalKind::Link, {1, 1}, "town", {2, 7}});
+		Portal{PortalKind::Link, {1, 1}, "town", {2, 9}});
 	expectIssue(world, IssueCode::PortalTargetNotWalkable);
 }
 
@@ -394,16 +412,28 @@ TEST(WorldValidatorTest, WrongPortalTarget) {
 	World world = defaultWorld();
 	Portal& portal =
 		portalOf(mapOf(world, "farm"), PortalKind::TownEntrance);
-	portal.targetMap = "cabin";
+	portal.targetMap = "cabin_1";
 	portal.targetCell = {0, 0};
 	expectIssue(world, IssueCode::WrongPortalTarget);
 }
 
 TEST(WorldValidatorTest, InteriorExitMustTargetBuildingDoor) {
 	World world = defaultWorld();
-	portalOf(mapOf(world, "cabin"), PortalKind::InteriorExit)
-		.targetCell = {0, 0};
+	Map& farm = mapOf(world, "farm");
+	worldmodel::MapObject second = farm.objects[0];
+	second.tile.row = 9;
+	second.cell = {15, 2};
+	second.door = worldmodel::TilePos{20, 9};
+	farm.objects.push_back(second);
+	farm.rebuildCollision();
+	world.maps.emplace("cabin_2", world.maps.at("cabin_1"));
+	world.maps.at("cabin_2").id = "cabin_2";
+	// cabin_2 sigue apuntando a la puerta de la cabaña 1 -> WrongPortalTarget
 	expectIssue(world, IssueCode::WrongPortalTarget);
+	// Al apuntar a su propia puerta, el mundo con 2 cabañas valida limpio.
+	portalOf(mapOf(world, "cabin_2"), PortalKind::InteriorExit)
+		.targetCell = *second.door;
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
 }
 
 TEST(WorldValidatorTest, FixedPortalInExtraMapIsUnexpected) {

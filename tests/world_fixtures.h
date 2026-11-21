@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 
+#include "world_model/PrefabCatalog.h"
 #include "world_model/Scenario.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/World.h"
@@ -52,7 +53,7 @@ blocked = true
 door = [0, 1]
 
 [[maps.farm.markers]]
-kind = "player_spawn"
+kind = "bed"
 cell = [2, 1]
 
 [[maps.farm.portals]]
@@ -107,8 +108,8 @@ inline worldmodel::World loadMinimalWorld() {
 	return worldmodel::WorldSerializer().loadFromString(kMinimalWorldToml);
 }
 
-constexpr int kWidth = 14;
-constexpr int kHeight = 12;
+constexpr int kWidth = 48;
+constexpr int kHeight = 20;
 
 // Escenario liso, todo transitable, con un unico tileset "outdoors".
 inline worldmodel::Scenario scenarioOf(const std::string& id,
@@ -153,10 +154,52 @@ inline worldmodel::ScenarioChoice validChoice() {
 	return choice;
 }
 
-// Mundo "Primavera" generado por WorldFactory con fullLibrary.
+inline worldmodel::PrefabCatalog defaultCatalog() {
+	worldmodel::PrefabCatalog catalog;
+	catalog.setTilesets({
+		{"prefab_estructuras_granja",
+		 worldmodel::TilesetDef{
+			 "World/prefabs/estructuras_granja.png", 16, 16}},
+		{"prefab_casas_y_comercios",
+		 worldmodel::TilesetDef{
+			 "World/prefabs/casas_y_comercios.png", 16, 16}},
+	});
+
+	worldmodel::PrefabDef cabin;
+	cabin.id = "casa_granja_1";
+	cabin.name = "Casa de Granja (Nivel 1)";
+	cabin.category = "estructuras_granja";
+	cabin.categoryLabel = "Estructuras de granja";
+	cabin.tile = worldmodel::TileRef{"prefab_estructuras_granja", 0, 0};
+	cabin.width = 9;
+	cabin.height = 9;
+	cabin.role = worldmodel::ObjectRole::Cabin;
+	cabin.door = worldmodel::TilePos{5, 7};
+	cabin.collisionGrid.assign(81, true);
+	cabin.collisionGrid[7 * 9 + 5] = false;
+	catalog.add(cabin);
+
+	worldmodel::PrefabDef center;
+	center.id = "centro_comunitario";
+	center.name = "Centro Comunitario (Restaurado)";
+	center.category = "casas_y_comercios";
+	center.categoryLabel = "Casas y comercios";
+	center.tile = worldmodel::TileRef{"prefab_casas_y_comercios", 8, 20};
+	center.width = 12;
+	center.height = 10;
+	center.role = worldmodel::ObjectRole::CommunityCenter;
+	center.door = worldmodel::TilePos{5, 9};
+	center.collisionGrid.assign(120, true);
+	center.collisionGrid[9 * 12 + 5] = false;
+	catalog.add(center);
+
+	return catalog;
+}
+
+// Mundo "Primavera" generado por WorldFactory con fullLibrary y defaultCatalog.
 inline worldmodel::World defaultWorld() {
 	return worldmodel::WorldFactory().makeDefault(
-		"Primavera", fullLibrary(), validChoice());
+		"Primavera", fullLibrary(), defaultCatalog(), validChoice());
 }
 
 }

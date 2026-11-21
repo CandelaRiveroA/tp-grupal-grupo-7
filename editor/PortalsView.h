@@ -2,6 +2,7 @@
 
 #include <QIcon>
 #include <QWidget>
+#include <array>
 
 #include "world_model/Portal.h"
 
@@ -33,4 +34,10 @@ private:
 
 	QComboBox* sizeCombo_ = nullptr;
 	QListWidget* list_ = nullptr;
+	std::array<SizeOption, 4> sizeOptions_{{
+		{"1x1 (1 celda)", 1, 1},
+		{"2x1 (horizontal)", 2, 1},
+		{"1x2 (vertical)", 1, 2},
+		{"2x2 (bloque)", 2, 2},
+	}};
 };

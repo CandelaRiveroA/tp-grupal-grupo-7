@@ -7,20 +7,12 @@
 #include <QPixmap>
 #include <QSize>
 #include <QVBoxLayout>
-#include <array>
 
 #include "Constants.h"
 
 PortalsView::PortalsView(QWidget* parent) : QWidget(parent) {
-	constexpr std::array<SizeOption, 4> kSizeOptions = {{
-		{"1x1 (1 celda)", 1, 1},
-		{"2x1 (horizontal)", 2, 1},
-		{"1x2 (vertical)", 1, 2},
-		{"2x2 (bloque)", 2, 2},
-	}};
-
 	sizeCombo_ = new QComboBox(this);
-	for (const SizeOption& opt : kSizeOptions) {
+	for (const SizeOption& opt : sizeOptions_) {
 		sizeCombo_->addItem(opt.label);
 	}
 
@@ -61,14 +53,9 @@ void PortalsView::clearSelection() {
 }
 
 PortalsView::SizeOption PortalsView::currentSizeOption() const {
-	constexpr std::array<SizeOption, 4> kSizeOptions = {{
-		{"1x1 (1 celda)", 1, 1},
-		{"2x1 (horizontal)", 2, 1},
-		{"1x2 (vertical)", 1, 2},
-		{"2x2 (bloque)", 2, 2},
-	}};
 	const int idx = sizeCombo_->currentIndex();
-	return kSizeOptions[idx >= 0 && idx < 4 ? idx : 0];
+	const int count = static_cast<int>(sizeOptions_.size());
+	return sizeOptions_[idx >= 0 && idx < count ? idx : 0];
 }
 
 QIcon PortalsView::portalPreviewIcon(int width, int height) const {

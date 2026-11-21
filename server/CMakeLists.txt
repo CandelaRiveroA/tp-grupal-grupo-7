@@ -19,6 +19,7 @@ target_sources(taller_server
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
+    domain/map/town.cpp
     domain/entities/i_entity.cpp
     domain/entities/i_movable.cpp
     domain/entities/entity_controller.cpp
@@ -54,6 +55,9 @@ target_sources(taller_server
     domain/crops/green_onion.cpp
     domain/crops/potato.cpp
     domain/crops/pumpkin.cpp
+    domain/npc/merchant.cpp
+    domain/npc/robin.cpp
+    domain/npc/marnie.cpp
     PUBLIC
     # .h files
     server.h

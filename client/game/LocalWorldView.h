@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/model/draft/CharacterAppearance.h"
+#include "game/GameConstants.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
@@ -212,6 +213,9 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
+    // Plata del jugador. La manda el servidor al comenzar y cada vez que
+    // cambia; mientras no la mande vale la inicial local (kStartingGold).
+    int gold = kStartingGold;
     // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
     // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
     // amanecer se levanta el negro con el gallo.

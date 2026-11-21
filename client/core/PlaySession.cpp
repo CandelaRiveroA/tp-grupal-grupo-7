@@ -393,7 +393,10 @@ void PlaySession::tick(int iteration) {
     hudFillValues[game::kHudLifeKey] =
             stats_.at(game::StatKind::Life).fraction();
     hudOverlayPainter_.draw(hudFillValues);
-    hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
+    // Valores crudos de las etiquetas: el reloj y la plata (la manda la fuente).
+    std::map<std::string, int> hudValues = dayPhase_.clockValues();
+    hudValues[game::kHudGoldKey] = state.gold;
+    hudOverlayPainter_.drawLabels(hudValues);
     drawPopup(popupBox);
     drawNpcPopup();
     drawMarketCatalog();

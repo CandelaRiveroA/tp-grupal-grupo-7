@@ -6,6 +6,8 @@
 #include <exception>
 #include <map>
 #include <optional>
+#include <set>
+#include <utility>
 #include <variant>
 
 #include <sys/socket.h>
@@ -19,23 +21,14 @@ namespace game {
 
 namespace {
 
-// Vocabulario compartido con el servidor (characters.toml).
-std::optional<world::CreatureKind> creatureKindFor(const std::string& kind) {
-    static const std::map<std::string, world::CreatureKind> kinds = {
-            {"chicken", world::CreatureKind::Chicken},
-            {"cow", world::CreatureKind::Cow},
+// Acción del enemigo (protocolo) -> acción que anima el cliente.
+world::ActionKind actionKindFor(const EnemyAction action) {
+    static const std::map<EnemyAction, world::ActionKind> actions = {
+            {EnemyAction::Idle, world::ActionKind::Idle},
+            {EnemyAction::Attack, world::ActionKind::Attack},
+            {EnemyAction::Damage, world::ActionKind::Damage},
     };
-    const auto it = kinds.find(kind);
-    if (it == kinds.end()) {
-        return std::nullopt;
-    }
-    return it->second;
-}
-
-// Contenido equipado (inventory.toml) -> herramienta. Sin fila = nullopt (manos o producto).
-std::optional<world::ItemKind> toolKindFor(const std::string& contentId) {
-    static const world::ContentIds contentIds;
-    return contentIds.itemKindFor(contentId);
+    return actions.at(action);
 }
 
 }  // namespace
@@ -52,7 +45,17 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
         characters_(&characters),
         resourceStates_{{ResourceDamage::Intact, world::ResourceState::Intact},
                         {ResourceDamage::Cracked, world::ResourceState::Cracked},
-                        {ResourceDamage::Broken, world::ResourceState::Broken}} {
+                        {ResourceDamage::Broken, world::ResourceState::Broken}},
+        creatureKinds_{{"chicken", world::CreatureKind::Chicken},
+                       {"cow", world::CreatureKind::Cow},
+                       {"skeleton", world::CreatureKind::Skeleton},
+                       {"orc", world::CreatureKind::Orc},
+                       {"vampire", world::CreatureKind::Vampire},
+                       // La vampira no tiene hoja propia: se dibuja como el vampiro.
+                       {"vampiress", world::CreatureKind::Vampire},
+                       {"skull", world::CreatureKind::Skull},
+                       {"skull_fire", world::CreatureKind::SkullFire},
+                       {"skull_fire_green", world::CreatureKind::SkullFireGreen}} {
     clientSender_.start();
     clientReceiver_.start();
 }
@@ -71,6 +74,17 @@ world::ResourceState NetworkGameClient::resourceStateFor(ResourceDamage damage) 
     return it != resourceStates_.end() ? it->second : world::ResourceState::Intact;
 }
 
+std::optional<world::ItemKind> NetworkGameClient::toolKindFor(const std::string& contentId) const {
+    return contentIds_.itemKindFor(contentId);
+}
+
+std::optional<world::CreatureKind> NetworkGameClient::creatureKindFor(
+        const std::string& kind) const {
+    const auto it = creatureKinds_.find(kind);
+    return it != creatureKinds_.end() ? std::optional<world::CreatureKind>(it->second)
+                                      : std::nullopt;
+}
+
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
     if (std::holds_alternative<protocol::TakeMessage>(message)) {
         // Orden del mock: primero los animales (ordeño), después el piso (recogida).
@@ -78,6 +92,18 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
         startPickup();
     }
     commands_.push(message);
+}
+
+void NetworkGameClient::sendChat(const std::string& text) {
+    // El servidor reparte el mensaje (broadcast o privado) y lo devuelve en un
+    // ServerChat: no hacemos eco local para no verlo dos veces.
+    commands_.push(protocol::ChatMessage{text});
+}
+
+void NetworkGameClient::receiveChat(const std::uint8_t playerId,
+                                    const std::string& characterName,
+                                    const std::string& text) {
+    view_.addChatLine(ViewChatLine{playerId, characterName, text});
 }
 
 void NetworkGameClient::startMilking() {
@@ -153,6 +179,13 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El chat es un evento, no estado: se aplica ya (fuera del lote).
+    if (const auto* chat = std::get_if<ServerChat>(&message)) {
+        receiveChat(chat->player_id,
+                    chat->system ? std::string("Servidor") : chat->characterName,
+                    chat->text);
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {
@@ -164,6 +197,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
         for (const ServerMessage& buffered: batch_) {
             applyNow(buffered);
         }
+        pruneToBatch();
         batch_.clear();
         return;
     }
@@ -185,6 +219,10 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
+        // enemigos_ y projectiles_ NO se borran acá: cada uno guarda la
+        // ventana de animación del último golpe y vaciarla en cada lote
+        // (cada 400 ms) la reiniciaría sin parar. Se podan en SyncEnd con
+        // lo que el lote no volvió.
         return;
     }
     if (const auto* crop = std::get_if<ServerCrop>(&message)) {
@@ -200,10 +238,16 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         return;
     }
     if (const auto* ground = std::get_if<ServerGroundEffect>(&message)) {
-        groundEffects_.push_back(ViewGroundEffect{
-                ground->x, ground->y,
-                ground->effect == GroundEffect::Watered ? world::GroundConsequence::Watered
-                                                        : world::GroundConsequence::Dug});
+        // La traducción es una fila por consecuencia; Blood es el charco
+        // de sangre que manda el server (la vampira revive de ahí).
+        const world::GroundConsequence consequence =
+                ground->effect == GroundEffect::Watered
+                        ? world::GroundConsequence::Watered
+                        : ground->effect == GroundEffect::Blood
+                                  ? world::GroundConsequence::Blood
+                                  : world::GroundConsequence::Dug;
+        groundEffects_.push_back(
+                ViewGroundEffect{ground->x, ground->y, consequence});
         return;
     }
     if (const auto* animal = std::get_if<ServerAnimal>(&message)) {
@@ -222,6 +266,57 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         }
         return;
     }
+    if (const auto* enemy = std::get_if<ServerEnemy>(&message)) {
+        const std::optional<world::CreatureKind> kind = creatureKindFor(enemy->kind);
+        if (kind.has_value()) {
+            RemoteEnemy& remote = enemies_[enemy->id];
+            ViewEntity& entity = remote.entity;
+            entity.id = enemy->id;
+            entity.kind = kind.value();
+            entity.cellX = enemy->x;
+            entity.cellY = enemy->y;
+            entity.facing = world::viewDirectionFrom(enemy->direction);
+            entity.interactive = false;
+            // El paso lo deriva ViewMotion de la interpolación por id (como los animales).
+            entity.moving = false;
+            // La ventana de la acción arranca en el flanco (cambio); recibir
+            // Idle no corta una ventana en curso.
+            const bool flank = enemy->action != remote.lastReceived;
+            remote.lastReceived = enemy->action;
+            if (enemy->health == 0) {
+                entity.action = world::ActionKind::Death;
+                remote.actionRemaining = 0;
+            } else {
+                if (entity.action == world::ActionKind::Death) {
+                    entity.action = world::ActionKind::Idle;  // revivió
+                }
+                const world::ActionKind action = actionKindFor(enemy->action);
+                const int ticks = characters_->dataFor(kind.value()).actionCycleTicks(action);
+                // Reabre la ventana si hubo flanco O si la anterior ya cerró
+                // (evita que un lastReceived stale bloquee el re-golpe).
+                if (enemy->action != EnemyAction::Idle && ticks > 0 &&
+                    (flank || remote.actionRemaining == 0)) {
+                    entity.action = action;
+                    remote.actionRemaining = ticks;
+                }
+            }
+        }
+        return;
+    }
+    if (const auto* projectile = std::get_if<ServerProjectile>(&message)) {
+        const std::optional<world::CreatureKind> kind = creatureKindFor(projectile->kind);
+        if (kind.has_value()) {
+            // Sin IA ni ventana de acción: la celda y la dirección que fija el
+            // server, como en EnemyBot::appendEntities.
+            ViewEntity entity{kind.value(), projectile->x, projectile->y,
+                              world::viewDirectionFrom(projectile->direction), false,
+                              world::ActionKind::Idle, std::nullopt};
+            entity.id = projectile->id;
+            entity.interactive = false;
+            projectiles_[projectile->id] = entity;
+        }
+        return;
+    }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
         return;
@@ -233,6 +328,30 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         player.cellY = status->y;
         player.facing = world::viewDirectionFrom(status->direction);
         player.appearance = status->appearance;
+        // Flanco de vida: el golpe que bajó la vida titila (ventana de
+        // la animación de daño); la vida en 0 es el desmayo y se queda
+        // hasta que el health vuelva (amanecer); subir la vida corta
+        // cualquier reacción (y un joiner con la vida ya completa no
+        // arranca en reaction de nadie).
+        const int previousHealth = player.health;
+        const bool previousFainted = player.fainted;
+        player.health = status->health;
+        player.maxHealth = status->max_health;
+        player.energy = status->energy;
+        player.maxEnergy = status->max_energy;
+        player.fainted = (status->fainted != 0);
+        if (status->health == 0 || player.fainted) {
+            player.reaction = world::ActionKind::Faint;
+            player.reactionRemaining = 0;
+        } else if (previousFainted || status->health > previousHealth) {
+            // Despertó o revivió: limpia el desmayo (y el daño no cuenta).
+            player.reaction = world::ActionKind::Idle;
+            player.reactionRemaining = 0;
+        } else if (status->health < previousHealth) {
+            player.reaction = world::ActionKind::Damage;
+            player.reactionRemaining = characters_->dataFor(world::CreatureKind::Player)
+                                              .actionCycleTicks(world::ActionKind::Damage);
+        }
         return;
     }
     if (const auto* sleep = std::get_if<ServerSleep>(&message)) {
@@ -278,7 +397,8 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         if (slot->count == 0) {
             inventory_.erase(slot->slot);
         } else {
-            inventory_[slot->slot] = ViewInventorySlot{slot->slot, slot->content_id, slot->count};
+            inventory_[slot->slot] =
+                    ViewInventorySlot{slot->slot, slot->content_id, slot->count, slot->tradable};
         }
         return;
     }
@@ -286,6 +406,20 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // El evento de obtención viaja por content_id (vocabulario
         // genérico): el view lo refleja tal cual.
         obtained_.push_back(ViewObtained{obtained->content_id});
+        return;
+    }
+    if (const auto* gift = std::get_if<ServerGiftRequest>(&message)) {
+        // Pedido de regalo: evento (no estado), como Obtained. Lo consume
+        // PlaySession en el mismo tick y contesta con GiftResponseMessage.
+        // shortcut: si llegan dos pedidos en el mismo tick pisa el anterior
+        // (el primer emisor queda esperando); pasar a cola cuando dos
+        // regalos simultáneos dejen de ser un caso raro.
+        giftRequest_ = ViewGiftRequest{gift->sender_id, gift->characterName};
+        return;
+    }
+    if (std::holds_alternative<ServerGiftAnswered>(message)) {
+        // El receptor contestó: PlaySession cierra su popup de espera.
+        view_.giftAnswered = true;
         return;
     }
     if (const auto* used = std::get_if<ServerToolUsed>(&message)) {
@@ -297,12 +431,44 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     }
 }
 
+void NetworkGameClient::pruneToBatch() {
+    // Sin lote no hay estado completo que comparar (SyncEnd suelto).
+    if (this->batch_.empty()) {
+        return;
+    }
+    std::set<uint16_t> live_enemies;
+    std::set<uint16_t> live_projectiles;
+    for (const ServerMessage& message: this->batch_) {
+        if (const auto* enemy = std::get_if<ServerEnemy>(&message)) {
+            live_enemies.insert(enemy->id);
+        } else if (const auto* projectile = std::get_if<ServerProjectile>(&message)) {
+            live_projectiles.insert(projectile->id);
+        }
+    }
+    std::erase_if(this->enemies_,
+                  [&live_enemies](const auto& entry) { return !live_enemies.count(entry.first); });
+    std::erase_if(this->projectiles_, [&live_projectiles](const auto& entry) {
+        return !live_projectiles.count(entry.first);
+    });
+}
+
 void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
     view_.dayEnded = false;
     view_.dayChanged = false;
+    view_.giftAnswered = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
+    }
+
+    // La ventana de la acción dura N frames: se decrementa antes de aplicar
+    // el lote nuevo, así una ventana recién abierta no pierde un frame.
+    for (auto& entry: enemies_) {
+        RemoteEnemy& remote = entry.second;
+        if (remote.actionRemaining > 0 && --remote.actionRemaining == 0 &&
+            remote.entity.action != world::ActionKind::Death) {
+            remote.entity.action = world::ActionKind::Idle;
+        }
     }
 
     ServerMessage message = ServerLeave{0};
@@ -317,6 +483,9 @@ void NetworkGameClient::update(int) {
         if (usingTool) {
             --player.toolUseRemaining;
         }
+        if (player.reactionRemaining > 0) {
+            --player.reactionRemaining;
+        }
         ViewEntity entity{world::CreatureKind::Player,
                           player.cellX,
                           player.cellY,
@@ -329,6 +498,15 @@ void NetworkGameClient::update(int) {
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;
+        }
+        // La reacción al daño manda sobre el golpe en curso: el desmayo
+        // sobre todo (terminal hasta que la vida vuelva), la titilación
+        // solo mientras dura su ventana.
+        if (player.reaction == world::ActionKind::Faint) {
+            entity.action = world::ActionKind::Faint;
+        } else if (player.reaction == world::ActionKind::Damage &&
+                   player.reactionRemaining > 0) {
+            entity.action = world::ActionKind::Damage;
         }
         if (id == localPlayerId_) {
             view_.entities.insert(view_.entities.begin(), entity);
@@ -347,6 +525,22 @@ void NetworkGameClient::update(int) {
     for (const auto& entry: animals_) {
         view_.entities.push_back(entry.second);
     }
+    // Después de los animales: el mismo orden que EnemyBot::appendEntities.
+    for (const auto& entry: enemies_) {
+        view_.entities.push_back(entry.second.entity);
+    }
+    // El fuego va encima de los enemigos.
+    for (const auto& entry: projectiles_) {
+        view_.entities.push_back(entry.second);
+    }
+    const auto localIt = players_.find(localPlayerId_);
+    if (localIt != players_.end()) {
+        view_.playerHealth = localIt->second.health;
+        view_.playerMaxHealth = localIt->second.maxHealth;
+        view_.playerEnergy = localIt->second.energy;
+        view_.playerMaxEnergy = localIt->second.maxEnergy;
+        view_.playerFainted = localIt->second.fainted;
+    }
     session_.advance();
     if (!view_.entities.empty()) {
         session_.mergePlayer(view_.entities[0]);
@@ -357,6 +551,7 @@ void NetworkGameClient::update(int) {
     }
     view_.obtained = std::move(obtained_);
     obtained_.clear();
+    view_.giftRequest = std::exchange(giftRequest_, std::nullopt);
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }

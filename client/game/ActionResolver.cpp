@@ -8,16 +8,42 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 			       const CarrySelection& carry)
 	: motion_(motion)
 	, carry_(carry)
-	, phaseClocks_{
-		  {world::ActionKind::Idle, PhaseClock::Action},
-		  {world::ActionKind::Walk, PhaseClock::Step},
-		  {world::ActionKind::UseTool, PhaseClock::Action},
-		  {world::ActionKind::Water, PhaseClock::Action},
-		  {world::ActionKind::Milk, PhaseClock::Action},
-		  {world::ActionKind::Pickup, PhaseClock::Action},
-		  {world::ActionKind::Carry, PhaseClock::Action},
-		  {world::ActionKind::CarryWalk, PhaseClock::Step},
-		  {world::ActionKind::Faint, PhaseClock::Action},
+	, actionSpecs_{
+		  // Locomoción: la caminata la deduce la presentación
+		  // (relajo del paso) y las piernas van con el paso.
+		  {world::ActionKind::Idle,
+		   ActionSpec{ActionRole::Locomotion, PhaseClock::Action}},
+		  {world::ActionKind::Walk,
+		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
+		  {world::ActionKind::CarryWalk,
+		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
+		  // Acción: la enciende y apaga la fuente; se anima tal
+		  // cual (la caminata no la pisa) con el reloj de la acción.
+		  {world::ActionKind::UseTool,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Water,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Milk,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Pickup,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Carry,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Attack,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  // Daño recibido: DOMINANTE (parpadea aunque camine o
+		  // sostenga algo). Su pose en el jugador es la titilación
+		  // (frames vacíos alternados, characters.toml).
+		  {world::ActionKind::Damage,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action, true}},
+		  {world::ActionKind::Death,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Faint,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action, true}},
+		  {world::ActionKind::Sword,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
+		  {world::ActionKind::Revive,
+		   ActionSpec{ActionRole::Action, PhaseClock::Action}},
 	  }
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},
@@ -25,6 +51,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 	  }
 	, toolActions_{
 		  {world::ItemKind::WateringCan, world::ActionKind::Water},
+		  {world::ItemKind::Sword, world::ActionKind::Sword},
 	  } {}
 
 world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
@@ -41,16 +68,26 @@ world::ActionKind ActionResolver::toolAction(const ViewEntity& entity) const {
 
 world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 					    std::size_t index, int it) const {
-	// El desmayo manda sobre la caminata y el carry: el personaje puede
-	// seguir moviéndose (no se bloquea el input), pero la pose es la
-	// última del desmayo hasta que la fuente la apague.
-	if (entity.action == world::ActionKind::Faint) {
-		return world::ActionKind::Faint;
+	// Las acciones DOMINANTES (Faint, Damage) mandan sobre la caminata
+	// y el carry: el personaje puede seguir moviéndose (no se bloquea
+	// el input), pero la pose es la de la acción hasta que la fuente la
+	// apague. Lo decide la FILA de actionSpecs_ (dato), no un if por
+	// acción.
+	if (specFor(entity.action).dominant) {
+		return entity.action;
 	}
-	// La caminata es presentación local (la interpolación del paso).
-	const world::ActionKind base = motion_.isWalking(index, it, entity.moving)
-					       ? world::ActionKind::Walk
-					       : toolAction(entity);
+	// La caminata es presentación local (la interpolación del paso) y
+	// solo pisa a las acciones de LOCOMOCIÓN. Las que enciende la
+	// fuente (golpe, daño, muerte, ...) se animan tal cual aunque la
+	// entidad se esté moviendo: la fuente manda la acción, el cliente
+	// la anima (contrato §10).
+	const world::ActionKind fromSource = toolAction(entity);
+	world::ActionKind base = fromSource;
+	if (specFor(fromSource).role == ActionRole::Locomotion) {
+		base = motion_.isWalking(index, it, entity.moving)
+			       ? world::ActionKind::Walk
+			       : fromSource;
+	}
 	// Sostener un contenido soltable es presentación LOCAL de la
 	// selección del HUD (como el marco rojo): mientras el jugador
 	// local sostenga algo, su pose es SIEMPRE la variante "sosteniendo"
@@ -83,7 +120,11 @@ const std::optional<std::string>& ActionResolver::heldContentId() const {
 }
 
 PhaseClock ActionResolver::clockFor(const world::ActionKind action) const {
-	return phaseClocks_.at(action);
+	return specFor(action).clock;
+}
+
+const ActionSpec& ActionResolver::specFor(const world::ActionKind action) const {
+	return actionSpecs_.at(action);
 }
 
 bool ActionResolver::isHoldingPose(const world::ActionKind action) const {

@@ -13,7 +13,8 @@ namespace sdl {
 
 class CharacterSprite {
 public:
-	CharacterSprite(SpriteSheet& sheet, int drawnWidth, int drawnHeight);
+	CharacterSprite(SpriteSheet& sheet, int drawnWidth, int drawnHeight,
+			int referenceCols = 0, int referenceRows = 0);
 
 	void draw(const world::Pose& pose, const SDL2pp::Rect& logicalBox,
 		  Flip flip = Flip::None) const;
@@ -22,6 +23,8 @@ private:
 	SpriteSheet& sheet_;
 	int drawnWidth_;
 	int drawnHeight_;
+	int referenceCols_;
+	int referenceRows_;
 };
 
 }

@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "sdl/render/HeldItemPainter.h"
+#include "sdl/render/PlayerAppearancePainter.h"
 #include "sdl/render/ToolOverlayPainter.h"
 
 namespace game {
@@ -16,10 +17,12 @@ class CharacterCatalog;
 class ContentCatalog;
 class SceneDescription;
 class ToolOverlayCatalog;
+struct CharacterPalettes;
 }
 
 namespace sdl {
 
+class SdlContext;
 class SheetCache;
 class Viewport;
 
@@ -30,10 +33,11 @@ class Viewport;
 // acción que resuelve game::ActionResolver.
 class EntityRenderer {
 public:
-	EntityRenderer(SheetCache& sheets,
+	EntityRenderer(SdlContext& context, SheetCache& sheets,
 		       const world::CharacterCatalog& characters,
 		       const world::ToolOverlayCatalog& toolOverlay,
-		       const world::ContentCatalog& content);
+		       const world::ContentCatalog& content,
+		       const world::CharacterPalettes& palettes);
 
 	void draw(const game::ViewEntity& entity, std::size_t entityIndex,
 		  const world::SceneDescription& scene,
@@ -44,6 +48,7 @@ public:
 private:
 	SheetCache& sheets_;
 	const world::CharacterCatalog& characters_;
+	PlayerAppearancePainter appearancePainter_;
 	ToolOverlayPainter toolOverlay_;
 	HeldItemPainter heldItem_;
 };

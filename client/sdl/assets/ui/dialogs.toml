@@ -65,3 +65,24 @@ anchor_offset = [0, -40]
     [0, 6], [1, 6], [2, 6], [3, 6],
     [3, 0], [2, 0], [1, 0], [0, 0],
   ]
+
+[gift_thanks]
+# El jugador local agradece un regalo aceptado. Misma mecánica que el
+# desmayo: aparece, muestra el corazón y se va al revés.
+anchor_offset = [0, -59]
+
+  [gift_thanks.animation]
+  sheet       = "ui/emotes.png"
+  cell        = [16, 16]
+  drawn       = [32, 32]
+  frame_ticks = 6
+  loops       = false
+  hide_at_end = true
+  # La burbuja crece, el corazón se queda un momento y la burbuja se
+  # cierra al revés (los frames de abajo son los mismos que la vaca,
+  # con el último asset del regalo).
+  frames      = [
+    [0, 0], [1, 0], [2, 0], [3, 0],
+    [3, 5], [3, 5], [3, 5],
+    [3, 0], [2, 0], [1, 0], [0, 0],
+  ]

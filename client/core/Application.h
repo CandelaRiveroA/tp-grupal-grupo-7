@@ -16,6 +16,7 @@ class GameClient;
 
 namespace world {
 class CharacterCatalog;
+struct CharacterPalettes;
 struct GridSpan;
 }  // namespace world
 
@@ -32,6 +33,10 @@ private:
     // QApplication ya existe.
     void loadFonts();
     void loadStyleSheet();
+
+    // Paletas del editor de personaje (ojos, pelo y pantalón). Las usan
+    // el lobby y el render del jugador en partida.
+    world::CharacterPalettes loadPalettes() const;
 
     // Ventana Qt mínima. Devuelve nullopt si el jugador salió sin jugar.
     std::optional<SessionConfig> runLobby();

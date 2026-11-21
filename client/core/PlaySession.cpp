@@ -1,7 +1,11 @@
 #include "core/PlaySession.h"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <utf8.h>
 #include <vector>
 
 #include "core/Constants.h"
@@ -9,6 +13,7 @@
 #include "core/StartupSequence.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
+#include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
@@ -21,16 +26,35 @@
 
 namespace core {
 
-PlaySession::PlaySession(
-        const WindowConfig& config, const world::Scenario& scenario, game::GameClient& gameClient,
-        const world::CharacterCatalog& characters, const world::InventoryLayout& inventory,
-        const world::ToolOverlayCatalog& toolOverlay, const world::ResourceCatalog& resources,
-        const world::ObtainedBannerCatalog& banner, const world::DigitCatalog& digits,
-        const world::CursorCatalog& cursors, const world::DialogCatalog& dialogs,
-        const world::FontCatalog& font, const world::PromptLayout& prompt,
-        const world::HudOverlayCatalog& hudOverlays, const world::HudOverlayCatalog& lighting):
+PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
+                         game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                         const world::InventoryLayout& inventory,
+                         const world::ToolOverlayCatalog& toolOverlay,
+                         const world::ResourceCatalog& resources,
+                         const world::ObtainedBannerCatalog& banner,
+                         const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
+                         const world::DialogCatalog& dialogs, const world::FontCatalog& font,
+                         const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                         const world::HudOverlayCatalog& hudOverlays,
+                         const world::HudOverlayCatalog& lighting,
+                         const world::CharacterPalettes& palettes,
+                         game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
         gameClient_(gameClient),
+        enemyTestTrigger_(enemyTestTrigger),
+        testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
+                     {game::InputCommand::Kind::TestAttack, world::ActionKind::Attack},
+                     {game::InputCommand::Kind::TestDamage, world::ActionKind::Damage},
+                     {game::InputCommand::Kind::TestDeath, world::ActionKind::Death},
+                     {game::InputCommand::Kind::TestRevive,
+                      world::ActionKind::Revive}},
+        projectileTests_{
+                {game::InputCommand::Kind::TestProjectileAdvance,
+                 &game::EnemyTestTrigger::advanceProjectiles},
+                {game::InputCommand::Kind::TestProjectileDespawn,
+                 &game::EnemyTestTrigger::despawnProjectiles}},
+        attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
+                            world::CreatureKind::SkullFireGreen}},
         characters_(characters),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
@@ -40,7 +64,7 @@ PlaySession::PlaySession(
                         .worldBounds(scenario.scene().grid),
                 sdlContext_.width(), sdlContext_.height()),
         renderer_(sdlContext_, characters, toolOverlay, resources, inventory_.content,
-                  farm_.ground(), farm_.crops()),
+                  farm_.ground(), farm_.crops(), palettes),
         inventoryHud_(sdlContext_, inventory_, digits),
         bannerHud_(sdlContext_, banner, inventory_.slotDrawWidth()),
         textRenderer_(sdlContext_, font),
@@ -50,6 +74,7 @@ PlaySession::PlaySession(
         input_(inventory_.count),
         screens_(sdlContext_, renderer_, audio_, scenario, camera_.viewport()),
         motion_(characters),
+        actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         popupState_(),
@@ -58,12 +83,6 @@ PlaySession::PlaySession(
         stats_{
                 {game::StatKind::Energy, game::FractionStat{}},
                 {game::StatKind::Life, game::FractionStat{}},
-        },
-        statSpends_{
-                {game::InputCommand::Kind::SpendEnergy,
-                 {game::StatKind::Energy, game::kEnergyCostPerAction}},
-                {game::InputCommand::Kind::SpendLife,
-                 {game::StatKind::Life, game::kLifeCostPerAction}},
         },
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
@@ -76,6 +95,7 @@ PlaySession::PlaySession(
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
+        chatPainter_(sdlContext_, textRenderer_, chat),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
@@ -96,8 +116,17 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    if (faintRequested_) {
-        ++faintFallTicks_;
+    // El diálogo de agradecimiento dura lo que digan sus datos. Al
+    // terminar se limpia el flag local para que un regalo nuevo lo
+    // vuelva a disparar desde cero.
+    if (giftThanksActive_) {
+        const world::DialogData* thanks =
+                dialogCatalog_.find(world::Indication::GiftThanks);
+        if (thanks == nullptr || giftThanksTicks_ >= thanks->animation.durationTicks()) {
+            giftThanksActive_ = false;
+        } else {
+            ++giftThanksTicks_;
+        }
     }
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
@@ -149,6 +178,11 @@ void PlaySession::tick(int iteration) {
                                    promptLayout_.grid.columns, promptLayout_.grid.rows);
     if (sceneTransition_.active()) {
         input_.takeCommands();
+        // El amanecer manda: con el chat abierto el OK queda intocable
+        // (los comandos se drenan y el modo texto come los clicks).
+        if (input_.chatOpen()) {
+            closeChat();
+        }
         const std::vector<game::PointerClick> clicks = input_.takeClicks();
         const bool holding = sceneTransition_.holding();
         if (holding) {
@@ -197,42 +231,110 @@ void PlaySession::tick(int iteration) {
     // hay, emite el evento obtained que dispara el panel + sonido.
     // Sueño: el server manda el aviso (ServerSleep) solo al cambiar, así
     // que se reacciona a la transición y no a cada tick.
+    // Muerto (vida o energía): el server lo da por aceptado en la cama y
+    // no puede levantarse, así que espera sin pregunta y sin cancelar.
+    const bool localDied =
+            (state.playerMaxHealth > 0 && state.playerHealth == 0) ||
+            state.playerFainted;
+    popupState_.setWaitingCancelable(!localDied);
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
         if (lastSleeping_ == 0) {
             voted_ = false;
-            popupState_.hide();
-        } else if (voted_) {
-            popupState_.showWaiting(lastSleeping_, lastTotal_);
-        } else {
-            popupState_.showQuestion();
         }
+        popupState_.showSleepState(lastSleeping_, lastTotal_, voted_, localDied);
+    }
+    // Murió con la pregunta abierta (sin flanco de sueño: el sleepers no
+    // cambió): la pregunta salta al avance, que es lo que el server ya
+    // registró.
+    if (localDied && popupState_.view() == game::PopupView::Question) {
+        voted_ = true;
+        popupState_.showWaiting(lastSleeping_, lastTotal_);
+    }
+
+    // Llegó un pedido de regalo (ServerGiftRequest): abre el popup del
+    // receptor con el nombre del emisor y guarda a quién se le contesta.
+    if (state.giftRequest.has_value()) {
+        pendingGiftSenderId_ = state.giftRequest->senderId;
+        popupState_.showGiftReceived(state.giftRequest->senderName);
+    }
+
+    // El receptor contestó MI oferta (acepte o rechace): se cierra la
+    // espera. Solo si sigue abierta: la respuesta puede llegar tarde,
+    // después de cancelar a mano.
+    if (state.giftAnswered && popupState_.view() == game::PopupView::GiftWaiting) {
+        popupState_.hide();
+    }
+
+    // Lo tipeado y los backspaces del frame entran al buffer.
+    if (input_.chatOpen()) {
+        chatInput_ += input_.takeText();
+        // Tope del texto tipeado: un paste largo encarece el wrap.
+        while (chatInput_.size() > core::kChatMaxLength) {
+            eraseLastCodepoint(chatInput_);
+        }
+        for (int i = input_.takeBackspaces(); i > 0; --i) {
+            eraseLastCodepoint(chatInput_);
+        }
+    }
+
+    // Llegó un mensaje: el preview arranca su cuenta desde acá.
+    if (state.chatVersion != seenChatVersion_) {
+        seenChatVersion_ = state.chatVersion;
+        chatPreviewUntilTick_ = iteration + core::kChatPreviewTicks;
     }
 
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
+    // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
+    // de los enemigos en el mundo simulado (si hay), J/L mueven/borran
+    // sus proyectiles y V hace que el Skull ataque con el fuego verde.
+    // El server real pondrá la acción/posición directo en la vista y
+    // esto se saca.
     for (const game::InputCommand& command: commands) {
+        // Enter manda y deja el chat ABIERTO; ESC lo cierra. Los dos
+        // pasan aunque el popup sea modal.
+        if (command.kind == game::InputCommand::Kind::ChatSubmit) {
+            if (!chatInput_.empty()) {
+                gameClient_.sendChat(chatInput_);
+                chatInput_.clear();
+            }
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ChatCancel) {
+            closeChat();
+            continue;
+        }
+        const auto test = testActions_.find(command.kind);
+        if (test != testActions_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAll(test->second);
+            }
+            continue;
+        }
+        const auto projectileTest = projectileTests_.find(command.kind);
+        if (projectileTest != projectileTests_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                (enemyTestTrigger_->*(projectileTest->second))();
+            }
+            continue;
+        }
+        const auto attackProjectile = attackProjectiles_.find(command.kind);
+        if (attackProjectile != attackProjectiles_.end()) {
+            if (enemyTestTrigger_ != nullptr) {
+                enemyTestTrigger_->triggerAttackWith(attackProjectile->second);
+            }
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::OpenChat) {
+            input_.setTextMode(true);
+            sdlContext_.startTextInput();
+            continue;
+        }
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
-            continue;
-        }
-        if (const auto spend = statSpends_.find(command.kind);
-            spend != statSpends_.end()) {
-            // Simulación local del gasto: no es una intención para el
-            // GameClient, la consumen los stats del cliente.
-            stats_.at(spend->second.stat).spend(spend->second.cost);
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::Faint) {
-            // Demo local: la primera pulsación dispara la caída; con el
-            // personaje ya desmayado no se reinicia.
-            if (!faintRequested_) {
-                faintRequested_ = true;
-                faintFallTicks_ = 0;
-                audio_.play(sdl::SoundId::Death);
-            }
             continue;
         }
         playerCommands.push_back(command);
@@ -268,6 +370,15 @@ void PlaySession::tick(int iteration) {
         if (const std::optional<sdl::SoundId> sound = toolUseSounds_.update(local.activeTool)) {
             audio_.play(*sound);
         }
+    }
+
+    // Un sonido por cada acción que ACABA de empezar (el daño recibido:
+    // golpe al jugador o al enemigo, según la criatura), o al entrar a
+    // su último cuadro (el momento lo decide la tabla de ActionSounds).
+    // Va sobre la vista de PRESENTACIÓN: así suenan también las
+    // acciones locales.
+    for (const sdl::SoundId sound : actionSounds_.update(presentation, iteration)) {
+        audio_.play(sound);
     }
 
     // Un sonido por impacto confirmado, aunque el aspecto no cambie.
@@ -336,12 +447,31 @@ void PlaySession::tick(int iteration) {
     // Overlays de HUD fijos (arriba a la derecha, etc.): sin cámara,
     // antes del popup y del puntero para que queden encima.
     std::map<std::string, double> hudFillValues;
-    hudFillValues[game::kHudEnergyKey] =
-            stats_.at(game::StatKind::Energy).fraction();
-    hudFillValues[game::kHudLifeKey] =
-            stats_.at(game::StatKind::Life).fraction();
+    // Con el server en línea manda su vida/energía; sin server (offline)
+    // sigue mandando la simulación local.
+    if (state.playerMaxHealth > 0) {
+        hudFillValues[game::kHudLifeKey] =
+                static_cast<double>(state.playerHealth) / state.playerMaxHealth;
+        if (state.playerMaxEnergy > 0) {
+            hudFillValues[game::kHudEnergyKey] =
+                    static_cast<double>(state.playerEnergy) / state.playerMaxEnergy;
+        }
+    } else {
+        hudFillValues[game::kHudEnergyKey] =
+                stats_.at(game::StatKind::Energy).fraction();
+        hudFillValues[game::kHudLifeKey] =
+                stats_.at(game::StatKind::Life).fraction();
+    }
     hudOverlayPainter_.draw(hudFillValues);
     hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
+    // Abierto: historial + tipeo (el cursor parpadea con el tick).
+    // Cerrado: el preview atenuado, que se apaga solo.
+    if (input_.chatOpen()) {
+        chatPainter_.drawOpen(chatInput_, state.chatLog,
+                              (iteration / core::kChatBlinkTicks) % 2 == 0);
+    } else if (iteration < chatPreviewUntilTick_) {
+        chatPainter_.drawPreview(state.chatLog);
+    }
     drawPopup(popupBox);
 
     // El puntero: la variante la decide el estado de juego (si hay algo
@@ -357,34 +487,69 @@ void PlaySession::tick(int iteration) {
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
-        // El botón de cancelar del popup "Esperando..." sale de la cama
-        // (el server borra el OK de este jugador).
-        if (popupState_.view() == game::PopupView::Waiting &&
-            promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
-                                   world::PixelPoint{click.x, click.y})) {
-            gameClient_.sendCommand(protocol::SleepMessage{false});
-            voted_ = false;
+        const world::PixelPoint screenClick{click.x, click.y};
+        const game::PopupView view = popupState_.view();
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+
+        // El botón de cancelar de los popups de espera (sueño y regalo)
+        // reutiliza el botón del layout. Cancelar el regalo solo cierra a
+        // nivel dibujo: la consecuencia la decidirá el server.
+        const bool cancelShown = view == game::PopupView::GiftWaiting ||
+                                 (view == game::PopupView::Waiting &&
+                                  popupState_.waitingCancelable());
+        if (cancelShown &&
+            !prompt.button.empty() &&
+            promptLayout_.buttonAt(prompt.button, popupBox, screenClick)) {
+            if (view == game::PopupView::Waiting) {
+                gameClient_.sendCommand(protocol::SleepMessage{false});
+                voted_ = false;
+            }
             popupState_.hide();
             continue;
         }
-        // El popup con la pregunta está encima de todo: sus opciones se
-        // resuelven primero (coords de pantalla: es HUD), con las
-        // MISMAS cajas que se dibujan. Sí (índice 0) confirma dormir; No
-        // sale de la cama.
-        if (popupState_.view() == game::PopupView::Question) {
-            const int option =
-                    promptLayout_.optionAt(popupBox, world::PixelPoint{click.x, click.y});
+
+        // Las preguntas (sueño, ofrecer regalo, aceptar regalo) usan las
+        // MISMAS cajas que se dibujan.
+        if (view != game::PopupView::Hidden && !prompt.options.empty()) {
+            const int option = promptLayout_.optionAt(
+                    popupBox, screenClick, prompt);
             if (option >= 0) {
-                voted_ = option == 0;
-                gameClient_.sendCommand(protocol::SleepMessage{voted_});
-                if (voted_) {
-                    popupState_.showWaiting(lastSleeping_, lastTotal_);
-                } else {
+                if (view == game::PopupView::Question) {
+                    voted_ = option == 0;
+                    gameClient_.sendCommand(protocol::SleepMessage{voted_});
+                    if (voted_) {
+                        popupState_.showWaiting(lastSleeping_, lastTotal_);
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftOffer) {
+                    // Sí manda la intención (Take con la mano, igual que
+                    // cualquier interact): el server dispara el pedido de
+                    // regalo hacia el otro jugador. No: solo cierra.
+                    if (option == 0) {
+                        player_.interact();
+                        popupState_.showGiftWaiting();
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftReceived) {
+                    // La respuesta va al emisor del pedido (si el popup no
+                    // lo abrió la red, no hay a quién contestarle).
                     popupState_.hide();
+                    if (pendingGiftSenderId_.has_value()) {
+                        gameClient_.sendCommand(protocol::GiftResponseMessage{
+                                *pendingGiftSenderId_, option == 0});
+                        pendingGiftSenderId_.reset();
+                        if (option == 0) {
+                            giftThanksActive_ = true;
+                            giftThanksTicks_ = 0;
+                        }
+                    }
                 }
                 continue;
             }
         }
+
         // Modal: con el popup abierto el mundo está bloqueado; el resto
         // de los clicks no hace nada (se drenan para que no se disparen
         // en cascada al cerrar).
@@ -405,6 +570,12 @@ void PlaySession::tick(int iteration) {
         }
         const game::PickTarget clicked =
                 picker_.pick(worldClick, state, motion_, iteration, scene_.cellPixelSize);
+        // Otro jugador: ofrecer un regalo. El click no dispara la
+        // herramienta ni la interacción.
+        if (isGiftTarget(clicked, state)) {
+            popupState_.showGiftOffer();
+            continue;
+        }
         if (clicked.kind != game::PickTarget::Kind::None && isInteractive(clicked, state)) {
             player_.interact();
             continue;
@@ -413,39 +584,43 @@ void PlaySession::tick(int iteration) {
     }
 
     // El puntero: mientras el popup es modal, el mundo está bloqueado y
-    // solo es apretable lo del popup (las opciones de la pregunta o el
-    // botón de cancelar).
+    // solo es apretable lo del popup (las opciones o el botón de su
+    // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
-    bool interactive = isInteractive(target, state) || enterSelection_.hits(worldCursor, state);
+    world::CursorKind cursorKind = world::CursorKind::Normal;
     if (popupState_.modal()) {
-        interactive = (popupState_.view() == game::PopupView::Question &&
-                       promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
-                      (popupState_.view() == game::PopupView::Waiting &&
-                       promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+        bool overPopup = false;
+        if (!prompt.options.empty()) {
+            overPopup = promptLayout_.optionAt(
+                    popupBox, mousePoint, prompt) >= 0;
+        } else if (!prompt.button.empty() &&
+                   (popupState_.view() != game::PopupView::Waiting ||
+                    popupState_.waitingCancelable())) {
+            overPopup = promptLayout_.buttonAt(prompt.button, popupBox, mousePoint);
+        }
+        cursorKind = overPopup ? world::CursorKind::Interactive : world::CursorKind::Normal;
+    } else if (isGiftTarget(target, state)) {
+        cursorKind = world::CursorKind::Gift;
+    } else if (isInteractive(target, state) || enterSelection_.hits(worldCursor, state)) {
+        cursorKind = world::CursorKind::Interactive;
     }
-    cursorPainter_.draw(cursorCatalog_,
-                        interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
-                        input_.mousePosition());
+    cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
     sdlContext_.present();
 }
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima el override
-    // local del desmayo: mientras dure, manda sobre caminata y carry.
+    // Primero la pose de "meterse" (EnterSelection) y encima el
+    // agradecimiento local del regalo.
     game::LocalWorldView display = enterSelection_.displayView(view);
-    if (!faintRequested_ || display.entities.empty()) {
+    if (display.entities.empty()) {
         return display;
     }
     game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
-    local.action = world::ActionKind::Faint;
-    local.facing = world::Direction::Front;
-    local.moving = false;
-    // Las Z aparecen recién cuando la caída mostró todas sus poses. La
-    // duración sale de los MISMOS datos de la acción (contrato §10), no
-    // de una constante duplicada.
-    const world::CreatureData& creature = characters_.dataFor(local.kind);
-    if (faintFallTicks_ >= creature.actionCycleTicks(world::ActionKind::Faint)) {
-        local.indication = world::Indication::NoEnergy;
+    // El agradecimiento del regalo es presentación local mientras el
+    // server no mande la indicación.
+    if (giftThanksActive_) {
+        local.indication = world::Indication::GiftThanks;
     }
     return display;
 }
@@ -493,7 +668,26 @@ void PlaySession::drawPopup(const world::PixelBox& panel) {
     }
     inventoryHud_.drawPanel(panel, promptLayout_.grid.columns, promptLayout_.grid.rows);
     const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
-    promptPainter_.draw(popupState_, promptLayout_.optionAt(panel, mouse), panel);
+    const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+    const int hovered = prompt.options.empty()
+            ? -1
+            : promptLayout_.optionAt(panel, mouse, prompt);
+    promptPainter_.draw(popupState_, hovered, panel);
+}
+
+void PlaySession::closeChat() {
+    chatInput_.clear();
+    input_.setTextMode(false);
+    sdlContext_.stopTextInput();
+}
+
+void PlaySession::eraseLastCodepoint(std::string& text) {
+    if (text.empty()) {
+        return;
+    }
+    auto it = text.end();
+    utf8::unchecked::prior(it);
+    text.erase(it, text.end());
 }
 
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,
@@ -518,6 +712,29 @@ bool PlaySession::isInteractive(const game::PickTarget& target,
         return view.plantedCrops[target.index].interactive;
     }
     return false;
+}
+
+bool PlaySession::isGiftTarget(const game::PickTarget& target,
+                               const game::LocalWorldView& view) const {
+    // "Otro humano como nosotros, pero NO nosotros": mismo tipo Player y
+    // un índice distinto del local. Lo decide la vista, no el render.
+    if (target.kind != game::PickTarget::Kind::Entity ||
+        target.index == game::kLocalPlayerIndex ||
+        target.index >= view.entities.size()) {
+        return false;
+    }
+    if (view.entities[target.index].kind != world::CreatureKind::Player) {
+        return false;
+    }
+    // Solo se ofrece con algo transferible en el casillero activo: lo dice
+    // el servidor (slot.tradable); con una herramienta o el casillero vacío
+    // no se arma el pedido y el emisor quedaría esperando en vano.
+    const int slot = player_.activeSlot();
+    const auto held = std::find_if(view.inventory.begin(), view.inventory.end(),
+                                   [slot](const game::ViewInventorySlot& inventorySlot) {
+                                       return inventorySlot.slotIndex == slot;
+                                   });
+    return held != view.inventory.end() && held->tradable;
 }
 
 }  // namespace core

@@ -53,7 +53,11 @@ void MineController::clear_generation(World& world) {
     }
 }
 
-std::unique_ptr<IEntity> MineController::create_entity(uint16_t x, uint16_t y) {
+void MineController::spawn_at(World& world, uint16_t x, uint16_t y) {
+    world.set_entity_at(x, y, make_rock(x, y));
+}
+
+std::unique_ptr<IEntity> MineController::make_rock(uint16_t x, uint16_t y) {
     // TODO: sistema de salas: el peso del oro solo entra con sala >= 5.
     // Hoy kRoomNumber es 1, así que el oro no aparece en la generación.
     const std::vector<int> weights = {kWeightRock, kWeightCoal, kWeightLapis, kWeightSilver,

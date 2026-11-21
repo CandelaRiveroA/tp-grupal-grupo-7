@@ -8,9 +8,9 @@
 namespace sdl {
 
 InputManager::InputManager(int slotCount):
-        keymap_(defaultBindings()),
         slotKeys_{SDLK_1, SDLK_2, SDLK_3, SDLK_4, SDLK_5, SDLK_6, SDLK_7, SDLK_8, SDLK_9, SDLK_0},
         slotCount_(slotCount) {
+    keymap_ = defaultBindings();
     commandBindings_ = defaultCommandBindings();
     // Prioridad al leer varias teclas a la vez: left, right, up, down
     // (el mismo orden que usaba la lectura original del input).
@@ -48,11 +48,17 @@ void InputManager::handleEvent(const SDL_Event& event) {
         return;
     }
 
-    // El click es la pulsación del botón primario del puntero. Otros
-    // botones todavía no tienen significado: si algún día lo tienen,
-    // es vocabulario nuevo que entra acá.
-    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+    // Clicks: solo con el chat cerrado (sin input de juego no significan
+    // nada).
+    if (!textMode_ && event.type == SDL_MOUSEBUTTONDOWN &&
+        event.button.button == SDL_BUTTON_LEFT) {
         clicks_.push_back(game::PointerClick{event.button.x, event.button.y});
+        return;
+    }
+
+    // Modo texto: caracteres, backspace y los one-shots Enter/ESC.
+    if (textMode_) {
+        handleTextEvent(event);
         return;
     }
 
@@ -89,19 +95,13 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-    // Demo del gasto de energía: cada pulsación simula una acción que
-    // cansa al jugador (gastar). Es un one-shot rebindeable; cuando el
-    // server mande el gasto real, esta tecla se puede quitar sin tocar
-    // el dibujo de la barra.
-    bindings.insert({SDLK_g, game::InputCommand{Kind::SpendEnergy, 0}});
-    // Demo del gasto de vida: mismo mecanismo que la energía, con otra
-    // tecla (H). Cuando el server mande la vida real, esta tecla se puede
-    // quitar sin tocar el dibujo de la barra.
-    bindings.insert({SDLK_h, game::InputCommand{Kind::SpendLife, 0}});
-    // Demo del desmayo: one-shot local que dispara la secuencia de
-    // Faint + el diálogo de las Z. Cuando el server mande la acción,
-    // esta tecla se puede quitar sin tocar el dibujo.
-    bindings.insert({SDLK_f, game::InputCommand{Kind::Faint, 0}});
+    // Los teclas de test de enemigos (G/F/H/K/V/J/L) quedaron SIN bind
+    // a propósito: los enemigos los manda el server por red y la
+    // envoltura MockWorldClient (el disparador de esas pruebas) ya no se
+    // superpone; los comandos Test* siguen en InputCommand para cuando
+    // vuelva un disparador.
+    // Abrir el chatbox: one-shot que consume PlaySession (T).
+    bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(
@@ -129,6 +129,55 @@ std::vector<game::PointerClick> InputManager::takeClicks() {
     std::vector<game::PointerClick> clicks;
     clicks.swap(clicks_);
     return clicks;
+}
+
+void InputManager::setTextMode(bool open) {
+    textMode_ = open;
+    if (open) {
+        // El chat toma el input: se sueltan las teclas de movimiento
+        // held.
+        flags_ = {};
+        return;
+    }
+    textPending_.clear();
+    backspacePending_ = 0;
+}
+
+void InputManager::handleTextEvent(const SDL_Event& event) {
+    if (event.type == SDL_TEXTINPUT) {
+        textPending_ += event.text.text;
+        return;
+    }
+
+    if (event.type != SDL_KEYDOWN) {
+        return;
+    }
+
+    // El backspace con repeat borra en cadena; Enter/ESC solo la primera.
+    if (event.key.keysym.sym == SDLK_BACKSPACE) {
+        ++backspacePending_;
+        return;
+    }
+    if (event.key.repeat != 0) {
+        return;
+    }
+    if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER) {
+        pending_.push_back(game::InputCommand{game::InputCommand::Kind::ChatSubmit, 0});
+    } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+        pending_.push_back(game::InputCommand{game::InputCommand::Kind::ChatCancel, 0});
+    }
+}
+
+std::string InputManager::takeText() {
+    std::string taken = textPending_;
+    textPending_.clear();
+    return taken;
+}
+
+int InputManager::takeBackspaces() {
+    const int taken = backspacePending_;
+    backspacePending_ = 0;
+    return taken;
 }
 
 const game::PointerPosition& InputManager::mousePosition() const { return pointerPosition_; }

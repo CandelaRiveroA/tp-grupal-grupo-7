@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 
+#include "game/GameConstants.h"
 #include "world/CreatureCatalog.h"
 #include "world/Grid.h"
 
@@ -62,6 +63,9 @@ void MockGameClient::sendCommand(const protocol::ClientMessage& message) {
         playerMoving_ = false;
         playerFacing_ = world::viewDirectionFrom(pick->direction);
         toolUseRemaining_ = toolUseDurationTicks_;
+        // La herramienta la decide la "fuente" desde el slot pedido
+        // (contrato §12): el servidor hará lo mismo con su inventario.
+        activeTool_ = toolAt(pick->slot);
         // El daño se confirma al COMPLETAR la ventana (fin de la
         // animación), no al apretar, como hará el servidor.
         int targetX = 0;
@@ -87,6 +91,17 @@ void MockGameClient::update(int) {
 }
 
 const LocalWorldView& MockGameClient::worldState() const { return view_; }
+
+void MockGameClient::sendChat(const std::string& text) {
+    // Eco del "server": el id 0 es el jugador local (el de rebuildView).
+    view_.addChatLine(ViewChatLine{0, kLocalPlayerName, text});
+}
+
+void MockGameClient::receiveChat(const std::uint8_t playerId,
+                                 const std::string& characterName,
+                                 const std::string& text) {
+    view_.addChatLine(ViewChatLine{playerId, characterName, text});
+}
 
 void MockGameClient::frontCell(::Direction direction, int& cellX, int& cellY) const {
     cellX = playerCellX_;
@@ -192,6 +207,15 @@ void MockGameClient::addToInventory(const std::string& contentId) {
     view_.addInventoryContent(contentId);
 }
 
+std::optional<world::ItemKind> MockGameClient::toolAt(const int slot) const {
+    for (const ViewInventorySlot& entry : view_.inventory) {
+        if (entry.slotIndex == slot) {
+            return itemIds_.itemKindFor(entry.contentId);
+        }
+    }
+    return std::nullopt;
+}
+
 void MockGameClient::rebuildView() {
     view_.entities.clear();
     view_.grid = world::GridSpan{gridColumns_, gridRows_};
@@ -206,7 +230,7 @@ void MockGameClient::rebuildView() {
     player.moving = playerMoving_;
     if (toolUseRemaining_ > 0) {
         player.action = world::ActionKind::UseTool;
-        player.activeTool = world::ItemKind::Pickaxe;
+        player.activeTool = activeTool_;
     } else {
         player.action = playerMoving_ ? world::ActionKind::Walk : world::ActionKind::Idle;
     }

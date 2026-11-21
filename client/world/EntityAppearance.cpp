@@ -40,7 +40,7 @@ EntityAppearance AppearanceResolver::appearanceFor(Direction facing,
 	const ActionData& data = actionData(facing, action);
 	const int frame = frameIndexFor(facing, action, animationTick);
 	return EntityAppearance{&data.frames[static_cast<std::size_t>(frame)],
-				appearance.mirrored};
+				appearance.mirrored, &data};
 }
 
 }

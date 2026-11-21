@@ -28,7 +28,7 @@ protocol::ClientMessage pick(world::Direction direction) {
 }
 
 protocol::ClientMessage take(world::Direction direction) {
-    return protocol::TakeMessage{world::wireDirectionFrom(direction)};
+    return protocol::TakeMessage{world::wireDirectionFrom(direction), 0};
 }
 
 TEST(MockGameClientTest, StartsWithLocalPlayerEntity) {

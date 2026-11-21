@@ -3,6 +3,7 @@
 
 #include "item.h"
 #include <cstdint>
+#include <memory>
 
 class Product : public Item {
 private:
@@ -17,6 +18,8 @@ public:
 
     bool is_stackable_with(const Item& other) const override;
     Quality get_quality() const;
+
+    std::unique_ptr<Item> clone() const override;
 };
 
 #endif // PRODUCT_H

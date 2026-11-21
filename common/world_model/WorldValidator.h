@@ -37,6 +37,10 @@ private:
     void checkMarkers(const Map& map, std::vector<ValidationIssue>& issues) const;
     void checkPortals(const World& world, const Map& map,
                       std::vector<ValidationIssue>& issues) const;
+    void checkPortalArea(const Map& areaMap, TilePos origin, int width, int height,
+                         const std::string& reportMapId, TilePos reportCell,
+                         IssueCode outOfBoundsCode, IssueCode notWalkableCode,
+                         std::vector<ValidationIssue>& issues) const;
 
     MapRules rules_;
 };

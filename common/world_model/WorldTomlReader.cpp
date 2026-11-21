@@ -216,6 +216,19 @@ void WorldTomlReader::readPortals(const std::string& mapPath,
 		portal.cell = fields_.readTilePos(fields_.join(path, "cell"));
 		portal.targetCell =
 			fields_.readTilePos(fields_.join(path, "target_cell"));
+
+		const std::string sizePath = fields_.join(path, "size");
+		if (doc_.hasKey(sizePath)) {
+			const std::array<int, 2> size =
+				doc_.getIntArray<2>(sizePath);
+			if (size[0] <= 0 || size[1] <= 0) {
+				throw FormatError(FormatErrorKind::InvalidValue,
+						  sizePath);
+			}
+			portal.width = size[0];
+			portal.height = size[1];
+		}
+
 		map.portals.push_back(portal);
 	}
 }

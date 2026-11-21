@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,6 +29,8 @@ struct ScenarioChoice {
 
 class WorldFactory {
 public:
+	WorldFactory();
+
 	World makeDefault(const std::string& name,
 			  const ScenarioLibrary& library,
 			  const PrefabCatalog& catalog,
@@ -46,6 +49,8 @@ public:
 				const PrefabCatalog& catalog = {}) const;
 	// Elimina un mapa extra existente
 	void removeExtraMap(World& world, const std::string& mapId) const;
+	void addCabinMap(World& world, int index,
+			 const Scenario& scenario) const;
 
 private:
 	// Coloca el escenario en el slot obligatorio mapId y coloca sus
@@ -60,11 +65,18 @@ private:
 	TileRef defaultObjectTile(const World& world) const;
 	void placeMapObjects(World& world, const std::string& mapId,
 			     const PrefabCatalog& catalog) const;
+	void placeFarmObjects(World& world, Map& map,
+			      const PrefabCatalog& catalog) const;
+	void placeTownObjects(World& world, Map& map,
+			      const PrefabCatalog& catalog) const;
 	void placeBuilding(World& world, Map& map, ObjectRole role,
 			   TilePos cell, int defaultWidth, int defaultHeight,
 			   TilePos defaultDoorOffset,
 			   const PrefabCatalog& catalog) const;
 	void placeMapPoints(World& world, const std::string& mapId) const;
+	void placeCabinPoints(Map& map) const;
+	void placeMarketPoints(Map& map) const;
+	void placeCommunityCenterPoints(Map& map) const;
 	void addObject(Map& map, ObjectRole role, const TileRef& tile,
 		       TilePos cell, int width, int height, bool blocked,
 		       std::optional<TilePos> door,
@@ -74,6 +86,10 @@ private:
 	void wirePortals(World& world) const;
 
 	MapRules rules_;
+	std::map<MapKind, void (WorldFactory::*)(World&, Map&,
+						 const PrefabCatalog&) const>
+		objectPlacers_;
+	std::map<MapKind, void (WorldFactory::*)(Map&) const> pointPlacers_;
 };
 
 }

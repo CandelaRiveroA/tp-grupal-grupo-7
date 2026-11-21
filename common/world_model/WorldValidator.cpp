@@ -140,7 +140,7 @@ void WorldValidator::checkRequiredMaps(const World& world,
     const auto farmIt = world.maps.find("farm");
     const int rawCabins =
             farmIt != world.maps.end() ? countRole(farmIt->second, ObjectRole::Cabin) : 0;
-    const int expectedCabins = std::clamp(rawCabins, kMinPlayers, kMaxPlayers);
+    const int expectedCabins = std::min(rawCabins, kMaxPlayers);
 
     for (const auto& [key, map]: world.maps) {
         const std::optional<int> cabinIdx = rules_.cabinIndex(key);
@@ -285,6 +285,25 @@ void WorldValidator::checkMarkers(const Map& map, std::vector<ValidationIssue>& 
     }
 }
 
+void WorldValidator::checkPortalArea(const Map& areaMap, TilePos origin, int width, int height,
+                                     const std::string& reportMapId, TilePos reportCell,
+                                     IssueCode outOfBoundsCode, IssueCode notWalkableCode,
+                                     std::vector<ValidationIssue>& issues) const {
+    if (width <= 0 || height <= 0 || !areaMap.fits(origin, width, height)) {
+        addIssue(issues, outOfBoundsCode, reportMapId, reportCell);
+        return;
+    }
+    for (int rowOffset = 0; rowOffset < height; ++rowOffset) {
+        for (int colOffset = 0; colOffset < width; ++colOffset) {
+            const TilePos cell{origin.column + colOffset, origin.row + rowOffset};
+            if (!areaMap.isWalkable(cell)) {
+                addIssue(issues, notWalkableCode, reportMapId, reportCell);
+                return;
+            }
+        }
+    }
+}
+
 void WorldValidator::checkPortals(const World& world, const Map& map,
                                   std::vector<ValidationIssue>& issues) const {
     const MapRule* rule = rules_.find(map.id);
@@ -294,11 +313,8 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
             addIssue(issues, IssueCode::UnexpectedPortal, map.id, portal.cell);
         }
 
-        if (!map.contains(portal.cell)) {
-            addIssue(issues, IssueCode::PortalOutOfBounds, map.id, portal.cell);
-        } else if (!map.isWalkable(portal.cell)) {
-            addIssue(issues, IssueCode::PortalNotWalkable, map.id, portal.cell);
-        }
+        checkPortalArea(map, portal.cell, portal.width, portal.height, map.id, portal.cell,
+                        IssueCode::PortalOutOfBounds, IssueCode::PortalNotWalkable, issues);
 
         const auto target = world.maps.find(portal.targetMap);
         if (target == world.maps.end()) {
@@ -323,11 +339,9 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
             }
         }
 
-        if (!target->second.contains(portal.targetCell)) {
-            addIssue(issues, IssueCode::PortalTargetOutOfBounds, map.id, portal.cell);
-        } else if (!target->second.isWalkable(portal.targetCell)) {
-            addIssue(issues, IssueCode::PortalTargetNotWalkable, map.id, portal.cell);
-        }
+        checkPortalArea(target->second, portal.targetCell, portal.width, portal.height, map.id,
+                        portal.cell, IssueCode::PortalTargetOutOfBounds,
+                        IssueCode::PortalTargetNotWalkable, issues);
     }
 
     if (rule != nullptr) {

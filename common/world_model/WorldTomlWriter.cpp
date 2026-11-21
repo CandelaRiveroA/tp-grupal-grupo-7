@@ -125,6 +125,11 @@ toml::array WorldTomlWriter::writePortals(const Map& map) const {
 			     FieldWriter::writePair(
 				     portal.targetCell.column,
 				     portal.targetCell.row));
+		if (portal.width != 1 || portal.height != 1) {
+			entry.insert("size",
+				     FieldWriter::writePair(portal.width,
+							    portal.height));
+		}
 		array.push_back(std::move(entry));
 	}
 	return array;

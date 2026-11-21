@@ -74,25 +74,40 @@ template <typename Action> void expectInvalid(Action action) {
 	}
 }
 
-TEST(WorldFactoryTest, MakeDefaultBuildsRequiredMapsWithOneCabin) {
-	const World one = defaultWorld();
-	EXPECT_EQ(one.name, "Primavera");
-	ASSERT_EQ(one.maps.size(), 15u);
+TEST(WorldFactoryTest, MakeDefaultBuildsEmptyFarmWithoutCabins) {
+	const World empty = WorldFactory().makeDefault(
+		"Primavera", worldfixtures::fullLibrary(),
+		worldfixtures::defaultCatalog(), worldfixtures::validChoice());
+	EXPECT_EQ(empty.name, "Primavera");
+	ASSERT_EQ(empty.maps.size(), 14u);
 	for (const char* id :
-	     {"farm", "town", "cabin_1", "market", "community_center"}) {
-		EXPECT_TRUE(one.maps.contains(id)) << id;
+	     {"farm", "town", "market", "community_center"}) {
+		EXPECT_TRUE(empty.maps.contains(id)) << id;
 	}
+	EXPECT_FALSE(empty.maps.contains("cabin_1"));
+	EXPECT_TRUE(empty.maps.at("farm").objects.empty());
 	for (int level = 1; level <= 10; ++level) {
 		const std::string id = "dungeon_" + std::to_string(level);
-		EXPECT_TRUE(one.maps.contains(id)) << id;
+		EXPECT_TRUE(empty.maps.contains(id)) << id;
 	}
-	EXPECT_EQ(countMarkers(one.maps.at("cabin_1"), MarkerKind::Bed), 1);
-	const Portal* exit =
-		findPortal(one.maps.at("cabin_1"), PortalKind::InteriorExit);
-	ASSERT_NE(exit, nullptr);
-	EXPECT_EQ(exit->targetMap, "farm");
-	EXPECT_EQ(exit->targetCell, *one.maps.at("farm").objects[0].door);
-	EXPECT_TRUE(worldmodel::WorldValidator().validate(one).empty());
+	const auto issues = worldmodel::WorldValidator().validate(empty);
+	bool hasFarmMissing = false;
+	for (const auto& issue : issues) {
+		if (issue.code == worldmodel::IssueCode::MissingObject &&
+		    issue.mapId == "farm") {
+			hasFarmMissing = true;
+		}
+	}
+	EXPECT_TRUE(hasFarmMissing);
+	// Solo los interiores tienen su portal automatico; los externos los pone el usuario.
+	EXPECT_TRUE(empty.maps.at("farm").portals.empty());
+	EXPECT_TRUE(empty.maps.at("town").portals.empty());
+	EXPECT_TRUE(empty.maps.at("dungeon_1").portals.empty());
+	EXPECT_NE(findPortal(empty.maps.at("market"), PortalKind::InteriorExit),
+		  nullptr);
+	EXPECT_NE(findPortal(empty.maps.at("community_center"),
+			     PortalKind::InteriorExit),
+		  nullptr);
 }
 
 TEST(WorldFactoryTest, MapsHaveTheirKindAndLevel) {
@@ -147,7 +162,6 @@ TEST(WorldFactoryTest, TownHasBuildingsAndEntrance) {
 	EXPECT_EQ(center->height, 10);
 	EXPECT_TRUE(market->door.has_value());
 	EXPECT_TRUE(center->door.has_value());
-	EXPECT_NE(findPortal(town, PortalKind::FarmEntrance), nullptr);
 }
 
 TEST(WorldFactoryTest, InteriorsHaveTheirPoints) {
@@ -165,20 +179,6 @@ TEST(WorldFactoryTest, InteriorsHaveTheirPoints) {
 
 	const Map& center = world.maps.at("community_center");
 	EXPECT_NE(findPortal(center, PortalKind::InteriorExit), nullptr);
-}
-
-TEST(WorldFactoryTest, DungeonsHaveExitsAndStairs) {
-	const World world = defaultWorld();
-	for (int level = 1; level <= 10; ++level) {
-		const Map& dungeon =
-			world.maps.at("dungeon_" + std::to_string(level));
-		EXPECT_NE(findPortal(dungeon, PortalKind::DungeonExit),
-			  nullptr)
-			<< level;
-		const bool hasStairs =
-			findPortal(dungeon, PortalKind::StairsDown) != nullptr;
-		EXPECT_EQ(hasStairs, level < 10) << level;
-	}
 }
 
 TEST(WorldFactoryTest, AllPortalTargetsExistAndAreWalkable) {
@@ -275,9 +275,9 @@ TEST(WorldFactoryTest, WrongScenarioKindIsInvalid) {
 
 TEST(WorldFactoryTest, TooSmallScenarioIsInvalid) {
 	ScenarioLibrary library = fullLibrary();
-	library.add(scenarioOf("tiny_farm", MapKind::Farm, 3, 2));
+	library.add(scenarioOf("tiny_town", MapKind::Town, 3, 2));
 	ScenarioChoice choice = validChoice();
-	choice.farm = "tiny_farm";
+	choice.town = "tiny_town";
 	expectInvalid([&] {
 		(void)WorldFactory().makeDefault("n", library,
 						 defaultCatalog(), choice);
@@ -342,24 +342,8 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
 	ASSERT_NE(cabin, nullptr);
 	EXPECT_TRUE(cabin->door.has_value());
 	EXPECT_TRUE(farm.markers.empty());
-	const Portal* townEntrance = findPortal(farm, PortalKind::TownEntrance);
-	const Portal* dungeonEntrance =
-		findPortal(farm, PortalKind::DungeonEntrance);
-	ASSERT_NE(townEntrance, nullptr);
-	ASSERT_NE(dungeonEntrance, nullptr);
 
 	// Portales hacia/desde farm recableados contra el nuevo escenario.
-	EXPECT_EQ(findPortal(world.maps.at("town"), PortalKind::FarmEntrance)
-			  ->targetMap,
-		  "farm");
-	EXPECT_EQ(
-		findPortal(world.maps.at("town"), PortalKind::FarmEntrance)
-			->targetCell,
-		townEntrance->cell);
-	EXPECT_EQ(
-		findPortal(world.maps.at("dungeon_5"), PortalKind::DungeonExit)
-			->targetCell,
-		dungeonEntrance->cell);
 	EXPECT_EQ(
 		findPortal(world.maps.at("cabin_1"), PortalKind::InteriorExit)
 			->targetCell,
@@ -368,8 +352,6 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
 		findPortal(world.maps.at("cabin_2"), PortalKind::InteriorExit)
 			->targetCell,
 		farm.objects[1].door);
-	EXPECT_TRUE(farm.isWalkable(townEntrance->cell));
-	EXPECT_TRUE(farm.isWalkable(dungeonEntrance->cell));
 
 	const Scenario newCabin =
 		scenarioOf("cabin_b", MapKind::Cabin, 16, 12);
@@ -380,9 +362,6 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
 		findPortal(world.maps.at("cabin_2"), PortalKind::InteriorExit)
 			->targetCell,
 		farm.objects[1].door);
-
-	worldmodel::WorldValidator validator;
-	EXPECT_TRUE(validator.validate(world).empty());
 }
 
 TEST(WorldFactoryTest, ReplaceMapScenarioResetsExtraMap) {
@@ -442,6 +421,26 @@ TEST(WorldFactoryTest, RemoveExtraMapDeletesOnlyExtraMaps) {
 		WorldFactory().removeExtraMap(world, "no_such_map");
 	});
 	EXPECT_EQ(world.maps.size(), 15u);
+}
+
+TEST(WorldFactoryTest, AddCabinMapCreatesAndWiresInterior) {
+	World world = defaultWorld();
+	Map& farm = world.maps.at("farm");
+	worldmodel::MapObject second = farm.objects[0];
+	second.cell = {15, 2};
+	second.door = worldmodel::TilePos{20, 9};
+	farm.objects.push_back(second);
+	farm.rebuildCollision();
+
+	WorldFactory().addCabinMap(world, 2, scenarioOf("cabin_b", MapKind::Cabin));
+	ASSERT_TRUE(world.maps.contains("cabin_2"));
+	const Map& cabin2 = world.maps.at("cabin_2");
+	EXPECT_EQ(countMarkers(cabin2, MarkerKind::Bed), 1);
+	const Portal* exit = findPortal(cabin2, PortalKind::InteriorExit);
+	ASSERT_NE(exit, nullptr);
+	EXPECT_EQ(exit->targetMap, "farm");
+	EXPECT_EQ(exit->targetCell, *second.door);
+	EXPECT_TRUE(worldmodel::WorldValidator().validate(world).empty());
 }
 
 }

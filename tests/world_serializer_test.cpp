@@ -54,6 +54,16 @@ TEST(WorldSerializerTest, RoundTripPreservesWorld) {
 	EXPECT_EQ(farm.portals[0].cell, original.portals[0].cell);
 	EXPECT_EQ(farm.portals[0].targetMap, original.portals[0].targetMap);
 	EXPECT_EQ(farm.portals[0].targetCell, original.portals[0].targetCell);
+	EXPECT_EQ(farm.portals[0].width, original.portals[0].width);
+	EXPECT_EQ(farm.portals[0].height, original.portals[0].height);
+
+	World multi = first;
+	multi.maps.at("farm").portals[0].width = 2;
+	multi.maps.at("farm").portals[0].height = 2;
+	const World round =
+		serializer.loadFromString(serializer.saveToString(multi));
+	EXPECT_EQ(round.maps.at("farm").portals[0].width, 2);
+	EXPECT_EQ(round.maps.at("farm").portals[0].height, 2);
 }
 
 TEST(WorldSerializerTest, SaveToStringIsDeterministic) {

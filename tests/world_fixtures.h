@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 
+#include "world_model/Constants.h"
 #include "world_model/PrefabCatalog.h"
 #include "world_model/Scenario.h"
 #include "world_model/ScenarioLibrary.h"
@@ -196,10 +197,62 @@ inline worldmodel::PrefabCatalog defaultCatalog() {
 	return catalog;
 }
 
-// Mundo "Primavera" generado por WorldFactory con fullLibrary y defaultCatalog.
+// Mundo "Primavera" valido (con 1 cabana, cabin_1 y portales externos) para tests.
 inline worldmodel::World defaultWorld() {
-	return worldmodel::WorldFactory().makeDefault(
-		"Primavera", fullLibrary(), defaultCatalog(), validChoice());
+	const worldmodel::ScenarioLibrary lib = fullLibrary();
+	const worldmodel::PrefabCatalog cat = defaultCatalog();
+	worldmodel::World world = worldmodel::WorldFactory().makeDefault(
+		"Primavera", lib, cat, validChoice());
+	const worldmodel::PrefabDef* cabin =
+		cat.findByRole(worldmodel::ObjectRole::Cabin);
+	worldmodel::Map& farm = world.maps.at("farm");
+	world.tilesets.emplace(
+		cabin->tile.tileset,
+		cat.tilesets().at(cabin->tile.tileset));
+	farm.objects.push_back(worldmodel::MapObject{
+		worldmodel::ObjectRole::Cabin,
+		cabin->tile,
+		worldmodel::kFarmCabinOrigin,
+		cabin->width,
+		cabin->height,
+		true,
+		worldmodel::TilePos{
+			worldmodel::kFarmCabinOrigin.column +
+				cabin->door->column,
+			worldmodel::kFarmCabinOrigin.row + cabin->door->row},
+		cabin->collisionGrid,
+	});
+	farm.rebuildCollision();
+	worldmodel::WorldFactory().addCabinMap(world, 1, *lib.find("cabin_a"));
+
+	const worldmodel::TilePos farmTown{farm.width - 2, farm.height / 2};
+	const worldmodel::TilePos farmDungeon{farm.width - 3, 2};
+	worldmodel::Map& town = world.maps.at("town");
+	const worldmodel::TilePos townFarm{1, town.height / 2};
+	farm.portals.push_back(worldmodel::Portal{
+		worldmodel::PortalKind::TownEntrance, farmTown, "town",
+		townFarm});
+	farm.portals.push_back(worldmodel::Portal{
+		worldmodel::PortalKind::DungeonEntrance, farmDungeon,
+		"dungeon_1", {2, 2}});
+	town.portals.push_back(worldmodel::Portal{
+		worldmodel::PortalKind::FarmEntrance, townFarm, "farm",
+		farmTown});
+	for (int level = 1; level <= worldmodel::kDungeonLevels; ++level) {
+		worldmodel::Map& d =
+			world.maps.at("dungeon_" + std::to_string(level));
+		d.portals.push_back(worldmodel::Portal{
+			worldmodel::PortalKind::DungeonExit, {2, 2}, "farm",
+			farmDungeon});
+		if (level < worldmodel::kDungeonLevels) {
+			d.portals.push_back(worldmodel::Portal{
+				worldmodel::PortalKind::StairsDown,
+				{d.width - 3, d.height - 3},
+				"dungeon_" + std::to_string(level + 1),
+				{2, 2}});
+		}
+	}
+	return world;
 }
 
 }

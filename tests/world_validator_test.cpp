@@ -408,6 +408,27 @@ TEST(WorldValidatorTest, LinkTargetNotWalkable) {
 	expectIssue(world, IssueCode::PortalTargetNotWalkable);
 }
 
+TEST(WorldValidatorTest, MultiCellPortalChecksAllCells) {
+	World world = defaultWorld();
+	Map& town = mapOf(world, "town");
+	town.portals.push_back(worldmodel::Portal{
+		PortalKind::Link, {10, 1}, "farm", {15, 12}, 2, 1});
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+
+	// La segunda celda de destino (16, 12) queda bloqueada.
+	mapOf(world, "farm").baseCollision[mapOf(world, "farm").cellIndex({16, 12})] =
+		true;
+	mapOf(world, "farm").rebuildCollision();
+	expectIssue(world, IssueCode::PortalTargetNotWalkable);
+
+	// Restaurar y sacar el portal de los limites por ancho 2.
+	mapOf(world, "farm").baseCollision[mapOf(world, "farm").cellIndex({16, 12})] =
+		false;
+	mapOf(world, "farm").rebuildCollision();
+	town.portals.back().cell = {town.width - 1, 1};
+	expectIssue(world, IssueCode::PortalOutOfBounds);
+}
+
 TEST(WorldValidatorTest, WrongPortalTarget) {
 	World world = defaultWorld();
 	Portal& portal =

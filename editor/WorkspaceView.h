@@ -86,6 +86,7 @@ private:
 	QToolButton* navigateButton_ = nullptr;
 	QToolButton* placeButton_ = nullptr;
 	QToolButton* eraseButton_ = nullptr;
+	QToolButton* moveButton_ = nullptr;
 	MapTreeWidget* tree_ = nullptr;
 	MapCanvasView* canvas_ = nullptr;
 	ValidationPanel* validationPanel_ = nullptr;

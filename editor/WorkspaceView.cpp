@@ -147,6 +147,9 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	eraseButton_ = new QToolButton(this);
 	eraseButton_->setText("Borrar");
 	eraseButton_->setCheckable(true);
+	moveButton_ = new QToolButton(this);
+	moveButton_->setText("Mover");
+	moveButton_->setCheckable(true);
 
 	toolGroup_ = new QButtonGroup(this);
 	toolGroup_->setExclusive(true);
@@ -156,6 +159,8 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 			      static_cast<int>(EditorTool::Place));
 	toolGroup_->addButton(eraseButton_,
 			      static_cast<int>(EditorTool::Erase));
+	toolGroup_->addButton(moveButton_,
+			      static_cast<int>(EditorTool::Move));
 
 	QToolButton* collisionButton = new QToolButton(this);
 	collisionButton->setText("Colision");
@@ -174,6 +179,7 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	top->addWidget(navigateButton_);
 	top->addWidget(placeButton_);
 	top->addWidget(eraseButton_);
+	top->addWidget(moveButton_);
 	top->addSpacing(editor::kTopBarSpacing);
 	top->addWidget(collisionButton);
 	top->addSpacing(editor::kTopBarSpacing);
@@ -545,6 +551,7 @@ void WorkspaceView::setPickTargetUiLocked(bool locked) {
 	navigateButton_->setEnabled(!locked);
 	placeButton_->setEnabled(!locked);
 	eraseButton_->setEnabled(!locked);
+	moveButton_->setEnabled(!locked);
 	if (locked) {
 		uncheckToolButtons();
 		heading_->setText("Elegi la celda destino (Esc cancela)");

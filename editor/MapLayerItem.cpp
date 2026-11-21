@@ -19,8 +19,22 @@ MapLayerItem::MapLayerItem(const TilesetCache& tilesets)
 	: tilesets_(tilesets),
 	  previewChecks_{
 		  {EditorTool::Place, &MapLayerItem::hasPrefabPreview},
+		  {EditorTool::Move, &MapLayerItem::hasMovePreview},
 		  {EditorTool::PlacePortal, &MapLayerItem::alwaysPreview},
 		  {EditorTool::PickTarget, &MapLayerItem::alwaysPreview},
+	  },
+	  previewDrawers_{
+		  {EditorTool::Place, &MapLayerItem::drawPrefabPreview},
+		  {EditorTool::Move, &MapLayerItem::drawMovePreview},
+		  {EditorTool::PlacePortal,
+		   &MapLayerItem::drawPlacePortalPreview},
+		  {EditorTool::PickTarget,
+		   &MapLayerItem::drawPickTargetPreview},
+	  },
+	  movePreviewDrawers_{
+		  {MoveKind::Object, &MapLayerItem::drawMoveObjectPreview},
+		  {MoveKind::Marker, &MapLayerItem::drawMoveMarkerPreview},
+		  {MoveKind::Portal, &MapLayerItem::drawMovePortalPreview},
 	  } {}
 
 void MapLayerItem::setMap(const worldmodel::Map* map) {
@@ -54,6 +68,14 @@ void MapLayerItem::setActivePrefab(const worldmodel::PrefabDef* prefab) {
 	}
 	const bool hadPreview = hasPreview();
 	activePrefab_ = prefab;
+	if (hadPreview || hasPreview()) {
+		update();
+	}
+}
+
+void MapLayerItem::setMoveTarget(std::optional<MoveTarget> target) {
+	const bool hadPreview = hasPreview();
+	moveTarget_ = target;
 	if (hadPreview || hasPreview()) {
 		update();
 	}
@@ -135,46 +157,99 @@ bool MapLayerItem::hasPrefabPreview() const {
 	return activePrefab_ != nullptr;
 }
 
+bool MapLayerItem::hasMovePreview() const {
+	if (!moveTarget_.has_value()) {
+		return false;
+	}
+	if (moveTarget_->kind == MoveKind::Object) {
+		return moveTarget_->index < map_->objects.size();
+	}
+	if (moveTarget_->kind == MoveKind::Marker) {
+		return moveTarget_->index < map_->markers.size();
+	}
+	return moveTarget_->index < map_->portals.size();
+}
+
 bool MapLayerItem::alwaysPreview() const {
 	return true;
 }
 
 void MapLayerItem::drawPlacementPreview(QPainter* painter, int ts) const {
-	const int x = hoverCell_->column * ts;
-	const int y = hoverCell_->row * ts;
-
+	const auto it = previewDrawers_.find(tool_);
+	if (it == previewDrawers_.end()) {
+		return;
+	}
 	painter->save();
 	painter->setClipRect(boundingRect());
-
-	if (tool_ == EditorTool::Place) {
-		const int w = activePrefab_->width * ts;
-		const int h = activePrefab_->height * ts;
-		const bool valid = map_->fits(*hoverCell_, activePrefab_->width,
-					      activePrefab_->height);
-		painter->setOpacity(editor::kGhostOpacity);
-		painter->drawPixmap(
-			x, y,
-			tilesets_.tilePixmap(activePrefab_->tile,
-					     activePrefab_->width,
-					     activePrefab_->height));
-		painter->setOpacity(1.0);
-		painter->setPen(QPen(
-			valid ? QColor(40, 210, 80) : QColor(220, 50, 50), 0));
-		painter->setBrush(Qt::NoBrush);
-		painter->drawRect(x, y, w, h);
-	} else if (tool_ == EditorTool::PlacePortal) {
-		painter->setPen(QPen(QColor(190, 100, 255), 0));
-		painter->setBrush(QColor(170, 70, 230, 140));
-		painter->drawRect(x, y, portalPreviewW_ * ts,
-				  portalPreviewH_ * ts);
-	} else if (tool_ == EditorTool::PickTarget) {
-		painter->setPen(QPen(QColor(40, 230, 110), 0));
-		painter->setBrush(QColor(40, 230, 110, 90));
-		painter->drawRect(x, y, portalPreviewW_ * ts,
-				  portalPreviewH_ * ts);
-	}
-
+	(this->*(it->second))(painter, ts);
 	painter->restore();
+}
+
+void MapLayerItem::drawPrefabPreview(QPainter* painter, int ts) const {
+	const int x = hoverCell_->column * ts;
+	const int y = hoverCell_->row * ts;
+	const int w = activePrefab_->width * ts;
+	const int h = activePrefab_->height * ts;
+	const bool valid = map_->fits(*hoverCell_, activePrefab_->width,
+				      activePrefab_->height);
+	painter->setOpacity(editor::kGhostOpacity);
+	painter->drawPixmap(
+		x, y,
+		tilesets_.tilePixmap(activePrefab_->tile, activePrefab_->width,
+				     activePrefab_->height));
+	painter->setOpacity(1.0);
+	painter->setPen(QPen(
+		valid ? QColor(40, 210, 80) : QColor(220, 50, 50), 0));
+	painter->setBrush(Qt::NoBrush);
+	painter->drawRect(x, y, w, h);
+}
+
+void MapLayerItem::drawMovePreview(QPainter* painter, int ts) const {
+	const auto it = movePreviewDrawers_.find(moveTarget_->kind);
+	if (it != movePreviewDrawers_.end()) {
+		(this->*(it->second))(painter, ts);
+	}
+}
+
+void MapLayerItem::drawMoveObjectPreview(QPainter* painter, int ts) const {
+	const auto& obj = map_->objects[moveTarget_->index];
+	const int x = hoverCell_->column * ts;
+	const int y = hoverCell_->row * ts;
+	painter->setOpacity(editor::kGhostOpacity);
+	drawObjectAt(painter, obj, x, y, ts);
+	painter->setOpacity(1.0);
+	painter->setPen(QPen(QColor(255, 255, 255, 220), 0));
+	painter->setBrush(Qt::NoBrush);
+	painter->drawRect(x, y, obj.width * ts, obj.height * ts);
+}
+
+void MapLayerItem::drawMoveMarkerPreview(QPainter* painter, int ts) const {
+	painter->setPen(QPen(QColor(0, 230, 255), 0));
+	painter->setBrush(QColor(0, 210, 230, 140));
+	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts, ts,
+			  ts);
+}
+
+void MapLayerItem::drawMovePortalPreview(QPainter* painter, int ts) const {
+	const auto& portal = map_->portals[moveTarget_->index];
+	painter->setPen(QPen(QColor(190, 100, 255), 0));
+	painter->setBrush(QColor(170, 70, 230, 140));
+	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
+			  portal.width * ts, portal.height * ts);
+}
+
+void MapLayerItem::drawPlacePortalPreview(QPainter* painter, int ts) const {
+	painter->setPen(QPen(QColor(190, 100, 255), 0));
+	painter->setBrush(QColor(170, 70, 230, 140));
+	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
+			  portalPreviewW_ * ts, portalPreviewH_ * ts);
+}
+
+void MapLayerItem::drawPickTargetPreview(QPainter* painter, int ts) const {
+	painter->setPen(QPen(QColor(40, 230, 110), 0));
+	painter->setBrush(QColor(40, 230, 110, 90));
+	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
+			  portalPreviewW_ * ts, portalPreviewH_ * ts);
 }
 
 void MapLayerItem::drawGridLayer(QPainter* painter, const worldmodel::TileGrid& grid,
@@ -191,6 +266,23 @@ void MapLayerItem::drawGridLayer(QPainter* painter, const worldmodel::TileGrid& 
 	}
 }
 
+void MapLayerItem::drawObjectAt(QPainter* painter,
+				const worldmodel::MapObject& obj, int x, int y,
+				int ts) const {
+	// Edificios sin sprite de prefab (placeholder de WorldFactory) se muestran como recuadro.
+	if (obj.role != worldmodel::ObjectRole::Decoration &&
+	    !obj.tile.tileset.starts_with("prefab_")) {
+		painter->save();
+		painter->setPen(QPen(QColor(255, 220, 80, 220), 0));
+		painter->setBrush(QColor(255, 200, 50, 70));
+		painter->drawRect(x, y, obj.width * ts, obj.height * ts);
+		painter->restore();
+		return;
+	}
+	painter->drawPixmap(
+		x, y, tilesets_.tilePixmap(obj.tile, obj.width, obj.height));
+}
+
 void MapLayerItem::drawObjects(QPainter* painter, int ts, int minCol, int maxCol,
 			       int minRow, int maxRow) const {
 	for (const auto& obj : map_->objects) {
@@ -200,22 +292,8 @@ void MapLayerItem::drawObjects(QPainter* painter, int ts, int minCol, int maxCol
 		    obj.cell.row > maxRow) {
 			continue;
 		}
-		// Edificios sin sprite de prefab (placeholder de WorldFactory) se muestran como recuadro.
-		if (obj.role != worldmodel::ObjectRole::Decoration &&
-		    !obj.tile.tileset.starts_with("prefab_")) {
-			painter->save();
-			painter->setPen(QPen(QColor(255, 220, 80, 220), 0));
-			painter->setBrush(QColor(255, 200, 50, 70));
-			painter->drawRect(obj.cell.column * ts,
-					  obj.cell.row * ts,
-					  obj.width * ts,
-					  obj.height * ts);
-			painter->restore();
-			continue;
-		}
-		painter->drawPixmap(
-			obj.cell.column * ts, obj.cell.row * ts,
-			tilesets_.tilePixmap(obj.tile, obj.width, obj.height));
+		drawObjectAt(painter, obj, obj.cell.column * ts,
+			     obj.cell.row * ts, ts);
 	}
 }
 

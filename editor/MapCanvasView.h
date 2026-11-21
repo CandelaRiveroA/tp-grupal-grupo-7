@@ -3,6 +3,7 @@
 #include <QGraphicsView>
 #include <QPoint>
 #include <cstddef>
+#include <map>
 #include <optional>
 
 #include "MapLayerItem.h"
@@ -58,6 +59,12 @@ private:
 	void updateHoverCell(std::optional<worldmodel::TilePos> cell);
 	void placePrefabAt(worldmodel::TilePos cell);
 	void eraseAt(worldmodel::TilePos cell);
+	void moveAt(worldmodel::TilePos cell);
+	std::optional<MoveTarget> pickMoveTarget(worldmodel::TilePos cell) const;
+	void moveObject(std::size_t index, worldmodel::TilePos cell);
+	void moveMarker(std::size_t index, worldmodel::TilePos cell);
+	void movePortal(std::size_t index, worldmodel::TilePos cell);
+	void clearMoveTarget();
 	void placePortalAt(worldmodel::TilePos cell);
 	void pickTargetAt(worldmodel::TilePos cell);
 	void openPortalAt(const QPoint& pos);
@@ -73,6 +80,12 @@ private:
 	MapLayerItem* layerItem_ = nullptr;
 	worldmodel::Map* map_ = nullptr;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	std::optional<MoveTarget> moveTarget_;
+	std::map<EditorTool, void (MapCanvasView::*)(worldmodel::TilePos)>
+		clickHandlers_;
+	std::map<MoveKind,
+		 void (MapCanvasView::*)(std::size_t, worldmodel::TilePos)>
+		moveAppliers_;
 	worldmodel::PortalKind activePortalKind_ = worldmodel::PortalKind::Link;
 	int activePortalWidth_ = 1;
 	int activePortalHeight_ = 1;

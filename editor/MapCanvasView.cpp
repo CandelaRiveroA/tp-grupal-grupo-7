@@ -18,7 +18,19 @@
 #include "common/world_model/PrefabCatalog.h"
 
 MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
-	: QGraphicsView(parent) {
+	: QGraphicsView(parent),
+	  clickHandlers_{
+		  {EditorTool::Place, &MapCanvasView::placePrefabAt},
+		  {EditorTool::Erase, &MapCanvasView::eraseAt},
+		  {EditorTool::Move, &MapCanvasView::moveAt},
+		  {EditorTool::PlacePortal, &MapCanvasView::placePortalAt},
+		  {EditorTool::PickTarget, &MapCanvasView::pickTargetAt},
+	  },
+	  moveAppliers_{
+		  {MoveKind::Object, &MapCanvasView::moveObject},
+		  {MoveKind::Marker, &MapCanvasView::moveMarker},
+		  {MoveKind::Portal, &MapCanvasView::movePortal},
+	  } {
 	setRenderHint(QPainter::SmoothPixmapTransform, false);
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 	setResizeAnchor(QGraphicsView::AnchorViewCenter);
@@ -35,6 +47,7 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 
 void MapCanvasView::setMap(worldmodel::Map* map) {
 	updateHoverCell(std::nullopt);
+	clearMoveTarget();
 	map_ = map;
 	layerItem_->setMap(map_);
 	scene_->setSceneRect(layerItem_->boundingRect());
@@ -45,6 +58,9 @@ void MapCanvasView::setShowCollision(bool show) {
 }
 
 void MapCanvasView::setTool(EditorTool tool) {
+	if (tool != EditorTool::Move) {
+		clearMoveTarget();
+	}
 	tool_ = tool;
 	layerItem_->setTool(tool);
 	updateCursor();
@@ -60,17 +76,13 @@ void MapCanvasView::setActivePortal(worldmodel::PortalKind kind, int width,
 	activePortalKind_ = kind;
 	activePortalWidth_ = width;
 	activePortalHeight_ = height;
-	tool_ = EditorTool::PlacePortal;
 	layerItem_->setPortalPreviewSize(width, height);
-	layerItem_->setTool(EditorTool::PlacePortal);
-	updateCursor();
+	setTool(EditorTool::PlacePortal);
 }
 
 void MapCanvasView::setPickTargetSize(int width, int height) {
-	tool_ = EditorTool::PickTarget;
 	layerItem_->setPortalPreviewSize(width, height);
-	layerItem_->setTool(EditorTool::PickTarget);
-	updateCursor();
+	setTool(EditorTool::PickTarget);
 }
 
 void MapCanvasView::zoomIn() {
@@ -108,17 +120,9 @@ void MapCanvasView::mousePressEvent(QMouseEvent* event) {
 		return;
 	}
 	if (event->button() == Qt::LeftButton) {
-		using ClickHandler = void (MapCanvasView::*)(worldmodel::TilePos);
-		static const std::map<EditorTool, ClickHandler> kClickHandlers = {
-			{EditorTool::Place, &MapCanvasView::placePrefabAt},
-			{EditorTool::Erase, &MapCanvasView::eraseAt},
-			{EditorTool::PlacePortal,
-			 &MapCanvasView::placePortalAt},
-			{EditorTool::PickTarget, &MapCanvasView::pickTargetAt},
-		};
 		const auto cell = cellAt(event->pos());
-		const auto it = kClickHandlers.find(tool_);
-		if (cell.has_value() && it != kClickHandlers.end()) {
+		const auto it = clickHandlers_.find(tool_);
+		if (cell.has_value() && it != clickHandlers_.end()) {
 			(this->*(it->second))(*cell);
 		}
 		event->accept();
@@ -174,7 +178,13 @@ void MapCanvasView::keyPressEvent(QKeyEvent* event) {
 			event->accept();
 			return;
 		}
-		if (tool_ == EditorTool::PlacePortal) {
+		if (tool_ == EditorTool::Move && moveTarget_.has_value()) {
+			clearMoveTarget();
+			event->accept();
+			return;
+		}
+		if (tool_ == EditorTool::PlacePortal ||
+		    tool_ == EditorTool::Move) {
 			resetToNavigate();
 			event->accept();
 			return;
@@ -310,6 +320,76 @@ void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 		notifyMapEdited();
 		return;
 	}
+}
+
+void MapCanvasView::moveAt(worldmodel::TilePos cell) {
+	if (!map_) {
+		return;
+	}
+	if (!moveTarget_.has_value()) {
+		moveTarget_ = pickMoveTarget(cell);
+		layerItem_->setMoveTarget(moveTarget_);
+		return;
+	}
+	const auto it = moveAppliers_.find(moveTarget_->kind);
+	if (it != moveAppliers_.end()) {
+		(this->*(it->second))(moveTarget_->index, cell);
+	}
+	clearMoveTarget();
+	notifyMapEdited();
+}
+
+std::optional<MoveTarget> MapCanvasView::pickMoveTarget(
+	worldmodel::TilePos cell) const {
+	for (std::size_t i = map_->markers.size(); i-- > 0;) {
+		if (map_->markers[i].cell == cell) {
+			return MoveTarget{MoveKind::Marker, i};
+		}
+	}
+	for (std::size_t i = map_->portals.size(); i-- > 0;) {
+		const auto& p = map_->portals[i];
+		if (containsCell(p.cell, p.width, p.height, cell)) {
+			return MoveTarget{MoveKind::Portal, i};
+		}
+	}
+	for (std::size_t i = map_->objects.size(); i-- > 0;) {
+		const auto& o = map_->objects[i];
+		if (containsCell(o.cell, o.width, o.height, cell)) {
+			return MoveTarget{MoveKind::Object, i};
+		}
+	}
+	return std::nullopt;
+}
+
+void MapCanvasView::moveObject(std::size_t index, worldmodel::TilePos cell) {
+	if (index >= map_->objects.size()) {
+		return;
+	}
+	auto& obj = map_->objects[index];
+	const int dCol = cell.column - obj.cell.column;
+	const int dRow = cell.row - obj.cell.row;
+	obj.cell = cell;
+	if (obj.door.has_value()) {
+		obj.door->column += dCol;
+		obj.door->row += dRow;
+	}
+}
+
+void MapCanvasView::moveMarker(std::size_t index, worldmodel::TilePos cell) {
+	if (index < map_->markers.size()) {
+		map_->markers[index].cell = cell;
+	}
+}
+
+void MapCanvasView::movePortal(std::size_t index, worldmodel::TilePos cell) {
+	if (index < map_->portals.size()) {
+		map_->portals[index].cell = cell;
+	}
+}
+
+void MapCanvasView::clearMoveTarget() {
+	moveTarget_.reset();
+	layerItem_->setMoveTarget(std::nullopt);
 }
 
 void MapCanvasView::placePortalAt(worldmodel::TilePos cell) {

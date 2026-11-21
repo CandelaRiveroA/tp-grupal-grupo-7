@@ -35,6 +35,8 @@ constexpr double kMinZoom = 0.25;
 constexpr double kMaxZoom = 8.0;
 constexpr double kZoomStep = 1.25;
 constexpr double kGhostOpacity = 0.65;
+constexpr int kPortalClickThresholdPx = 3;
+constexpr int kPortalPreviewCellPx = 22;
 
 // TilesetCache.cpp
 constexpr int kDefaultCellSize = 16;

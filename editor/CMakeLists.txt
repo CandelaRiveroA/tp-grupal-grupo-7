@@ -15,6 +15,7 @@ target_sources(taller_editor
     ValidationPanel.cpp
     AddExtraMapDialog.cpp
     PaletteView.cpp
+    PortalsView.cpp
     TilesetCache.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los procesa)
@@ -29,6 +30,7 @@ target_sources(taller_editor
     ValidationPanel.h
     AddExtraMapDialog.h
     PaletteView.h
+    PortalsView.h
     TilesetCache.h
     )
 

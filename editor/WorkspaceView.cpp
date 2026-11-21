@@ -3,6 +3,7 @@
 #include <exception>
 #include <vector>
 
+#include <QAbstractButton>
 #include <QButtonGroup>
 #include <QDialog>
 #include <QHBoxLayout>
@@ -12,14 +13,18 @@
 #include <QPushButton>
 #include <QSplitter>
 #include <QStringList>
+#include <QTabWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <algorithm>
+#include <utility>
 
 #include "AddExtraMapDialog.h"
 #include "Constants.h"
 #include "MapCanvasView.h"
 #include "MapTreeWidget.h"
 #include "PaletteView.h"
+#include "PortalsView.h"
 #include "ScenarioLabel.h"
 #include "ValidationPanel.h"
 #include "world_model/FormatError.h"
@@ -46,6 +51,10 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	tree_ = new MapTreeWidget(this);
 	canvas_ = new MapCanvasView(tilesets_, this);
 	palette_ = new PaletteView(catalog_, tilesets_, this);
+	portals_ = new PortalsView(this);
+	rightTabs_ = new QTabWidget(this);
+	rightTabs_->addTab(palette_, "Prefabs");
+	rightTabs_->addTab(portals_, "Portales");
 
 	// La validacion vive en un dialogio
 	validationDialog_ = new QDialog(this);
@@ -58,7 +67,7 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	QSplitter* bodySplit = new QSplitter(Qt::Horizontal, this);
 	bodySplit->addWidget(tree_);
 	bodySplit->addWidget(canvas_);
-	bodySplit->addWidget(palette_);
+	bodySplit->addWidget(rightTabs_);
 	bodySplit->setStretchFactor(0, 0);
 	bodySplit->setStretchFactor(1, 1);
 	bodySplit->setStretchFactor(2, 0);
@@ -86,6 +95,10 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		});
 	connect(palette_, &PaletteView::prefabSelected, this,
 		&WorkspaceView::onPrefabSelected);
+	connect(portals_, &PortalsView::portalPicked, this,
+		&WorkspaceView::onPortalPicked);
+	connect(canvas_, &MapCanvasView::cabinErased, this,
+		[this](int cabinIndex) { pendingErasedCabin_ = cabinIndex; });
 	connect(canvas_, &MapCanvasView::mapEdited, this, [this] {
 		if (placeButton_->isChecked() && activePrefab_ != nullptr) {
 			const std::string& tilesetId =
@@ -97,8 +110,20 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 							catIt->second);
 			}
 		}
+		if (activeMapId_ == editor::kHomeMapId) {
+			syncFarmCabins(pendingErasedCabin_);
+		}
+		pendingErasedCabin_.reset();
 		setDirty();
 	});
+	connect(canvas_, &MapCanvasView::portalTargetRequested, this,
+		&WorkspaceView::onPortalTargetRequested);
+	connect(canvas_, &MapCanvasView::targetCellPicked, this,
+		&WorkspaceView::onTargetCellPicked);
+	connect(canvas_, &MapCanvasView::pickTargetCancelled, this,
+		&WorkspaceView::onPickTargetCancelled);
+	connect(canvas_, &MapCanvasView::toolResetToNavigate, this,
+		[this] { navigateButton_->setChecked(true); });
 }
 
 QHBoxLayout* WorkspaceView::buildTopBar() {
@@ -112,22 +137,25 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	mapsButton->setCheckable(true);
 	mapsButton->setChecked(true);
 
-	QToolButton* navigateButton = new QToolButton(this);
-	navigateButton->setText("Navegar");
-	navigateButton->setCheckable(true);
-	navigateButton->setChecked(true);
+	navigateButton_ = new QToolButton(this);
+	navigateButton_->setText("Navegar");
+	navigateButton_->setCheckable(true);
+	navigateButton_->setChecked(true);
 	placeButton_ = new QToolButton(this);
 	placeButton_->setText("Colocar");
 	placeButton_->setCheckable(true);
-	QToolButton* eraseButton = new QToolButton(this);
-	eraseButton->setText("Borrar");
-	eraseButton->setCheckable(true);
+	eraseButton_ = new QToolButton(this);
+	eraseButton_->setText("Borrar");
+	eraseButton_->setCheckable(true);
 
-	QButtonGroup* toolGroup = new QButtonGroup(this);
-	toolGroup->setExclusive(true);
-	toolGroup->addButton(navigateButton, static_cast<int>(EditorTool::Navigate));
-	toolGroup->addButton(placeButton_, static_cast<int>(EditorTool::Place));
-	toolGroup->addButton(eraseButton, static_cast<int>(EditorTool::Erase));
+	toolGroup_ = new QButtonGroup(this);
+	toolGroup_->setExclusive(true);
+	toolGroup_->addButton(navigateButton_,
+			      static_cast<int>(EditorTool::Navigate));
+	toolGroup_->addButton(placeButton_,
+			      static_cast<int>(EditorTool::Place));
+	toolGroup_->addButton(eraseButton_,
+			      static_cast<int>(EditorTool::Erase));
 
 	QToolButton* collisionButton = new QToolButton(this);
 	collisionButton->setText("Colision");
@@ -143,9 +171,9 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	top->addWidget(mapsButton);
 	top->addWidget(heading_);
 	top->addStretch();
-	top->addWidget(navigateButton);
+	top->addWidget(navigateButton_);
 	top->addWidget(placeButton_);
-	top->addWidget(eraseButton);
+	top->addWidget(eraseButton_);
 	top->addSpacing(editor::kTopBarSpacing);
 	top->addWidget(collisionButton);
 	top->addSpacing(editor::kTopBarSpacing);
@@ -158,7 +186,7 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	top->addWidget(saveButton);
 
 	connect(mapsButton, &QToolButton::toggled, tree_, &QWidget::setVisible);
-	connect(toolGroup, &QButtonGroup::idToggled, this,
+	connect(toolGroup_, &QButtonGroup::idToggled, this,
 		[this](int id, bool checked) {
 			if (checked) {
 				canvas_->setTool(static_cast<EditorTool>(id));
@@ -194,10 +222,16 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 
 void WorkspaceView::setWorld(const worldmodel::World& world) {
 	canvas_->setMap(nullptr);
+	pendingErasedCabin_.reset();
+	pendingPortal_.reset();
+	setPickTargetUiLocked(false);
 	world_ = world;
 	dirty_ = false;
 	palette_->clearSelection();
+	portals_->clearSelection();
 	setActivePrefab(nullptr);
+	navigateButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Navigate);
 	tilesets_.loadTilesets(catalog_.tilesets());
 	tilesets_.loadTilesets(world_.tilesets);
 	validationPanel_->showIssues({});
@@ -213,8 +247,9 @@ const worldmodel::PrefabCatalog& WorkspaceView::catalog() const {
 void WorkspaceView::selectMap(const std::string& mapId) {
 	activeMapId_ = mapId;
 	tree_->selectMap(mapId);
-	canvas_->setMap(world_.maps.contains(mapId) ? &world_.maps.at(mapId)
-						    : nullptr);
+	worldmodel::Map* mapPtr =
+		world_.maps.contains(mapId) ? &world_.maps.at(mapId) : nullptr;
+	canvas_->setMap(mapPtr);
 }
 
 void WorkspaceView::validateNow() {
@@ -339,7 +374,8 @@ void WorkspaceView::replaceScenario() {
 	tilesets_.loadTilesets(catalog_.tilesets());
 	tilesets_.loadTilesets(world_.tilesets);
 	setDirty();
-	canvas_->setMap(&world_.maps.at(activeMapId_));
+	worldmodel::Map* mapPtr = &world_.maps.at(activeMapId_);
+	canvas_->setMap(mapPtr);
 }
 
 // Obligatorio: solo escenarios del tipo del slot. Extra: todos.
@@ -379,6 +415,140 @@ void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
 void WorkspaceView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
 	activePrefab_ = prefab;
 	canvas_->setActivePrefab(prefab);
+}
+
+void WorkspaceView::onPortalPicked(worldmodel::PortalKind kind, int width,
+				   int height) {
+	uncheckToolButtons();
+	canvas_->setActivePortal(kind, width, height);
+}
+
+void WorkspaceView::onPortalTargetRequested(std::size_t portalIndex) {
+	if (!world_.maps.contains(activeMapId_)) {
+		return;
+	}
+	const auto& portals = world_.maps.at(activeMapId_).portals;
+	if (portalIndex >= portals.size()) {
+		return;
+	}
+	const auto& portal = portals[portalIndex];
+	std::optional<std::string> targetMap;
+	if (portal.kind == worldmodel::PortalKind::Link) {
+		QStringList mapIds;
+		for (const auto& [id, map] : world_.maps) {
+			mapIds << QString::fromStdString(id);
+		}
+		bool ok = false;
+		const QString chosen = QInputDialog::getItem(
+			this, "Portal link", "Mapa destino:", mapIds, 0, false,
+			&ok);
+		if (!ok || chosen.isEmpty()) {
+			return;
+		}
+		targetMap = chosen.toStdString();
+	} else {
+		targetMap =
+			rules_.expectedPortalTarget(activeMapId_, portal.kind);
+	}
+	if (!targetMap.has_value() || !world_.maps.contains(*targetMap)) {
+		return;
+	}
+
+	pendingPortal_ = PendingPortalTarget{activeMapId_, portalIndex};
+	setPickTargetUiLocked(true);
+	selectMap(*targetMap);
+	canvas_->setPickTargetSize(portal.width, portal.height);
+}
+
+void WorkspaceView::onTargetCellPicked(worldmodel::TilePos cell) {
+	if (!pendingPortal_.has_value()) {
+		return;
+	}
+	const PendingPortalTarget pending = *pendingPortal_;
+	pendingPortal_.reset();
+	if (world_.maps.contains(pending.originMapId)) {
+		auto& portals = world_.maps.at(pending.originMapId).portals;
+		if (pending.portalIndex < portals.size()) {
+			portals[pending.portalIndex].targetMap = activeMapId_;
+			portals[pending.portalIndex].targetCell = cell;
+			setDirty();
+		}
+	}
+	setPickTargetUiLocked(false);
+	navigateButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Navigate);
+	selectMap(pending.originMapId);
+	updateHeading();
+}
+
+void WorkspaceView::onPickTargetCancelled() {
+	if (!pendingPortal_.has_value()) {
+		return;
+	}
+	const std::string originMapId = pendingPortal_->originMapId;
+	pendingPortal_.reset();
+	setPickTargetUiLocked(false);
+	navigateButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Navigate);
+	selectMap(originMapId);
+	updateHeading();
+}
+
+void WorkspaceView::syncFarmCabins(std::optional<int> erasedCabinIndex) {
+	if (erasedCabinIndex.has_value() &&
+	    *erasedCabinIndex >= worldmodel::kMinPlayers &&
+	    *erasedCabinIndex <= worldmodel::kMaxPlayers) {
+		world_.maps.erase(rules_.cabinId(*erasedCabinIndex));
+		for (int k = *erasedCabinIndex + 1;
+		     k <= worldmodel::kMaxPlayers; ++k) {
+			const std::string oldId = rules_.cabinId(k);
+			const std::string newId = rules_.cabinId(k - 1);
+			if (world_.maps.contains(oldId)) {
+				auto node = world_.maps.extract(oldId);
+				node.key() = newId;
+				node.mapped().id = newId;
+				world_.maps.insert(std::move(node));
+			}
+		}
+	}
+
+	const auto& objects = world_.maps.at(editor::kHomeMapId).objects;
+	const int cabinCount = static_cast<int>(std::count_if(
+		objects.begin(), objects.end(), [](const auto& obj) {
+			return obj.role == worldmodel::ObjectRole::Cabin;
+		}));
+	const auto cabinScenarios =
+		scenarios_.byKind(worldmodel::MapKind::Cabin);
+	for (int k = worldmodel::kMinPlayers;
+	     k <= std::min(cabinCount, worldmodel::kMaxPlayers); ++k) {
+		const std::string id = rules_.cabinId(k);
+		if (!world_.maps.contains(id) && !cabinScenarios.empty()) {
+			worldmodel::WorldFactory().addCabinMap(
+				world_, k, *cabinScenarios.front());
+			tilesets_.loadTilesets(world_.tilesets);
+		}
+	}
+	tree_->setExtraMaps(world_);
+}
+
+void WorkspaceView::uncheckToolButtons() {
+	toolGroup_->setExclusive(false);
+	for (QAbstractButton* button : toolGroup_->buttons()) {
+		button->setChecked(false);
+	}
+	toolGroup_->setExclusive(true);
+}
+
+void WorkspaceView::setPickTargetUiLocked(bool locked) {
+	tree_->setEnabled(!locked);
+	rightTabs_->setEnabled(!locked);
+	navigateButton_->setEnabled(!locked);
+	placeButton_->setEnabled(!locked);
+	eraseButton_->setEnabled(!locked);
+	if (locked) {
+		uncheckToolButtons();
+		heading_->setText("Elegi la celda destino (Esc cancela)");
+	}
 }
 
 void WorkspaceView::setDirty() {

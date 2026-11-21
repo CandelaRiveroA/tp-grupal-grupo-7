@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <map>
 
 #include "Constants.h"
 #include "MapLayerItem.h"
@@ -54,6 +55,24 @@ void MapCanvasView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
 	layerItem_->setActivePrefab(prefab);
 }
 
+void MapCanvasView::setActivePortal(worldmodel::PortalKind kind, int width,
+				    int height) {
+	activePortalKind_ = kind;
+	activePortalWidth_ = width;
+	activePortalHeight_ = height;
+	tool_ = EditorTool::PlacePortal;
+	layerItem_->setPortalPreviewSize(width, height);
+	layerItem_->setTool(EditorTool::PlacePortal);
+	updateCursor();
+}
+
+void MapCanvasView::setPickTargetSize(int width, int height) {
+	tool_ = EditorTool::PickTarget;
+	layerItem_->setPortalPreviewSize(width, height);
+	layerItem_->setTool(EditorTool::PickTarget);
+	updateCursor();
+}
+
 void MapCanvasView::zoomIn() {
 	applyZoom(zoom_ * editor::kZoomStep);
 }
@@ -81,19 +100,26 @@ void MapCanvasView::mousePressEvent(QMouseEvent* event) {
 				 (tool_ == EditorTool::Navigate || spacePressed_));
 	if (panTrigger) {
 		panning_ = true;
+		panMoved_ = false;
+		panStartPos_ = event->pos();
 		lastPanPos_ = event->pos();
 		updateCursor();
 		event->accept();
 		return;
 	}
 	if (event->button() == Qt::LeftButton) {
+		using ClickHandler = void (MapCanvasView::*)(worldmodel::TilePos);
+		static const std::map<EditorTool, ClickHandler> kClickHandlers = {
+			{EditorTool::Place, &MapCanvasView::placePrefabAt},
+			{EditorTool::Erase, &MapCanvasView::eraseAt},
+			{EditorTool::PlacePortal,
+			 &MapCanvasView::placePortalAt},
+			{EditorTool::PickTarget, &MapCanvasView::pickTargetAt},
+		};
 		const auto cell = cellAt(event->pos());
-		if (cell.has_value()) {
-			if (tool_ == EditorTool::Place) {
-				placePrefabAt(*cell);
-			} else if (tool_ == EditorTool::Erase) {
-				eraseObjectAt(*cell);
-			}
+		const auto it = kClickHandlers.find(tool_);
+		if (cell.has_value() && it != kClickHandlers.end()) {
+			(this->*(it->second))(*cell);
 		}
 		event->accept();
 		return;
@@ -103,6 +129,10 @@ void MapCanvasView::mousePressEvent(QMouseEvent* event) {
 
 void MapCanvasView::mouseMoveEvent(QMouseEvent* event) {
 	if (panning_) {
+		if ((event->pos() - panStartPos_).manhattanLength() >=
+		    editor::kPortalClickThresholdPx) {
+			panMoved_ = true;
+		}
 		const QPoint delta = event->pos() - lastPanPos_;
 		lastPanPos_ = event->pos();
 		horizontalScrollBar()->setValue(horizontalScrollBar()->value() -
@@ -118,8 +148,14 @@ void MapCanvasView::mouseMoveEvent(QMouseEvent* event) {
 void MapCanvasView::mouseReleaseEvent(QMouseEvent* event) {
 	if (panning_ && (event->button() == Qt::MiddleButton ||
 			 event->button() == Qt::LeftButton)) {
+		const bool clickInNavigate =
+			event->button() == Qt::LeftButton && !panMoved_ &&
+			tool_ == EditorTool::Navigate && !spacePressed_;
 		panning_ = false;
 		updateCursor();
+		if (clickInNavigate) {
+			openPortalAt(event->pos());
+		}
 		event->accept();
 		return;
 	}
@@ -132,6 +168,18 @@ void MapCanvasView::leaveEvent(QEvent* event) {
 }
 
 void MapCanvasView::keyPressEvent(QKeyEvent* event) {
+	if (event->key() == Qt::Key_Escape) {
+		if (tool_ == EditorTool::PickTarget) {
+			emit pickTargetCancelled();
+			event->accept();
+			return;
+		}
+		if (tool_ == EditorTool::PlacePortal) {
+			resetToNavigate();
+			event->accept();
+			return;
+		}
+	}
 	if (event->key() == Qt::Key_Space && !event->isAutoRepeat()) {
 		spacePressed_ = true;
 		updateHoverCell(std::nullopt);
@@ -197,36 +245,130 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 	const bool anyBlocked = std::any_of(
 		activePrefab_->collisionGrid.begin(),
 		activePrefab_->collisionGrid.end(), [](bool b) { return b; });
+	const bool isCabinOutsideFarm =
+		activePrefab_->role == worldmodel::ObjectRole::Cabin &&
+		map_->id != editor::kHomeMapId;
+	const worldmodel::ObjectRole role =
+		(!activePrefab_->role.has_value() || isCabinOutsideFarm)
+			? worldmodel::ObjectRole::Decoration
+			: *activePrefab_->role;
+	const std::optional<worldmodel::TilePos> door =
+		role != worldmodel::ObjectRole::Decoration
+			? prefabDoorAt(cell)
+			: std::nullopt;
 	map_->objects.push_back(worldmodel::MapObject{
-		worldmodel::ObjectRole::Decoration,
+		role,
 		activePrefab_->tile,
 		cell,
 		activePrefab_->width,
 		activePrefab_->height,
 		anyBlocked,
-		std::nullopt,
+		door,
 		activePrefab_->collisionGrid,
 	});
 	notifyMapEdited();
 }
 
-void MapCanvasView::eraseObjectAt(worldmodel::TilePos cell) {
+void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 	if (!map_) {
 		return;
 	}
-	for (auto it = map_->objects.rbegin(); it != map_->objects.rend(); ++it) {
-		if (it->role != worldmodel::ObjectRole::Decoration) {
-			continue;
-		}
-		if (cell.column >= it->cell.column &&
-		    cell.column < it->cell.column + it->width &&
-		    cell.row >= it->cell.row &&
-		    cell.row < it->cell.row + it->height) {
-			map_->objects.erase(std::next(it).base());
+	for (auto it = map_->portals.rbegin(); it != map_->portals.rend();
+	     ++it) {
+		if (it->kind != worldmodel::PortalKind::InteriorExit &&
+		    containsCell(it->cell, it->width, it->height, cell)) {
+			map_->portals.erase(std::next(it).base());
 			notifyMapEdited();
 			return;
 		}
 	}
+	for (auto it = map_->objects.rbegin(); it != map_->objects.rend(); ++it) {
+		const bool erasable =
+			it->role == worldmodel::ObjectRole::Decoration ||
+			(it->role == worldmodel::ObjectRole::Cabin &&
+			 map_->id == editor::kHomeMapId);
+		if (!erasable ||
+		    !containsCell(it->cell, it->width, it->height, cell)) {
+			continue;
+		}
+		const auto forwardIt = std::next(it).base();
+		if (forwardIt->role == worldmodel::ObjectRole::Cabin) {
+			int cabinIdx = 1;
+			for (auto scan = map_->objects.begin();
+			     scan != forwardIt; ++scan) {
+				if (scan->role ==
+				    worldmodel::ObjectRole::Cabin) {
+					++cabinIdx;
+				}
+			}
+			map_->objects.erase(forwardIt);
+			emit cabinErased(cabinIdx);
+			notifyMapEdited();
+			return;
+		}
+		map_->objects.erase(forwardIt);
+		notifyMapEdited();
+		return;
+	}
+}
+
+void MapCanvasView::placePortalAt(worldmodel::TilePos cell) {
+	if (!map_) {
+		return;
+	}
+	map_->portals.push_back(worldmodel::Portal{activePortalKind_, cell, "",
+						   {}, activePortalWidth_,
+						   activePortalHeight_});
+	const std::size_t index = map_->portals.size() - 1;
+	resetToNavigate();
+	notifyMapEdited();
+	emit portalTargetRequested(index);
+}
+
+void MapCanvasView::pickTargetAt(worldmodel::TilePos cell) {
+	emit targetCellPicked(cell);
+}
+
+void MapCanvasView::openPortalAt(const QPoint& pos) {
+	if (!map_) {
+		return;
+	}
+	const auto cell = cellAt(pos);
+	if (!cell.has_value()) {
+		return;
+	}
+	for (std::size_t i = 0; i < map_->portals.size(); ++i) {
+		const auto& portal = map_->portals[i];
+		if (containsCell(portal.cell, portal.width, portal.height,
+				 *cell)) {
+			emit portalTargetRequested(i);
+			return;
+		}
+	}
+}
+
+bool MapCanvasView::containsCell(worldmodel::TilePos origin, int width,
+				 int height,
+				 worldmodel::TilePos cell) const {
+	return cell.column >= origin.column &&
+	       cell.column < origin.column + width &&
+	       cell.row >= origin.row && cell.row < origin.row + height;
+}
+
+std::optional<worldmodel::TilePos> MapCanvasView::prefabDoorAt(
+	worldmodel::TilePos cell) const {
+	const worldmodel::TilePos offset = activePrefab_->door.value_or(
+		worldmodel::TilePos{activePrefab_->width / 2,
+				    activePrefab_->height});
+	return worldmodel::TilePos{cell.column + offset.column,
+				   cell.row + offset.row};
+}
+
+void MapCanvasView::resetToNavigate() {
+	tool_ = EditorTool::Navigate;
+	layerItem_->setTool(EditorTool::Navigate);
+	updateCursor();
+	emit toolResetToNavigate();
 }
 
 void MapCanvasView::notifyMapEdited() {

@@ -1,12 +1,16 @@
 #pragma once
 
+#include <cstddef>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <QWidget>
 
 #include "TilesetCache.h"
+#include "world_model/Geometry.h"
 #include "world_model/MapRules.h"
+#include "world_model/Portal.h"
 #include "world_model/PrefabCatalog.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/World.h"
@@ -15,10 +19,13 @@
 class MapCanvasView;
 class MapTreeWidget;
 class PaletteView;
+class PortalsView;
 class ValidationPanel;
+class QButtonGroup;
 class QDialog;
 class QHBoxLayout;
 class QLabel;
+class QTabWidget;
 class QToolButton;
 
 // Mundo en memoria, mapa activo, mapas extra por demanda.
@@ -46,9 +53,21 @@ private:
 	void replaceScenario();
 	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void onPortalPicked(worldmodel::PortalKind kind, int width, int height);
+	void onPortalTargetRequested(std::size_t portalIndex);
+	void onTargetCellPicked(worldmodel::TilePos cell);
+	void onPickTargetCancelled();
+	void syncFarmCabins(std::optional<int> erasedCabinIndex);
+	void uncheckToolButtons();
+	void setPickTargetUiLocked(bool locked);
 	void setDirty();
 	void updateHeading();
 	bool hasTilesetConflict(const std::string& tilesetId) const;
+
+	struct PendingPortalTarget {
+		std::string originMapId;
+		std::size_t portalIndex = 0;
+	};
 
 	const worldmodel::ScenarioLibrary& scenarios_;
 	const worldmodel::WorldRepository& worlds_;
@@ -58,13 +77,20 @@ private:
 	worldmodel::MapRules rules_;
 	std::string activeMapId_;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	std::optional<int> pendingErasedCabin_;
+	std::optional<PendingPortalTarget> pendingPortal_;
 	bool dirty_ = false;
 
 	QLabel* heading_ = nullptr;
+	QButtonGroup* toolGroup_ = nullptr;
+	QToolButton* navigateButton_ = nullptr;
 	QToolButton* placeButton_ = nullptr;
+	QToolButton* eraseButton_ = nullptr;
 	MapTreeWidget* tree_ = nullptr;
 	MapCanvasView* canvas_ = nullptr;
 	ValidationPanel* validationPanel_ = nullptr;
+	QTabWidget* rightTabs_ = nullptr;
 	PaletteView* palette_ = nullptr;
+	PortalsView* portals_ = nullptr;
 	QDialog* validationDialog_ = nullptr;
 };

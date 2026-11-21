@@ -2,10 +2,12 @@
 
 #include <QGraphicsView>
 #include <QPoint>
+#include <cstddef>
 #include <optional>
 
 #include "MapLayerItem.h"
 #include "common/world_model/Geometry.h"
+#include "common/world_model/Portal.h"
 
 class QEvent;
 class QKeyEvent;
@@ -27,12 +29,19 @@ public:
 	void setShowCollision(bool show);
 	void setTool(EditorTool tool);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void setActivePortal(worldmodel::PortalKind kind, int width, int height);
+	void setPickTargetSize(int width, int height);
 	void zoomIn();
 	void zoomOut();
 	void resetZoom();
 
 signals:
 	void mapEdited();
+	void cabinErased(int cabinIndex);
+	void portalTargetRequested(std::size_t portalIndex);
+	void targetCellPicked(worldmodel::TilePos cell);
+	void pickTargetCancelled();
+	void toolResetToNavigate();
 
 protected:
 	void wheelEvent(QWheelEvent* event) override;
@@ -48,7 +57,15 @@ private:
 	std::optional<worldmodel::TilePos> cellAt(const QPoint& pos) const;
 	void updateHoverCell(std::optional<worldmodel::TilePos> cell);
 	void placePrefabAt(worldmodel::TilePos cell);
-	void eraseObjectAt(worldmodel::TilePos cell);
+	void eraseAt(worldmodel::TilePos cell);
+	void placePortalAt(worldmodel::TilePos cell);
+	void pickTargetAt(worldmodel::TilePos cell);
+	void openPortalAt(const QPoint& pos);
+	bool containsCell(worldmodel::TilePos origin, int width, int height,
+			  worldmodel::TilePos cell) const;
+	std::optional<worldmodel::TilePos> prefabDoorAt(
+		worldmodel::TilePos cell) const;
+	void resetToNavigate();
 	void notifyMapEdited();
 	void updateCursor();
 
@@ -56,10 +73,15 @@ private:
 	MapLayerItem* layerItem_ = nullptr;
 	worldmodel::Map* map_ = nullptr;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	worldmodel::PortalKind activePortalKind_ = worldmodel::PortalKind::Link;
+	int activePortalWidth_ = 1;
+	int activePortalHeight_ = 1;
 	EditorTool tool_ = EditorTool::Navigate;
 	std::optional<worldmodel::TilePos> hoverCell_;
 	double zoom_ = 1.0;
 	bool panning_ = false;
+	bool panMoved_ = false;
 	bool spacePressed_ = false;
+	QPoint panStartPos_;
 	QPoint lastPanPos_;
 };

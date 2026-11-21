@@ -135,6 +135,10 @@ bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
 }
 
+std::vector<std::unique_ptr<Item>> Player::extract_items(ItemID id, uint16_t qty) {
+    return this->backpack.extract_items(id, qty);
+}
+
 void Player::consume_energy(float amount) {
     if (this->energy >= amount) {
         this->energy -= amount;

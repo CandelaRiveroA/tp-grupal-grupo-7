@@ -90,12 +90,15 @@ public:
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
+    std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
     bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     void update(World& w) override;
+
+
 };
 
 #endif  // PLAYER_H

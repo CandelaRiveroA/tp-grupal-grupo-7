@@ -29,6 +29,7 @@ public:
     uint8_t get_max_slots() const;
     void consume_item(uint8_t slot_idx);
     std::unique_ptr<Item> pop_one_item(uint8_t slot_idx);
+    std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
 };
 
 #endif  // INVENTORY_H

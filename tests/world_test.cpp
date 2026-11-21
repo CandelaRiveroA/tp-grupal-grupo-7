@@ -31,10 +31,62 @@ TEST(WorldTest, JugadorSeMueveHaciaCeldaVacia) {
     // Movemos a la derecha
     world.move_player(1, Direction::RIGHT);
 
-    // Debe haber avanzado a (3, 2) y mirar a la derecha
-    EXPECT_EQ(p->get_x(), 3);
+    // Debe haber avanzado dos celdas a (4, 2) y mirar a la derecha
+    EXPECT_EQ(p->get_x(), 4);
     EXPECT_EQ(p->get_y(), 2);
     EXPECT_EQ(p->get_facing(), Direction::RIGHT);
+}
+
+TEST(WorldTest, JugadorGravementeHeridoSeMueveUnaCelda) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    p->set_health(19);
+    world.add_player(1, std::move(player));
+
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_EQ(p->get_x(), 3);
+    EXPECT_EQ(p->get_y(), 2);
+}
+
+TEST(WorldTest, JugadorCon20PorCientoSeMueveDosCeldas) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    p->set_health(20);
+    world.add_player(1, std::move(player));
+
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_EQ(p->get_x(), 4);
+    EXPECT_EQ(p->get_y(), 2);
+}
+
+TEST(WorldTest, AlternarModoWalkingReduceElMovimientoSinCambiarElDanio) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    world.add_player(1, std::move(player));
+
+    p->toggle_walking();
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_TRUE(p->is_walking());
+    EXPECT_EQ(p->get_movement_steps(), 1);
+    EXPECT_EQ(p->get_sword_damage(), 2);
+    EXPECT_EQ(p->get_x(), 3);
+
+    p->toggle_walking();
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_FALSE(p->is_walking());
+    EXPECT_EQ(p->get_movement_steps(), 2);
+    EXPECT_EQ(p->get_sword_damage(), 2);
+    EXPECT_EQ(p->get_x(), 4);
 }
 
 TEST(WorldTest, JugadorNoPuedeSalirDelMapa) {

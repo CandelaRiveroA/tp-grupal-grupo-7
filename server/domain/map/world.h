@@ -92,6 +92,7 @@ public:
     void add_player(uint8_t player_id, std::unique_ptr<Player> player);
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
+    void toggle_player_walking(uint8_t player_id);
     const Player& get_player(uint8_t player_id) const;
     Player& get_player(uint8_t player_id);
     std::vector<uint8_t> get_player_ids() const;

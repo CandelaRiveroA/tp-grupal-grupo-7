@@ -49,6 +49,10 @@ PlayerController::PlayerController(game::GameClient& client, const world::MoveCa
              [this](const game::InputCommand& command, const std::optional<world::Direction>&) {
                  handleSelectSlot(command);
              }},
+            {game::InputCommand::Kind::ToggleWalking,
+             [this](const game::InputCommand&, const std::optional<world::Direction>&) {
+                 client_.sendCommand(protocol::ToggleWalkingMessage{});
+             }},
     };
 }
 

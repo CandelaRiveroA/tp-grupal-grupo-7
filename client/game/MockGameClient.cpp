@@ -79,6 +79,8 @@ void MockGameClient::sendCommand(const protocol::ClientMessage& message) {
         playerMoving_ = false;
         playerFacing_ = world::viewDirectionFrom(take->direction);
         collectAt(playerCellX_, playerCellY_);
+    } else if (std::holds_alternative<protocol::ToggleWalkingMessage>(message)) {
+        walking_ = !walking_;
     }
     rebuildView();
 }
@@ -132,16 +134,23 @@ int MockGameClient::mineralAt(int cellX, int cellY) const {
 }
 
 void MockGameClient::walk(::Direction direction) {
-    int targetX = 0;
-    int targetY = 0;
-    frontCell(direction, targetX, targetY);
+    const int steps = walking_ ? 1 : 2;
+    int startX = playerCellX_;
+    int startY = playerCellY_;
+    for (int step = 0; step < steps; ++step) {
+        int targetX = 0;
+        int targetY = 0;
+        frontCell(direction, targetX, targetY);
+        const int clampedX = std::clamp(targetX, 0, gridColumns_ - 1);
+        const int clampedY = std::clamp(targetY, 0, gridRows_ - 1);
+        if (clampedX == playerCellX_ && clampedY == playerCellY_) {
+            break;
+        }
+        playerCellX_ = clampedX;
+        playerCellY_ = clampedY;
+    }
 
-    const int clampedX = std::clamp(targetX, 0, gridColumns_ - 1);
-    const int clampedY = std::clamp(targetY, 0, gridRows_ - 1);
-
-    playerMoving_ = (clampedX != playerCellX_ || clampedY != playerCellY_);
-    playerCellX_ = clampedX;
-    playerCellY_ = clampedY;
+    playerMoving_ = (playerCellX_ != startX || playerCellY_ != startY);
     playerFacing_ = world::viewDirectionFrom(direction);
 }
 

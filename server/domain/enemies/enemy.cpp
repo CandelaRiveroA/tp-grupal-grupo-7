@@ -9,9 +9,6 @@
 #include "../inventory/product.h"
 #include "../map/world.h"
 
-// Daño de la espada por golpe. shortcut: placeholder; cuando exista daño por
-// ítem debería salir del inventario, no de una constante.
-#define kSwordDamage 1
 // Precio del orbe de oro: el mismo que la piedra de oro.
 #define kGoldOrbPrice 750
 // Radio de persecución cuerpo a cuerpo (celdas, distancia de Chebyshev).
@@ -86,12 +83,12 @@ bool Enemy::move(World& w, Direction dir) {
 // El cadáver no bloquea el paso.
 bool Enemy::is_walkable() const { return this->health == 0; }
 
-void Enemy::interact(Player& /*p*/, ToolType tool, World& w) {
+void Enemy::interact(Player& p, ToolType tool, World& w) {
     // Solo la espada hace daño; take_damage ignora los golpes de un muerto.
     if (tool != ToolType::SWORD) {
         return;
     }
-    if (this->take_damage(kSwordDamage)) {
+    if (this->take_damage(p.get_sword_damage())) {
         this->drop_orb(w, ItemID::GOLD_ORB, kGoldOrbPrice, this->gold_drop_percent);
         this->on_death(w);
     }

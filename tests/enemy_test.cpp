@@ -41,7 +41,7 @@ TEST(EnemyTest, SoloLaEspadaHaceDanioYMata) {
     skeleton->interact(attacker, ToolType::HAND, world);
     EXPECT_EQ(skeleton->get_health(), 10);  // otras herramientas no hacen nada
 
-    for (int hit = 0; hit < 10; ++hit) {  // la espada hace 1 de daño
+    for (int hit = 0; hit < 5; ++hit) {  // la espada hace 2 de daño
         skeleton->interact(attacker, ToolType::SWORD, world);
     }
     EXPECT_EQ(skeleton->get_health(), 0);
@@ -49,6 +49,25 @@ TEST(EnemyTest, SoloLaEspadaHaceDanioYMata) {
 
     skeleton->interact(attacker, ToolType::SWORD, world);  // golpe extra inútil
     EXPECT_EQ(skeleton->get_health(), 0);
+}
+
+TEST(EnemyTest, EspadaHaceLaMitadDeDanioConMenosDel20PorCientoDeVida) {
+    World world(5, 5);
+    Player normal_attacker(1, 0, 0);
+    Player wounded_attacker(2, 0, 0);
+    wounded_attacker.set_health(19);
+
+    auto normal_skeleton = std::make_unique<Skeleton>(2, 2);
+    Skeleton* normal = normal_skeleton.get();
+    world.add_enemy(std::move(normal_skeleton));
+    normal->interact(normal_attacker, ToolType::SWORD, world);
+    EXPECT_EQ(normal->get_health(), 8);
+
+    auto wounded_skeleton = std::make_unique<Skeleton>(3, 2);
+    Skeleton* wounded = wounded_skeleton.get();
+    world.add_enemy(std::move(wounded_skeleton));
+    wounded->interact(wounded_attacker, ToolType::SWORD, world);
+    EXPECT_EQ(wounded->get_health(), 9);
 }
 
 TEST(EnemyTest, ElJugadorRecibeDanioYPisaEnCero) {

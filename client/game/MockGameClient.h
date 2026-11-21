@@ -90,6 +90,7 @@ private:
     int playerCellY_;
     world::Direction playerFacing_;
     bool playerMoving_;
+    bool walking_ = false;
 
     int toolUseDurationTicks_;
     int toolUseRemaining_ = 0;

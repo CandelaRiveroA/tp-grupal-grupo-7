@@ -87,6 +87,10 @@ void ProtocolSender::send_message(const protocol::ChatMessage& message) {
     send_string(message.text);
 }
 
+void ProtocolSender::send_message(const protocol::ToggleWalkingMessage& /*message*/) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::ToggleWalking));
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }

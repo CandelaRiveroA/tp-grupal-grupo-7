@@ -14,6 +14,8 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Alterna entre caminar 1 y 2 celdas por movimiento.
+        ToggleWalking,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
         // muerte), de sus proyectiles (J avanzar, L desaparecer) y el

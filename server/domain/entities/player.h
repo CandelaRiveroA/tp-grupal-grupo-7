@@ -30,6 +30,7 @@ private:
     // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
+    bool walking;
     bool died_in_combat;
     bool fainted_by_timeout;
     bool fainted_by_energy;
@@ -70,6 +71,14 @@ public:
     // true si la vida quedó por debajo del 20 % del tope (herido grave o
     // muerto): con eso World decide si queda un charco de sangre.
     bool is_gravely_wounded() const;
+
+    // Una orden de movimiento avanza dos celdas o una si está gravemente herido.
+    uint8_t get_movement_steps() const;
+    void toggle_walking();
+    void set_walking(bool active);
+    bool is_walking() const;
+    // Daño de la espada: 2 por golpe normal y 1 gravemente herido.
+    uint8_t get_sword_damage() const;
 
     // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
     bool take_damage(uint8_t incoming) override;

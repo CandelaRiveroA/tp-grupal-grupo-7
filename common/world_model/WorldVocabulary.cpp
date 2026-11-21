@@ -25,7 +25,6 @@ const std::pair<ObjectRole, const char*> kObjectRoles[] = {
 };
 
 const std::pair<MarkerKind, const char*> kMarkerKinds[] = {
-	{MarkerKind::PlayerSpawn, "player_spawn"},
 	{MarkerKind::Bed, "bed"},
 	{MarkerKind::MerchantMarnie, "merchant_marnie"},
 	{MarkerKind::MerchantClint, "merchant_clint"},

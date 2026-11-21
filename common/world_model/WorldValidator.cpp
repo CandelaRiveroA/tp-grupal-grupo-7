@@ -27,36 +27,22 @@ bool WorldValidator::portalAllowedIn(const std::string& mapId, PortalKind kind) 
                    rule->requiredPortals.end();
 }
 
-std::optional<std::string> WorldValidator::expectedPortalTarget(const std::string& mapId,
-                                                                PortalKind kind) const {
-    if (kind == PortalKind::TownEntrance) {
-        return "town";
+const MapObject* WorldValidator::findBuilding(const Map& map, const MapRule& interiorRule) const {
+    if (!interiorRule.interiorObject.has_value()) {
+        return nullptr;
     }
-    if (kind == PortalKind::FarmEntrance) {
-        return "farm";
-    }
-    if (kind == PortalKind::DungeonEntrance) {
-        return "dungeon_1";
-    }
-    if (kind == PortalKind::DungeonExit) {
-        return "farm";
-    }
-    if (kind == PortalKind::InteriorExit) {
-        const MapRule* rule = rules_.find(mapId);
-        return rule != nullptr ? rule->interiorExitTarget : std::nullopt;
-    }
-    if (kind == PortalKind::StairsDown) {
-        const std::optional<int> level = rules_.dungeonLevel(mapId);
-        if (level.has_value() && *level < 10) {
-            return rules_.dungeonId(*level + 1);
-        }
-    }
-    return std::nullopt;
-}
-
-const MapObject* WorldValidator::findObject(const Map& map, ObjectRole role) const {
+    const ObjectRole role = *interiorRule.interiorObject;
+    const std::optional<int> cabinIdx = rules_.cabinIndex(interiorRule.id);
+    int currentCabin = 0;
     for (const MapObject& object: map.objects) {
-        if (object.role == role) {
+        if (object.role != role) {
+            continue;
+        }
+        if (role != ObjectRole::Cabin) {
+            return &object;
+        }
+        ++currentCabin;
+        if (cabinIdx.has_value() && currentCabin == *cabinIdx) {
             return &object;
         }
     }
@@ -151,8 +137,15 @@ void WorldValidator::checkWorld(const World& world, std::vector<ValidationIssue>
 
 void WorldValidator::checkRequiredMaps(const World& world,
                                        std::vector<ValidationIssue>& issues) const {
+    const auto farmIt = world.maps.find("farm");
+    const int rawCabins =
+            farmIt != world.maps.end() ? countRole(farmIt->second, ObjectRole::Cabin) : 0;
+    const int expectedCabins = std::clamp(rawCabins, kMinPlayers, kMaxPlayers);
+
     for (const auto& [key, map]: world.maps) {
-        if (!rules_.isValidMapId(key) || key != map.id) {
+        const std::optional<int> cabinIdx = rules_.cabinIndex(key);
+        if (!rules_.isValidMapId(key) || key != map.id ||
+            (cabinIdx.has_value() && *cabinIdx > expectedCabins)) {
             addIssue(issues, IssueCode::InvalidMapId, key);
         }
         const MapRule* rule = rules_.find(key);
@@ -171,9 +164,9 @@ void WorldValidator::checkRequiredMaps(const World& world,
         }
     }
 
-    for (const MapRule& rule: rules_.all()) {
-        if (world.maps.find(rule.id) == world.maps.end()) {
-            addIssue(issues, IssueCode::MissingRequiredMap, rule.id);
+    for (const std::string& id: rules_.requiredMapIds(expectedCabins)) {
+        if (world.maps.find(id) == world.maps.end()) {
+            addIssue(issues, IssueCode::MissingRequiredMap, id);
         }
     }
 }
@@ -230,6 +223,14 @@ void WorldValidator::checkObjects(const World& world, const Map& map,
     if (rule != nullptr) {
         for (const ObjectRole role: rule->requiredObjects) {
             requireUniqueRole(map, role, issues);
+        }
+    }
+    if (map.id == "farm") {
+        const int cabins = countRole(map, ObjectRole::Cabin);
+        if (cabins == 0) {
+            addIssue(issues, IssueCode::MissingObject, map.id);
+        } else if (cabins > kMaxPlayers) {
+            addIssue(issues, IssueCode::DuplicateObject, map.id);
         }
     }
 
@@ -307,7 +308,7 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
 
         const std::optional<std::string> expected =
                 allowed && portal.kind != PortalKind::Link ?
-                        expectedPortalTarget(map.id, portal.kind) :
+                        rules_.expectedPortalTarget(map.id, portal.kind) :
                         std::nullopt;
         if (expected.has_value() && portal.targetMap != *expected) {
             addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell);
@@ -315,9 +316,7 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
         if (portal.kind == PortalKind::InteriorExit && expected.has_value() &&
             portal.targetMap == *expected) {
             const MapObject* building =
-                    rule != nullptr && rule->interiorObject.has_value()
-                            ? findObject(target->second, *rule->interiorObject)
-                            : nullptr;
+                    rule != nullptr ? findBuilding(target->second, *rule) : nullptr;
             if (building != nullptr && building->door.has_value() &&
                 !(*building->door == portal.targetCell)) {
                 addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell);

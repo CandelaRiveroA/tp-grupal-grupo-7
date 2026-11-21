@@ -17,9 +17,7 @@ public:
 private:
     bool markerAllowedIn(const std::string& mapId, MarkerKind kind) const;
     bool portalAllowedIn(const std::string& mapId, PortalKind kind) const;
-    std::optional<std::string> expectedPortalTarget(const std::string& mapId,
-                                                    PortalKind kind) const;
-    const MapObject* findObject(const Map& map, ObjectRole role) const;
+    const MapObject* findBuilding(const Map& map, const MapRule& interiorRule) const;
     int countRole(const Map& map, ObjectRole role) const;
     int countMarker(const Map& map, MarkerKind kind) const;
     int countPortal(const Map& map, PortalKind kind) const;

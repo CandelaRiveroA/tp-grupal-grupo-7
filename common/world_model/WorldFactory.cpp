@@ -1,5 +1,6 @@
 #include "world_model/WorldFactory.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -11,6 +12,7 @@ namespace worldmodel {
 
 World WorldFactory::makeDefault(const std::string& name,
 				const ScenarioLibrary& library,
+				const PrefabCatalog& catalog,
 				const ScenarioChoice& choice) const {
 	const auto require = [&](const std::string& id) -> const Scenario& {
 		const Scenario* scenario = library.find(id);
@@ -24,15 +26,16 @@ World WorldFactory::makeDefault(const std::string& name,
 	world.formatVersion = 1;
 	world.name = name;
 
-	addMandatoryMap(world, "farm", require(choice.farm));
-	addMandatoryMap(world, "town", require(choice.town));
-	addMandatoryMap(world, "cabin", require(choice.cabin));
-	addMandatoryMap(world, "market", require(choice.market));
+	addMandatoryMap(world, "farm", require(choice.farm), catalog);
+	addMandatoryMap(world, "town", require(choice.town), catalog);
+	addMandatoryMap(world, rules_.cabinId(1), require(choice.cabin),
+			catalog);
+	addMandatoryMap(world, "market", require(choice.market), catalog);
 	addMandatoryMap(world, "community_center",
-			require(choice.communityCenter));
-	for (int level = 1; level <= 10; ++level) {
+			require(choice.communityCenter), catalog);
+	for (int level = 1; level <= kDungeonLevels; ++level) {
 		addMandatoryMap(world, rules_.dungeonId(level),
-				require(choice.dungeons[level - 1]));
+				require(choice.dungeons[level - 1]), catalog);
 	}
 	wirePortals(world);
 	return world;
@@ -67,7 +70,8 @@ void WorldFactory::addExtraMap(World& world, const Scenario& scenario,
 }
 
 void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
-				      const Scenario& scenario) const {
+				      const Scenario& scenario,
+				      const PrefabCatalog& catalog) const {
 	if (!world.maps.contains(mapId)) {
 		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}
@@ -77,7 +81,7 @@ void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
 	if (rules_.find(mapId) == nullptr) {
 		addExtraMap(staged, scenario, mapId);
 	} else {
-		addMandatoryMap(staged, mapId, scenario);
+		addMandatoryMap(staged, mapId, scenario, catalog);
 		wirePortals(staged);
 	}
 	world = std::move(staged);
@@ -91,7 +95,8 @@ void WorldFactory::removeExtraMap(World& world, const std::string& mapId) const 
 }
 
 void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
-				   const Scenario& scenario) const {
+				   const Scenario& scenario,
+				   const PrefabCatalog& catalog) const {
 	const MapRule& rule = *rules_.find(mapId);
 	if (scenario.kind != rule.kind) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
@@ -100,7 +105,7 @@ void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
 	world.maps.emplace(mapId,
 			   copyScenario(scenario, mapId, rule.kind,
 					rules_.dungeonLevel(mapId).value_or(0)));
-	placeMapObjects(world, mapId);
+	placeMapObjects(world, mapId, catalog);
 	world.maps.at(mapId).rebuildCollision();
 	placeMapPoints(world, mapId);
 }
@@ -153,6 +158,21 @@ void WorldFactory::mergeTilesets(World& world,
 	}
 }
 
+void WorldFactory::mergePrefabTileset(World& world,
+				      const PrefabCatalog& catalog,
+				      const std::string& tilesetId) const {
+	const auto catIt = catalog.tilesets().find(tilesetId);
+	if (catIt == catalog.tilesets().end()) {
+		throw FormatError(FormatErrorKind::InvalidValue, "tilesets");
+	}
+	const auto found = world.tilesets.find(tilesetId);
+	if (found == world.tilesets.end()) {
+		world.tilesets.emplace(tilesetId, catIt->second);
+	} else if (!(found->second == catIt->second)) {
+		throw FormatError(FormatErrorKind::InvalidValue, "tilesets");
+	}
+}
+
 TileRef WorldFactory::defaultObjectTile(const World& world) const {
 	if (world.tilesets.empty()) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
@@ -160,24 +180,49 @@ TileRef WorldFactory::defaultObjectTile(const World& world) const {
 	return TileRef{world.tilesets.begin()->first, 0, 0};
 }
 
-void WorldFactory::placeMapObjects(World& world,
-				   const std::string& mapId) const {
+void WorldFactory::placeMapObjects(World& world, const std::string& mapId,
+				   const PrefabCatalog& catalog) const {
 	Map& map = world.maps.at(mapId);
 	switch (map.kind) {
-	case MapKind::Farm:
-		addObject(map, ObjectRole::Cabin, defaultObjectTile(world),
-			  {2, 2}, 4, 3, true, TilePos{4, 5});
+	case MapKind::Farm: {
+		int cabinCount = 0;
+		for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
+			if (world.maps.contains(rules_.cabinId(k))) {
+				cabinCount = k;
+			}
+		}
+		cabinCount = std::max(1, cabinCount);
+		const PrefabDef* cabinPrefab =
+			catalog.findByRole(ObjectRole::Cabin);
+		const int cabinWidth = cabinPrefab != nullptr
+						 ? cabinPrefab->width
+						 : kFallbackCabinWidth;
+		for (int k = 1; k <= cabinCount; ++k) {
+			const TilePos cell{
+				kFarmCabinOrigin.column +
+					(k - 1) * (cabinWidth + kFarmCabinGap),
+				kFarmCabinOrigin.row};
+			placeBuilding(world, map, ObjectRole::Cabin, cell,
+				      kFallbackCabinWidth, kFallbackCabinHeight,
+				      kFallbackCabinDoor, catalog);
+		}
 		break;
+	}
 	case MapKind::Town: {
-		const TileRef tile = defaultObjectTile(world);
 		const TilePos marketCell{map.width / 2, 2};
-		addObject(map, ObjectRole::Market, tile, marketCell, 5, 4,
-			  true, TilePos{marketCell.column + 2,
-					marketCell.row + 4});
-		const TilePos centerCell{2, map.height - 5};
-		addObject(map, ObjectRole::CommunityCenter, tile, centerCell,
-			  6, 4, true,
-			  TilePos{centerCell.column + 3, centerCell.row + 4});
+		placeBuilding(world, map, ObjectRole::Market, marketCell,
+			      kFallbackMarketWidth, kFallbackMarketHeight,
+			      kFallbackMarketDoor, catalog);
+		const PrefabDef* centerPrefab =
+			catalog.findByRole(ObjectRole::CommunityCenter);
+		const int centerHeight = centerPrefab != nullptr
+						   ? centerPrefab->height
+						   : kFallbackCenterHeight;
+		const TilePos centerCell{2, map.height - centerHeight - 1};
+		placeBuilding(world, map, ObjectRole::CommunityCenter,
+			      centerCell, kFallbackCenterWidth,
+			      kFallbackCenterHeight, kFallbackCenterDoor,
+			      catalog);
 		break;
 	}
 	default:
@@ -185,12 +230,36 @@ void WorldFactory::placeMapObjects(World& world,
 	}
 }
 
+void WorldFactory::placeBuilding(World& world, Map& map, ObjectRole role,
+				 TilePos cell, int defaultWidth,
+				 int defaultHeight, TilePos defaultDoorOffset,
+				 const PrefabCatalog& catalog) const {
+	const PrefabDef* prefab = catalog.findByRole(role);
+	if (prefab != nullptr) {
+		mergePrefabTileset(world, catalog, prefab->tile.tileset);
+		const TilePos doorOffset = prefab->door.value_or(
+			TilePos{prefab->width / 2, prefab->height});
+		const TilePos door{cell.column + doorOffset.column,
+				   cell.row + doorOffset.row};
+		const bool blocked = std::any_of(
+			prefab->collisionGrid.begin(),
+			prefab->collisionGrid.end(),
+			[](bool cellBlocked) { return cellBlocked; });
+		addObject(map, role, prefab->tile, cell, prefab->width,
+			  prefab->height, blocked, door, prefab->collisionGrid);
+		return;
+	}
+	const TilePos door{cell.column + defaultDoorOffset.column,
+			   cell.row + defaultDoorOffset.row};
+	addObject(map, role, defaultObjectTile(world), cell, defaultWidth,
+		  defaultHeight, true, door, {});
+}
+
 void WorldFactory::placeMapPoints(World& world,
 				  const std::string& mapId) const {
 	Map& map = world.maps.at(mapId);
 	switch (map.kind) {
 	case MapKind::Farm:
-		addMarker(map, MarkerKind::PlayerSpawn, {4, 6});
 		addPortal(map, PortalKind::TownEntrance,
 			  {map.width - 2, map.height / 2});
 		addPortal(map, PortalKind::DungeonEntrance,
@@ -221,7 +290,7 @@ void WorldFactory::placeMapPoints(World& world,
 		break;
 	case MapKind::Dungeon:
 		addPortal(map, PortalKind::DungeonExit, {2, 2});
-		if (map.level < 10) {
+		if (map.level < kDungeonLevels) {
 			addPortal(map, PortalKind::StairsDown,
 				  {map.width - 3, map.height - 3});
 		}
@@ -233,7 +302,8 @@ void WorldFactory::placeMapPoints(World& world,
 
 void WorldFactory::addObject(Map& map, ObjectRole role, const TileRef& tile,
 			     TilePos cell, int width, int height, bool blocked,
-			     std::optional<TilePos> door) const {
+			     std::optional<TilePos> door,
+			     std::vector<bool> collisionGrid) const {
 	if (cell.column < 0 || cell.row < 0 ||
 	    cell.column + width > map.width ||
 	    cell.row + height > map.height) {
@@ -253,8 +323,8 @@ void WorldFactory::addObject(Map& map, ObjectRole role, const TileRef& tile,
 					  "scenario");
 		}
 	}
-	map.objects.push_back(
-		MapObject{role, tile, cell, width, height, blocked, door, {}});
+	map.objects.push_back(MapObject{role, tile, cell, width, height,
+					blocked, door, std::move(collisionGrid)});
 }
 
 void WorldFactory::addMarker(Map& map, MarkerKind kind,
@@ -288,6 +358,20 @@ void WorldFactory::wirePortals(World& world) const {
 		}
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 	};
+	const auto cabinDoorCell = [&](int cabinIndex) {
+		const Map& farm = world.maps.at("farm");
+		int current = 0;
+		for (const MapObject& object : farm.objects) {
+			if (object.role == ObjectRole::Cabin) {
+				++current;
+				if (current == cabinIndex &&
+				    object.door.has_value()) {
+					return *object.door;
+				}
+			}
+		}
+		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
+	};
 	const auto setTarget = [&](const std::string& mapId, PortalKind kind,
 				   const std::string& targetId,
 				   TilePos targetCell) {
@@ -309,10 +393,10 @@ void WorldFactory::wirePortals(World& world) const {
 	setTarget("farm", PortalKind::DungeonEntrance, "dungeon_1",
 		  portalCell("dungeon_1", PortalKind::DungeonExit));
 
-	for (int level = 1; level <= 10; ++level) {
+	for (int level = 1; level <= kDungeonLevels; ++level) {
 		setTarget(rules_.dungeonId(level), PortalKind::DungeonExit, "farm",
 			  portalCell("farm", PortalKind::DungeonEntrance));
-		if (level < 10) {
+		if (level < kDungeonLevels) {
 			setTarget(rules_.dungeonId(level), PortalKind::StairsDown,
 				  rules_.dungeonId(level + 1),
 				  portalCell(rules_.dungeonId(level + 1),
@@ -320,8 +404,13 @@ void WorldFactory::wirePortals(World& world) const {
 		}
 	}
 
-	setTarget("cabin", PortalKind::InteriorExit, "farm",
-		  doorCell("farm", ObjectRole::Cabin));
+	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
+		const std::string id = rules_.cabinId(k);
+		if (world.maps.contains(id)) {
+			setTarget(id, PortalKind::InteriorExit, "farm",
+				  cabinDoorCell(k));
+		}
+	}
 	setTarget("market", PortalKind::InteriorExit, "town",
 		  doorCell("town", ObjectRole::Market));
 	setTarget("community_center", PortalKind::InteriorExit, "town",

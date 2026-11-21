@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "world_model/FormatError.h"
+#include "world_model/MapRules.h"
 #include "world_model/TileCodec.h"
 
 namespace worldmodel {

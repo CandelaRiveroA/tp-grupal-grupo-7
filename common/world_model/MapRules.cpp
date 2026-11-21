@@ -1,12 +1,13 @@
 #include "world_model/MapRules.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
 namespace worldmodel {
 
 MapRules::MapRules() {
-	rules_.reserve(15);
+	rules_.reserve(kBaseMandatoryMaps + kMaxPlayers + kDungeonLevels);
 	const auto add = [this](const std::string& id, MapKind kind) -> MapRule& {
 		rules_.push_back(MapRule{});
 		MapRule& rule = rules_.back();
@@ -20,9 +21,6 @@ MapRules::MapRules() {
 		MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
 
 	MapRule& farm = add("farm", MapKind::Farm);
-	farm.allowedMarkers = {MarkerKind::PlayerSpawn};
-	farm.requiredMarkers = {{MarkerKind::PlayerSpawn, false}};
-	farm.requiredObjects = {ObjectRole::Cabin};
 	farm.requiredPortals = {PortalKind::TownEntrance,
 				PortalKind::DungeonEntrance};
 
@@ -31,12 +29,14 @@ MapRules::MapRules() {
 				ObjectRole::CommunityCenter};
 	town.requiredPortals = {PortalKind::FarmEntrance};
 
-	MapRule& cabin = add("cabin", MapKind::Cabin);
-	cabin.allowedMarkers = {MarkerKind::Bed};
-	cabin.requiredMarkers = {{MarkerKind::Bed, false}};
-	cabin.requiredPortals = {PortalKind::InteriorExit};
-	cabin.interiorObject = ObjectRole::Cabin;
-	cabin.interiorExitTarget = "farm";
+	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
+		MapRule& cabin = add(cabinId(k), MapKind::Cabin);
+		cabin.allowedMarkers = {MarkerKind::Bed};
+		cabin.requiredMarkers = {{MarkerKind::Bed, true}};
+		cabin.requiredPortals = {PortalKind::InteriorExit};
+		cabin.interiorObject = ObjectRole::Cabin;
+		cabin.interiorExitTarget = "farm";
+	}
 
 	MapRule& market = add("market", MapKind::Market);
 	market.allowedMarkers = merchants;
@@ -53,10 +53,10 @@ MapRules::MapRules() {
 	center.interiorObject = ObjectRole::CommunityCenter;
 	center.interiorExitTarget = "town";
 
-	for (int level = 1; level <= 10; ++level) {
+	for (int level = 1; level <= kDungeonLevels; ++level) {
 		MapRule& dungeon = add(dungeonId(level), MapKind::Dungeon);
 		dungeon.requiredPortals = {PortalKind::DungeonExit};
-		if (level < 10) {
+		if (level < kDungeonLevels) {
 			dungeon.requiredPortals.push_back(
 				PortalKind::StairsDown);
 		}
@@ -72,6 +72,18 @@ const MapRule* MapRules::find(const std::string& id) const {
 		}
 	}
 	return nullptr;
+}
+
+std::vector<std::string> MapRules::requiredMapIds(int cabinCount) const {
+	std::vector<std::string> ids = {"farm", "town", "market",
+					"community_center"};
+	for (int k = kMinPlayers; k <= cabinCount && k <= kMaxPlayers; ++k) {
+		ids.push_back(cabinId(k));
+	}
+	for (int level = 1; level <= kDungeonLevels; ++level) {
+		ids.push_back(dungeonId(level));
+	}
+	return ids;
 }
 
 bool MapRules::isValidMapId(const std::string& id) const {
@@ -97,14 +109,53 @@ bool MapRules::isValidWorldName(const std::string& name) const {
 	       name.find('\0') == std::string::npos;
 }
 
+std::string MapRules::cabinId(int k) const {
+	return "cabin_" + std::to_string(k);
+}
+
+std::optional<int> MapRules::cabinIndex(const std::string& id) const {
+	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
+		if (id == cabinId(k)) {
+			return k;
+		}
+	}
+	return std::nullopt;
+}
+
 std::string MapRules::dungeonId(int level) const {
 	return "dungeon_" + std::to_string(level);
 }
 
 std::optional<int> MapRules::dungeonLevel(const std::string& id) const {
-	for (int level = 1; level <= 10; ++level) {
+	for (int level = 1; level <= kDungeonLevels; ++level) {
 		if (id == dungeonId(level)) {
 			return level;
+		}
+	}
+	return std::nullopt;
+}
+
+std::optional<std::string> MapRules::expectedPortalTarget(
+	const std::string& mapId, PortalKind kind) const {
+	static const std::map<PortalKind, std::string> FixedTargets = {
+		{PortalKind::TownEntrance, "town"},
+		{PortalKind::FarmEntrance, "farm"},
+		{PortalKind::DungeonEntrance, "dungeon_1"},
+		{PortalKind::DungeonExit, "farm"},
+	};
+	if (const auto it = FixedTargets.find(kind);
+	    it != FixedTargets.end()) {
+		return it->second;
+	}
+	if (kind == PortalKind::InteriorExit) {
+		const MapRule* rule = find(mapId);
+		return rule != nullptr ? rule->interiorExitTarget
+				       : std::nullopt;
+	}
+	if (kind == PortalKind::StairsDown) {
+		const std::optional<int> level = dungeonLevel(mapId);
+		if (level.has_value() && *level < kDungeonLevels) {
+			return dungeonId(*level + 1);
 		}
 	}
 	return std::nullopt;

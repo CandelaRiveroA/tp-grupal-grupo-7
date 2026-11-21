@@ -54,4 +54,13 @@ const PrefabDef* PrefabCatalog::find(const std::string& id) const {
 	return nullptr;
 }
 
+const PrefabDef* PrefabCatalog::findByRole(ObjectRole role) const {
+	for (const PrefabDef& prefab : prefabs_) {
+		if (prefab.role == role) {
+			return &prefab;
+		}
+	}
+	return nullptr;
+}
+
 }

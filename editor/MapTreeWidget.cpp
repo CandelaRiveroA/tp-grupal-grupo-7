@@ -21,7 +21,8 @@ MapTreeWidget::MapTreeWidget(QWidget* parent) : QWidget(parent) {
 		return group;
 	};
 	addGroup("Exteriores", {"farm", "town"});
-	addGroup("Interiores", {"cabin", "market", "community_center"});
+	interiorsItem_ =
+		addGroup("Interiores", {"cabin_1", "market", "community_center"});
 	// Orden explicito 1..10, no el alfanumerico de map
 	const worldmodel::MapRules rules;
 	std::vector<std::string> dungeons;
@@ -66,8 +67,18 @@ void MapTreeWidget::addLeaf(QTreeWidgetItem* group, const std::string& id) {
 
 void MapTreeWidget::setExtraMaps(const worldmodel::World& world) {
 	// takeChildren no borra los items: hay que destruirlos a mano.
+	qDeleteAll(interiorsItem_->takeChildren());
 	qDeleteAll(extrasItem_->takeChildren());
 	const worldmodel::MapRules rules;
+	for (int k = worldmodel::kMinPlayers; k <= worldmodel::kMaxPlayers;
+	     ++k) {
+		const std::string id = rules.cabinId(k);
+		if (world.maps.contains(id)) {
+			addLeaf(interiorsItem_, id);
+		}
+	}
+	addLeaf(interiorsItem_, "market");
+	addLeaf(interiorsItem_, "community_center");
 	for (const auto& [id, map] : world.maps) {
 		if (rules.find(id) == nullptr) {
 			addLeaf(extrasItem_, id);

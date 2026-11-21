@@ -31,6 +31,7 @@ private:
 	void addLeaf(QTreeWidgetItem* group, const std::string& id);
 
 	QTreeWidget* tree_ = nullptr;
+	QTreeWidgetItem* interiorsItem_ = nullptr;
 	QTreeWidgetItem* extrasItem_ = nullptr;
 	QPushButton* addButton_ = nullptr;
 	QPushButton* removeButton_ = nullptr;

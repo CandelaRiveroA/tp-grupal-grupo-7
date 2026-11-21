@@ -64,6 +64,7 @@ void EditorWindow::newWorld() {
 		const worldmodel::WorldFactory factory;
 		workspace_->setWorld(factory.makeDefault(
 			dialog.worldName(), scenarios_,
+			workspace_->catalog(),
 			factory.firstOfEachKind(scenarios_)));
 		pages_->setCurrentWidget(workspace_);
 	} catch (const std::exception& error) {

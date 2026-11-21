@@ -30,6 +30,7 @@ public:
 		      QWidget* parent = nullptr);
 
 	void setWorld(const worldmodel::World& world);
+	const worldmodel::PrefabCatalog& catalog() const;
 
 signals:
 	void backRequested();

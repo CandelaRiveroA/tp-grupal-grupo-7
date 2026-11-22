@@ -38,6 +38,9 @@ public:
 	bool isWalking(std::size_t index, int iteration,
 		       bool serverMoving) const;
 
+	bool isRunning(std::size_t index, int iteration,
+		       bool serverMoving) const;
+
 private:
 	struct Track {
 		int id = 0;
@@ -57,6 +60,8 @@ private:
 
 		int stepIteration = 0;
 
+		int stepCells = 0;
+		bool canRun = false;
 		world::MoveCadence cadence{0, 0};
 
 		// Trackeo de la acción observada de la fuente: el reloj se

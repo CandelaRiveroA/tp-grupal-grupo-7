@@ -1,7 +1,8 @@
 #include "world_model/WorldFactory.h"
 
-#include <algorithm>
+#include <cstdlib>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,21 +12,19 @@
 namespace worldmodel {
 
 WorldFactory::WorldFactory()
-	: objectPlacers_{
-		  {MapKind::Farm, &WorldFactory::placeFarmObjects},
-		  {MapKind::Town, &WorldFactory::placeTownObjects},
-	  },
-	  pointPlacers_{
-		  {MapKind::Cabin, &WorldFactory::placeCabinPoints},
-		  {MapKind::Market, &WorldFactory::placeMarketPoints},
-		  {MapKind::CommunityCenter,
-		   &WorldFactory::placeCommunityCenterPoints},
+	: interiorSpecs_{
+		  {MapKind::Cabin, {MarkerKind::Bed, false}},
+		  {MapKind::Carpentry, {MarkerKind::MerchantRobin, true}},
+		  {MapKind::Blacksmith, {MarkerKind::MerchantClint, true}},
+		  {MapKind::GeneralStore, {MarkerKind::MerchantPierre, true}},
+		  {MapKind::Ranch, {MarkerKind::MerchantMarnie, true}},
 	  } {}
 
 World WorldFactory::makeDefault(const std::string& name,
 				const ScenarioLibrary& library,
 				const PrefabCatalog& catalog,
 				const ScenarioChoice& choice) const {
+	(void)catalog;
 	const auto require = [&](const std::string& id) -> const Scenario& {
 		const Scenario* scenario = library.find(id);
 		if (!scenario) {
@@ -38,14 +37,15 @@ World WorldFactory::makeDefault(const std::string& name,
 	world.formatVersion = 1;
 	world.name = name;
 
-	addMandatoryMap(world, "farm", require(choice.farm), catalog);
-	addMandatoryMap(world, "town", require(choice.town), catalog);
-	addMandatoryMap(world, "market", require(choice.market), catalog);
-	addMandatoryMap(world, "community_center",
-			require(choice.communityCenter), catalog);
+	addMandatoryMap(world, "farm", require(choice.farm));
+	addMandatoryMap(world, "town", require(choice.town));
+	addMandatoryMap(world, "carpentry", require(choice.carpentry));
+	addMandatoryMap(world, "blacksmith", require(choice.blacksmith));
+	addMandatoryMap(world, "general_store", require(choice.generalStore));
+	addMandatoryMap(world, "ranch", require(choice.ranch));
 	for (int level = 1; level <= kDungeonLevels; ++level) {
 		addMandatoryMap(world, rules_.dungeonId(level),
-				require(choice.dungeons[level - 1]), catalog);
+				require(choice.dungeons[level - 1]));
 	}
 	wirePortals(world);
 	return world;
@@ -62,8 +62,10 @@ ScenarioChoice WorldFactory::firstOfEachKind(
 	choice.farm = firstId(MapKind::Farm);
 	choice.town = firstId(MapKind::Town);
 	choice.cabin = firstId(MapKind::Cabin);
-	choice.market = firstId(MapKind::Market);
-	choice.communityCenter = firstId(MapKind::CommunityCenter);
+	choice.carpentry = firstId(MapKind::Carpentry);
+	choice.blacksmith = firstId(MapKind::Blacksmith);
+	choice.generalStore = firstId(MapKind::GeneralStore);
+	choice.ranch = firstId(MapKind::Ranch);
 	choice.dungeons.fill(firstId(MapKind::Dungeon));
 	return choice;
 }
@@ -82,6 +84,7 @@ void WorldFactory::addExtraMap(World& world, const Scenario& scenario,
 void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
 				      const Scenario& scenario,
 				      const PrefabCatalog& catalog) const {
+	(void)catalog;
 	if (!world.maps.contains(mapId)) {
 		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}
@@ -91,7 +94,7 @@ void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
 	if (rules_.find(mapId) == nullptr) {
 		addExtraMap(staged, scenario, mapId);
 	} else {
-		addMandatoryMap(staged, mapId, scenario, catalog);
+		addMandatoryMap(staged, mapId, scenario);
 		wirePortals(staged);
 	}
 	world = std::move(staged);
@@ -111,7 +114,7 @@ void WorldFactory::addCabinMap(World& world, int index,
 	    world.maps.contains(cabinId)) {
 		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}
-	addMandatoryMap(world, cabinId, scenario, {});
+	addMandatoryMap(world, cabinId, scenario);
 	const Map& farm = world.maps.at("farm");
 	int current = 0;
 	std::optional<TilePos> door;
@@ -132,8 +135,7 @@ void WorldFactory::addCabinMap(World& world, int index,
 }
 
 void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
-				   const Scenario& scenario,
-				   const PrefabCatalog& catalog) const {
+				   const Scenario& scenario) const {
 	const MapRule& rule = *rules_.find(mapId);
 	if (scenario.kind != rule.kind) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
@@ -142,7 +144,6 @@ void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
 	world.maps.emplace(mapId,
 			   copyScenario(scenario, mapId, rule.kind,
 					rules_.dungeonLevel(mapId).value_or(0)));
-	placeMapObjects(world, mapId, catalog);
 	world.maps.at(mapId).rebuildCollision();
 	placeMapPoints(world, mapId);
 }
@@ -156,17 +157,22 @@ Map WorldFactory::copyScenario(const Scenario& scenario,
 	const std::size_t cells = static_cast<std::size_t>(scenario.width) *
 				  static_cast<std::size_t>(scenario.height);
 	if (scenario.collision.size() != cells ||
-	    scenario.ground.size() != cells) {
+	    scenario.ground.size() != cells ||
+	    (!scenario.front.empty() && scenario.front.size() != cells)) {
 		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 	}
-	for (const std::optional<TileRef>& tile : scenario.ground) {
-		if (tile.has_value() &&
-		    scenario.tilesets.find(tile->tileset) ==
-			    scenario.tilesets.end()) {
-			throw FormatError(FormatErrorKind::InvalidValue,
-					  "tilesets");
+	const auto checkTiles = [&](const TileGrid& grid) {
+		for (const std::optional<TileRef>& tile : grid) {
+			if (tile.has_value() &&
+			    scenario.tilesets.find(tile->tileset) ==
+				    scenario.tilesets.end()) {
+				throw FormatError(FormatErrorKind::InvalidValue,
+						  "tilesets");
+			}
 		}
-	}
+	};
+	checkTiles(scenario.ground);
+	checkTiles(scenario.front);
 
 	Map map;
 	map.id = id;
@@ -179,6 +185,11 @@ Map WorldFactory::copyScenario(const Scenario& scenario,
 	map.collision = scenario.collision;
 	map.ground = scenario.ground;
 	map.paths.assign(cells, std::nullopt);
+	if (scenario.front.empty()) {
+		map.front.assign(cells, std::nullopt);
+	} else {
+		map.front = scenario.front;
+	}
 	return map;
 }
 
@@ -195,157 +206,49 @@ void WorldFactory::mergeTilesets(World& world,
 	}
 }
 
-void WorldFactory::mergePrefabTileset(World& world,
-				      const PrefabCatalog& catalog,
-				      const std::string& tilesetId) const {
-	const auto catIt = catalog.tilesets().find(tilesetId);
-	if (catIt == catalog.tilesets().end()) {
-		throw FormatError(FormatErrorKind::InvalidValue, "tilesets");
-	}
-	const auto found = world.tilesets.find(tilesetId);
-	if (found == world.tilesets.end()) {
-		world.tilesets.emplace(tilesetId, catIt->second);
-	} else if (!(found->second == catIt->second)) {
-		throw FormatError(FormatErrorKind::InvalidValue, "tilesets");
-	}
-}
-
-TileRef WorldFactory::defaultObjectTile(const World& world) const {
-	if (world.tilesets.empty()) {
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
-	}
-	return TileRef{world.tilesets.begin()->first, 0, 0};
-}
-
-void WorldFactory::placeMapObjects(World& world, const std::string& mapId,
-				   const PrefabCatalog& catalog) const {
-	Map& map = world.maps.at(mapId);
-	const auto it = objectPlacers_.find(map.kind);
-	if (it != objectPlacers_.end()) {
-		(this->*(it->second))(world, map, catalog);
-	}
-}
-
-void WorldFactory::placeFarmObjects(World& world, Map& map,
-				    const PrefabCatalog& catalog) const {
-	int cabinCount = 0;
-	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
-		if (world.maps.contains(rules_.cabinId(k))) {
-			cabinCount = k;
-		}
-	}
-	const PrefabDef* cabinPrefab = catalog.findByRole(ObjectRole::Cabin);
-	const int cabinWidth =
-		cabinPrefab != nullptr ? cabinPrefab->width : kFallbackCabinWidth;
-	for (int k = 1; k <= cabinCount; ++k) {
-		const TilePos cell{
-			kFarmCabinOrigin.column +
-				(k - 1) * (cabinWidth + kFarmCabinGap),
-			kFarmCabinOrigin.row};
-		placeBuilding(world, map, ObjectRole::Cabin, cell,
-			      kFallbackCabinWidth, kFallbackCabinHeight,
-			      kFallbackCabinDoor, catalog);
-	}
-}
-
-void WorldFactory::placeTownObjects(World& world, Map& map,
-				    const PrefabCatalog& catalog) const {
-	const TilePos marketCell{map.width / 2, 2};
-	placeBuilding(world, map, ObjectRole::Market, marketCell,
-		      kFallbackMarketWidth, kFallbackMarketHeight,
-		      kFallbackMarketDoor, catalog);
-	const PrefabDef* centerPrefab =
-		catalog.findByRole(ObjectRole::CommunityCenter);
-	const int centerHeight = centerPrefab != nullptr
-					   ? centerPrefab->height
-					   : kFallbackCenterHeight;
-	const TilePos centerCell{2, map.height - centerHeight - 1};
-	placeBuilding(world, map, ObjectRole::CommunityCenter, centerCell,
-		      kFallbackCenterWidth, kFallbackCenterHeight,
-		      kFallbackCenterDoor, catalog);
-}
-
-void WorldFactory::placeBuilding(World& world, Map& map, ObjectRole role,
-				 TilePos cell, int defaultWidth,
-				 int defaultHeight, TilePos defaultDoorOffset,
-				 const PrefabCatalog& catalog) const {
-	const PrefabDef* prefab = catalog.findByRole(role);
-	if (prefab != nullptr) {
-		mergePrefabTileset(world, catalog, prefab->tile.tileset);
-		const TilePos doorOffset = prefab->door.value_or(
-			TilePos{prefab->width / 2, prefab->height});
-		const TilePos door{cell.column + doorOffset.column,
-				   cell.row + doorOffset.row};
-		const bool blocked = std::any_of(
-			prefab->collisionGrid.begin(),
-			prefab->collisionGrid.end(),
-			[](bool cellBlocked) { return cellBlocked; });
-		addObject(map, role, prefab->tile, cell, prefab->width,
-			  prefab->height, blocked, door, prefab->collisionGrid);
-		return;
-	}
-	const TilePos door{cell.column + defaultDoorOffset.column,
-			   cell.row + defaultDoorOffset.row};
-	addObject(map, role, defaultObjectTile(world), cell, defaultWidth,
-		  defaultHeight, true, door, {});
-}
-
 void WorldFactory::placeMapPoints(World& world,
 				  const std::string& mapId) const {
 	Map& map = world.maps.at(mapId);
-	const auto it = pointPlacers_.find(map.kind);
-	if (it != pointPlacers_.end()) {
-		(this->*(it->second))(map);
+	const auto it = interiorSpecs_.find(map.kind);
+	if (it == interiorSpecs_.end()) {
+		return;
 	}
-}
-
-void WorldFactory::placeCabinPoints(Map& map) const {
-	addMarker(map, MarkerKind::Bed, {2, 2});
+	const TilePos preferredMarker =
+		it->second.centerMarker
+			? TilePos{map.width / 2, map.height / 2}
+			: TilePos{2, 2};
+	addMarker(map, it->second.marker,
+		  findWalkableNear(map, preferredMarker));
 	addPortal(map, PortalKind::InteriorExit,
-		  {map.width / 2, map.height - 2});
+		  findWalkableNear(map, {map.width / 2, map.height - 2}));
 }
 
-void WorldFactory::placeMarketPoints(Map& map) const {
-	const MarkerKind merchants[] = {
-		MarkerKind::MerchantMarnie, MarkerKind::MerchantClint,
-		MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
-	for (int i = 0; i < 4; ++i) {
-		addMarker(map, merchants[i], {3 + 3 * i, 0});
+TilePos WorldFactory::findWalkableNear(const Map& map,
+				       TilePos preferred) const {
+	if (map.contains(preferred) && map.isWalkable(preferred)) {
+		return preferred;
 	}
-	addPortal(map, PortalKind::InteriorExit,
-		  {map.width / 2, map.height - 2});
-}
-
-void WorldFactory::placeCommunityCenterPoints(Map& map) const {
-	addPortal(map, PortalKind::InteriorExit,
-		  {map.width / 2, map.height - 1});
-}
-
-void WorldFactory::addObject(Map& map, ObjectRole role, const TileRef& tile,
-			     TilePos cell, int width, int height, bool blocked,
-			     std::optional<TilePos> door,
-			     std::vector<bool> collisionGrid) const {
-	if (cell.column < 0 || cell.row < 0 ||
-	    cell.column + width > map.width ||
-	    cell.row + height > map.height) {
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
-	}
-	if (door.has_value() && !map.contains(*door)) {
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
-	}
-	for (const MapObject& other : map.objects) {
-		const bool overlaps =
-			cell.column < other.cell.column + other.width &&
-			other.cell.column < cell.column + width &&
-			cell.row < other.cell.row + other.height &&
-			other.cell.row < cell.row + height;
-		if (overlaps) {
-			throw FormatError(FormatErrorKind::InvalidValue,
-					  "scenario");
+	int bestDist = std::numeric_limits<int>::max();
+	std::optional<TilePos> best;
+	for (int row = 0; row < map.height; ++row) {
+		for (int col = 0; col < map.width; ++col) {
+			const TilePos candidate{col, row};
+			if (!map.isWalkable(candidate)) {
+				continue;
+			}
+			const int dist =
+				std::abs(col - preferred.column) +
+				std::abs(row - preferred.row);
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = candidate;
+			}
 		}
 	}
-	map.objects.push_back(MapObject{role, tile, cell, width, height,
-					blocked, door, std::move(collisionGrid)});
+	if (best.has_value()) {
+		return *best;
+	}
+	return map.contains(preferred) ? preferred : TilePos{0, 0};
 }
 
 void WorldFactory::addMarker(Map& map, MarkerKind kind,
@@ -360,41 +263,50 @@ void WorldFactory::addPortal(Map& map, PortalKind kind,
 
 void WorldFactory::wirePortals(World& world) const {
 	const auto doorCell = [&](const std::string& mapId,
-				  ObjectRole role) {
-		const Map& map = world.maps.at(mapId);
-		for (const MapObject& object : map.objects) {
+				  ObjectRole role) -> std::optional<TilePos> {
+		const auto mapIt = world.maps.find(mapId);
+		if (mapIt == world.maps.end()) {
+			return std::nullopt;
+		}
+		for (const MapObject& object : mapIt->second.objects) {
 			if (object.role == role && object.door.has_value()) {
 				return *object.door;
 			}
 		}
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
+		return std::nullopt;
 	};
-	const auto cabinDoorCell = [&](int cabinIndex) {
-		const Map& farm = world.maps.at("farm");
+	const auto cabinDoorCell =
+		[&](int cabinIndex) -> std::optional<TilePos> {
+		const auto farmIt = world.maps.find("farm");
+		if (farmIt == world.maps.end()) {
+			return std::nullopt;
+		}
 		int current = 0;
-		for (const MapObject& object : farm.objects) {
-			if (object.role == ObjectRole::Cabin) {
-				++current;
-				if (current == cabinIndex &&
-				    object.door.has_value()) {
-					return *object.door;
-				}
+		for (const MapObject& object : farmIt->second.objects) {
+			if (object.role == ObjectRole::Cabin &&
+			    ++current == cabinIndex) {
+				return object.door;
 			}
 		}
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
+		return std::nullopt;
 	};
 	const auto setTarget = [&](const std::string& mapId, PortalKind kind,
 				   const std::string& targetId,
-				   TilePos targetCell) {
-		Map& map = world.maps.at(mapId);
-		for (Portal& portal : map.portals) {
+				   std::optional<TilePos> targetCell) {
+		if (!targetCell.has_value()) {
+			return;
+		}
+		const auto mapIt = world.maps.find(mapId);
+		if (mapIt == world.maps.end()) {
+			return;
+		}
+		for (Portal& portal : mapIt->second.portals) {
 			if (portal.kind == kind) {
 				portal.targetMap = targetId;
-				portal.targetCell = targetCell;
+				portal.targetCell = *targetCell;
 				return;
 			}
 		}
-		throw FormatError(FormatErrorKind::InvalidValue, "scenario");
 	};
 
 	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
@@ -404,10 +316,16 @@ void WorldFactory::wirePortals(World& world) const {
 				  cabinDoorCell(k));
 		}
 	}
-	setTarget("market", PortalKind::InteriorExit, "town",
-		  doorCell("town", ObjectRole::Market));
-	setTarget("community_center", PortalKind::InteriorExit, "town",
-		  doorCell("town", ObjectRole::CommunityCenter));
+	const std::pair<const char*, ObjectRole> shops[] = {
+		{"carpentry", ObjectRole::Carpentry},
+		{"blacksmith", ObjectRole::Blacksmith},
+		{"general_store", ObjectRole::GeneralStore},
+		{"ranch", ObjectRole::Ranch},
+	};
+	for (const auto& [mapId, role] : shops) {
+		setTarget(mapId, PortalKind::InteriorExit, "town",
+			  doorCell("town", role));
+	}
 }
 
 }

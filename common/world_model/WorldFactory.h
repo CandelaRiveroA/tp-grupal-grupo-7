@@ -4,7 +4,6 @@
 #include <map>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "world_model/Constants.h"
 #include "world_model/Geometry.h"
@@ -13,7 +12,6 @@
 #include "world_model/PrefabCatalog.h"
 #include "world_model/Scenario.h"
 #include "world_model/ScenarioLibrary.h"
-#include "world_model/Tile.h"
 #include "world_model/World.h"
 
 namespace worldmodel {
@@ -22,8 +20,10 @@ struct ScenarioChoice {
 	std::string farm;
 	std::string town;
 	std::string cabin;
-	std::string market;
-	std::string communityCenter;
+	std::string carpentry;
+	std::string blacksmith;
+	std::string generalStore;
+	std::string ranch;
 	std::array<std::string, kDungeonLevels> dungeons;
 };
 
@@ -53,43 +53,25 @@ public:
 			 const Scenario& scenario) const;
 
 private:
-	// Coloca el escenario en el slot obligatorio mapId y coloca sus
+	struct InteriorSpec {
+		MarkerKind marker;
+		bool centerMarker = true;
+	};
+
+	// Coloca el escenario en el slot obligatorio mapId y coloca sus puntos.
 	void addMandatoryMap(World& world, const std::string& mapId,
-			     const Scenario& scenario,
-			     const PrefabCatalog& catalog) const;
+			     const Scenario& scenario) const;
 	Map copyScenario(const Scenario& scenario, const std::string& id,
 			 MapKind kind, int level) const;
 	void mergeTilesets(World& world, const Scenario& scenario) const;
-	void mergePrefabTileset(World& world, const PrefabCatalog& catalog,
-				const std::string& tilesetId) const;
-	TileRef defaultObjectTile(const World& world) const;
-	void placeMapObjects(World& world, const std::string& mapId,
-			     const PrefabCatalog& catalog) const;
-	void placeFarmObjects(World& world, Map& map,
-			      const PrefabCatalog& catalog) const;
-	void placeTownObjects(World& world, Map& map,
-			      const PrefabCatalog& catalog) const;
-	void placeBuilding(World& world, Map& map, ObjectRole role,
-			   TilePos cell, int defaultWidth, int defaultHeight,
-			   TilePos defaultDoorOffset,
-			   const PrefabCatalog& catalog) const;
 	void placeMapPoints(World& world, const std::string& mapId) const;
-	void placeCabinPoints(Map& map) const;
-	void placeMarketPoints(Map& map) const;
-	void placeCommunityCenterPoints(Map& map) const;
-	void addObject(Map& map, ObjectRole role, const TileRef& tile,
-		       TilePos cell, int width, int height, bool blocked,
-		       std::optional<TilePos> door,
-		       std::vector<bool> collisionGrid) const;
+	TilePos findWalkableNear(const Map& map, TilePos preferred) const;
 	void addMarker(Map& map, MarkerKind kind, TilePos cell) const;
 	void addPortal(Map& map, PortalKind kind, TilePos cell) const;
 	void wirePortals(World& world) const;
 
 	MapRules rules_;
-	std::map<MapKind, void (WorldFactory::*)(World&, Map&,
-						 const PrefabCatalog&) const>
-		objectPlacers_;
-	std::map<MapKind, void (WorldFactory::*)(Map&) const> pointPlacers_;
+	std::map<MapKind, InteriorSpec> interiorSpecs_;
 };
 
 }

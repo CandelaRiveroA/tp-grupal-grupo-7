@@ -194,6 +194,9 @@ void WorldValidator::checkMap(const World& world, const Map& map,
     if (map.paths.size() != cells) {
         addIssue(issues, IssueCode::GridSizeMismatch, map.id);
     }
+    if (!map.front.empty() && map.front.size() != cells) {
+        addIssue(issues, IssueCode::GridSizeMismatch, map.id);
+    }
     if (collisionSizesMatch && map.collision != map.composeCollision()) {
         addIssue(issues, IssueCode::CollisionOutOfSync, map.id);
     }
@@ -211,6 +214,7 @@ void WorldValidator::checkMap(const World& world, const Map& map,
     };
     checkGridTiles(map.ground);
     checkGridTiles(map.paths);
+    checkGridTiles(map.front);
 
     checkObjects(world, map, issues);
     checkMarkers(map, issues);
@@ -235,16 +239,22 @@ void WorldValidator::checkObjects(const World& world, const Map& map,
     }
 
     for (const MapObject& object: map.objects) {
-        const bool needsDoor = object.role == ObjectRole::Cabin ||
-                               object.role == ObjectRole::Market ||
-                               object.role == ObjectRole::CommunityCenter;
+        const bool needsDoor = object.role != ObjectRole::CommunityCenter &&
+                               object.role != ObjectRole::Decoration;
         if (needsDoor) {
             if (!object.door.has_value()) {
                 addIssue(issues, IssueCode::ObjectDoorMissing, map.id, object.cell);
-            } else if (!map.contains(*object.door)) {
+            } else if (object.doorWidth <= 0 ||
+                       !map.fits(*object.door, object.doorWidth, 1)) {
                 addIssue(issues, IssueCode::ObjectDoorOutOfBounds, map.id, object.cell);
-            } else if (!map.isWalkable(*object.door)) {
-                addIssue(issues, IssueCode::ObjectDoorNotWalkable, map.id, object.cell);
+            } else {
+                for (int offset = 0; offset < object.doorWidth; ++offset) {
+                    const TilePos cell{object.door->column + offset, object.door->row};
+                    if (!map.isWalkable(cell)) {
+                        addIssue(issues, IssueCode::ObjectDoorNotWalkable, map.id, object.cell);
+                        break;
+                    }
+                }
             }
         }
 
@@ -334,7 +344,7 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
             const MapObject* building =
                     rule != nullptr ? findBuilding(target->second, *rule) : nullptr;
             if (building != nullptr && building->door.has_value() &&
-                !(*building->door == portal.targetCell)) {
+                !building->hitsDoor(portal.targetCell)) {
                 addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell);
             }
         }

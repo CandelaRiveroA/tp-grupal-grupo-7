@@ -10,3 +10,7 @@ bool Item::can_be_traded() const { return this->is_tradable; }
 bool Item::is_stackable_with(const Item& other) const {
     return this->id == other.get_id();
 }
+
+Quality Item::get_quality() const {
+    return Quality::BASE;
+}

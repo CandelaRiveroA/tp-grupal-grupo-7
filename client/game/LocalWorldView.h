@@ -270,6 +270,9 @@ struct LocalWorldView {
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Eventos del Centro Comunitario; valen solo el tick en que llegan.
+    uint8_t setCompleted = 0;
+    bool victory = false;
     // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
     // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
     // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de

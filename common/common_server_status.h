@@ -35,6 +35,8 @@ enum class ServerMessageType : uint8_t {
     Chat = 23,
     GiftRequest = 24,
     GiftAnswered = 25,
+    SetCompleted = 26,
+    Victory = 27,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -247,11 +249,17 @@ struct ServerGiftRequest {
 // Evento sin payload, igual que ServerDayEnd.
 struct ServerGiftAnswered {};
 
+struct ServerSetCompleted {
+    uint8_t set_id;
+};
+
+struct ServerVictory {};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat, ServerGiftRequest, ServerGiftAnswered>;
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory>;
 
 #endif

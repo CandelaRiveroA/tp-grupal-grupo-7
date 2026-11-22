@@ -64,6 +64,13 @@ target_sources(taller_tests
     ../server/domain/crops/green_onion.cpp
     ../server/domain/crops/potato.cpp
     ../server/domain/crops/pumpkin.cpp
+    ../server/domain/community/community_center.cpp
+    ../server/domain/community/community_set_catalog.cpp
+    ../server/domain/community/community_set_rewards.cpp
+    ../server/domain/npc/merchant.cpp
+    ../server/domain/npc/marnie.cpp
+    ../server/domain/npc/robin.cpp
+    toml_document_test.cpp
     tile_ref_test.cpp
     tile_codec_test.cpp
     world_vocabulary_test.cpp

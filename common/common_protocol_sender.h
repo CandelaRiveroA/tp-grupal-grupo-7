@@ -63,6 +63,8 @@ public:
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
     void send_message(const protocol::GiftResponseMessage& message);
+    void send_message(const ServerSetCompleted& completed);
+    void send_message(const ServerVictory& victory);
 };
 
 #endif

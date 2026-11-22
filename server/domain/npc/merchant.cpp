@@ -69,14 +69,17 @@ std::string Merchant::process_command(Player& p, const std::string& raw_command,
 }
 
 std::string Merchant::handle_buy(Player& p, const std::string& item_name, uint16_t qty,
-                                 World& /*w*/) {
+                                 World& w) {
     const auto it = sell_catalog.find(item_name);
     if (it == sell_catalog.end() || !it->second.make_item) {
         return name + ": No vendo '" + item_name + "'.";
     }
 
     const CatalogEntry& entry = it->second;
-    const uint16_t total_cost = static_cast<uint16_t>(entry.price * qty);
+    uint16_t total_cost = static_cast<uint16_t>(entry.price * qty);
+    if (w.is_market_discount_active()) {
+        total_cost = static_cast<uint16_t>(total_cost / 2);
+    }
 
     if (!p.try_remove_gold(total_cost)) {
         return name + ": No tenés suficiente oro (necesitás " + std::to_string(total_cost) + "g).";
@@ -91,7 +94,10 @@ std::string Merchant::handle_buy(Player& p, const std::string& item_name, uint16
     }
 
     if (bought < qty) {
-        const uint16_t refund = static_cast<uint16_t>(entry.price * (qty - bought));
+        uint16_t refund = static_cast<uint16_t>(entry.price * (qty - bought));
+        if (w.is_market_discount_active()) {
+            refund = static_cast<uint16_t>(refund / 2);
+        }
         p.add_gold(refund);
         if (bought == 0) {
             return name + ": No tenés espacio en el inventario.";
@@ -104,7 +110,7 @@ std::string Merchant::handle_buy(Player& p, const std::string& item_name, uint16
 }
 
 std::string Merchant::handle_sell(Player& p, const std::string& item_name, uint16_t qty,
-                                  World& /*w*/) {
+                                  World& w) {
     const auto it = buy_catalog.find(item_name);
     if (it == buy_catalog.end()) {
         return name + ": No compro '" + item_name + "'.";
@@ -121,6 +127,9 @@ std::string Merchant::handle_sell(Player& p, const std::string& item_name, uint1
         if (prod != nullptr) {
             total_earned += prod->get_final_price();
         }
+    }
+    if (w.is_double_sell_active()) {
+        total_earned = static_cast<uint16_t>(total_earned * 2);
     }
 
     p.add_gold(total_earned);

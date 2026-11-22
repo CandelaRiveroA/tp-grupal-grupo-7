@@ -32,6 +32,7 @@ private:
     using Handler = std::string (ChatRouter::*)(World&, uint8_t,
                                                const std::vector<std::string>&);
     std::map<std::string, Handler> handlers_;
+    std::map<std::string, ItemID> community_item_names_;
 
     std::string cmd_vida(World& world, uint8_t sender,
                          const std::vector<std::string>& args);
@@ -39,6 +40,13 @@ private:
                             const std::vector<std::string>& args);
     std::string cmd_oro(World& world, uint8_t sender,
                         const std::vector<std::string>& args);
+    std::string cmd_donar(World& world, uint8_t sender,
+                         const std::vector<std::string>& args);
+    std::string cmd_completar_set(World& world, uint8_t sender,
+                                 const std::vector<std::string>& args);
+    std::string cmd_completar_todo(World& world, uint8_t sender,
+                                  const std::vector<std::string>& args);
+    ItemID item_from_name(const std::string& name) const;
 
     static std::vector<std::string> split(const std::string& s);
     static std::string trim(const std::string& s);

@@ -47,6 +47,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Chat, &ProtocolReceiver::receive_server_chat_message},
                 {ServerMessageType::GiftRequest, &ProtocolReceiver::receive_gift_request_message},
                 {ServerMessageType::GiftAnswered, &ProtocolReceiver::receive_gift_answered_message},
+                {ServerMessageType::SetCompleted, &ProtocolReceiver::receive_set_completed_message},
+                {ServerMessageType::Victory, &ProtocolReceiver::receive_victory_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -331,6 +333,14 @@ ServerMessage ProtocolReceiver::receive_server_chat_message() {
     const std::string text = receive_string();
     const uint8_t system = receive_uint8();
     return ServerChat{player_id, characterName, text, system == 1};
+}
+
+ServerMessage ProtocolReceiver::receive_set_completed_message() {
+    return ServerSetCompleted{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_victory_message() {
+    return ServerVictory{};
 }
 
 ServerMessage ProtocolReceiver::receive_server_message() {

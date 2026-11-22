@@ -54,6 +54,8 @@
 #include "world/NpcCatalog.h"
 #include "world/PromptLayout.h"
 #include "world/SceneDescription.h"
+#include "world/SceneSwitcher.h"
+#include "world/ScenesRoomSource.h"
 
 namespace game {
 class GameClient;
@@ -101,6 +103,9 @@ public:
 private:
     void tick(int iteration);
 
+    // La escena actual (la que resuelve el switcher).
+    const world::SceneDescription& scene() const;
+
     // Vista de presentación del tick: la de "meterse" (EnterSelection)
     // más el agradecimiento LOCAL del regalo. La consumen el movimiento,
     // el renderer y los diálogos; el estado de juego queda intacto.
@@ -137,9 +142,10 @@ private:
     // Borra el último caracter UTF-8 escrito
     void eraseLastCodepoint(std::string& text);
 
-    // Cambia la escena actual (en el negro de la transición): carga la
-    // sala pedida, reconstruye el índice del renderer y la cámara. El
-    // dibujo no cambia: solo QUÉ escena se pinta.
+    // Cambia la escena actual (en el negro de la transición): pide la
+    // escena al switcher y reconstruye el índice del renderer, las
+    // selecciones y la cámara. El dibujo no cambia: solo QUÉ escena se
+    // pinta.
     void changeScene(const std::string& room);
 
     // La cámara sigue el rectángulo dibujado del jugador local, no su
@@ -158,9 +164,12 @@ private:
     bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
-    // ventana la sigue dando el Scenario).
-    world::SceneDescription scene_;
-    std::string currentRoom_;
+    // ventana la sigue dando el Scenario). De dónde sale cada escena
+    // lo resuelve el switcher a partir de sus fuentes (hoy las salas de
+    // scenes.toml); la fuente se declara ANTES porque el switcher la
+    // guarda prestada.
+    world::ScenesRoomSource scenesRooms_;
+    world::SceneSwitcher sceneSwitcher_;
     game::GameClient& gameClient_;
     // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
     // del mundo simulado (null si no hay). Se va con las teclas de

@@ -186,6 +186,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ConfigError.cpp
         client/world/SceneConfigLoader.cpp
         client/world/SceneTomlReader.cpp
+        client/world/SceneSwitcher.cpp
+        client/world/ScenesRoomSource.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp

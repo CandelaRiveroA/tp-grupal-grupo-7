@@ -40,8 +40,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
-        scene_(scenario.scene()),
-        currentRoom_(core::kInitialRoom),
+        scenesRooms_(core::assetPath(core::kScenesFile)),
+        sceneSwitcher_({&scenesRooms_}, core::kInitialRoom, scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
@@ -107,9 +107,11 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
         } {
-    renderer_.prepareScene(scene_);
-    renderer_.setNpcs(npcCatalog_.forRoom(currentRoom_));
+    renderer_.prepareScene(scene());
+    renderer_.setNpcs(npcCatalog_.forRoom(sceneSwitcher_.id()));
 }
+
+const world::SceneDescription& PlaySession::scene() const { return sceneSwitcher_.scene(); }
 
 void PlaySession::run() {
     sdl::GameLoop loop(input_, [this, &loop](int iteration) {
@@ -216,7 +218,7 @@ void PlaySession::tick(int iteration) {
                 break;
             }
         } else {
-            renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+            renderer_.drawWorld(scene(), presentation, motion_, actionResolver_, iteration,
                                 camera_.viewport(), dayPhase_.phase());
             lightingPainter_.draw({}, dayPhase_.nightFactor());
         }
@@ -351,7 +353,7 @@ void PlaySession::tick(int iteration) {
         if (command.kind == game::InputCommand::Kind::NextMarketSet) {
             // DEMO (tecla N): rota el estilo del último comerciante y, si
             // su catálogo está abierto, lo reabre con el estilo nuevo.
-            if (!lastNpcId_.empty() && currentRoom_ == core::kMarketRoom) {
+            if (!lastNpcId_.empty() && sceneSwitcher_.id() == core::kMarketRoom) {
                 marketCycle_.next(marketCatalog_.defaultSetCount(lastNpcId_));
                 if (marketPopup_.isOpen()) {
                     marketPopup_.close();
@@ -380,7 +382,7 @@ void PlaySession::tick(int iteration) {
         }
         if (command.kind == game::InputCommand::Kind::ToggleMarket) {
             // Cambio de escenario local: mercado ↔ dormitorio.
-            sceneTransition_.changeTo(currentRoom_ == core::kMarketRoom ? core::kInitialRoom
+            sceneTransition_.changeTo(sceneSwitcher_.id() == core::kMarketRoom ? core::kInitialRoom
                                                                         : core::kMarketRoom);
             continue;
         }
@@ -400,7 +402,7 @@ void PlaySession::tick(int iteration) {
     // Presentación local del campo (saco en la cabeza y lugar de
     // plantado): sobre la selección fresca de este tick, y la celda que
     // apunta el puntero (el Viewport traduce a mundo).
-    const world::ScenePixelMapper cells(scene_.cellPixelSize);
+    const world::ScenePixelMapper cells(scene().cellPixelSize);
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
@@ -459,7 +461,7 @@ void PlaySession::tick(int iteration) {
     // El mundo se dibuja con la vista "puesta": si el jugador está
     // metido en un elemento, en su pose (presentación local; ver
     // EnterSelection). Encima, la capa frontal que lo tapa.
-    renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+    renderer_.drawWorld(scene(), presentation, motion_, actionResolver_, iteration,
                         camera_.viewport(), dayPhase_.phase());
     drawEnteredFront(presentation, cells);
     drawPlantingMarker(cells);
@@ -474,7 +476,7 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         const world::PixelRect entityBox =
-                motion_.drawBoxFor(entity, i, iteration, scene_.cellPixelSize);
+                motion_.drawBoxFor(entity, i, iteration, scene().cellPixelSize);
         dialogPainter_.draw(dialogCatalog_, *entity.indication, entityBox,
                             dialogAnimator_.animationTickFor(entity, iteration),
                             camera_.viewport());
@@ -534,7 +536,7 @@ void PlaySession::tick(int iteration) {
     // El puntero: la variante la decide el estado de juego (si hay algo
     // interactivo bajo el cursor); el painter solo dibuja.
     const game::PickTarget target =
-            picker_.pick(worldCursor, state, motion_, iteration, scene_.cellPixelSize);
+            picker_.pick(worldCursor, state, motion_, iteration, scene().cellPixelSize);
 
     // El click sobre algo interactivo manda la intención de tomarlo; el
     // resto (piso, rocas, nada) cae al uso de herramienta hacia esa
@@ -620,8 +622,8 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         // Un NPC: abre su popup y consume el click.
-        if (const world::NpcDef* npc = npcCatalog_.npcAt(currentRoom_, worldClick,
-                                                         scene_.cellPixelSize, npcCells);
+        if (const world::NpcDef* npc = npcCatalog_.npcAt(sceneSwitcher_.id(), worldClick,
+                                                         scene().cellPixelSize, npcCells);
             npc != nullptr) {
             if (!npc->hasPopup()) {
                 // Objeto animado (cofre): el click lo abre o lo cierra.
@@ -647,7 +649,7 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         const game::PickTarget clicked =
-                picker_.pick(worldClick, state, motion_, iteration, scene_.cellPixelSize);
+                picker_.pick(worldClick, state, motion_, iteration, scene().cellPixelSize);
         // Otro jugador: ofrecer un regalo. El click no dispara la
         // herramienta ni la interacción.
         if (isGiftTarget(clicked, state)) {
@@ -684,8 +686,8 @@ void PlaySession::tick(int iteration) {
         cursorKind = world::CursorKind::Gift;
     } else if (!worldBlocked &&
                (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
-                npcCatalog_.npcAt(currentRoom_, worldCursor, scene_.cellPixelSize, npcCells) !=
-                        nullptr)) {
+                npcCatalog_.npcAt(sceneSwitcher_.id(), worldCursor, scene().cellPixelSize,
+                                  npcCells) != nullptr)) {
         cursorKind = world::CursorKind::Interactive;
     }
     cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
@@ -726,23 +728,26 @@ void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
     if (!front.has_value()) {
         return;
     }
-    renderer_.drawElementFront(scene_, scene_.elements[front->elementIndex], cells,
+    renderer_.drawElementFront(scene(), scene().elements[front->elementIndex], cells,
                                camera_.viewport(), front->firstRow, front->lastRow);
 }
 
 void PlaySession::changeScene(const std::string& room) {
     // El cambio en el negro de la transición: cambia QUÉ escena se
     // pinta (el dibujo es el mismo). La posición del personaje y todo
-    // lo demás lo sigue mandando la fuente de estado por la vista.
-    scene_ = world::SceneConfigLoader().loadFromFile(core::assetPath(core::kScenesFile), room);
-    currentRoom_ = room;
+    // lo demás lo sigue mandando la fuente de estado por la vista. De
+    // dónde sale la escena lo resuelve SceneSwitcher; esto solo aplica
+    // el resultado a quienes la usan.
+    sceneSwitcher_.switchTo(room);
+    const world::SceneDescription& current = sceneSwitcher_.scene();
     npcPopup_ = nullptr;
     lastNpcId_.clear();
     marketPopup_.close();
-    renderer_.prepareScene(scene_);
+    renderer_.prepareScene(current);
     renderer_.setNpcs(npcCatalog_.forRoom(room));
-    enterSelection_.reindex(scene_, scene_.cellPixelSize);
-    camera_.setWorldBounds(world::ScenePixelMapper(scene_.cellPixelSize).worldBounds(scene_.grid));
+    enterSelection_.reindex(current, current.cellPixelSize);
+    camera_.setWorldBounds(
+            world::ScenePixelMapper(current.cellPixelSize).worldBounds(current.grid));
 }
 
 void PlaySession::drawPopup(const world::PixelBox& panel) {
@@ -794,7 +799,7 @@ void PlaySession::drawNpcPopup() {
 void PlaySession::openMarketOfSpokenNpc() {
     // El catálogo solo existe en el mercado y es el del último comerciante
     // con el que se habló; sin comerciante (o sin catálogo) no abre nada.
-    if (currentRoom_ != core::kMarketRoom || lastNpcId_.empty()) {
+    if (sceneSwitcher_.id() != core::kMarketRoom || lastNpcId_.empty()) {
         return;
     }
     const int setCount = marketCatalog_.defaultSetCount(lastNpcId_);
@@ -806,7 +811,7 @@ void PlaySession::openMarketOfSpokenNpc() {
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
     // El catálogo que pide la fuente de estado. Mientras haya un popup abierto
     // (catálogo, NPC o sueño) no se toca nada: la oferta se ignora.
-    if (!view.marketOffer.has_value() || currentRoom_ != core::kMarketRoom ||
+    if (!view.marketOffer.has_value() || sceneSwitcher_.id() != core::kMarketRoom ||
         npcPopup_ != nullptr || marketPopup_.isOpen() || popupState_.modal()) {
         return;
     }
@@ -830,7 +835,7 @@ void PlaySession::updateCamera(const game::LocalWorldView& view, const game::Vie
         return;
     }
     camera_.follow(motion.drawBoxFor(view.entities[game::kLocalPlayerIndex],
-                                     game::kLocalPlayerIndex, iteration, scene_.cellPixelSize));
+                                     game::kLocalPlayerIndex, iteration, scene().cellPixelSize));
 }
 
 bool PlaySession::isInteractive(const game::PickTarget& target,

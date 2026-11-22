@@ -83,6 +83,8 @@ target_sources(taller_tests
     scene_config_error_test.cpp
     scene_switcher_test.cpp
     world_map_loader_test.cpp
+    map_scene_adapter_test.cpp
+    tile_layer_layout_test.cpp
     audio_catalog_test.cpp
     sound_gate_test.cpp
     sound_cue_catalog_test.cpp

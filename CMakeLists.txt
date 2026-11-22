@@ -189,6 +189,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/SceneSwitcher.cpp
         client/world/ScenesRoomSource.cpp
         client/world/WorldMapLoader.cpp
+        client/world/MapSceneAdapter.cpp
+        client/world/EditorWorldSource.cpp
+        client/world/SceneSources.cpp
+        client/world/TileLayerLayout.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp

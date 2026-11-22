@@ -55,7 +55,7 @@
 #include "world/PromptLayout.h"
 #include "world/SceneDescription.h"
 #include "world/SceneSwitcher.h"
-#include "world/ScenesRoomSource.h"
+#include "world/SceneSources.h"
 
 namespace game {
 class GameClient;
@@ -165,10 +165,10 @@ private:
 
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario). De dónde sale cada escena
-    // lo resuelve el switcher a partir de sus fuentes (hoy las salas de
-    // scenes.toml); la fuente se declara ANTES porque el switcher la
-    // guarda prestada.
-    world::ScenesRoomSource scenesRooms_;
+    // lo resuelve el switcher a partir de sus fuentes (las salas de
+    // scenes.toml y, si hay, los mapas del editor); las fuentes se
+    // declaran ANTES porque el switcher las guarda prestadas.
+    world::SceneSources sources_;
     world::SceneSwitcher sceneSwitcher_;
     game::GameClient& gameClient_;
     // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "world/SceneSource.h"
 
@@ -12,6 +13,8 @@ namespace world {
 class ScenesRoomSource : public SceneSource {
 public:
 	explicit ScenesRoomSource(std::string path);
+
+	std::vector<std::string> ids() const override;
 
 	bool has(const std::string& id) const override;
 

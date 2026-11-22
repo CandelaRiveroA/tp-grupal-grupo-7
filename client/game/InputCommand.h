@@ -17,6 +17,10 @@ struct InputCommand {
         // Cambio de escenario local (tecla M): alterna mercado y
         // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
         ToggleMarket,
+        // DEMO (tecla O): pasa a la escena siguiente (mapas del editor
+        // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
+        // GameClient. Se borra cuando el server mande el mapa.
+        CycleMap,
         // DEMO (tecla B): abre el catálogo del mercado. Lo reemplaza el
         // mensaje del server; borrar junto con su tecla. Lo consume
         // PlaySession; NO viaja al GameClient.

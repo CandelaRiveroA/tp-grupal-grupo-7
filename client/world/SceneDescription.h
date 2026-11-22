@@ -95,11 +95,31 @@ struct SceneSpawns {
 	bool minerals = false;
 };
 
+// Una celda de una capa de piso: qué hoja (índice en `TileLayer::
+// tilesets`, -1 = vacía) y qué celda de esa hoja se dibuja en ella.
+struct LayerCell {
+	int tilesetIndex = -1;
+	GridCell sheetCell{0, 0};
+};
+
+// Capa de tiles en grilla: UNA celda de arte por celda lógica del mapa
+// (el piso y los caminos del editor). `cells` es row-major, de tamaño
+// size.columns * size.rows. A diferencia de los elementos, no se indexa
+// por chunk: el dibujo recorre solo el rango visible (TileLayerLayout).
+struct TileLayer {
+	GridSpan size{0, 0};
+	std::vector<std::string> tilesets;
+	std::vector<LayerCell> cells;
+};
+
 struct SceneDescription {
 	Color floorColor;
 	GridSpan grid;
 	int cellPixelSize;
 	std::unordered_map<std::string, TileSetDef> tilesets;
+	// Capas de piso, de abajo hacia arriba: se dibujan antes que los
+	// elementos. Vacío = la escena no usa piso en grilla (scenes.toml).
+	std::vector<TileLayer> layers;
 	std::vector<ElementPlacement> elements;
 	std::vector<std::string> soundCues;
 	SceneSpawns spawns;

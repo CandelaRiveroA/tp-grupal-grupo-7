@@ -28,7 +28,16 @@ public:
 	// cambia.
 	void switchTo(const std::string& id);
 
+	// La escena que sigue a la actual recorriendo, por orden de
+	// prioridad de las fuentes, los ids de todas (sin repetir los que
+	// dos fuentes comparten). Vuelve a la primera tras la última. Si la
+	// actual no está en la lista, devuelve la primera. Sin escenas
+	// conocidas devuelve la actual.
+	std::string nextId() const;
+
 private:
+	std::vector<std::string> allIds() const;
+
 	std::vector<const SceneSource*> sources_;
 	std::string id_;
 	SceneDescription scene_;

@@ -27,6 +27,7 @@ Renderer::Renderer(SdlContext& context,
 	, sheetCache_(context)
 	, entityRenderer_(context, sheetCache_, characters, toolOverlay,
 			  content, palettes)
+	, layerPainter_(sheetCache_)
 	, npcRenderer_(context)
 	, groundPainter_(sheetCache_, ground)
 	, cropPainter_(sheetCache_, crops) {}
@@ -75,6 +76,9 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	viewIndex_.queryResources(dynamicQuery, visibleResources_);
 	viewIndex_.queryDroppedItems(dynamicQuery, visibleItems_);
 	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
+
+	// El piso en grilla (mapas del editor) va debajo de todo elemento.
+	layerPainter_.draw(scene, mapper, viewport);
 
 	for (const std::uint32_t index : visibleElements_) {
 		const world::ElementPlacement& element = scene.elements[index];

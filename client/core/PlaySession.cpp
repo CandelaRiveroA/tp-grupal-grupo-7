@@ -40,8 +40,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
-        scenesRooms_(core::assetPath(core::kScenesFile)),
-        sceneSwitcher_({&scenesRooms_}, core::kInitialRoom, scenario.scene()),
+        sources_(core::assetPath(core::kScenesFile), core::assetPath(core::kWorldFile),
+                 core::kEditorWorldScale),
+        sceneSwitcher_(sources_.byPriority(), core::kInitialRoom, scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
@@ -384,6 +385,11 @@ void PlaySession::tick(int iteration) {
             // Cambio de escenario local: mercado ↔ dormitorio.
             sceneTransition_.changeTo(sceneSwitcher_.id() == core::kMarketRoom ? core::kInitialRoom
                                                                         : core::kMarketRoom);
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::CycleMap) {
+            // DEMO: escena siguiente (mapas del editor y salas).
+            sceneTransition_.changeTo(sceneSwitcher_.nextId());
             continue;
         }
         playerCommands.push_back(command);

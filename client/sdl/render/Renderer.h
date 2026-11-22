@@ -16,6 +16,7 @@
 #include "sdl/render/GroundEffectPainter.h"
 #include "sdl/render/NpcRenderer.h"
 #include "sdl/render/SheetCache.h"
+#include "sdl/render/TileLayerPainter.h"
 #include "world/ContentCatalog.h"
 #include "world/CropCatalog.h"
 #include "world/GroundCatalog.h"
@@ -105,6 +106,7 @@ private:
 
 	SheetCache sheetCache_;
 	EntityRenderer entityRenderer_;
+	TileLayerPainter layerPainter_;
 	NpcRenderer npcRenderer_;
 	game::NpcPlacementResolver npcPlacements_;
 	GroundEffectPainter groundPainter_;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "world/SceneDescription.h"
 
@@ -13,6 +14,9 @@ namespace world {
 class SceneSource {
 public:
 	virtual ~SceneSource() = default;
+
+	// Ids de todas las escenas que conoce, en orden estable.
+	virtual std::vector<std::string> ids() const = 0;
 
 	// ¿La fuente conoce esta escena?
 	virtual bool has(const std::string& id) const = 0;

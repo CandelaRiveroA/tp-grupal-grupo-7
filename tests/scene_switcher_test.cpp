@@ -17,6 +17,10 @@ public:
 	FakeSource(std::set<std::string> ids, int marker)
 		: ids_(std::move(ids)), marker_(marker) {}
 
+	std::vector<std::string> ids() const override {
+		return std::vector<std::string>(ids_.begin(), ids_.end());
+	}
+
 	bool has(const std::string& id) const override {
 		return ids_.count(id) == 1;
 	}
@@ -77,6 +81,27 @@ TEST(SceneSwitcherTest, UnknownIdThrowsAndKeepsTheCurrentScene) {
 	}
 	EXPECT_EQ(switcher.id(), "bedroom");
 	EXPECT_EQ(switcher.scene().cellPixelSize, 1);
+}
+
+TEST(SceneSwitcherTest, NextIdWalksAllSourcesWithoutRepeatingAndWraps) {
+	const FakeSource editor({"farm", "market"}, 20);
+	const FakeSource rooms({"bedroom", "market"}, 10);
+	world::SceneSwitcher switcher({&editor, &rooms}, "bedroom",
+				      initialScene());
+	// Orden: ids del editor (farm, market) y luego los de salas que
+	// no estaban (bedroom).
+	EXPECT_EQ(switcher.nextId(), "farm");
+	switcher.switchTo("farm");
+	EXPECT_EQ(switcher.nextId(), "market");
+	switcher.switchTo("market");
+	EXPECT_EQ(switcher.nextId(), "bedroom");
+	switcher.switchTo("bedroom");
+	EXPECT_EQ(switcher.nextId(), "farm");
+}
+
+TEST(SceneSwitcherTest, NextIdWithoutScenesKnownKeepsTheCurrent) {
+	const world::SceneSwitcher switcher({}, "bedroom", initialScene());
+	EXPECT_EQ(switcher.nextId(), "bedroom");
 }
 
 }  // namespace

@@ -24,6 +24,13 @@ bool DialogAnimation::finishedAt(const int animationTick) const {
 	return step >= static_cast<int>(frames.size());
 }
 
+int DialogAnimation::durationTicks() const {
+	if (frames.empty() || frameTicks <= 0) {
+		return 0;
+	}
+	return static_cast<int>(frames.size()) * frameTicks;
+}
+
 const DialogData* DialogCatalog::find(const Indication indication) const {
 	const auto it = dialogs.find(indication);
 	return it == dialogs.end() ? nullptr : &it->second;

@@ -56,12 +56,26 @@ void SdlContext::fillRectMultiply(const SDL2pp::Rect& rect,
 
 void SdlContext::present() { renderer_.Present(); }
 
+void SdlContext::startTextInput() { SDL_StartTextInput(); }
+
+void SdlContext::stopTextInput() { SDL_StopTextInput(); }
+
 int SdlContext::width() const { return window_.GetSize().x; }
 
 int SdlContext::height() const { return window_.GetSize().y; }
 
 SDL2pp::Texture SdlContext::createTexture(const std::string& path) {
 	return SDL2pp::Texture(renderer_, path);
+}
+
+SDL2pp::Texture SdlContext::createTexture(SDL2pp::Surface& surface) {
+	return SDL2pp::Texture(renderer_, surface);
+}
+
+SDL2pp::Texture SdlContext::createStreamingTexture(int width, int height,
+						   Uint32 format) {
+	return SDL2pp::Texture(renderer_, format, SDL_TEXTUREACCESS_STREAMING,
+			       width, height);
 }
 
 void SdlContext::drawSurface(SDL2pp::Surface& surface,

@@ -1,13 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "common/model/draft/CharacterAppearance.h"
+#include "game/GameConstants.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
+#include "world/MarketOffer.h"
 #include "world/Grid.h"
 #include "world/GroundCatalog.h"
 #include "world/Indication.h"
@@ -86,10 +89,15 @@ struct ViewResource {
 //            servidor (ej. "pickaxe", "silver", futuro "egg").
 // count:     cantidad acumulada en el slot. Convención de dibujo: 1 no
 //            muestra número; >1 muestra el número.
+// tradable:  si se puede regalar. Lo manda el servidor (ServerInventorySlot)
+//            y es la fuente única de esa regla; true por defecto para que
+//            las fuentes locales (mock, recompensas) sigan compiland sin
+//            declararlo.
 struct ViewInventorySlot {
     int slotIndex;
     std::string contentId;
     int count;
+    bool tradable = true;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un
@@ -98,6 +106,16 @@ struct ViewInventorySlot {
 // del piso): el panel de obtenidos muestra cualquier cosa.
 struct ViewObtained {
     std::string contentId;
+};
+
+// Pedido de regalo entrante (ServerGiftRequest): el emisor ofreció su ítem
+// equipado y el server lo reenvía al receptor. Evento de UN tick (igual que
+// obtained): el que lo dibuja abre el popup del receptor y responde con
+// protocol::GiftResponseMessage (senderId = emisor a contestar, senderName
+// = nombre real para el token {0} del copy).
+struct ViewGiftRequest {
+    std::uint8_t senderId;
+    std::string senderName;
 };
 
 // Item caído al piso, recogible por el jugador. GENÉRICO: lo identifica un
@@ -122,6 +140,13 @@ struct ViewResourceHit {
     int cellX;
     int cellY;
     bool destroyed;
+};
+
+struct ViewChatLine {
+    // Si el nombre está vacío, el que dibuja usa el id.
+    std::uint8_t playerId;
+    std::string characterName;
+    std::string text;
 };
 
 // Consecuencia aplicada al terreno de una celda (tierra tratada, mañana
@@ -168,17 +193,33 @@ struct ViewCrop {
 
 // Estado del sueño del jugador local (ServerSleep). Persiste entre lotes:
 // el server solo lo manda cuando cambia. sleeping > 0 = estoy en la cama.
-// Presentación (fase pendiente): sleeping > 0 y sin votar → showQuestion();
-// sleeping > 0 y votado → showWaiting(sleeping, total); sleeping == 0 → hide().
+// Presentación (fase pendiente, la resuelve PopupState::showSleepState):
+// sleeping > 0 sin votar y vivo → showQuestion(); votado o muerto →
+// showWaiting(sleeping, total); sleeping == 0 → hide().
 struct ViewSleep {
     int sleeping = 0;
     int total = 0;
+};
+
+// Dónde está parado un NPC del mercado. Es estado PERSISTENTE del mundo: lo
+// manda la fuente de estado (el servidor). `id` es el de npcs.toml. El
+// cliente solo lo dibuja y lo hace clickeable ahí; lo visual (hoja, retrato,
+// texto) sigue siendo del TOML.
+struct ViewNpcPlacement {
+    std::string id;
+    int cellX;
+    int cellY;
 };
 
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
+    std::optional<ViewGiftRequest> giftRequest;
+    // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
+    // evento, como dayEnded, vale solo en el tick en que llega.
+    bool giftAnswered = false;
     std::vector<ViewDroppedItem> droppedItems;
     std::vector<ViewInventorySlot> inventory;
     world::GridSpan grid{0, 0};
@@ -189,6 +230,10 @@ struct LocalWorldView {
     // Los cultivos plantados (persistente; ver ViewCrop). Los manda el
     // servidor (ServerCrop).
     std::vector<ViewCrop> plantedCrops;
+    // Posición de cada NPC (persistente; ver ViewNpcPlacement). La manda el
+    // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
+    // un NPC que la fuente no menciona también usa la suya.
+    std::vector<ViewNpcPlacement> npcPlacements;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
@@ -197,17 +242,45 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
+    // Plata del jugador. La manda el servidor al comenzar y cada vez que
+    // cambia; mientras no la mande vale la inicial local (kStartingGold).
+    int gold = kStartingGold;
     // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
     // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
+    // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
+    // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de
+    // npcs.toml; sin entradas = SDL muestra la oferta por defecto de ese
+    // comerciante (market.toml); con entradas, esas (las que SDL conoce) con el
+    // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
+    std::optional<world::MarketOffer> marketOffer;
+
+    // Vida y energía del jugador local (0..max).
+    int playerHealth = 0;
+    int playerMaxHealth = 0;
+    int playerEnergy = 0;      // x100
+    int playerMaxEnergy = 0;   // x100
+    bool playerFainted = false;  // desmayado por falta de energía
+
+    // Historial del chat
+    std::vector<ViewChatLine> chatLog;
+
+    // Sube con cada mensaje: el tope del historial impide usar su tamaño
+    // para detectar uno nuevo.
+    int chatVersion = 0;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve
     // el slot en el que quedó. El dueño de la vista (fuente de estado)
     // lo usa al entregar cosas.
     int addInventoryContent(const std::string& contentId);
+
+    // Suma una línea al historial, descartando la más vieja si se pasa
+    // del tope.
+    void addChatLine(const ViewChatLine& line);
 
     // Coloca un contenido en un slot concreto con su conteo: para que el
     // que ya tenía slot lo mantenga merge tras merge (el inventario no

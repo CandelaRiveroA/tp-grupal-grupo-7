@@ -66,3 +66,50 @@ void Inventory::consume_item(uint8_t slot_idx) {
         }
     }
 }
+
+std::unique_ptr<Item> Inventory::pop_one_item(uint8_t slot_idx) {
+    if (slot_idx >= this->max_slots || this->slots[slot_idx].is_empty()) {
+        return nullptr;
+    }
+
+    std::unique_ptr<Item> item_to_return = this->slots[slot_idx].item->clone();
+
+    this->slots[slot_idx].amount--;
+    if (this->slots[slot_idx].amount == 0) {
+        this->slots[slot_idx].item.reset();
+    }
+
+    return item_to_return;
+}
+
+std::vector<std::unique_ptr<Item>> Inventory::extract_items(ItemID id, uint16_t qty) {
+    std::vector<std::unique_ptr<Item>> extracted;
+    if (qty == 0) {
+        return extracted;
+    }
+
+    uint16_t available = 0;
+    for (const auto& slot : this->slots) {
+        if (!slot.is_empty() && slot.item->get_id() == id && slot.item->can_be_traded()) {
+            available += slot.amount;
+        }
+    }
+
+    if (available < qty) {
+        return extracted; 
+    }
+
+    extracted.reserve(qty);
+    uint16_t remaining = qty;
+
+    for (uint8_t i = 0; i < this->max_slots && remaining > 0; ++i) {
+        while (remaining > 0 && !this->slots[i].is_empty() &&
+               this->slots[i].item->get_id() == id &&
+               this->slots[i].item->can_be_traded()) {
+            extracted.push_back(this->remove_item(i));
+            remaining--;
+        }
+    }
+
+    return extracted;
+}

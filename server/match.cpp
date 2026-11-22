@@ -10,6 +10,7 @@
 #include "commands/commands.h"
 #include "domain/animals/chicken.h"
 #include "domain/animals/cow.h"
+#include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
 
@@ -20,7 +21,7 @@
 #define kSpawnY 10
 
 // TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
-// (ver MineController::create_entity).
+// (ver MineController::make_rock).
 #define kRoomNumber 1
 
 // Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
@@ -30,13 +31,16 @@
 
 // shortcut: un día de juego de 30s para probar; en la versión final son 15 min
 // (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 60
+#define kDayDurationSeconds 120
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
 #define kDayClockMinutes 1200
 #define kClockStepMinutes 10
 #define kClockStepMs 100
-// Pasos de kClockStepMs entre movimiento de animales (10 = 1 s). Ajustable.
-#define kAnimalTickSteps 40
+// Pasos de kClockStepMs entre el reloj lento de criaturas (40 = 4 s). Ajustable.
+#define kCreatureTickSteps 40
+// Pasos de kClockStepMs entre persecución de enemigos y vuelo de llamas
+// (4 = 400 ms, el mismo ritmo que da un paso el jugador).
+#define kEnemyTickSteps 4
 
 DayClock::DayClock(Queue<MatchEvent>& events):
         events(events), restart_requested(false), day_generation(0) {}
@@ -57,7 +61,8 @@ void DayClock::execute() {
         const uint32_t current_generation = this->day_generation.load();
         const auto day_start = std::chrono::steady_clock::now();
         bool interrupted = false;
-        uint8_t animal_steps = 0;
+        uint8_t creature_steps = 0;
+        uint8_t enemy_steps = 0;
         uint16_t clock_minutes = 0;
         // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
         while (std::chrono::steady_clock::now() - day_start <
@@ -85,10 +90,19 @@ void DayClock::execute() {
                 }
             }
             // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
-            if (++animal_steps >= kAnimalTickSteps) {
-                animal_steps = 0;
+            if (++creature_steps >= kCreatureTickSteps) {
+                creature_steps = 0;
                 try {
-                    events.push(MatchEvent(AnimalTick{}));
+                    events.push(MatchEvent(CreatureTick{}));
+                } catch (const ClosedQueue&) {
+                    return;
+                }
+            }
+            // Persecución y llamas: 10 veces más seguido que el reloj lento.
+            if (++enemy_steps >= kEnemyTickSteps) {
+                enemy_steps = 0;
+                try {
+                    events.push(MatchEvent(EnemyTick{}));
                 } catch (const ClosedQueue&) {
                     return;
                 }
@@ -120,6 +134,12 @@ void Match::place_animals() {
     world.add_animal(std::make_unique<Cow>(25, 5));
 }
 
+void Match::place_enemies() {
+    // Igual que las piedras: cada día la caverna repone sus enemigos.
+    EnemyController enemies(kRoomNumber);
+    enemies.populate(world, kSpawnX, kSpawnY);
+}
+
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         events(events),
         output(output),
@@ -131,22 +151,46 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
     place_animals();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
     place_minerals();
+    place_enemies();
 }
 
 // Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
 // donde están y amanecen en la cama cuando despiertan.
 void Match::handle(const DayPassed& /*day*/) {
+    world.mark_all_fainted_by_timeout();
     world.end_day();
     sync_day();
     push_sleep_state();
     sync_all();
 }
 
-void Match::handle(const AnimalTick& /*tick*/) {
+void Match::handle(const CreatureTick& /*tick*/) {
     if (!world.is_waking()) {
         world.tick_animals();
+        world.tick_enemies();
     }
     sync_all();
+}
+
+void Match::handle(const EnemyTick& /*tick*/) {
+    if (world.is_waking()) {
+        return;
+    }
+    // Solo sincroniza si algo cambió: hay llamas en vuelo o alguien persiguiendo.
+    const bool flames_flying = world.tick_flames();
+    const bool someone_pursuing = world.tick_enemies_pursuit();
+    // Cuando vence la espera del muerto va a la cama (y queda en
+    // sleepers): hay que mandar el estado aunque no haya enemigos ni
+    // llamas en vuelo.
+    const bool arrived_at_bed = world.tick_death_to_bed();
+    // La muerte por daño (enemigo o llama) nace en este tick: sin empujar
+    // estos estados el muerto se entera recién cuando manda un comando,
+    // es decir, recién cuando se mueve. Los dos deduplican solos.
+    sync_day();
+    push_sleep_state();
+    if (flames_flying || someone_pursuing || arrived_at_bed) {
+        sync_all();
+    }
 }
 
 void Match::handle(const ClockStep& step) {
@@ -167,11 +211,13 @@ void Match::sync_day() {
         // (DayPassed) o porque todos durmieron (World::try_advance_sleep),
         // que cierra el día sin pasar por DayPassed.
         place_minerals();
+        place_enemies();
         broadcast(ServerDayEnd{});
     }
     if (world.take_day_started()) {
         for (const uint8_t id: world.get_player_ids()) {
             world.set_player_position(id, kBedX, kBedY);
+            world.reset_player_for_day(id);
         }
         clock.restart();
         broadcast(ServerDay{});
@@ -186,6 +232,7 @@ void Match::broadcast_clock(uint16_t minutes) {
 
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
+    character_names[joined.player_id] = joined.characterName;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
     world.set_player_appearance(joined.player_id, joined.appearance);
@@ -209,6 +256,10 @@ void Match::handle(const PlayerMessage& event) {
         broadcast(ServerToolUsed{event.player_id,
                                  equipped ? content_id_for(equipped->get_id()) : ""});
     }
+    if (std::holds_alternative<protocol::ChatMessage>(event.message)) {
+        handle_chat(event.player_id,
+                    std::get<protocol::ChatMessage>(event.message).text);
+    }
     // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
     // inventarios: solo se traduce a mensaje acá.
     for (const PlayerPickup& pickup: world.take_pickups()) {
@@ -217,9 +268,34 @@ void Match::handle(const PlayerMessage& event) {
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
+    for (const GiftOffer& offer : world.take_gift_requests()) {
+        // El nombre va en el mensaje: el cliente no conoce a los jugadores
+        // (mismo dato que usa el chat). Si el emisor ya no está en la sala,
+        // se manda vacío y el copy cae en el token sin nombre.
+        const auto sender = character_names.find(offer.sender_id);
+        const std::string characterName =
+                sender != character_names.end() ? sender->second : std::string{};
+        send_to(offer.receiver_id,
+                ServerGiftRequest{offer.sender_id, characterName, content_id_for(offer.item)});
+    }
+    // El emisor sigue esperando con el popup abierto: la respuesta del
+    // receptor (acepte o rechace) se lo cierra.
+    for (const uint8_t answered : world.take_gift_answers()) {
+        send_to(answered, ServerGiftAnswered{});
+    }
     sync_day();
     push_sleep_state();
     sync_all();
+}
+
+void Match::handle_chat(uint8_t player_id, const std::string& text) {
+    for (const ChatReply& reply : chat_router.route(text, player_id, world, character_names)) {
+        if (reply.broadcast) {
+            broadcast(reply.message);
+        } else {
+            send_to(reply.target, reply.message);
+        }
+    }
 }
 
 void Match::handle(const PlayerLeft& left) {
@@ -229,6 +305,7 @@ void Match::handle(const PlayerLeft& left) {
     }
     const std::shared_ptr<Queue<ServerMessage>> leaving = it->second;
     outputs.erase(it);
+    character_names.erase(left.player_id);
     // Saca al jugador de la votación: nadie queda esperando a un ausente.
     world.remove_player(left.player_id);
     sync_day();

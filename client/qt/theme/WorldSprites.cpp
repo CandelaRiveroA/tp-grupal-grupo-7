@@ -12,21 +12,20 @@
 
 using namespace WorldSpriteRects;
 
-WorldSprites::WorldSprites():
-        menuTiles_(load(kMenuTilesPath)),
-        iconSheet_(load(kWorldIconsPath)),
-        frameBlock_(menuTiles_.isNull() ?
-                            QPixmap() :
-                            menuTiles_.copy(QRect(kFrameNormalSourceX, kFrameNormalSourceY,
-                                                  kFrameVisibleSize, kFrameVisibleSize))),
-        selectedBorder_(
-                menuTiles_.isNull() ?
-                        QPixmap() :
-                        NineSlice(
-                                menuTiles_.copy(QRect(kFrameSelectedSourceX, kFrameSelectedSourceY,
-                                                      kFrameSourceSize, kFrameSourceSize)),
-                                QMargins(kFrameSlice, kFrameSlice, kFrameSlice, kFrameSlice))
-                                .build(kIconWidth, kIconHeight, kFrameScale)) {
+WorldSprites::WorldSprites() {
+    menuTiles_ = load(kMenuTilesPath);
+    iconSheet_ = load(kWorldIconsPath);
+    frameBlock_ = menuTiles_.isNull() ?
+                          QPixmap() :
+                          menuTiles_.copy(QRect(kFrameNormalSourceX, kFrameNormalSourceY,
+                                                kFrameVisibleSize, kFrameVisibleSize));
+    selectedBorder_ =
+            menuTiles_.isNull() ?
+                    QPixmap() :
+                    NineSlice(menuTiles_.copy(QRect(kFrameSelectedSourceX, kFrameSelectedSourceY,
+                                                    kFrameSourceSize, kFrameSourceSize)),
+                              QMargins(kFrameSlice, kFrameSlice, kFrameSlice, kFrameSlice))
+                            .build(kIconWidth, kIconHeight, kFrameScale);
     buildIcons();
 }
 

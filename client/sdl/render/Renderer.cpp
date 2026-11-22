@@ -18,13 +18,16 @@ Renderer::Renderer(SdlContext& context,
 		   const world::ResourceCatalog& resources,
 		   const world::ContentCatalog& content,
 		   const world::GroundCatalog& ground,
-		   const world::CropCatalog& crops)
+		   const world::CropCatalog& crops,
+		   const world::CharacterPalettes& palettes)
 	: context_(context)
 	, resources_(resources)
 	, content_(content)
 	, ground_(ground)
 	, sheetCache_(context)
-	, entityRenderer_(sheetCache_, characters, toolOverlay, content)
+	, entityRenderer_(context, sheetCache_, characters, toolOverlay,
+			  content, palettes)
+	, npcRenderer_(context)
 	, groundPainter_(sheetCache_, ground)
 	, cropPainter_(sheetCache_, crops) {}
 
@@ -32,6 +35,14 @@ void Renderer::prepareScene(const world::SceneDescription& scene) {
 	const world::ScenePixelMapper mapper(scene.cellPixelSize);
 	sceneIndex_.rebuild(scene, mapper);
 	sceneIndexReady_ = true;
+}
+
+void Renderer::setNpcs(const std::vector<const world::NpcDef*>& npcs) {
+	npcRenderer_.setNpcs(npcs);
+}
+
+void Renderer::setNpcFrames(const std::map<std::string, int>& frames) {
+	npcRenderer_.setFrames(frames);
 }
 
 void Renderer::drawWorld(const world::SceneDescription& scene,
@@ -96,6 +107,10 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	for (const std::uint32_t index : visibleItems_) {
 		drawDroppedItem(view.droppedItems[index], mapper, viewport);
 	}
+
+	// NPCs estáticos: debajo de las entidades, como los recursos.
+	npcRenderer_.draw(viewport, scene.cellPixelSize,
+			  npcPlacements_.cellsFrom(view));
 
 	for (const std::uint32_t index : visibleEntities_) {
 		entityRenderer_.draw(view.entities[index], index, scene, motion,

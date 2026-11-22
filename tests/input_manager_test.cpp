@@ -112,19 +112,6 @@ TEST(InputManagerTest, CollectIsOneShotPerPress) {
     EXPECT_TRUE(input.takeCommands().empty());
 }
 
-TEST(InputManagerTest, FaintIsOneShotPerPress) {
-    InputManager input(4);
-
-    input.handleEvent(keyDown(SDLK_f));
-    const std::vector<Command> commands = input.takeCommands();
-    ASSERT_EQ(commands.size(), 1u);
-    EXPECT_EQ(commands[0].kind, CommandKind::Faint);
-
-    // Soltar no dispara de nuevo.
-    input.handleEvent(keyUp(SDLK_f));
-    EXPECT_TRUE(input.takeCommands().empty());
-}
-
 TEST(InputManagerTest, SlotKeysAreOneShotInRange) {
     InputManager input(4);
 

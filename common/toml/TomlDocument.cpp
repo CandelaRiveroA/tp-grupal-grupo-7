@@ -1,5 +1,6 @@
 #include "toml/TomlDocument.h"
 
+#include <limits>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -166,6 +167,34 @@ bool TomlDocument::getBool(const std::string& path) const {
 	return *value;
 }
 
+std::vector<int> TomlDocument::getIntArray(const std::string& path) const {
+	std::vector<int> values(arraySize(path));
+	readIntArray(path, values.data(), values.size());
+	return values;
+}
+
+std::vector<bool> TomlDocument::getBoolArray(const std::string& path) const {
+	const toml::node* node = find(impl_->table, path);
+	if (node == nullptr) {
+		throw TomlError(TomlErrorKind::MissingKey, path);
+	}
+	const toml::array* array = node->as_array();
+	if (array == nullptr) {
+		throw TomlError(TomlErrorKind::WrongType, path);
+	}
+	std::vector<bool> values;
+	values.reserve(array->size());
+	for (const toml::node& element : *array) {
+		// as_boolean y no value<bool>: toml++ acepta 1/0 como bool.
+		const toml::value<bool>* value = element.as_boolean();
+		if (value == nullptr) {
+			throw TomlError(TomlErrorKind::WrongType, path);
+		}
+		values.push_back(value->get());
+	}
+	return values;
+}
+
 void TomlDocument::readIntArray(const std::string& path, int* out,
 				std::size_t count) const {
 	const toml::node* node = find(impl_->table, path);
@@ -179,7 +208,9 @@ void TomlDocument::readIntArray(const std::string& path, int* out,
 	for (std::size_t index = 0; index < count; ++index) {
 		const std::optional<int64_t> value =
 			(*array)[index].value<int64_t>();
-		if (!value.has_value()) {
+		if (!value.has_value() ||
+			*value < std::numeric_limits<int>::min() ||
+			*value > std::numeric_limits<int>::max()) {
 			throw TomlError(TomlErrorKind::WrongType, path);
 		}
 		out[index] = static_cast<int>(*value);

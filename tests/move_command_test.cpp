@@ -42,13 +42,14 @@ TEST(MoveCommandTest, UseBuildsPickWithFacingDirection) {
 	EXPECT_EQ(pick->direction, ::Direction::LEFT);
 }
 
-TEST(MoveCommandTest, TakeBuildsTakeWithFacingDirection) {
+TEST(MoveCommandTest, TakeBuildsTakeWithFacingDirectionAndSlot) {
 	const MoveCommand move;
 	const protocol::ClientMessage message =
-		move.take(world::Direction::Right);
+		move.take(world::Direction::Right, 4);
 	const auto* take = std::get_if<protocol::TakeMessage>(&message);
 	ASSERT_NE(take, nullptr);
 	EXPECT_EQ(take->direction, ::Direction::RIGHT);
+	EXPECT_EQ(take->slot, 4);
 }
 
 }

@@ -10,6 +10,8 @@
 
 #include "domain/map/world.h"
 
+#include "commands/chat_command.h"
+
 #include "common_command.h"
 #include "common_queue.h"
 #include "common_server_status.h"
@@ -28,6 +30,9 @@ struct PlayerJoined {
     std::shared_ptr<Queue<ServerMessage>> statuses;
     // Personalizacion del personaje que mando al entrar (MatchRequest).
     CharacterAppearance appearance;
+    // Nombre del personaje (único por partida): el que se muestra en el chat
+    // y contra el que se resuelve el '@' de los mensajes privados.
+    std::string characterName;
 };
 
 struct PlayerLeft {
@@ -44,11 +49,15 @@ struct ClockStep {
     uint32_t generation;
 };
 
-// Dispara el paso de movimiento de los animales (un paso por segundo).
-struct AnimalTick {};
+// Dispara el paso de movimiento de animales y enemigos (un paso por segundo).
+struct CreatureTick {};
 
-using MatchEvent =
-        std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, AnimalTick, ClockStep>;
+// Dispara la persecución de enemigos y el vuelo de las llamas. Va 10 veces
+// más seguido que CreatureTick: es el mismo ritmo que el jugador (400 ms).
+struct EnemyTick {};
+
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick,
+                                EnemyTick, ClockStep>;
 
 // Empuja un DayPassed cada día de juego mientras la partida corre.
 // restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
@@ -76,6 +85,9 @@ private:
     World world;
     DayClock clock;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
+    // Nombre de personaje por jugador (para mostrar en el chat y resolver '@').
+    std::map<uint8_t, std::string> character_names;
+    ChatRouter chat_router;
     WorldView views;
     // Último ServerSleep enviado: solo se manda si cambió.
     uint8_t sleeping_sent;
@@ -86,13 +98,16 @@ private:
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
+    void handle_chat(uint8_t player_id, const std::string& text);
     void handle(const PlayerLeft& left);
     void handle(const DayPassed& day);
-    void handle(const AnimalTick& tick);
+    void handle(const CreatureTick& tick);
+    void handle(const EnemyTick& tick);
     void handle(const ClockStep& step);
     void sync_all();
     void place_minerals();
     void place_animals();
+    void place_enemies();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
     void push_sleep_state();

@@ -64,7 +64,7 @@ protocol::ClientMessage walk(world::Direction direction) {
 }
 
 protocol::ClientMessage take(world::Direction direction) {
-    return protocol::TakeMessage{world::wireDirectionFrom(direction)};
+    return protocol::TakeMessage{world::wireDirectionFrom(direction), 0};
 }
 
 world::Direction toward(int fromX, int fromY, int toX, int toY) {
@@ -79,7 +79,10 @@ world::Direction toward(int fromX, int fromY, int toX, int toY) {
 TEST(MockWorldClientTest, SpawnsAnimalsWhenTheCatalogHasThem) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
     const LocalWorldView& view = client->worldState();
-    // 3 gallinas + 3 vacas + jugador, en orden de spawn.
+    // 3 gallinas + 3 vacas + jugador, en orden de spawn. Los enemigos
+    // viven en enemies.toml (este catálogo no lo carga), así que no
+    // aparecen: AnimalSystem solo spawnea los kinds que el catálogo
+    // describe.
     ASSERT_EQ(view.entities.size(), 7u);
 
     // El jugador sigue siendo la entidad 0 con id 0.

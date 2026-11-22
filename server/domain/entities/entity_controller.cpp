@@ -28,6 +28,10 @@ void EntityController::populate(World& world, uint16_t reserved_x, uint16_t rese
     const size_t count = free_cells.size() * this->density_percent / 100;
     for (size_t i = 0; i < count; ++i) {
         const auto [x, y] = free_cells[i];
-        world.set_entity_at(x, y, create_entity(x, y));
+        // Una manada o pareja puede haber ocupado la celda mientras se generaba.
+        if (!world.get_entity_at(x, y).empty()) {
+            continue;
+        }
+        spawn_at(world, x, y);
     }
 }

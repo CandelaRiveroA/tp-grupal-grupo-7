@@ -2,6 +2,7 @@
 
 #include <array>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "world/CharacterAppearance.h"
@@ -13,6 +14,17 @@ enum class CreatureKind {
 	Player,
 	Chicken,
 	Cow,
+	Orc,
+	Skeleton,
+	Vampire,
+	Skull,
+	// El fuego del Skull se dibuja por el MISMO camino que una criatura
+	// (hoja + celdas + frames + loops): es el "ente dibujable" del
+	// cliente, no un catálogo nuevo. El estado le da kind/celda/facing.
+	SkullFire,
+	// Mismo camino que SkullFire, otro color de llama (dato en
+	// enemies.toml): la fuente elige cuál mandar.
+	SkullFireGreen,
 };
 
 struct MoveCadence {
@@ -26,6 +38,8 @@ struct MoveCadence {
 struct HoldPresentation {
 	int offsetY = 0;
 	double scale = 1.0;
+	// Multiplicador extra por contentId (opcional; sin entrada = 1.0).
+	std::map<std::string, double> contentScale;
 };
 
 struct DirectionAppearance {

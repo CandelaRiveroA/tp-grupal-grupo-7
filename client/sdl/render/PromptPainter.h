@@ -2,6 +2,8 @@
 
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "game/PopupState.h"
 #include "sdl/render/SpriteSheet.h"
@@ -49,9 +51,12 @@ private:
 	// de su 9-slice estiradas a su caja.
 	void drawButton(const std::string& name, const world::PixelBox& panel);
 
-	// El template `waiting` con {0}/{1} reemplazados por el avance que
-	// manda la fuente de estado.
-	std::string waitingText(const game::PopupState& state) const;
+	// Reemplaza los tokens ({0}, {1}, ...) por los valores del estado.
+	// Es el único lugar que formatea el copy del popup.
+	std::string fillTokens(
+		const std::string& text,
+		const std::vector<std::pair<std::string, std::string>>& tokens)
+		const;
 
 	std::map<game::PopupView, DrawMethod> drawMethods_;
 	TextRenderer& text_;

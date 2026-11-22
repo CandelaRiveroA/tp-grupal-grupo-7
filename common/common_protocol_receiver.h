@@ -30,6 +30,7 @@ private:
     protocol::ClientMessage receive_take_message();
     protocol::ClientMessage receive_sleep_message();
     protocol::ClientMessage receive_wake_message();
+    protocol::ClientMessage receive_chat_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();
@@ -41,6 +42,8 @@ private:
     ServerMessage receive_reset_message();
     ServerMessage receive_sync_end_message();
     ServerMessage receive_animal_message();
+    ServerMessage receive_enemy_message();
+    ServerMessage receive_projectile_message();
     ServerMessage receive_server_sleep_message();
     ServerMessage receive_furniture_message();
     ServerMessage receive_day_end_message();
@@ -49,6 +52,9 @@ private:
     ServerMessage receive_clock_message();
     ServerMessage receive_crop_message();
     ServerMessage receive_ground_effect_message();
+    ServerMessage receive_server_chat_message();
+    ServerMessage receive_gift_request_message();
+    ServerMessage receive_gift_answered_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);
@@ -57,6 +63,7 @@ public:
     explicit ProtocolReceiver(Socket& socket);
 
     std::optional<protocol::ClientMessage> receive_command();
+    protocol::ClientMessage receive_gift_response_message();
     ServerMessage receive_server_message();
     ServerWelcome receive_welcome();
     MatchRequest receive_match_request();

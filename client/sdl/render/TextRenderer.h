@@ -4,6 +4,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 
 #include "world/Color.h"
 #include "world/FontCatalog.h"
@@ -32,12 +33,37 @@ public:
 	void draw(const std::string& text, const world::PixelBox& box,
 		  const world::Color& color, int size);
 
+	// Con tamaño propio y, opcionalmente, en negrita (el estilo bold de
+	// SDL_ttf sobre la misma fuente: no hay un archivo bold aparte).
+	void draw(const std::string& text, const world::PixelBox& box,
+		  const world::Color& color, int size, bool bold);
+
+	// Texto alineado a la izquierda: respeta los saltos de línea y
+	// ajusta las palabras al ancho de la caja.
+	void drawLeftWrapped(const std::string& text, const world::PixelBox& box,
+			     const world::Color& color, int size, int lineGap);
+
+	// Una línea alineada a la izquierda y centrada en vertical.
+	void drawLeft(const std::string& text, const world::PixelBox& box,
+		      const world::Color& color, int size, bool bold = false);
+
+	// Ancho en px del texto con esa fuente (wrap y cursor).
+	int textWidth(const std::string& text, int size, bool bold = false);
+
+	// Texto envuelto a maxWidth como textura, el wrap lo hace SDL_ttf
+	SDL2pp::Texture renderWrapped(const std::string& text, int size,
+				      const world::Color& color, int maxWidth);
+
 private:
-	SDL2pp::Font& fontFor(int size);
+	SDL2pp::Font& fontFor(int size, bool bold);
+
+	void drawLine(const std::string& line, int x, int y, SDL2pp::Font& font,
+		      const SDL2pp::Color& ink);
 
 	SdlContext& context_;
 	world::FontCatalog font_;
-	std::map<int, SDL2pp::Font> fonts_;
+	// Una fuente abierta por (tamaño, negrita).
+	std::map<std::pair<int, bool>, SDL2pp::Font> fonts_;
 };
 
 }  // namespace sdl

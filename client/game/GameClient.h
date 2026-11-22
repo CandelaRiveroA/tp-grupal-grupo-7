@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
+#include <string>
 
 #include "common/common_command.h"
 #include "game/LocalWorldView.h"
@@ -13,6 +15,13 @@ public:
 
     // ENVIAR: pushea la intención del jugador.
     virtual void sendCommand(const protocol::ClientMessage& message) = 0;
+
+    // CHAT: sendChat es la salida, receiveChat la entrada. Default vacío:
+    // MockWorldClient los delega y los stubs de test no los implementan.
+    virtual void sendChat(const std::string& /*text*/) {}
+
+    virtual void receiveChat(std::uint8_t /*playerId*/, const std::string& /*characterName*/,
+                             const std::string& /*text*/) {}
 
     // RECIBIR: el estado actual del mundo que dibuja el cliente.
     virtual const LocalWorldView& worldState() const = 0;

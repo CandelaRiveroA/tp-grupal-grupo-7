@@ -24,7 +24,7 @@ Los llama la fuente de estado; hoy los disparan atajos de prueba (ver §4).
 | `game::PopupState::showQuestion()` | Muestra la pregunta "¿Terminamos el día?" (popup modal con Sí/No) |
 | `game::PopupState::showWaiting(ready, total)` | Muestra "Esperando al resto de jugadores... (ready/total)" con el botón de cancelar |
 | `game::PopupState::hide()` | Cierra el popup |
-| `game::SceneTransition::changeTo(scene)` | La transición "apagado y volver a prender" al escenario indicado (`"bedroom"`, `"garden"`, ...). Una a la vez: si llega otra mientras corre, se ignora |
+| `game::SceneTransition::changeTo(scene)` | La transición "apagado y volver a prender" al escenario indicado (`"bedroom"`, `"cabin_1"`, `"farm"`, ...). Una a la vez: si llega otra mientras corre, se ignora |
 | `LocalWorldView::soundEvents` | Los cues que emite la fuente y SDL reproduce (p. ej. el gallo al empezar el día) |
 
 Viven en objetos que instancia `core::PlaySession` (`popupState_`,
@@ -52,8 +52,12 @@ que el flujo actual de la vista.
    - **Todos durmieron → fin del día** → `ServerDayEnd`: la pantalla queda
      en negro con el popup de OK (sin cancelar) y el reloj queda congelado.
      Cada cliente manda `WakeMessage` al apretar OK.
-   - **Despertaron todos** → `ServerDay`: `changeTo("bedroom")` **y el cue
-     del gallo**. El reloj vuelve a las 6:00 y todos quedan en la cama.
+   - **Despertaron todos** → `ServerDay`: `changeTo(...)` a la cabaña del
+     jugador (`mapId`, p. ej. `"cabin_1"`..`"cabin_N"`, o `"bedroom"` en el
+     fallback de `scenes.toml`) **y el cue del gallo**. El reloj vuelve a
+     las 6:00 y todos quedan en su cama (`MarkerKind::Bed`). (Hoy en
+     `PlaySession` el `dayEnded` sigue usando `kInitialRoom` hasta que el
+     servidor informe `LocalWorldView::mapId`.)
 
 ### El jugador muerto no se le pregunta
 
@@ -104,19 +108,11 @@ El mecanismo (popups, transición, fades, re-indexado) no se tocó.
 |---|---|
 | Estado del popup + puntos de entrada | `client/game/PopupState.{h,cpp}` |
 | Transición de escena + `changeTo` | `client/game/SceneTransition.{h,cpp}` |
-| La cama (entrar, pose, frazadas) | `client/game/EnterSelection.{h,cpp}` + `enter` en `scenes.toml` |
+| La cama (entrar, pose, frazadas) | `client/game/EnterSelection.{h,cpp}` + `enter` en `scenes.toml` u `overlay.toml` (`MapObjectAdapter` usando `MarkerKind::Bed`) |
 | Texto con fuente (reutilizable) | `client/sdl/render/TextRenderer.{h,cpp}` + `ui/text.toml` |
 | Figura del popup (grilla + marco) | `client/world/InventoryLayout` + `client/sdl/render/InventoryHud` |
 | El swap de escena (en el negro) | `core::PlaySession::changeScene` |
 
-## 7. Estado de la rama
-
-- **Verificada limpia**: build + suite completa (553/553) con el working
-  tree sin cambios locales (`git stash` → build + tests → `git stash
-  pop`).
-- **La instrumentación de performance NO es parte de esta rama**: los
-  cambios de `GameLoop`/`FrameStats`, los targets del `Makefile` y la
-  demo (`TALLER_DEMO`) son trabajo aparte, opt-in por variables de
-  entorno (`TALLER_MAX_FRAMES`, `TALLER_FRAME_STATS`) y viven como
-  cambios locales. Si algún día se suben, que vayan en su propio
-  commit/rama: esta rama debe compilar y funcionar sin ellos.
+> Para la conexión completa de mapas del editor (`worlds/<nombre>.toml`,
+> `LocalWorldView::mapId`, `MarkerKind::Bed` como spawn y cabañas `1..N`),
+> ver `client/docs/indicaciones_mundo_conexion.md` y `client/docs/convenciones.md` (§14).

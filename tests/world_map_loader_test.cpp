@@ -26,7 +26,7 @@ TEST(WorldMapLoaderTest, KeepsObjectsInTheFileOrder) {
 			editor_world_fixtures::makeToml());
 	const worldmodel::Map& town = world.maps.at("town");
 	EXPECT_EQ(town.objects[0].role, worldmodel::ObjectRole::Decoration);
-	EXPECT_EQ(town.objects[1].role, worldmodel::ObjectRole::Market);
+	EXPECT_EQ(town.objects[1].role, worldmodel::ObjectRole::GeneralStore);
 	EXPECT_EQ(town.objects[2].role,
 		  worldmodel::ObjectRole::CommunityCenter);
 }

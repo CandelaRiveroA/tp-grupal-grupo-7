@@ -17,9 +17,9 @@ namespace {
 constexpr int kCell = 32;
 
 const char* const kRolesToml = R"(
-[roles.market]
+[roles.general_store]
 action = "enter_map"
-target = "market"
+target = "general_store"
 
 [roles.community_center]
 action = "popup"
@@ -52,17 +52,17 @@ TEST(StructureSceneTest, BuildingsBecomeStructuresWithTheirRoleBehavior) {
 		townWith(editor_world_fixtures::makeWorld(), kRolesToml);
 	// Árbol (decoración): no es estructura. Mercado y centro: sí.
 	ASSERT_EQ(scene.structures.size(), 2u);
-	const world::SceneStructure& market = scene.structures[0];
-	EXPECT_EQ(market.role, "market");
-	EXPECT_EQ(market.at.column, 1);
-	EXPECT_EQ(market.span.columns, 2);
-	ASSERT_TRUE(market.door.has_value());
-	EXPECT_EQ(market.door->column, 2);
-	EXPECT_EQ(market.door->row, 3);
-	EXPECT_EQ(market.action, world::StructureAction::EnterMap);
-	EXPECT_EQ(market.target, "market");
-	// El elemento que la dibuja es el del mercado (segundo, tras el árbol).
-	EXPECT_EQ(scene.elements[market.elementIndex].at.column, 1);
+	const world::SceneStructure& store = scene.structures[0];
+	EXPECT_EQ(store.role, "general_store");
+	EXPECT_EQ(store.at.column, 1);
+	EXPECT_EQ(store.span.columns, 2);
+	ASSERT_TRUE(store.door.has_value());
+	EXPECT_EQ(store.door->column, 2);
+	EXPECT_EQ(store.door->row, 3);
+	EXPECT_EQ(store.action, world::StructureAction::EnterMap);
+	EXPECT_EQ(store.target, "general_store");
+	// El elemento que la dibuja es el de la tienda (segundo, tras el árbol).
+	EXPECT_EQ(scene.elements[store.elementIndex].at.column, 1);
 
 	const world::SceneStructure& center = scene.structures[1];
 	EXPECT_EQ(center.role, "community_center");
@@ -83,13 +83,13 @@ TEST(StructureSceneTest, StructureKeepsTheDayElementWhenItHasANightVariant) {
 [decorations."prefab_b:2,0"]
 night_tile = "prefab_b:2,5"
 
-[roles.market]
+[roles.general_store]
 action = "popup"
 target = "x"
 )");
-	const world::SceneStructure& market = scene.structures[0];
-	ASSERT_TRUE(scene.elements[market.elementIndex].when.has_value());
-	EXPECT_EQ(*scene.elements[market.elementIndex].when,
+	const world::SceneStructure& store = scene.structures[0];
+	ASSERT_TRUE(scene.elements[store.elementIndex].when.has_value());
+	EXPECT_EQ(*scene.elements[store.elementIndex].when,
 		  world::TimeOfDay::Day);
 }
 
@@ -137,7 +137,7 @@ TEST(StructureSelectionTest, ClickIsInRangeOnlyNearTheBuilding) {
 	EXPECT_TRUE(close.hit);
 	EXPECT_TRUE(close.inRange);
 	ASSERT_NE(close.structure, nullptr);
-	EXPECT_EQ(close.structure->role, "market");
+	EXPECT_EQ(close.structure->role, "general_store");
 
 	// Lejos: el click se consume pero no hace nada.
 	const game::StructureClick far =
@@ -192,27 +192,27 @@ TEST(AreaProximityTest, InsideAndRingAreNear) {
 TEST(OverlayRolesTest, UnknownActionIsInvalidWithItsPath) {
 	try {
 		world::OverlayLoader().loadFromString(R"(
-[roles.market]
+[roles.general_store]
 action = "teleport"
 target = "x"
 )");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
-		EXPECT_EQ(error.path(), "roles.market.action");
+		EXPECT_EQ(error.path(), "roles.general_store.action");
 	}
 }
 
 TEST(OverlayRolesTest, EmptyTargetIsInvalid) {
 	try {
 		world::OverlayLoader().loadFromString(R"(
-[roles.market]
+[roles.general_store]
 action = "popup"
 target = ""
 )");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
-		EXPECT_EQ(error.path(), "roles.market.target");
+		EXPECT_EQ(error.path(), "roles.general_store.target");
 	}
 }
 

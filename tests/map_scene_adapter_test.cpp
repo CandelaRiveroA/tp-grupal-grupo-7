@@ -159,8 +159,22 @@ TEST(MapSceneAdapterTest, PathsLayerKeepsOnlyItsOwnTilesAtTheirCells) {
 
 TEST(MapSceneAdapterTest, EmptyPathsLayerIsOmitted) {
 	const world::SceneDescription scene = world::MapSceneAdapter(overlayWith(kScale)).adapt(
-		editor_world_fixtures::makeWorld(), "market");
+		editor_world_fixtures::makeWorld(), "general_store");
 	EXPECT_EQ(scene.layers.size(), 1u);
+	EXPECT_EQ(scene.layers[0].pass, world::LayerPass::Background);
+}
+
+TEST(MapSceneAdapterTest, FrontLayerIsMarkedForeground) {
+	worldmodel::World world = editor_world_fixtures::makeWorld();
+	worldmodel::Map& store = world.maps.at("general_store");
+	store.front[store.cellIndex({2, 1})] =
+		editor_world_fixtures::tile("scene_a", 0, 1);
+
+	const world::SceneDescription scene =
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(world, "general_store");
+	ASSERT_EQ(scene.layers.size(), 2u);
+	EXPECT_EQ(scene.layers[0].pass, world::LayerPass::Background);
+	EXPECT_EQ(scene.layers[1].pass, world::LayerPass::Foreground);
 }
 
 TEST(MapSceneAdapterTest, LayerWithTheWrongSizeIsInvalidWithItsPath) {
@@ -237,7 +251,7 @@ cell  = [16, 16]
 [decorations."prefab_b:0,0"]
 night_tile = "prefab_b:7,3"
 
-[[maps.market.elements]]
+[[maps.general_store.elements]]
 tileset = "decoration"
 region  = [17, 11, 1, 2]
 draw    = { mode = "single" }
@@ -286,7 +300,7 @@ TEST(MapSceneAdapterOverlayTest, InitialElementsAreAppendedAfterTheObjects) {
 		world::OverlayLoader().loadFromString(kOverlayToml);
 	const world::SceneDescription scene =
 		world::MapSceneAdapter(overlay).adapt(
-			editor_world_fixtures::makeWorld(), "market");
+			editor_world_fixtures::makeWorld(), "general_store");
 	ASSERT_EQ(scene.elements.size(), 1u);
 	// Las decoraciones iniciales del cliente van debajo de todo: no se
 	// ordenan con las entidades (como en scenes.toml).
@@ -426,13 +440,13 @@ TEST(OverlayAuditTest, MatchingOverlayHasNoFindings) {
 // --- Anchors: markers, portales, NPC y la cama -------------------------
 
 TEST(MapSceneAdapterAnchorsTest, MarkersAndPortalsBecomeSceneData) {
-	const world::SceneDescription market = world::MapSceneAdapter(
+	const world::SceneDescription store = world::MapSceneAdapter(
 		overlayWith(kScale)).adapt(editor_world_fixtures::makeWorld(),
-					   "market");
-	ASSERT_EQ(market.markers.size(), 1u);
-	EXPECT_EQ(market.markers[0].kind, "merchant_pierre");
-	EXPECT_EQ(market.markers[0].cell.column, 2);
-	EXPECT_EQ(market.markers[0].cell.row, 2);
+					   "general_store");
+	ASSERT_EQ(store.markers.size(), 1u);
+	EXPECT_EQ(store.markers[0].kind, "merchant_pierre");
+	EXPECT_EQ(store.markers[0].cell.column, 2);
+	EXPECT_EQ(store.markers[0].cell.row, 2);
 
 	const world::SceneDescription town = adaptTown();
 	ASSERT_EQ(town.portals.size(), 1u);
@@ -446,19 +460,19 @@ TEST(MapSceneAdapterAnchorsTest, MarkerBoundToAnNpcGivesItsDefaultCell) {
 [markers.merchant_pierre]
 npc = "pierre"
 )");
-	const world::SceneDescription market =
+	const world::SceneDescription store =
 		world::MapSceneAdapter(overlay).adapt(
-			editor_world_fixtures::makeWorld(), "market");
-	ASSERT_EQ(market.npcCells.count("pierre"), 1u);
-	EXPECT_EQ(market.npcCells.at("pierre").column, 2);
-	EXPECT_EQ(market.npcCells.at("pierre").row, 2);
+			editor_world_fixtures::makeWorld(), "general_store");
+	ASSERT_EQ(store.npcCells.count("pierre"), 1u);
+	EXPECT_EQ(store.npcCells.at("pierre").column, 2);
+	EXPECT_EQ(store.npcCells.at("pierre").row, 2);
 }
 
 TEST(MapSceneAdapterAnchorsTest, MarkersWithoutAnNpcBindingLeaveNoNpcCells) {
-	const world::SceneDescription market = world::MapSceneAdapter(
+	const world::SceneDescription store = world::MapSceneAdapter(
 		overlayWith(kScale)).adapt(editor_world_fixtures::makeWorld(),
-					   "market");
-	EXPECT_TRUE(market.npcCells.empty());
+					   "general_store");
+	EXPECT_TRUE(store.npcCells.empty());
 }
 
 // El tile del "mueble" de la cabaña (cama 2x2 en (0,0)) lo agrega el
@@ -566,7 +580,7 @@ TEST(EditorWorldSourceTest, KnowsTheMapsOfTheWorld) {
 	EXPECT_TRUE(source.has("town"));
 	EXPECT_FALSE(source.has("bedroom"));
 	EXPECT_EQ(source.ids().size(), 3u);
-	EXPECT_EQ(source.load("market").grid.columns, 5);
+	EXPECT_EQ(source.load("general_store").grid.columns, 5);
 }
 
 class SceneSourcesTest : public ::testing::Test {
@@ -592,16 +606,27 @@ TEST_F(SceneSourcesTest, WithoutWorldFileOnlyTheRoomsAreUsed) {
 }
 
 TEST_F(SceneSourcesTest, EditorMapsWinOverRoomsWithTheSameId) {
+	worldmodel::World world = editor_world_fixtures::makeWorld();
+	worldmodel::Map bedroom = editor_world_fixtures::emptyMap(
+		"bedroom", worldmodel::MapKind::Cabin, 5, 4);
+	for (auto& cell : bedroom.ground) {
+		cell = editor_world_fixtures::tile("scene_a", 0, 0);
+	}
+	world.maps["bedroom"] = bedroom;
+	{
+		std::ofstream out(worldPath_);
+		out << worldmodel::WorldSerializer().saveToString(world);
+	}
 	const world::SceneSources sources(TALLER_SCENES_TOML, worldPath_,
 					  "/no/existe/overlay.toml");
 	const std::vector<const world::SceneSource*> byPriority =
 		sources.byPriority();
 	ASSERT_EQ(byPriority.size(), 2u);
-	// "market" existe en las dos: gana el mapa del editor (5x4).
-	EXPECT_EQ(byPriority[0]->load("market").grid.columns, 5);
-	// "bedroom" solo está en scenes.toml.
-	EXPECT_FALSE(byPriority[0]->has("bedroom"));
-	EXPECT_TRUE(byPriority[1]->has("bedroom"));
+	// "bedroom" existe en las dos: gana el mapa del editor (5x4).
+	EXPECT_EQ(byPriority[0]->load("bedroom").grid.columns, 5);
+	// "market" solo está en scenes.toml.
+	EXPECT_FALSE(byPriority[0]->has("market"));
+	EXPECT_TRUE(byPriority[1]->has("market"));
 }
 
 TEST_F(SceneSourcesTest, OverlayFileIsAppliedAndUnmatchedEntriesAreReported) {

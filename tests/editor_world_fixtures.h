@@ -46,13 +46,14 @@ inline worldmodel::Map emptyMap(const std::string& id,
 	map.collision.assign(cells, false);
 	map.ground.assign(cells, std::nullopt);
 	map.paths.assign(cells, std::nullopt);
+	map.front.assign(cells, std::nullopt);
 	return map;
 }
 
 // "town" 6x5: piso con una celda vacía en (0,0), un camino en (1,1),
-// un árbol (1x2), el mercado (2x2, puerta en (2,3)) y el centro
-// comunitario (2x2, puerta en (5,3)). "market" 5x4: un comerciante.
-// "cabin" 4x4: la cama.
+// un árbol (1x2), la tienda general (2x2, puerta en (2,3)) y el centro
+// comunitario (2x2, puerta en (5,3)). "general_store" 5x4: un comerciante.
+// "cabin_1" 4x4: la cama.
 inline worldmodel::World makeWorld() {
 	worldmodel::World world;
 	world.name = "fixture";
@@ -67,12 +68,12 @@ inline worldmodel::World makeWorld() {
 	town.paths[town.cellIndex({1, 1})] = tile("scene_a", 3, 2);
 	town.objects.push_back(object(worldmodel::ObjectRole::Decoration,
 				      tile("prefab_b", 0, 0), 4, 0, 1, 2));
-	worldmodel::MapObject market =
-		object(worldmodel::ObjectRole::Market, tile("prefab_b", 2, 0),
+	worldmodel::MapObject store =
+		object(worldmodel::ObjectRole::GeneralStore, tile("prefab_b", 2, 0),
 		       1, 1, 2, 2);
-	market.blocked = true;
-	market.door = worldmodel::TilePos{2, 3};
-	town.objects.push_back(market);
+	store.blocked = true;
+	store.door = worldmodel::TilePos{2, 3};
+	town.objects.push_back(store);
 	worldmodel::MapObject center = object(
 		worldmodel::ObjectRole::CommunityCenter, tile("prefab_b", 4, 0),
 		4, 3, 2, 2);
@@ -84,14 +85,14 @@ inline worldmodel::World makeWorld() {
 				{0, 4}});
 	world.maps["town"] = town;
 
-	worldmodel::Map market2 =
-		emptyMap("market", worldmodel::MapKind::Market, 5, 4);
-	for (auto& cell : market2.ground) {
+	worldmodel::Map generalStore = emptyMap(
+		"general_store", worldmodel::MapKind::GeneralStore, 5, 4);
+	for (auto& cell : generalStore.ground) {
 		cell = tile("scene_a", 1, 1);
 	}
-	market2.markers.push_back({worldmodel::MarkerKind::MerchantPierre,
-				   {2, 2}});
-	world.maps["market"] = market2;
+	generalStore.markers.push_back({worldmodel::MarkerKind::MerchantPierre,
+					{2, 2}});
+	world.maps["general_store"] = generalStore;
 
 	worldmodel::Map cabin =
 		emptyMap("cabin", worldmodel::MapKind::Cabin, 4, 4);

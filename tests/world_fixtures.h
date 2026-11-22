@@ -142,6 +142,7 @@ inline worldmodel::ScenarioLibrary fullLibrary() {
 	library.add(scenarioOf("general_store_a",
 			       worldmodel::MapKind::GeneralStore));
 	library.add(scenarioOf("ranch_a", worldmodel::MapKind::Ranch));
+	library.add(scenarioOf("barn_a", worldmodel::MapKind::Barn));
 	library.add(scenarioOf("cave_a", worldmodel::MapKind::Dungeon));
 	return library;
 }
@@ -155,6 +156,7 @@ inline worldmodel::ScenarioChoice validChoice() {
 	choice.blacksmith = "blacksmith_a";
 	choice.generalStore = "general_store_a";
 	choice.ranch = "ranch_a";
+	choice.barn = "barn_a";
 	choice.dungeons.fill("cave_a");
 	return choice;
 }
@@ -183,6 +185,20 @@ inline worldmodel::PrefabCatalog defaultCatalog() {
 	cabin.collisionGrid.assign(81, true);
 	cabin.collisionGrid[7 * 9 + 5] = false;
 	catalog.add(cabin);
+
+	worldmodel::PrefabDef barn;
+	barn.id = "gallinero";
+	barn.name = "Gallinero (Coop)";
+	barn.category = "estructuras_granja";
+	barn.categoryLabel = "Estructuras de granja";
+	barn.tile = worldmodel::TileRef{"prefab_estructuras_granja", 9, 0};
+	barn.width = 6;
+	barn.height = 7;
+	barn.role = worldmodel::ObjectRole::Barn;
+	barn.door = worldmodel::TilePos{1, 6};
+	barn.collisionGrid.assign(42, true);
+	barn.collisionGrid[6 * 6 + 1] = false;
+	catalog.add(barn);
 
 	const auto addShop = [&](const char* id, const char* name,
 				 worldmodel::ObjectRole role, int tileCol) {
@@ -252,43 +268,34 @@ inline worldmodel::World defaultWorld() {
 			door,
 			prefab->collisionGrid,
 		});
-		return door;
 	};
 
 	worldmodel::Map& farm = world.maps.at("farm");
 	placeFromPrefab(farm, cat.findByRole(worldmodel::ObjectRole::Cabin),
 			{2, 2});
+	placeFromPrefab(farm, cat.findByRole(worldmodel::ObjectRole::Barn),
+			{28, 2});
 	farm.rebuildCollision();
 	worldmodel::WorldFactory().addCabinMap(world, 1, *lib.find("cabin_a"));
 
 	worldmodel::Map& town = world.maps.at("town");
 	const struct {
 		worldmodel::ObjectRole role;
-		const char* mapId;
 		worldmodel::TilePos origin;
 	} townShops[] = {
-		{worldmodel::ObjectRole::Carpentry, "carpentry", {2, 2}},
-		{worldmodel::ObjectRole::Blacksmith, "blacksmith", {10, 2}},
-		{worldmodel::ObjectRole::GeneralStore, "general_store",
-		 {18, 2}},
-		{worldmodel::ObjectRole::Ranch, "ranch", {26, 2}},
+		{worldmodel::ObjectRole::Carpentry, {2, 2}},
+		{worldmodel::ObjectRole::Blacksmith, {10, 2}},
+		{worldmodel::ObjectRole::GeneralStore, {18, 2}},
+		{worldmodel::ObjectRole::Ranch, {26, 2}},
 	};
 	for (const auto& entry : townShops) {
-		const auto door = placeFromPrefab(
-			town, cat.findByRole(entry.role), entry.origin);
-		for (worldmodel::Portal& portal :
-		     world.maps.at(entry.mapId).portals) {
-			if (portal.kind ==
-			    worldmodel::PortalKind::InteriorExit) {
-				portal.targetMap = "town";
-				portal.targetCell = *door;
-			}
-		}
+		placeFromPrefab(town, cat.findByRole(entry.role), entry.origin);
 	}
 	placeFromPrefab(
 		town, cat.findByRole(worldmodel::ObjectRole::CommunityCenter),
 		{2, 9});
 	town.rebuildCollision();
+	worldmodel::WorldFactory().wirePortals(world);
 
 	const worldmodel::TilePos farmTown{farm.width - 2, farm.height / 2};
 	const worldmodel::TilePos farmDungeon{farm.width - 3, 2};

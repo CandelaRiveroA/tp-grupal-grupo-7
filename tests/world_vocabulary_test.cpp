@@ -17,6 +17,7 @@ TEST(WorldVocabularyTest, MapKindRoundTrip) {
 		{"blacksmith", worldmodel::MapKind::Blacksmith},
 		{"general_store", worldmodel::MapKind::GeneralStore},
 		{"ranch", worldmodel::MapKind::Ranch},
+		{"barn", worldmodel::MapKind::Barn},
 		{"dungeon", worldmodel::MapKind::Dungeon},
 	};
 	for (const auto& [text, kind] : cases) {
@@ -32,6 +33,7 @@ TEST(WorldVocabularyTest, ObjectRoleRoundTrip) {
 		{"blacksmith", worldmodel::ObjectRole::Blacksmith},
 		{"general_store", worldmodel::ObjectRole::GeneralStore},
 		{"ranch", worldmodel::ObjectRole::Ranch},
+		{"barn", worldmodel::ObjectRole::Barn},
 		{"community_center", worldmodel::ObjectRole::CommunityCenter},
 		{"decoration", worldmodel::ObjectRole::Decoration},
 	};

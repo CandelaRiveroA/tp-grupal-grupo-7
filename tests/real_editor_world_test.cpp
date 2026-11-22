@@ -43,33 +43,29 @@ worldmodel::World editorWorldRoundTrip() {
 		target.objects.push_back(worldmodel::MapObject{
 			role, prefab->tile, origin, prefab->width, prefab->height,
 			true, door, prefab->collisionGrid, prefab->doorWidth});
-		return door;
 	};
 
 	place(made.maps.at("farm"), worldmodel::ObjectRole::Cabin, {10, 10});
+	place(made.maps.at("farm"), worldmodel::ObjectRole::Barn, {25, 10});
+	made.maps.at("farm").rebuildCollision();
 	factory.addCabinMap(
 		made, 1,
 		*library.find(factory.firstOfEachKind(library).cabin));
 
 	worldmodel::Map& town = made.maps.at("town");
-	const std::pair<worldmodel::ObjectRole, const char*> shops[] = {
-		{worldmodel::ObjectRole::Carpentry, "carpentry"},
-		{worldmodel::ObjectRole::Blacksmith, "blacksmith"},
-		{worldmodel::ObjectRole::GeneralStore, "general_store"},
-		{worldmodel::ObjectRole::Ranch, "ranch"},
+	const worldmodel::ObjectRole shopRoles[] = {
+		worldmodel::ObjectRole::Carpentry,
+		worldmodel::ObjectRole::Blacksmith,
+		worldmodel::ObjectRole::GeneralStore,
+		worldmodel::ObjectRole::Ranch,
 	};
 	int col = 5;
-	for (const auto& [role, mapId] : shops) {
-		const auto door = place(town, role, {col, 5});
+	for (const worldmodel::ObjectRole role : shopRoles) {
+		place(town, role, {col, 5});
 		col += 18;
-		for (worldmodel::Portal& portal : made.maps.at(mapId).portals) {
-			if (portal.kind == worldmodel::PortalKind::InteriorExit) {
-				portal.targetMap = "town";
-				portal.targetCell = *door;
-			}
-		}
 	}
 	place(town, worldmodel::ObjectRole::CommunityCenter, {10, 25});
+	factory.wirePortals(made);
 
 	return world::WorldMapLoader().loadFromString(
 		worldmodel::WorldSerializer().saveToString(made));
@@ -79,7 +75,7 @@ TEST(RealEditorWorldTest, EveryMapOfTheEditorWorldBecomesAScene) {
 	const worldmodel::World editorWorld = editorWorldRoundTrip();
 	const world::WorldOverlay overlay =
 		world::OverlayLoader().loadFromFile(TALLER_OVERLAY_TOML);
-	ASSERT_EQ(editorWorld.maps.size(), 17u);
+	ASSERT_EQ(editorWorld.maps.size(), 18u);
 	for (const auto& entry : editorWorld.maps) {
 		const worldmodel::Map& map = entry.second;
 		const world::SceneDescription scene =

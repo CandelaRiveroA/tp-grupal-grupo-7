@@ -1,9 +1,11 @@
+#include <algorithm>
 #include <cstddef>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "world_fixtures.h"
 #include "world_model/FormatError.h"
+#include "world_model/MapRules.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/WorldFactory.h"
 #include "world_model/WorldSerializer.h"
@@ -79,9 +81,9 @@ TEST(WorldFactoryTest, MakeDefaultBuildsEmptyFarmWithoutCabins) {
 		"Primavera", worldfixtures::fullLibrary(),
 		worldfixtures::defaultCatalog(), worldfixtures::validChoice());
 	EXPECT_EQ(empty.name, "Primavera");
-	ASSERT_EQ(empty.maps.size(), 16u);
+	ASSERT_EQ(empty.maps.size(), 17u);
 	for (const char* id : {"farm", "town", "carpentry", "blacksmith",
-			       "general_store", "ranch"}) {
+			       "general_store", "ranch", "barn"}) {
 		EXPECT_TRUE(empty.maps.contains(id)) << id;
 	}
 	EXPECT_FALSE(empty.maps.contains("cabin_1"));
@@ -105,7 +107,7 @@ TEST(WorldFactoryTest, MakeDefaultBuildsEmptyFarmWithoutCabins) {
 	EXPECT_TRUE(empty.maps.at("town").portals.empty());
 	EXPECT_TRUE(empty.maps.at("dungeon_1").portals.empty());
 	for (const char* id :
-	     {"carpentry", "blacksmith", "general_store", "ranch"}) {
+	     {"carpentry", "blacksmith", "general_store", "ranch", "barn"}) {
 		const Portal* exit =
 			findPortal(empty.maps.at(id), PortalKind::InteriorExit);
 		ASSERT_NE(exit, nullptr) << id;
@@ -121,6 +123,7 @@ TEST(WorldFactoryTest, MapsHaveTheirKindAndLevel) {
 	EXPECT_EQ(world.maps.at("blacksmith").kind, MapKind::Blacksmith);
 	EXPECT_EQ(world.maps.at("general_store").kind, MapKind::GeneralStore);
 	EXPECT_EQ(world.maps.at("ranch").kind, MapKind::Ranch);
+	EXPECT_EQ(world.maps.at("barn").kind, MapKind::Barn);
 	EXPECT_EQ(world.maps.at("dungeon_7").kind, MapKind::Dungeon);
 	EXPECT_EQ(world.maps.at("dungeon_7").level, 7);
 }
@@ -263,6 +266,7 @@ TEST(WorldFactoryTest, FirstOfEachKindPicksOnePerKindAndLeavesMissingEmpty) {
 	EXPECT_EQ(full.blacksmith, "blacksmith_a");
 	EXPECT_EQ(full.generalStore, "general_store_a");
 	EXPECT_EQ(full.ranch, "ranch_a");
+	EXPECT_EQ(full.barn, "barn_a");
 	EXPECT_EQ(full.dungeons[9], "cave_a");
 
 	worldmodel::ScenarioLibrary onlyFarm;
@@ -336,7 +340,7 @@ TEST(WorldFactoryTest, AddExtraMapAppendsCopyWithoutPoints) {
 	const Scenario extra = scenarioOf("cave_b", MapKind::Dungeon);
 	WorldFactory().addExtraMap(world, extra, "cave_b");
 
-	ASSERT_EQ(world.maps.size(), 18u);
+	ASSERT_EQ(world.maps.size(), 19u);
 	const Map& map = world.maps.at("cave_b");
 	EXPECT_EQ(map.kind, MapKind::Dungeon);
 	EXPECT_EQ(map.level, 0);
@@ -359,7 +363,7 @@ TEST(WorldFactoryTest, AddExtraMapRejectsReservedInvalidAndDuplicateIds) {
 	expectInvalid([&] {
 		WorldFactory().addExtraMap(world, extra, "cave_b");
 	});
-	EXPECT_EQ(world.maps.size(), 18u);
+	EXPECT_EQ(world.maps.size(), 19u);
 }
 
 TEST(WorldFactoryTest, AddExtraMapRejectsTilesetConflict) {
@@ -369,7 +373,7 @@ TEST(WorldFactoryTest, AddExtraMapRejectsTilesetConflict) {
 	expectInvalid([&] {
 		WorldFactory().addExtraMap(world, extra, "cave_b");
 	});
-	EXPECT_EQ(world.maps.size(), 17u);
+	EXPECT_EQ(world.maps.size(), 18u);
 }
 
 TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
@@ -417,7 +421,7 @@ TEST(WorldFactoryTest, ReplaceMapScenarioResetsExtraMap) {
 	EXPECT_TRUE(map.objects.empty());
 	EXPECT_TRUE(map.markers.empty());
 	EXPECT_TRUE(map.portals.empty());
-	EXPECT_EQ(world.maps.size(), 18u);
+	EXPECT_EQ(world.maps.size(), 19u);
 	EXPECT_TRUE(worldmodel::WorldValidator().validate(world).empty());
 }
 
@@ -438,7 +442,7 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRejectsWrongKindAndUnknownId) {
 		WorldFactory().replaceMapScenario(world, "farm", badFarm);
 	});
 	EXPECT_EQ(world.maps.at("farm").width, kWidth);
-	EXPECT_EQ(world.maps.at("farm").objects.size(), 1u);
+	EXPECT_EQ(world.maps.at("farm").objects.size(), 2u);
 }
 
 TEST(WorldFactoryTest, RemoveExtraMapDeletesOnlyExtraMaps) {
@@ -446,7 +450,7 @@ TEST(WorldFactoryTest, RemoveExtraMapDeletesOnlyExtraMaps) {
 	const Scenario extra = scenarioOf("cave_b", MapKind::Dungeon);
 	WorldFactory().addExtraMap(world, extra, "cave_b");
 	WorldFactory().removeExtraMap(world, "cave_b");
-	EXPECT_EQ(world.maps.size(), 17u);
+	EXPECT_EQ(world.maps.size(), 18u);
 	EXPECT_FALSE(world.maps.contains("cave_b"));
 
 	expectInvalid([&] {
@@ -458,7 +462,7 @@ TEST(WorldFactoryTest, RemoveExtraMapDeletesOnlyExtraMaps) {
 	expectInvalid([&] {
 		WorldFactory().removeExtraMap(world, "no_such_map");
 	});
-	EXPECT_EQ(world.maps.size(), 17u);
+	EXPECT_EQ(world.maps.size(), 18u);
 }
 
 TEST(WorldFactoryTest, AddCabinMapCreatesAndWiresInterior) {
@@ -479,6 +483,68 @@ TEST(WorldFactoryTest, AddCabinMapCreatesAndWiresInterior) {
 	EXPECT_EQ(exit->targetMap, "farm");
 	EXPECT_EQ(exit->targetCell, *second.door);
 	EXPECT_TRUE(worldmodel::WorldValidator().validate(world).empty());
+}
+
+TEST(WorldFactoryTest, WirePortalsClearsStaleExitsWhenBuildingMissingOrDuplicated) {
+	World world = defaultWorld();
+	Map& farm = world.maps.at("farm");
+	farm.objects.erase(
+		std::remove_if(farm.objects.begin(), farm.objects.end(),
+			       [](const MapObject& obj) {
+				       return obj.role == ObjectRole::Barn;
+			       }),
+		farm.objects.end());
+
+	Map& town = world.maps.at("town");
+	const MapObject* carpentry = findObject(town, ObjectRole::Carpentry);
+	ASSERT_NE(carpentry, nullptr);
+	MapObject duplicateCarpentry = *carpentry;
+	duplicateCarpentry.cell = {2, 10};
+	duplicateCarpentry.door = worldmodel::TilePos{4, 15};
+	town.objects.push_back(duplicateCarpentry);
+
+	WorldFactory().wirePortals(world);
+
+	const Portal* barnExit =
+		findPortal(world.maps.at("barn"), PortalKind::InteriorExit);
+	ASSERT_NE(barnExit, nullptr);
+	EXPECT_TRUE(barnExit->targetMap.empty());
+
+	const Portal* carpentryExit = findPortal(world.maps.at("carpentry"),
+						 PortalKind::InteriorExit);
+	ASSERT_NE(carpentryExit, nullptr);
+	EXPECT_TRUE(carpentryExit->targetMap.empty());
+
+	town.objects.pop_back();
+	WorldFactory().wirePortals(world);
+	EXPECT_EQ(carpentryExit->targetMap, "town");
+	EXPECT_EQ(carpentryExit->targetCell, *carpentry->door);
+}
+
+TEST(WorldFactoryTest, MapRulesQueriesExposeCanonicalTopology) {
+	const worldmodel::MapRules rules;
+	EXPECT_EQ(rules.requiredHostMap(ObjectRole::Cabin), "farm");
+	EXPECT_EQ(rules.requiredHostMap(ObjectRole::Barn), "farm");
+	EXPECT_EQ(rules.requiredHostMap(ObjectRole::Carpentry), "town");
+	EXPECT_EQ(rules.requiredHostMap(ObjectRole::CommunityCenter), "town");
+	EXPECT_FALSE(rules.requiredHostMap(ObjectRole::Decoration).has_value());
+
+	const std::vector<std::string> interiors = rules.fixedInteriorIds();
+	EXPECT_EQ(interiors, (std::vector<std::string>{"carpentry", "blacksmith",
+						      "general_store", "ranch",
+						      "barn"}));
+	EXPECT_TRUE(rules.isInteriorHost("farm"));
+	EXPECT_TRUE(rules.isInteriorHost("town"));
+	EXPECT_FALSE(rules.isInteriorHost("barn"));
+	EXPECT_FALSE(rules.isInteriorHost("dungeon_1"));
+
+	const std::vector<std::string> required = rules.requiredMapIds(2);
+	EXPECT_NE(std::find(required.begin(), required.end(), "barn"),
+		  required.end());
+	EXPECT_NE(std::find(required.begin(), required.end(), "cabin_2"),
+		  required.end());
+	EXPECT_EQ(std::find(required.begin(), required.end(), "cabin_3"),
+		  required.end());
 }
 
 }

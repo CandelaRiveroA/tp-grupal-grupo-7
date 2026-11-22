@@ -168,14 +168,11 @@ target_sources(taller_client
     game/FractionStat.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
-    game/MockGameClient.h
     game/MoveCommand.h
     game/Interactor.h
     game/FloorItems.h
     game/InteractionSession.h
-    game/AnimalSystem.h
     game/CropSystem.h
-    game/MockWorldClient.h
     game/DialogAnimator.h
     game/PlayerController.h
     game/PointerClick.h

@@ -53,6 +53,9 @@ private:
     void send_message(const ServerChat& chat);
     void send_message(const ServerGiftRequest& gift);
     void send_message(const ServerGiftAnswered& answered);
+    void send_message(const ServerGold& gold);
+    void send_message(const ServerNpcPlacement& placement);
+    void send_message(const ServerMarketOffer& offer);
 
 public:
     explicit ProtocolSender(Socket& socket);

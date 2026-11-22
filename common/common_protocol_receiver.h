@@ -58,6 +58,9 @@ private:
     ServerMessage receive_gift_answered_message();
     ServerMessage receive_set_completed_message();
     ServerMessage receive_victory_message();
+    ServerMessage receive_gold_message();
+    ServerMessage receive_npc_placement_message();
+    ServerMessage receive_market_offer_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);

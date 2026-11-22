@@ -1,5 +1,6 @@
 #include "inventory.h"
 
+#include "product.h"
 #include <stdexcept>
 #include <utility>
 
@@ -89,27 +90,94 @@ std::vector<std::unique_ptr<Item>> Inventory::extract_items(ItemID id, uint16_t 
     }
 
     uint16_t available = 0;
-    for (const auto& slot : this->slots) {
+    for (const auto& slot: this->slots) {
         if (!slot.is_empty() && slot.item->get_id() == id && slot.item->can_be_traded()) {
             available += slot.amount;
         }
     }
-
     if (available < qty) {
-        return extracted; 
+        return extracted;
     }
 
     extracted.reserve(qty);
     uint16_t remaining = qty;
-
     for (uint8_t i = 0; i < this->max_slots && remaining > 0; ++i) {
         while (remaining > 0 && !this->slots[i].is_empty() &&
                this->slots[i].item->get_id() == id &&
                this->slots[i].item->can_be_traded()) {
-            extracted.push_back(this->remove_item(i));
-            remaining--;
+            extracted.push_back(this->pop_one_item(i));
+            --remaining;
         }
     }
-
     return extracted;
+}
+
+std::vector<std::unique_ptr<Item>> Inventory::extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) {
+    std::vector<std::unique_ptr<Item>> extracted;
+    if (qty == 0) {
+        return extracted;
+    }
+    uint16_t available = 0;
+    for (const auto& slot: this->slots) {
+        if (slot.is_empty() || slot.item->get_id() != id ||
+            !slot.item->can_be_traded()) {
+            continue;
+        }
+        if (slot.item->get_quality() >= minimum_quality) {
+            available += slot.amount;
+        }
+    }
+    if (available < qty) {
+        return extracted;
+    }
+
+    extracted.reserve(qty);
+    uint16_t remaining = qty;
+    for (uint8_t i = 0; i < this->max_slots && remaining > 0; ++i) {
+        while (remaining > 0 && !this->slots[i].is_empty() &&
+               this->slots[i].item->get_id() == id) {
+            if (!this->slots[i].item->can_be_traded()) {
+                break;
+            }
+            if (this->slots[i].item->get_quality() < minimum_quality) {
+                break;
+            }
+            extracted.push_back(this->pop_one_item(i));
+            --remaining;
+        }
+    }
+    return extracted;
+}
+
+bool Inventory::can_extract_items(ItemID id, uint16_t qty) const {
+    if (qty == 0) {
+        return false;
+    }
+    uint16_t available = 0;
+    for (const auto& slot: this->slots) {
+        if (!slot.is_empty() && slot.item->get_id() == id &&
+            slot.item->can_be_traded()) {
+            available += slot.amount;
+        }
+    }
+    return available >= qty;
+}
+
+bool Inventory::can_extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) const {
+    if (qty == 0) {
+        return false;
+    }
+    uint16_t available = 0;
+    for (const auto& slot: this->slots) {
+        if (slot.is_empty() || slot.item->get_id() != id ||
+            !slot.item->can_be_traded()) {
+            continue;
+        }
+        if (slot.item->get_quality() >= minimum_quality) {
+            available += slot.amount;
+        }
+    }
+    return available >= qty;
 }

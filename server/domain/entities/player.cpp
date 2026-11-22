@@ -51,6 +51,8 @@ uint16_t Player::get_max_health() const { return this->max_hp; }
 float Player::get_energy() const { return this->energy; }
 void Player::set_energy(float e) { this->energy = e; }
 float Player::get_max_energy() const { return this->max_energy; }
+void Player::set_max_health(uint16_t value) { this->max_hp = value; }
+void Player::set_max_energy(float value) { this->max_energy = value; }
 
 void Player::add_gold(uint16_t amount) { this->gold += amount; }
 bool Player::try_remove_gold(uint16_t amount) {
@@ -159,6 +161,20 @@ bool Player::pick_up_item(std::unique_ptr<Item> item) {
 
 std::vector<std::unique_ptr<Item>> Player::extract_items(ItemID id, uint16_t qty) {
     return this->backpack.extract_items(id, qty);
+}
+
+std::vector<std::unique_ptr<Item>> Player::extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) {
+    return this->backpack.extract_items_with_min_quality(id, minimum_quality, qty);
+}
+
+bool Player::can_extract_items(ItemID id, uint16_t qty) const {
+    return this->backpack.can_extract_items(id, qty);
+}
+
+bool Player::can_extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) const {
+    return this->backpack.can_extract_items_with_min_quality(id, minimum_quality, qty);
 }
 
 void Player::consume_energy(float amount) {

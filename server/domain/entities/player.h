@@ -58,6 +58,8 @@ public:
     void set_energy(float e);
     float get_energy() const;
     float get_max_energy() const;
+    void set_max_health(uint16_t value);
+    void set_max_energy(float value);
 
     void add_gold(uint16_t amount);
     bool try_remove_gold(uint16_t amount);
@@ -100,6 +102,11 @@ public:
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
     std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
+    std::vector<std::unique_ptr<Item>> extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty);
+    bool can_extract_items(ItemID id, uint16_t qty) const;
+    bool can_extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty) const;
     bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity

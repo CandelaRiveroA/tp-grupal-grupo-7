@@ -17,6 +17,9 @@
 #include "../enemies/vampire.h"
 #include "../enemies/vampiress.h"
 #include "../entities/i_movable.h"
+#include "../animals/cow.h"
+#include "../animals/chicken.h"
+#include "../inventory/product.h"
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -52,10 +55,17 @@ World::World(uint16_t w, uint16_t h):
         height(h),
         next_enemy_id(kFirstEnemyId),
         next_projectile_id(kFirstProjectileId),
+        next_orc_group_id(1),
+        next_vampire_pair_id(1),
         waking(false),
         day_ended(false),
         day_started(false),
-        day(1) {
+        day(1),
+        community_victory(false),
+        current_room(0),
+        market_discount_active(false),
+        double_sell_active(false),
+        skull_survived_without_damage(true) {
     this->grid.resize(this->height);
     for (uint16_t y = 0; y < this->height; ++y) {
         this->grid[y].resize(this->width);
@@ -137,6 +147,195 @@ void World::move_player(uint8_t player_id, Direction dir) {
 void World::toggle_player_walking(uint8_t player_id) {
     Player& p = *this->players.at(player_id);
     p.toggle_walking();
+}
+
+// ---------------------------------------------------------
+// Centro Comunitario
+// ---------------------------------------------------------
+
+CommunityCenter& World::get_community_center() { return this->community_center; }
+const CommunityCenter& World::get_community_center() const { return this->community_center; }
+
+void World::set_current_room(uint8_t room) {
+    if (room == 0) {
+        this->skull_survived_without_damage = false;
+    } else if (this->current_room == 0) {
+        this->skull_survived_without_damage = true;
+    } else if (room == this->current_room + 1 &&
+               this->skull_survived_without_damage) {
+        this->community_center.record_skull_survival(true);
+        if (this->community_center.try_complete_if_ready(CommunitySet::COMBAT)) {
+            this->complete_set(CommunitySet::COMBAT);
+        }
+    } else {
+        this->skull_survived_without_damage = false;
+    }
+    this->current_room = room;
+}
+void World::leave_dungeon() {
+    this->skull_survived_without_damage = false;
+    this->current_room = 0;
+}
+uint8_t World::get_current_room() const { return this->current_room; }
+
+CommunitySet World::community_set_from_name(const std::string& set_name) const {
+    return this->community_set_catalog.set_for_name(set_name);
+}
+
+void World::apply_set_reward(CommunitySet set) {
+    this->community_set_rewards.apply(*this, set);
+}
+
+bool World::complete_set(const std::string& set_name) {
+    const CommunitySet set = this->community_set_from_name(set_name);
+    if (static_cast<uint8_t>(set) == 0) {
+        return false;
+    }
+    return this->complete_set(set);
+}
+
+bool World::complete_set(CommunitySet set) {
+    if (static_cast<uint8_t>(set) < 1 || static_cast<uint8_t>(set) > 5) {
+        return false;
+    }
+    if (!this->community_center.complete_set(set)) {
+        return false;
+    }
+    this->apply_set_reward(set);
+    if (this->community_center.is_community_center_completed()) {
+        this->community_victory = true;
+    }
+    return true;
+}
+
+bool World::complete_all_sets() {
+    bool changed = false;
+    for (const std::string& set_name: this->community_set_catalog.all_names()) {
+        changed = this->complete_set(set_name) || changed;
+    }
+    return changed;
+}
+
+bool World::is_set_completed(const std::string& set_name) const {
+    const CommunitySet set = this->community_set_from_name(set_name);
+    return static_cast<uint8_t>(set) != 0 && this->community_center.is_set_completed(set);
+}
+
+bool World::is_community_center_completed() const {
+    return this->community_center.is_community_center_completed();
+}
+
+bool World::donate_to_community_center(uint8_t player_id, const std::string& set_name,
+                                       ItemID item, uint16_t quantity) {
+    Player& p = this->get_player(player_id);
+    const CommunitySet set = this->community_set_from_name(set_name);
+    if (static_cast<uint8_t>(set) != 0 &&
+        this->community_center.is_set_completed(set)) {
+        return false;
+    }
+
+    if (set == CommunitySet::MONEY) {
+        const uint32_t missing =
+                10000u - static_cast<uint32_t>(
+                        this->community_center.get_gold_donated());
+        if (missing == 0) {
+            return false;
+        }
+        if (quantity > missing) {
+            quantity = static_cast<uint16_t>(missing);
+        }
+        if (!p.try_remove_gold(quantity)) {
+            return false;
+        }
+        this->record_gold_donated(quantity);
+        return true;
+    }
+
+    if (static_cast<uint8_t>(set) == 0 ||
+        !this->community_center.is_valid_item(set, item)) {
+        return false;
+    }
+
+    std::vector<std::unique_ptr<Item>> donated;
+    if (set == CommunitySet::CROPS) {
+        if (!p.can_extract_items_with_min_quality(
+                item, Quality::INCREDIBLE, quantity)) {
+            return false;
+        }
+        donated = p.extract_items_with_min_quality(
+                item, Quality::INCREDIBLE, quantity);
+    } else {
+        if (!p.can_extract_items(item, quantity)) {
+            return false;
+        }
+        donated = p.extract_items(item, quantity);
+    }
+    if (donated.empty()) {
+        return false;
+    }
+
+    const uint16_t donated_quantity =
+            static_cast<uint16_t>(donated.size());
+    bool offered = false;
+    if (set == CommunitySet::CROPS) {
+        offered = this->community_center.offer_crop(
+                item, Quality::INCREDIBLE, donated_quantity);
+    } else if (set == CommunitySet::MINERALS) {
+        offered = this->community_center.offer_mineral(item, donated_quantity);
+    } else if (set == CommunitySet::ANIMALS) {
+        offered = this->community_center.offer_animal(item, donated_quantity);
+    }
+
+    if (offered && this->community_center.try_complete_if_ready(set)) {
+        this->complete_set(set);
+    }
+    if (!offered) {
+        for (auto& item_to_restore: donated) {
+            p.pick_up_item(std::move(item_to_restore));
+        }
+    }
+    return offered;
+}
+
+void World::record_enemy_killed(const std::string& kind, uint16_t group_id,
+                                uint16_t pair_id, uint16_t room) {
+    this->community_center.record_enemy_killed(kind, group_id, pair_id, room);
+    if (this->community_center.try_complete_if_ready(CommunitySet::COMBAT)) {
+        this->complete_set(CommunitySet::COMBAT);
+    }
+}
+
+void World::record_gold_donated(uint16_t amount) {
+    if (this->community_center.offer_gold(amount)) {
+        if (this->community_center.try_complete_if_ready(CommunitySet::MONEY)) {
+            this->complete_set(CommunitySet::MONEY);
+        }
+    }
+}
+
+bool World::is_market_discount_active() const {
+    return this->market_discount_active;
+}
+
+bool World::is_double_sell_active() const {
+    return this->double_sell_active;
+}
+
+void World::activate_market_rewards() {
+    this->market_discount_active = true;
+    this->double_sell_active = true;
+}
+
+std::vector<uint8_t> World::take_completed_sets() {
+    return this->community_center.take_completed_sets();
+}
+
+bool World::take_victory() {
+    if (!this->community_victory) {
+        return false;
+    }
+    this->community_victory = false;
+    return true;
 }
 
 const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }
@@ -260,6 +459,7 @@ void World::add_enemy(std::unique_ptr<Enemy> enemy) {
     }
     // shortcut: id sin reciclar, se repite tras 65535 enemigos; upgrade: reusar ids libres.
     enemy->set_id(this->next_enemy_id++);
+    enemy->set_room(this->current_room);
     set_entity_at(x, y, std::move(enemy));
     // set_entity_at agrega al final de la celda: el puntero es el de la celda, no el del parámetro.
     enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
@@ -295,9 +495,13 @@ void World::spawn_orc_pack(uint16_t x, uint16_t y) {
         const auto& [orc_x, orc_y] = cells[(start + i) % cells.size()];
         // Se re-chequea: el primer orco ya bloquea su propia celda.
         if (this->can_walk_to(orc_x, orc_y)) {
-            this->add_enemy(std::make_unique<Orc>(orc_x, orc_y));
+            auto orc = std::make_unique<Orc>(orc_x, orc_y);
+            orc->set_group_id(this->next_orc_group_id);
+            orc->set_room(this->current_room);
+            this->add_enemy(std::move(orc));
         }
     }
+    ++this->next_orc_group_id;
 }
 
 void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
@@ -328,12 +532,17 @@ void World::spawn_vampire_pair(uint16_t x, uint16_t y) {
     // Los dos se construyen antes de agregar: nadie bloquea la celda del otro.
     auto vampire = std::make_unique<Vampire>(first_x, first_y);
     auto vampiress = std::make_unique<Vampiress>(second_x, second_y);
+    vampire->set_pair_id(this->next_vampire_pair_id);
+    vampiress->set_pair_id(this->next_vampire_pair_id);
+    vampire->set_room(this->current_room);
+    vampiress->set_room(this->current_room);
     Vampire* vampire_ptr = vampire.get();
     Vampiress* vampiress_ptr = vampiress.get();
     vampire_ptr->set_partner(vampiress_ptr);
     vampiress_ptr->set_partner(vampire_ptr);
     this->add_enemy(std::move(vampire));
     this->add_enemy(std::move(vampiress));
+    ++this->next_vampire_pair_id;
 }
 
 void World::clear_enemies() {
@@ -435,6 +644,7 @@ std::vector<ProjectileSnapshot> World::projectile_snapshots() const {
 bool World::damage_player(uint8_t player_id, uint8_t damage) {
     Player& player = *this->players.at(player_id);
     const uint16_t hp_before = player.get_health();
+    this->skull_survived_without_damage = false;
     const bool killed = player.take_damage(damage);
     // Charco de sangre: solo el golpe que dejó al jugador por debajo del 20 %
     // (incluida la muerte) deja sangre; golpear a un ya caído no suma.
@@ -558,14 +768,22 @@ bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
     const Item* active_item = p.peek_equipped_item();
     if (!active_item) return false; 
 
-    //TODO: Sacar este switch a un factory method en CropFactory para no tener que tocar World.cpp cada vez que agregamos un nuevo cultivo.
     std::unique_ptr<Crop> new_crop = nullptr;
     switch (active_item->get_id()) {
-        case ItemID::STRAWBERRY_SEED: new_crop = std::make_unique<Strawberry>(tx, ty); break;
-        case ItemID::ONION_SEED: new_crop = std::make_unique<GreenOnion>(tx, ty); break;
-        case ItemID::POTATO_SEED: new_crop = std::make_unique<Potato>(tx, ty); break;
-        case ItemID::PUMPKIN_SEED: new_crop = std::make_unique<Pumpkin>(tx, ty); break;
-        default: return false; 
+        case ItemID::STRAWBERRY_SEED:
+            new_crop = std::make_unique<Strawberry>(tx, ty);
+            break;
+        case ItemID::ONION_SEED:
+            new_crop = std::make_unique<GreenOnion>(tx, ty);
+            break;
+        case ItemID::POTATO_SEED:
+            new_crop = std::make_unique<Potato>(tx, ty);
+            break;
+        case ItemID::PUMPKIN_SEED:
+            new_crop = std::make_unique<Pumpkin>(tx, ty);
+            break;
+        default:
+            return false;
     }
     
     crops.push_back(new_crop.get());

@@ -17,6 +17,7 @@ constexpr const char* kLabels = "label";
 constexpr const char* kText = "text";
 constexpr const char* kBox = "box";
 constexpr const char* kFontSize = "font_size";
+constexpr const char* kBold = "bold";
 constexpr const char* kLabelColor = "color";
 constexpr const char* kTokens = "token";
 constexpr const char* kSource = "source";
@@ -92,6 +93,10 @@ HudLabel HudOverlayTomlReader::readLabel(
 	label.fontSize = labelDoc.getInt(kFontSize);
 	if (label.fontSize <= 0) {
 		throw ConfigError(Kind::InvalidValue, kFontSize);
+	}
+
+	if (labelDoc.hasKey(kBold)) {
+		label.bold = labelDoc.getBool(kBold);
 	}
 
 	const std::array<int, 4> color = labelDoc.getIntArray<4>(kLabelColor);

@@ -1,0 +1,139 @@
+# NPCs estáticos del cliente. Agregar uno = un bloque [[npcs]].
+# El cuerpo vive acá (no en scenes.toml) para que cada NPC sea
+# autocontenido; el estilo del popup se comparte por nombre.
+
+[popup_styles.default]
+grid           = [9, 3]
+portrait       = [0, 0, 3, 3]
+text           = [3, 0, 6, 3]
+portrait_inset = 6
+portrait_offset = [7, 0]
+text_inset     = 6
+text_size      = 19
+text_offset    = [-10, 10]
+line_gap       = 0
+text_color     = [62, 39, 17, 255]
+
+[[npcs]]
+id    = "pierre"
+room  = "market"
+style = "default"
+text  = """
+¡Bienvenido a mi tienda! Soy Pierre: tengo los mejores (y únicos) precios en semillas y compro tus cultivos y productos de granja.
+
+Usa estos comandos en el chat para comerciar:
+        /consultar_catalogo
+        /comprar producto cantidad
+        /vender producto cantidad"""
+
+  [npcs.body]
+  sheet = "Players/NPCs/NPC_Pierre.png"
+  cell  = [16, 16]
+  at    = [13, 9]
+  span  = [1, 2]
+  cells = [[0, 0], [0, 1]]
+
+  [npcs.portrait]
+  sheet  = "Players/NPCs/PierrePort.png"
+  cell   = [16, 16]
+  region = [0, 0, 4, 4]
+
+# Marnie, Clint y Robin: mismo patrón que Pierre (cuerpo 1x2 celdas de la hoja
+# NPC_<Nombre>.png, retrato 4x4 celdas de <Nombre>Port.png). `at` es la
+# posición POR DEFECTO: la real la manda la fuente de estado (servidor) en
+# LocalWorldView::npcPlacements; si no manda nada, vale esta.
+
+[[npcs]]
+id    = "marnie"
+room  = "market"
+style = "default"
+text  = """
+¡Hola, bienvenido al rancho! Soy Marnie: amo a los animales y aquí compro y vendo vacas y gallinas para tu granja.
+
+Usa estos comandos en el chat para comerciar:
+        /consultar_catalogo
+        /comprar producto cantidad
+        /vender producto cantidad"""
+
+  [npcs.body]
+  sheet = "Players/NPCs/NPC_Marnie.png"
+  cell  = [16, 16]
+  at    = [9, 7]
+  span  = [1, 2]
+  cells = [[0, 0], [0, 1]]
+
+  [npcs.portrait]
+  sheet  = "Players/NPCs/MarniePort.png"
+  cell   = [16, 16]
+  region = [0, 0, 4, 4]
+
+[[npcs]]
+id    = "clint"
+room  = "market"
+style = "default"
+text  = """
+¡Buenas! Soy Clint, el herrero del pueblo: si traes minerales de la mazmorra, te los compro todos.
+
+Usa estos comandos en el chat para comerciar:
+        /consultar_catalogo
+        /comprar producto cantidad
+        /vender producto cantidad"""
+
+  [npcs.body]
+  sheet = "Players/NPCs/NPC_Clint.png"
+  cell  = [16, 16]
+  at    = [17, 7]
+  span  = [1, 2]
+  cells = [[0, 0], [0, 1]]
+
+  [npcs.portrait]
+  sheet  = "Players/NPCs/ClintPort.png"
+  cell   = [16, 16]
+  region = [0, 0, 4, 4]
+
+[[npcs]]
+id    = "robin"
+room  = "market"
+style = "default"
+text  = """
+¡Hola! Soy Robin, la carpintera: fabrico muebles, cofres y decoración para tu casa y granja. ¡Mi catálogo cambia cada día!
+
+Usa estos comandos en el chat para comerciar:
+        /consultar_catalogo
+        /comprar producto cantidad
+        /vender producto cantidad"""
+
+  [npcs.body]
+  sheet = "Players/NPCs/NPC_Robin.png"
+  cell  = [16, 16]
+  at    = [10, 12]
+  span  = [1, 2]
+  cells = [[0, 0], [0, 1]]
+
+  [npcs.portrait]
+  sheet  = "Players/NPCs/RobinPort.png"
+  cell   = [16, 16]
+  region = [0, 0, 4, 4]
+
+# Cofre del Market: objeto animado (sin popup). Un click lo abre (cuadros en
+# orden) y otro lo cierra (en orden inverso). Solo se anima la tapa (fila 32); la
+# mitad de abajo (2, 33) es la del cofre cerrado y queda fija. Posición y ritmo
+# son datos.
+[[npcs]]
+id   = "cofre"
+room = "market"
+
+  [npcs.body]
+  sheet       = "Decorations/Craftables.png"
+  cell        = [16, 16]
+  at          = [19, 12]
+  span        = [1, 2]
+  frame_ticks = 6
+  frames = [
+    [[2, 32], [2, 33]],
+    [[3, 32], [2, 33]],
+    [[4, 32], [2, 33]],
+    [[5, 32], [2, 33]],
+    [[6, 32], [2, 33]],
+    [[7, 32], [2, 33]],
+  ]

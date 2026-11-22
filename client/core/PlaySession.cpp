@@ -28,6 +28,7 @@ namespace core {
 
 PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                          game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                         const world::NpcCatalog& npcs, const world::MarketCatalog& market,
                          const world::InventoryLayout& inventory,
                          const world::ToolOverlayCatalog& toolOverlay,
                          const world::ResourceCatalog& resources,
@@ -40,6 +41,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
         scene_(scenario.scene()),
+        currentRoom_(core::kInitialRoom),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
@@ -56,6 +58,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
                             world::CreatureKind::SkullFireGreen}},
         characters_(characters),
+        npcCatalog_(npcs),
+        marketCatalog_(market),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
         inventory_(farm_.withCropContents(inventory)),
@@ -95,12 +99,16 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
+        npcPopupPainter_(sdlContext_, textRenderer_),
+        marketPopupPainter_(sdlContext_, textRenderer_),
+        marketPopup_(market, inventory_),
         chatPainter_(sdlContext_, textRenderer_, chat),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
         } {
     renderer_.prepareScene(scene_);
+    renderer_.setNpcs(npcCatalog_.forRoom(currentRoom_));
 }
 
 void PlaySession::run() {
@@ -132,6 +140,7 @@ void PlaySession::tick(int iteration) {
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
     motion_.observe(presentation, iteration);
+    renderer_.setNpcFrames(props_.frames(iteration));
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
     dayPhase_.setClock(state.dayNumber, state.clockMinutes);
@@ -145,6 +154,9 @@ void PlaySession::tick(int iteration) {
     if (state.dayEnded) {
         voted_ = false;
         woke_ = false;
+        npcPopup_ = nullptr;
+        lastNpcId_.clear();
+        marketPopup_.close();
         popupState_.hide();
         sceneTransition_.changeTo(core::kInitialRoom, true);
     }
@@ -240,6 +252,9 @@ void PlaySession::tick(int iteration) {
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
+        npcPopup_ = nullptr;
+        lastNpcId_.clear();
+        marketPopup_.close();
         if (lastSleeping_ == 0) {
             voted_ = false;
         }
@@ -285,6 +300,7 @@ void PlaySession::tick(int iteration) {
         chatPreviewUntilTick_ = iteration + core::kChatPreviewTicks;
     }
 
+    openMarketFromView(state);
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
@@ -332,9 +348,40 @@ void PlaySession::tick(int iteration) {
             sdlContext_.startTextInput();
             continue;
         }
+        if (command.kind == game::InputCommand::Kind::NextMarketSet) {
+            // DEMO (tecla N): rota el estilo del último comerciante y, si
+            // su catálogo está abierto, lo reabre con el estilo nuevo.
+            if (!lastNpcId_.empty() && currentRoom_ == core::kMarketRoom) {
+                marketCycle_.next(marketCatalog_.defaultSetCount(lastNpcId_));
+                if (marketPopup_.isOpen()) {
+                    marketPopup_.close();
+                    openMarketOfSpokenNpc();
+                }
+            }
+            continue;
+        }
+        // Con el popup de un NPC abierto el mundo está bloqueado: el
+        // click lo cierra y el resto de las intenciones se descartan.
+        if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
+            continue;
+        }
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::OpenCatalog) {
+            // DEMO (tecla B): el server pedirá el popup cuando el
+            // jugador escriba el comando; entonces se borra esta rama
+            // y la tecla, y el handler del mensaje llama a
+            // marketPopup_.open(oferta).
+            openMarketOfSpokenNpc();
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ToggleMarket) {
+            // Cambio de escenario local: mercado ↔ dormitorio.
+            sceneTransition_.changeTo(currentRoom_ == core::kMarketRoom ? core::kInitialRoom
+                                                                        : core::kMarketRoom);
             continue;
         }
         playerCommands.push_back(command);
@@ -343,7 +390,9 @@ void PlaySession::tick(int iteration) {
     // en curso (el "meterse") termina su paso y después el personaje
     // queda quieto hasta que se responda.
     const game::PlayerEvents events =
-            player_.tick(iteration, popupState_.modal() ? std::nullopt : pressed, playerCommands);
+            player_.tick(iteration,
+                         popupState_.modal() || npcPopup_ != nullptr || marketPopup_.isOpen() ? std::nullopt : pressed,
+                         playerCommands);
     if (events.toolSwitched) {
         audio_.play(sdl::SoundId::ToolSwitch);
     }
@@ -355,6 +404,9 @@ void PlaySession::tick(int iteration) {
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
+    // Dónde está cada NPC lo manda la fuente de estado (vista); sin eso,
+    // valen las celdas por defecto de npcs.toml.
+    const world::NpcCells npcCells = npcPlacements_.cellsFrom(state);
 
     if (!state.entities.empty()) {
         const game::ViewEntity& local = state.entities[game::kLocalPlayerIndex];
@@ -463,7 +515,10 @@ void PlaySession::tick(int iteration) {
                 stats_.at(game::StatKind::Life).fraction();
     }
     hudOverlayPainter_.draw(hudFillValues);
-    hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
+    // Valores crudos de las etiquetas: el reloj y la plata (la manda la fuente).
+    std::map<std::string, int> hudValues = dayPhase_.clockValues();
+    hudValues[game::kHudGoldKey] = state.gold;
+    hudOverlayPainter_.drawLabels(hudValues);
     // Abierto: historial + tipeo (el cursor parpadea con el tick).
     // Cerrado: el preview atenuado, que se apaga solo.
     if (input_.chatOpen()) {
@@ -473,6 +528,8 @@ void PlaySession::tick(int iteration) {
         chatPainter_.drawPreview(state.chatLog);
     }
     drawPopup(popupBox);
+    drawNpcPopup();
+    drawMarketCatalog();
 
     // El puntero: la variante la decide el estado de juego (si hay algo
     // interactivo bajo el cursor); el painter solo dibuja.
@@ -487,6 +544,12 @@ void PlaySession::tick(int iteration) {
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
+        // El popup de un NPC o el del catálogo se cierra con cualquier click.
+        if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
+            npcPopup_ = nullptr;
+            marketPopup_.close();
+            continue;
+        }
         const world::PixelPoint screenClick{click.x, click.y};
         const game::PopupView view = popupState_.view();
         const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
@@ -556,6 +619,21 @@ void PlaySession::tick(int iteration) {
         if (popupState_.modal()) {
             continue;
         }
+        // Un NPC: abre su popup y consume el click.
+        if (const world::NpcDef* npc = npcCatalog_.npcAt(currentRoom_, worldClick,
+                                                         scene_.cellPixelSize, npcCells);
+            npc != nullptr) {
+            if (!npc->hasPopup()) {
+                // Objeto animado (cofre): el click lo abre o lo cierra.
+                props_.toggle(npc->id, static_cast<int>(npc->body.frames.size()),
+                              npc->body.frameTicks, iteration);
+                continue;
+            }
+            npcPopup_ = npc;
+            // Con quién hablé: B abre SU catálogo (hasta que el chat lo pida).
+            lastNpcId_ = npc->id;
+            continue;
+        }
         // La cama. Caminar hasta ella lo decide EnterSelection; el popup
         // lo abre el server (ServerSleep) al pisarla. Si ya estoy adentro
         // (sin walkTo), el click pide dormir con Take, que la registra.
@@ -588,6 +666,8 @@ void PlaySession::tick(int iteration) {
     // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
     world::CursorKind cursorKind = world::CursorKind::Normal;
+    // Con el popup de un NPC o del catálogo abierto el mundo está bloqueado.
+    const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen();
     if (popupState_.modal()) {
         const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
         bool overPopup = false;
@@ -600,9 +680,12 @@ void PlaySession::tick(int iteration) {
             overPopup = promptLayout_.buttonAt(prompt.button, popupBox, mousePoint);
         }
         cursorKind = overPopup ? world::CursorKind::Interactive : world::CursorKind::Normal;
-    } else if (isGiftTarget(target, state)) {
+    } else if (!worldBlocked && isGiftTarget(target, state)) {
         cursorKind = world::CursorKind::Gift;
-    } else if (isInteractive(target, state) || enterSelection_.hits(worldCursor, state)) {
+    } else if (!worldBlocked &&
+               (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
+                npcCatalog_.npcAt(currentRoom_, worldCursor, scene_.cellPixelSize, npcCells) !=
+                        nullptr)) {
         cursorKind = world::CursorKind::Interactive;
     }
     cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
@@ -652,7 +735,12 @@ void PlaySession::changeScene(const std::string& room) {
     // pinta (el dibujo es el mismo). La posición del personaje y todo
     // lo demás lo sigue mandando la fuente de estado por la vista.
     scene_ = world::SceneConfigLoader().loadFromFile(core::assetPath(core::kScenesFile), room);
+    currentRoom_ = room;
+    npcPopup_ = nullptr;
+    lastNpcId_.clear();
+    marketPopup_.close();
     renderer_.prepareScene(scene_);
+    renderer_.setNpcs(npcCatalog_.forRoom(room));
     enterSelection_.reindex(scene_, scene_.cellPixelSize);
     camera_.setWorldBounds(world::ScenePixelMapper(scene_.cellPixelSize).worldBounds(scene_.grid));
 }
@@ -688,6 +776,52 @@ void PlaySession::eraseLastCodepoint(std::string& text) {
     auto it = text.end();
     utf8::unchecked::prior(it);
     text.erase(it, text.end());
+}
+
+void PlaySession::drawNpcPopup() {
+    // Mismo panel que el popup del inventario, con la grilla y el
+    // contenido que declara el NPC.
+    if (npcPopup_ == nullptr) {
+        return;
+    }
+    const world::GridSpan grid = npcPopup_->popup.grid;
+    const world::PixelBox panel = inventory_.centeredBox(
+            sdlContext_.width(), sdlContext_.height(), grid.columns, grid.rows);
+    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
+    npcPopupPainter_.draw(*npcPopup_, panel);
+}
+
+void PlaySession::openMarketOfSpokenNpc() {
+    // El catálogo solo existe en el mercado y es el del último comerciante
+    // con el que se habló; sin comerciante (o sin catálogo) no abre nada.
+    if (currentRoom_ != core::kMarketRoom || lastNpcId_.empty()) {
+        return;
+    }
+    const int setCount = marketCatalog_.defaultSetCount(lastNpcId_);
+    marketPopup_.open(world::MarketOffer{
+            lastNpcId_,
+            marketCatalog_.defaultEntries(lastNpcId_, marketCycle_.current() % setCount)});
+}
+
+void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
+    // El catálogo que pide la fuente de estado. Mientras haya un popup abierto
+    // (catálogo, NPC o sueño) no se toca nada: la oferta se ignora.
+    if (!view.marketOffer.has_value() || currentRoom_ != core::kMarketRoom ||
+        npcPopup_ != nullptr || marketPopup_.isOpen() || popupState_.modal()) {
+        return;
+    }
+    marketPopup_.open(*view.marketOffer);
+}
+
+void PlaySession::drawMarketCatalog() {
+    if (!marketPopup_.isOpen()) {
+        return;
+    }
+    const world::GridSpan grid = marketPopup_.panelGrid();
+    const world::PixelBox panel = marketPopup_.panel(sdlContext_.width(), sdlContext_.height());
+    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
+    marketPopupPainter_.draw(marketCatalog_.style(), marketPopup_.sections(), panel,
+                             inventory_.content);
 }
 
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,

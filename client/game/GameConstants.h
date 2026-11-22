@@ -53,6 +53,16 @@ constexpr const char* kClockMinuteKey = "minuto";
 constexpr const char* kHudEnergyKey = "energia";
 constexpr const char* kHudLifeKey = "vida";
 
+// --- Plata del jugador -------------------------------------------------
+
+// Plata con la que se muestra el HUD hasta que el server mande la suya
+// (el mismo valor que el default de SaveSummary::gold).
+constexpr int kStartingGold = 500;
+
+// Clave del valor crudo que lee la etiqueta de plata del HUD ({plata} en
+// ui/hud.toml).
+constexpr const char* kHudGoldKey = "plata";
+
 // --- Chat --------------------------------------------------------------
 
 // Mensajes que guarda el historial; el más viejo se descarta.

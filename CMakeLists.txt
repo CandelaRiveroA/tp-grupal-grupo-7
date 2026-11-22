@@ -198,6 +198,12 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
+        client/world/NpcCatalog.cpp
+        client/world/NpcVisuals.cpp
+        client/world/MarketCatalog.cpp
+        client/world/MarketPopupStyle.cpp
+        client/world/MarketSideNames.cpp
+        client/world/MarketOfferResolver.cpp
         client/world/ContentCatalog.cpp
         client/world/CursorCatalog.cpp
         client/world/CursorConfigLoader.cpp
@@ -259,6 +265,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
+        client/game/NpcPlacementResolver.cpp
+        client/game/MarketPopupState.cpp
+        client/game/MarketSetCycle.cpp
+        client/game/PropAnimator.cpp
         client/game/InventorySelector.cpp
         # SDL: cultivos, terreno, build-place y contenido en las manos.
         client/world/ContentTraits.cpp

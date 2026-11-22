@@ -82,6 +82,9 @@ target_sources(taller_client
     sdl/render/DialogPainter.cpp
     sdl/render/TextRenderer.cpp
     sdl/render/PromptPainter.cpp
+    sdl/render/NpcRenderer.cpp
+    sdl/render/NpcPopupPainter.cpp
+    sdl/render/MarketPopupPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
@@ -179,6 +182,10 @@ target_sources(taller_client
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
+    game/NpcPlacementResolver.h
+    game/MarketPopupState.h
+    game/MarketSetCycle.h
+    game/PropAnimator.h
     game/InventorySelector.h
     world/ActionNames.h
     world/CharacterAppearance.h

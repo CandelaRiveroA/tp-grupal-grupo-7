@@ -14,7 +14,19 @@ public:
 
 	SceneDescription readRoom(const std::string& roomName) const;
 
+	// Hojas de la raíz `[tilesets.*]` si las hay (sin ellas no hace
+	// nada): para TOML que completan una escena ya armada (overlay).
+	void readExtraTileSets(SceneDescription& scene) const;
+
+	// Elementos de `<base>.elements` con la MISMA sintaxis que una sala
+	// (sin la key no hace nada). Validan contra los tilesets que ya
+	// tenga `scene`.
+	void readExtraElements(const std::string& base, int defaultScale,
+			       SceneDescription& scene) const;
+
 private:
+	void readTileSetEntries(SceneDescription& scene) const;
+
 	void readTileSets(SceneDescription& scene) const;
 
 	// Poblaciones OPCIONALES de la sala ([rooms.X.spawns]): qué puebla

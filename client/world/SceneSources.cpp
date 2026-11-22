@@ -1,18 +1,33 @@
 #include "world/SceneSources.h"
 
 #include <filesystem>
+#include <utility>
 
+#include "world/OverlayLoader.h"
 #include "world/WorldMapLoader.h"
 
 namespace world {
 
 SceneSources::SceneSources(const std::string& scenesPath,
-			   const std::string& worldPath, int worldScale)
+			   const std::string& worldPath,
+			   const std::string& overlayPath)
 	: rooms_(scenesPath) {
 	if (worldPath.empty() || !std::filesystem::exists(worldPath)) {
 		return;
 	}
-	editor_.emplace(WorldMapLoader().loadFromFile(worldPath), worldScale);
+	WorldOverlay overlay;
+	if (!overlayPath.empty() && std::filesystem::exists(overlayPath)) {
+		overlay = OverlayLoader().loadFromFile(overlayPath);
+	}
+	editor_.emplace(WorldMapLoader().loadFromFile(worldPath),
+			std::move(overlay));
+}
+
+std::vector<ConfigError> SceneSources::findings() const {
+	if (!editor_.has_value()) {
+		return {};
+	}
+	return editor_->findings();
 }
 
 std::vector<const SceneSource*> SceneSources::byPriority() const {

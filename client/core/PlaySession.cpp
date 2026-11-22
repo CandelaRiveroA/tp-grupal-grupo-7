@@ -15,6 +15,7 @@
 #include "game/GameConstants.h"
 #include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
+#include "sdl/log/Logger.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
 #include "world/EntityAppearance.h"
@@ -41,7 +42,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
         sources_(core::assetPath(core::kScenesFile), core::assetPath(core::kWorldFile),
-                 core::kEditorWorldScale),
+                 core::assetPath(core::kOverlayFile)),
         sceneSwitcher_(sources_.byPriority(), core::kInitialRoom, scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
@@ -110,6 +111,12 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         } {
     renderer_.prepareScene(scene());
     renderer_.setNpcs(npcCatalog_.forRoom(sceneSwitcher_.id()));
+    // Entradas del overlay que no coinciden con nada del mundo: un
+    // aviso por cada una (el path dice cuál), no frena el juego.
+    const sdl::Logger logger;
+    for (const world::ConfigError& finding: sources_.findings()) {
+        logger.warning(finding.what());
+    }
 }
 
 const world::SceneDescription& PlaySession::scene() const { return sceneSwitcher_.scene(); }

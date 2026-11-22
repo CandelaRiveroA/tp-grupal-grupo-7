@@ -13,6 +13,9 @@ enum class ConfigErrorKind {
 	MissingStructure,
 	WrongType,
 	InvalidValue,
+	// Una entrada de un TOML opcional (overlay) que no coincide con
+	// nada del mundo cargado: no es fatal, se avisa (kind + path).
+	UnmatchedEntry,
 };
 
 class ConfigError : public std::exception {

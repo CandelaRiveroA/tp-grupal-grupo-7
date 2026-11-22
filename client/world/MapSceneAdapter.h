@@ -3,6 +3,7 @@
 #include <string>
 
 #include "world/SceneDescription.h"
+#include "world/WorldOverlay.h"
 #include "world_model/World.h"
 
 namespace world {
@@ -18,8 +19,10 @@ namespace world {
 // deforma: es un ConfigError (kind + path) y el mapa no se carga.
 class MapSceneAdapter {
 public:
-	// `scale`: píxeles de pantalla por píxel de arte (entero > 0).
-	explicit MapSceneAdapter(int scale);
+	// La escala y lo que el cliente agrega al mundo (variantes de noche,
+	// decoraciones iniciales) salen del overlay, PRESTADO: debe vivir más
+	// que el adaptador.
+	explicit MapSceneAdapter(const WorldOverlay& overlay);
 
 	// ConfigError(MissingStructure, "maps.<id>") si el mapa no existe.
 	SceneDescription adapt(const worldmodel::World& world,
@@ -28,6 +31,21 @@ public:
 private:
 	void addTilesets(const worldmodel::World& world,
 			 SceneDescription& scene) const;
+
+	// Suma las hojas propias del cliente; una hoja con el nombre de una
+	// del editor pero otra definición es un conflicto.
+	void mergeOverlayTilesets(SceneDescription& scene) const;
+
+	// Decoraciones iniciales del mapa (overlay), encima de los objetos.
+	void addExtraElements(const std::string& mapId,
+			      SceneDescription& scene) const;
+
+	// La versión de noche de un elemento del editor: misma pieza y
+	// posición, con el origen en otra celda de otra hoja.
+	ElementPlacement nightElement(const ElementPlacement& day,
+				      const NightVariant& night,
+				      const std::string& path,
+				      const SceneDescription& scene) const;
 
 	// Piso y caminos como capas en grilla (una celda de arte por celda
 	// lógica), de abajo hacia arriba.
@@ -47,7 +65,7 @@ private:
 	int drawScaleFor(const TileSetDef& tileset, int cellPixelSize,
 			 const std::string& path) const;
 
-	int scale_;
+	const WorldOverlay& overlay_;
 };
 
 }

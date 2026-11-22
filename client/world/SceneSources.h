@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "world/ConfigError.h"
 #include "world/EditorWorldSource.h"
 #include "world/SceneSource.h"
 #include "world/ScenesRoomSource.h"
@@ -17,9 +18,13 @@ namespace world {
 class SceneSources {
 public:
 	// `worldPath` vacío o inexistente = sin mundo del editor. Si existe
-	// y es inválido lanza ConfigError.
+	// y es inválido lanza ConfigError. `overlayPath` (opcional, puede no
+	// existir) completa el mundo con datos del cliente.
 	SceneSources(const std::string& scenesPath, const std::string& worldPath,
-		     int worldScale);
+		     const std::string& overlayPath);
+
+	// Entradas del overlay sin coincidencia (vacío sin mundo del editor).
+	std::vector<ConfigError> findings() const;
 
 	// Las fuentes por orden de prioridad (prestadas: viven lo que vive
 	// este objeto).

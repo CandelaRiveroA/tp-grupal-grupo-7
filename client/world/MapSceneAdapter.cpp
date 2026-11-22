@@ -3,11 +3,13 @@
 #include <string>
 
 #include "world/ConfigError.h"
+#include "world/OverlayKeys.h"
 #include "world/SceneKeys.h"
 
 namespace world {
 
-MapSceneAdapter::MapSceneAdapter(int scale) : scale_(scale) {}
+MapSceneAdapter::MapSceneAdapter(const WorldOverlay& overlay)
+	: overlay_(overlay) {}
 
 SceneDescription MapSceneAdapter::adapt(const worldmodel::World& world,
 					const std::string& mapId) const {
@@ -17,7 +19,7 @@ SceneDescription MapSceneAdapter::adapt(const worldmodel::World& world,
 		throw ConfigError(ConfigErrorKind::MissingStructure, mapPath);
 	}
 	const worldmodel::Map& map = found->second;
-	if (scale_ <= 0 || map.tileSize <= 0) {
+	if (overlay_.scale <= 0 || map.tileSize <= 0) {
 		throw ConfigError(ConfigErrorKind::InvalidValue,
 				  mapPath + ".tile_size");
 	}
@@ -25,11 +27,13 @@ SceneDescription MapSceneAdapter::adapt(const worldmodel::World& world,
 	SceneDescription scene;
 	scene.floorColor = {0, 0, 0, 255};
 	scene.grid = {map.width, map.height};
-	scene.cellPixelSize = map.tileSize * scale_;
+	scene.cellPixelSize = map.tileSize * overlay_.scale;
 
 	addTilesets(world, scene);
+	mergeOverlayTilesets(scene);
 	addLayers(map, mapPath, scene);
 	addObjects(map, mapPath, scene);
+	addExtraElements(mapId, scene);
 	return scene;
 }
 
@@ -135,8 +139,82 @@ void MapSceneAdapter::addObjects(const worldmodel::Map& map,
 		placement.draw = {DrawMode::Single, drawScale, drawScale};
 		placement.at = {object.cell.column, object.cell.row};
 		placement.span = {object.width, object.height};
+
+		// De noche la decoración cambia de aspecto (overlay): el
+		// elemento de día se esconde y entra el de noche, en el mismo
+		// lugar del orden de dibujo.
+		const auto overlay =
+			overlay_.decorations.find(object.tile.key());
+		if (overlay != overlay_.decorations.end() &&
+		    overlay->second.night.has_value()) {
+			placement.when = TimeOfDay::Day;
+			const ElementPlacement night = nightElement(
+				placement, *overlay->second.night,
+				std::string(kKeyOverlayDecorations) + "." +
+					object.tile.key() + "." +
+					kKeyOverlayNightTile,
+				scene);
+			scene.elements.push_back(std::move(placement));
+			scene.elements.push_back(night);
+			continue;
+		}
 		scene.elements.push_back(std::move(placement));
 	}
+}
+
+void MapSceneAdapter::mergeOverlayTilesets(SceneDescription& scene) const {
+	for (const auto& [name, def] : overlay_.tilesets) {
+		const auto existing = scene.tilesets.find(name);
+		if (existing == scene.tilesets.end()) {
+			scene.tilesets.emplace(name, def);
+			continue;
+		}
+		const bool same = existing->second.image == def.image &&
+				  existing->second.cellWidth == def.cellWidth &&
+				  existing->second.cellHeight == def.cellHeight;
+		if (!same) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  std::string(kKeyTilesets) + "." + name);
+		}
+	}
+}
+
+void MapSceneAdapter::addExtraElements(const std::string& mapId,
+				       SceneDescription& scene) const {
+	const auto extra = overlay_.mapElements.find(mapId);
+	if (extra == overlay_.mapElements.end()) {
+		return;
+	}
+	for (const ElementPlacement& element : extra->second) {
+		scene.elements.push_back(element);
+	}
+}
+
+ElementPlacement MapSceneAdapter::nightElement(
+	const ElementPlacement& day, const NightVariant& night,
+	const std::string& path, const SceneDescription& scene) const {
+	const auto tileset = scene.tilesets.find(night.tileset);
+	if (tileset == scene.tilesets.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, path);
+	}
+	const int drawScale = drawScaleFor(
+		tileset->second, scene.cellPixelSize,
+		std::string(kKeyTilesets) + "." + night.tileset + "." +
+			kKeyCell);
+
+	ElementPlacement element = day;
+	element.tileset = night.tileset;
+	element.pieceCells.clear();
+	for (int row = 0; row < day.pieceSize.rows; ++row) {
+		for (int column = 0; column < day.pieceSize.columns; ++column) {
+			element.pieceCells.push_back(
+				{night.sheetCell.column + column,
+				 night.sheetCell.row + row});
+		}
+	}
+	element.draw = {DrawMode::Single, drawScale, drawScale};
+	element.when = TimeOfDay::Night;
+	return element;
 }
 
 int MapSceneAdapter::drawScaleFor(const TileSetDef& tileset,

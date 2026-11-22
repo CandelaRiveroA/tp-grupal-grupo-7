@@ -8,6 +8,8 @@
 #include "world/EditorWorldSource.h"
 #include "world/ElementLayout.h"
 #include "world/MapSceneAdapter.h"
+#include "world/OverlayAudit.h"
+#include "world/OverlayLoader.h"
 #include "world/SceneSources.h"
 #include "world/ScenePixelMapper.h"
 
@@ -15,8 +17,14 @@ namespace {
 
 constexpr int kScale = 2;
 
+world::WorldOverlay overlayWith(int scale) {
+	world::WorldOverlay overlay;
+	overlay.scale = scale;
+	return overlay;
+}
+
 world::SceneDescription adaptTown() {
-	return world::MapSceneAdapter(kScale).adapt(
+	return world::MapSceneAdapter(overlayWith(kScale)).adapt(
 		editor_world_fixtures::makeWorld(), "town");
 }
 
@@ -98,7 +106,7 @@ TEST(MapSceneAdapterTest, DrawnBoundsEqualTheCellsTheObjectOccupies) {
 }
 
 TEST(MapSceneAdapterTest, ADifferentScaleKeepsTheCellsCoherent) {
-	const world::SceneDescription scene = world::MapSceneAdapter(3).adapt(
+	const world::SceneDescription scene = world::MapSceneAdapter(overlayWith(3)).adapt(
 		editor_world_fixtures::makeWorld(), "town");
 	EXPECT_EQ(scene.cellPixelSize, 48);
 	const world::ScenePixelMapper mapper(scene.cellPixelSize);
@@ -143,7 +151,7 @@ TEST(MapSceneAdapterTest, PathsLayerKeepsOnlyItsOwnTilesAtTheirCells) {
 }
 
 TEST(MapSceneAdapterTest, EmptyPathsLayerIsOmitted) {
-	const world::SceneDescription scene = world::MapSceneAdapter(kScale).adapt(
+	const world::SceneDescription scene = world::MapSceneAdapter(overlayWith(kScale)).adapt(
 		editor_world_fixtures::makeWorld(), "market");
 	EXPECT_EQ(scene.layers.size(), 1u);
 }
@@ -152,7 +160,7 @@ TEST(MapSceneAdapterTest, LayerWithTheWrongSizeIsInvalidWithItsPath) {
 	worldmodel::World world = editor_world_fixtures::makeWorld();
 	world.maps["town"].ground.pop_back();
 	try {
-		world::MapSceneAdapter(kScale).adapt(world, "town");
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(world, "town");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
@@ -165,7 +173,7 @@ TEST(MapSceneAdapterTest, LayerTilesetThatDoesNotFitTheCellIsInvalid) {
 	world.tilesets["scene_a"].cellWidth = 24;
 	world.tilesets["scene_a"].cellHeight = 24;
 	try {
-		world::MapSceneAdapter(kScale).adapt(world, "town");
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(world, "town");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
@@ -175,7 +183,7 @@ TEST(MapSceneAdapterTest, LayerTilesetThatDoesNotFitTheCellIsInvalid) {
 
 TEST(MapSceneAdapterTest, UnknownMapIsMissingStructureWithItsPath) {
 	try {
-		world::MapSceneAdapter(kScale).adapt(
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(
 			editor_world_fixtures::makeWorld(), "nowhere");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
@@ -189,7 +197,7 @@ TEST(MapSceneAdapterTest, TilesetCellThatDoesNotFitTheCellIsInvalid) {
 	world.tilesets["prefab_b"].cellWidth = 24;
 	world.tilesets["prefab_b"].cellHeight = 24;
 	try {
-		world::MapSceneAdapter(kScale).adapt(world, "town");
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(world, "town");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
@@ -201,7 +209,7 @@ TEST(MapSceneAdapterTest, ObjectWithUnknownTilesetIsInvalidWithItsPath) {
 	worldmodel::World world = editor_world_fixtures::makeWorld();
 	world.maps["town"].objects[1].tile.tileset = "gone";
 	try {
-		world::MapSceneAdapter(kScale).adapt(world, "town");
+		world::MapSceneAdapter(overlayWith(kScale)).adapt(world, "town");
 		FAIL() << "se esperaba ConfigError";
 	} catch (const world::ConfigError& error) {
 		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
@@ -209,9 +217,205 @@ TEST(MapSceneAdapterTest, ObjectWithUnknownTilesetIsInvalidWithItsPath) {
 	}
 }
 
+// --- Overlay: lo que el cliente agrega al mundo del editor ------------
+
+const char* const kOverlayToml = R"(
+[world]
+scale = 2
+
+[tilesets.decoration]
+image = "Decorations/Towninterior.png"
+cell  = [16, 16]
+
+[decorations."prefab_b:0,0"]
+night_tile = "prefab_b:7,3"
+
+[[maps.market.elements]]
+tileset = "decoration"
+region  = [17, 11, 1, 2]
+draw    = { mode = "single" }
+at      = [3, 1]
+span    = [1, 2]
+)";
+
+TEST(MapSceneAdapterOverlayTest, NightVariantReplacesTheDecorationAtNight) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kOverlayToml);
+	const world::SceneDescription scene =
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "town");
+	// El árbol (1x2) pasa a dos elementos consecutivos: día y noche.
+	ASSERT_EQ(scene.elements.size(), 4u);
+	const world::ElementPlacement& day = scene.elements[0];
+	const world::ElementPlacement& night = scene.elements[1];
+	ASSERT_TRUE(day.when.has_value());
+	EXPECT_EQ(*day.when, world::TimeOfDay::Day);
+	ASSERT_TRUE(night.when.has_value());
+	EXPECT_EQ(*night.when, world::TimeOfDay::Night);
+	// Misma posición y tamaño; la pieza arranca en la celda de noche.
+	EXPECT_EQ(night.at.column, day.at.column);
+	EXPECT_EQ(night.at.row, day.at.row);
+	EXPECT_EQ(night.span.columns, day.span.columns);
+	EXPECT_EQ(night.span.rows, day.span.rows);
+	ASSERT_EQ(night.pieceCells.size(), 2u);
+	EXPECT_EQ(night.pieceCells[0].column, 7);
+	EXPECT_EQ(night.pieceCells[0].row, 3);
+	EXPECT_EQ(night.pieceCells[1].row, 4);
+}
+
+TEST(MapSceneAdapterOverlayTest, DecorationWithoutOverlayEntryIsDrawnAlways) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kOverlayToml);
+	const world::SceneDescription scene =
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "town");
+	// El mercado y el centro no tienen entrada: sin `when`.
+	EXPECT_FALSE(scene.elements[2].when.has_value());
+	EXPECT_FALSE(scene.elements[3].when.has_value());
+}
+
+TEST(MapSceneAdapterOverlayTest, InitialElementsAreAppendedAfterTheObjects) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kOverlayToml);
+	const world::SceneDescription scene =
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "market");
+	ASSERT_EQ(scene.elements.size(), 1u);
+	EXPECT_EQ(scene.elements[0].tileset, "decoration");
+	EXPECT_EQ(scene.elements[0].at.column, 3);
+	// Su hoja es propia del cliente y queda disponible en la escena.
+	ASSERT_EQ(scene.tilesets.count("decoration"), 1u);
+	EXPECT_EQ(scene.tilesets.at("decoration").image,
+		  "Decorations/Towninterior.png");
+}
+
+TEST(MapSceneAdapterOverlayTest, OverlayScaleDrivesTheCellSize) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(
+		"[world]\nscale = 3\n");
+	const world::SceneDescription scene =
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "town");
+	EXPECT_EQ(scene.cellPixelSize, 48);
+}
+
+TEST(MapSceneAdapterOverlayTest, NightTilesetThatDoesNotExistIsInvalid) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[decorations."prefab_b:0,0"]
+night_tile = "ghost:1,1"
+)");
+	try {
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "town");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(),
+			  "decorations.prefab_b:0,0.night_tile");
+	}
+}
+
+TEST(MapSceneAdapterOverlayTest, OverlayTilesetClashingWithTheWorldIsInvalid) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[tilesets.prefab_b]
+image = "Other/other.png"
+cell  = [16, 16]
+)");
+	try {
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "town");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(), "tilesets.prefab_b");
+	}
+}
+
+TEST(OverlayLoaderTest, DefaultsWhenTheFileIsEmpty) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString("");
+	EXPECT_EQ(overlay.scale, world::kDefaultWorldScale);
+	EXPECT_TRUE(overlay.decorations.empty());
+	EXPECT_TRUE(overlay.mapElements.empty());
+}
+
+TEST(OverlayLoaderTest, NonPositiveScaleIsInvalid) {
+	try {
+		world::OverlayLoader().loadFromString("[world]\nscale = 0\n");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(), "world.scale");
+	}
+}
+
+TEST(OverlayLoaderTest, BadNightTileTextIsInvalid) {
+	try {
+		world::OverlayLoader().loadFromString(R"(
+[decorations."a:0,0"]
+night_tile = "sin-formato"
+)");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+	}
+}
+
+TEST(OverlayLoaderTest, ElementUsingAnUnknownTilesetIsInvalid) {
+	try {
+		world::OverlayLoader().loadFromString(R"(
+[[maps.cabin.elements]]
+tileset = "missing"
+region  = [0, 0, 1, 1]
+draw    = { mode = "single" }
+at      = [0, 0]
+span    = [1, 1]
+)");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+	}
+}
+
+TEST(OverlayAuditTest, ReportsEntriesThatMatchNothing) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[tilesets.decoration]
+image = "x.png"
+cell  = [16, 16]
+
+[decorations."prefab_b:0,0"]
+night_tile = "prefab_b:1,1"
+
+[decorations."prefab_b:9,9"]
+night_tile = "prefab_b:1,1"
+
+[[maps.nowhere.elements]]
+tileset = "decoration"
+region  = [0, 0, 1, 1]
+draw    = { mode = "single" }
+at      = [0, 0]
+span    = [1, 1]
+)");
+	const std::vector<world::ConfigError> findings =
+		world::OverlayAudit().unmatched(
+			editor_world_fixtures::makeWorld(), overlay);
+	ASSERT_EQ(findings.size(), 2u);
+	EXPECT_EQ(findings[0].kind(), world::ConfigErrorKind::UnmatchedEntry);
+	EXPECT_EQ(findings[0].path(), "decorations.prefab_b:9,9");
+	EXPECT_EQ(findings[1].kind(), world::ConfigErrorKind::UnmatchedEntry);
+	EXPECT_EQ(findings[1].path(), "maps.nowhere");
+}
+
+TEST(OverlayAuditTest, MatchingOverlayHasNoFindings) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kOverlayToml);
+	EXPECT_TRUE(world::OverlayAudit()
+			    .unmatched(editor_world_fixtures::makeWorld(), overlay)
+			    .empty());
+}
+
 TEST(EditorWorldSourceTest, KnowsTheMapsOfTheWorld) {
 	const world::EditorWorldSource source(
-		editor_world_fixtures::makeWorld(), kScale);
+		editor_world_fixtures::makeWorld(), overlayWith(kScale));
 	EXPECT_TRUE(source.has("town"));
 	EXPECT_FALSE(source.has("bedroom"));
 	EXPECT_EQ(source.ids().size(), 3u);
@@ -235,13 +439,14 @@ protected:
 #ifdef TALLER_SCENES_TOML
 TEST_F(SceneSourcesTest, WithoutWorldFileOnlyTheRoomsAreUsed) {
 	const world::SceneSources sources(TALLER_SCENES_TOML,
-					  "/no/existe/world.toml", kScale);
+					  "/no/existe/world.toml",
+					  "/no/existe/overlay.toml");
 	EXPECT_EQ(sources.byPriority().size(), 1u);
 }
 
 TEST_F(SceneSourcesTest, EditorMapsWinOverRoomsWithTheSameId) {
 	const world::SceneSources sources(TALLER_SCENES_TOML, worldPath_,
-					  kScale);
+					  "/no/existe/overlay.toml");
 	const std::vector<const world::SceneSource*> byPriority =
 		sources.byPriority();
 	ASSERT_EQ(byPriority.size(), 2u);
@@ -250,6 +455,25 @@ TEST_F(SceneSourcesTest, EditorMapsWinOverRoomsWithTheSameId) {
 	// "bedroom" solo está en scenes.toml.
 	EXPECT_FALSE(byPriority[0]->has("bedroom"));
 	EXPECT_TRUE(byPriority[1]->has("bedroom"));
+}
+
+TEST_F(SceneSourcesTest, OverlayFileIsAppliedAndUnmatchedEntriesAreReported) {
+	const std::string overlayPath = std::string(::testing::TempDir()) +
+					"scene_sources_overlay.toml";
+	{
+		std::ofstream out(overlayPath);
+		out << "[world]\nscale = 3\n"
+		       "[decorations.\"prefab_b:9,9\"]\n"
+		       "night_tile = \"prefab_b:1,1\"\n";
+	}
+	const world::SceneSources sources(TALLER_SCENES_TOML, worldPath_,
+					  overlayPath);
+	std::remove(overlayPath.c_str());
+	// La escala del overlay llega a las escenas del editor.
+	EXPECT_EQ(sources.byPriority()[0]->load("town").cellPixelSize, 48);
+	const std::vector<world::ConfigError> findings = sources.findings();
+	ASSERT_EQ(findings.size(), 1u);
+	EXPECT_EQ(findings[0].path(), "decorations.prefab_b:9,9");
 }
 #endif
 

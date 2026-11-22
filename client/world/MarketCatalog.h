@@ -32,6 +32,9 @@ public:
 	// Nombre mostrado de un producto; nullptr si SDL no lo conoce.
 	const std::string* labelOf(const std::string& contentId) const;
 
+	// ¿El NPC tiene una oferta por defecto declarada en market.toml?
+	bool hasMerchant(const std::string& npcId) const;
+
 	// Oferta por defecto (mock) del comerciante `npcId` en el estilo
 	// `set`: las entradas sin `sets` más las que lo contienen. Vacía si
 	// el comerciante no tiene catálogo.

@@ -16,7 +16,7 @@ text_color     = [62, 39, 17, 255]
 
 [[npcs]]
 id    = "pierre"
-room  = "market"
+room  = "general_store"
 style = "default"
 text  = """
 ¡Bienvenido a mi tienda! Soy Pierre: tengo los mejores (y únicos) precios en semillas y compro tus cultivos y productos de granja.
@@ -45,7 +45,7 @@ Usa estos comandos en el chat para comerciar:
 
 [[npcs]]
 id    = "marnie"
-room  = "market"
+room  = "ranch"
 style = "default"
 text  = """
 ¡Hola, bienvenido al rancho! Soy Marnie: amo a los animales y aquí compro y vendo vacas y gallinas para tu granja.
@@ -69,7 +69,7 @@ Usa estos comandos en el chat para comerciar:
 
 [[npcs]]
 id    = "clint"
-room  = "market"
+room  = "blacksmith"
 style = "default"
 text  = """
 ¡Buenas! Soy Clint, el herrero del pueblo: si traes minerales de la mazmorra, te los compro todos.
@@ -93,7 +93,7 @@ Usa estos comandos en el chat para comerciar:
 
 [[npcs]]
 id    = "robin"
-room  = "market"
+room  = "carpentry"
 style = "default"
 text  = """
 ¡Hola! Soy Robin, la carpintera: fabrico muebles, cofres y decoración para tu casa y granja. ¡Mi catálogo cambia cada día!
@@ -147,7 +147,7 @@ Centro comunitario: aquí se juntan los vecinos del pueblo.
 # son datos.
 [[npcs]]
 id   = "cofre"
-room = "market"
+room = "carpentry"
 
   [npcs.body]
   sheet       = "Decorations/Craftables.png"

@@ -9,10 +9,12 @@
 #include "../../../common/model/draft/CharacterAppearance.h"
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
+#include "../map/world.h"
 
+#include "i_attackable.h"
 #include "i_entity.h"
 
-class Player: public IEntity {
+class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
     Direction facing;
@@ -25,8 +27,12 @@ private:
     uint16_t gold;
     float energy;
     float max_energy;
+    // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
+    bool died_in_combat;
+    bool fainted_by_timeout;
+    bool fainted_by_energy;
 
 public:
     Player(uint8_t id, uint16_t x, uint16_t y);
@@ -43,6 +49,30 @@ public:
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;
+    uint16_t get_health() const;
+    uint16_t get_max_health() const;
+    void set_health(uint16_t hp);
+    uint16_t get_gold() const;
+    void set_gold(uint16_t g);
+    void set_energy(float e);
+    float get_energy() const;
+    float get_max_energy() const;
+
+    void add_gold(uint16_t amount);
+    bool try_remove_gold(uint16_t amount);
+    bool diedInCombat() const;
+    bool faintedByTimeout() const;
+    bool faintedByEnergy() const;
+    void setDiedInCombat(bool v);
+    void setFaintedByTimeout(bool v);
+    void setFaintedByEnergy(bool v);
+
+    // true si la vida quedó por debajo del 20 % del tope (herido grave o
+    // muerto): con eso World decide si queda un charco de sangre.
+    bool is_gravely_wounded() const;
+
+    // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
+    bool take_damage(uint8_t incoming) override;
 
     // Movimiento y orientación
     void set_facing(Direction dir);
@@ -60,11 +90,15 @@ public:
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
+    std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
+    bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     void update(World& w) override;
+
+
 };
 
 #endif  // PLAYER_H

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -88,10 +89,15 @@ struct ViewResource {
 //            servidor (ej. "pickaxe", "silver", futuro "egg").
 // count:     cantidad acumulada en el slot. Convención de dibujo: 1 no
 //            muestra número; >1 muestra el número.
+// tradable:  si se puede regalar. Lo manda el servidor (ServerInventorySlot)
+//            y es la fuente única de esa regla; true por defecto para que
+//            las fuentes locales (mock, recompensas) sigan compiland sin
+//            declararlo.
 struct ViewInventorySlot {
     int slotIndex;
     std::string contentId;
     int count;
+    bool tradable = true;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un
@@ -100,6 +106,16 @@ struct ViewInventorySlot {
 // del piso): el panel de obtenidos muestra cualquier cosa.
 struct ViewObtained {
     std::string contentId;
+};
+
+// Pedido de regalo entrante (ServerGiftRequest): el emisor ofreció su ítem
+// equipado y el server lo reenvía al receptor. Evento de UN tick (igual que
+// obtained): el que lo dibuja abre el popup del receptor y responde con
+// protocol::GiftResponseMessage (senderId = emisor a contestar, senderName
+// = nombre real para el token {0} del copy).
+struct ViewGiftRequest {
+    std::uint8_t senderId;
+    std::string senderName;
 };
 
 // Item caído al piso, recogible por el jugador. GENÉRICO: lo identifica un
@@ -124,6 +140,13 @@ struct ViewResourceHit {
     int cellX;
     int cellY;
     bool destroyed;
+};
+
+struct ViewChatLine {
+    // Si el nombre está vacío, el que dibuja usa el id.
+    std::uint8_t playerId;
+    std::string characterName;
+    std::string text;
 };
 
 // Consecuencia aplicada al terreno de una celda (tierra tratada, mañana
@@ -170,8 +193,9 @@ struct ViewCrop {
 
 // Estado del sueño del jugador local (ServerSleep). Persiste entre lotes:
 // el server solo lo manda cuando cambia. sleeping > 0 = estoy en la cama.
-// Presentación (fase pendiente): sleeping > 0 y sin votar → showQuestion();
-// sleeping > 0 y votado → showWaiting(sleeping, total); sleeping == 0 → hide().
+// Presentación (fase pendiente, la resuelve PopupState::showSleepState):
+// sleeping > 0 sin votar y vivo → showQuestion(); votado o muerto →
+// showWaiting(sleeping, total); sleeping == 0 → hide().
 struct ViewSleep {
     int sleeping = 0;
     int total = 0;
@@ -191,6 +215,11 @@ struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
+    std::optional<ViewGiftRequest> giftRequest;
+    // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
+    // evento, como dayEnded, vale solo en el tick en que llega.
+    bool giftAnswered = false;
     std::vector<ViewDroppedItem> droppedItems;
     std::vector<ViewInventorySlot> inventory;
     world::GridSpan grid{0, 0};
@@ -229,11 +258,29 @@ struct LocalWorldView {
     // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
     std::optional<world::MarketOffer> marketOffer;
 
+    // Vida y energía del jugador local (0..max).
+    int playerHealth = 0;
+    int playerMaxHealth = 0;
+    int playerEnergy = 0;      // x100
+    int playerMaxEnergy = 0;   // x100
+    bool playerFainted = false;  // desmayado por falta de energía
+
+    // Historial del chat
+    std::vector<ViewChatLine> chatLog;
+
+    // Sube con cada mensaje: el tope del historial impide usar su tamaño
+    // para detectar uno nuevo.
+    int chatVersion = 0;
+
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve
     // el slot en el que quedó. El dueño de la vista (fuente de estado)
     // lo usa al entregar cosas.
     int addInventoryContent(const std::string& contentId);
+
+    // Suma una línea al historial, descartando la más vieja si se pasa
+    // del tope.
+    void addChatLine(const ViewChatLine& line);
 
     // Coloca un contenido en un slot concreto con su conteo: para que el
     // que ya tenía slot lo mantenga merge tras merge (el inventario no

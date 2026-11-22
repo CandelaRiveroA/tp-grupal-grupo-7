@@ -24,6 +24,10 @@
 #include "world/SceneElementIndex.h"
 #include "world/ScenePixelMapper.h"
 
+namespace world {
+struct CharacterPalettes;
+}
+
 namespace sdl {
 class SdlContext;
 class Viewport;
@@ -40,7 +44,8 @@ public:
 		 const world::ResourceCatalog& resources,
 		 const world::ContentCatalog& content,
 		 const world::GroundCatalog& ground,
-		 const world::CropCatalog& crops);
+		 const world::CropCatalog& crops,
+		 const world::CharacterPalettes& palettes);
 
 	// Reconstruye el índice de elementos estáticos. Se llama cuando se
 	// entra a una escena o cuando cambia su contenido, no por frame.

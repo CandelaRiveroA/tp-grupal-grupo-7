@@ -6,6 +6,7 @@ ToolUseSounds::ToolUseSounds()
 	: sounds_{
 		  {world::ItemKind::Shovel, sdl::SoundId::ShovelDig},
 		  {world::ItemKind::WateringCan, sdl::SoundId::WateringCanPour},
+		  {world::ItemKind::Sword, sdl::SoundId::SwordSwing},
 	  } {}
 
 std::optional<sdl::SoundId> ToolUseSounds::update(

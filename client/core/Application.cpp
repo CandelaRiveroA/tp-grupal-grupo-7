@@ -21,6 +21,7 @@
 #include "world/CharacterCatalogLoader.h"
 #include "world/CharacterPaletteLoader.h"
 #include "world/CharacterPalettes.h"
+#include "world/ChatConfigLoader.h"
 #include "world/ConfigError.h"
 #include "world/CreatureCatalog.h"
 #include "world/CursorConfigLoader.h"
@@ -62,6 +63,14 @@ void Application::loadFonts() {
     }
 }
 
+world::CharacterPalettes Application::loadPalettes() const {
+    QFile paletteFile(core::kPalettesResource);
+    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
+    }
+    return world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+}
+
 void Application::loadStyleSheet() {
     QFile file(":/ui.qss");
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -90,12 +99,7 @@ int Application::run() {
 std::optional<SessionConfig> Application::runLobby() {
     const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
             core::assetPath(core::kCharactersFile));
-    QFile paletteFile(core::kPalettesResource);
-    if (!paletteFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw world::ConfigError(world::ConfigErrorKind::UnreadableInput, core::kPalettesResource);
-    }
-    const world::CharacterPalettes palettes =
-            world::CharacterPaletteLoader().loadFromString(paletteFile.readAll().toStdString());
+    const world::CharacterPalettes palettes = loadPalettes();
 
     sdl::MusicPlayer music;
     LobbyWindow lobby(config_, characters, palettes, &music);
@@ -115,10 +119,15 @@ int Application::runGame(SessionConfig session) {
         world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
                 core::assetPath(core::kScenesFile), core::kInitialRoom);
         world::Scenario scenario(config_, std::move(scene));
-        const world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
+        world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
         const world::NpcCatalog npcs(core::assetPath(core::kNpcsFile));
         const world::MarketCatalog market(core::assetPath(core::kMarketFile));
+        const world::CharacterPalettes palettes = loadPalettes();
+        // Los enemigos viven en su propio archivo (se fusionan sobre el
+        // mismo catálogo): mantiene characters.toml chico (contrato §9).
+        world::CharacterCatalogLoader().mergeFromFile(
+                characters, core::assetPath(core::kEnemiesFile));
         const world::InventoryLayout inventory =
                 world::InventoryConfigLoader().loadFromFile(core::assetPath(core::kInventoryFile));
         const world::ToolOverlayCatalog toolOverlay =
@@ -145,13 +154,20 @@ int Application::runGame(SessionConfig session) {
         // catch único de este borde).
         const world::FontCatalog font(core::assetPath(core::kTextFile));
         const world::PromptLayout prompt(core::assetPath(core::kTextFile));
+        const world::ChatLayout chat =
+                world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
-                                prompt, hudOverlays, lighting);
+                                prompt, chat,
+                                // Sin envoltura MockWorldClient: los enemigos
+                                // ahora los manda el server por red, y este
+                                // puntero apagado deja los disparadores de
+                                // prueba (teclas de test) inertes.
+                                hudOverlays, lighting, palettes, nullptr);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

@@ -28,4 +28,15 @@ CharacterCatalog CharacterCatalogLoader::loadFromFile(
 	}
 }
 
+void CharacterCatalogLoader::mergeFromFile(CharacterCatalog& catalog,
+					   const std::string& path) const {
+	try {
+		const tomlcfg::TomlDocument doc(
+			path, tomlcfg::TomlDocument::Source::File);
+		CharacterTomlReader(doc).mergeInto(catalog);
+	} catch (const tomlcfg::TomlError& error) {
+		throw ConfigError(error);
+	}
+}
+
 }

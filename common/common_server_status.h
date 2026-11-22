@@ -30,13 +30,19 @@ enum class ServerMessageType : uint8_t {
     SyncEnd = 18,
     Crop = 19,
     GroundEffect = 20,
+    Enemy = 21,
+    Projectile = 22,
+    Chat = 23,
+    GiftRequest = 24,
+    GiftAnswered = 25,
 };
 
 // Estado de daño visible de un recurso picable.
 enum class ResourceDamage : uint8_t { Intact = 0, Cracked = 1, Broken = 2 };
 
-// Consecuencia visible en el suelo de una celda (tierra arada / regada).
-enum class GroundEffect : uint8_t { Dug = 0, Watered = 1 };
+// Consecuencia visible en el suelo de una celda (tierra arada / regada /
+// charco de sangre).
+enum class GroundEffect : uint8_t { Dug = 0, Watered = 1, Blood = 2 };
 
 struct ServerStatus {
     uint8_t player_id;
@@ -48,10 +54,20 @@ struct ServerStatus {
     // al dibujar y cae al 0 (default) si estan fuera de rango. Viaja en cada
     // lote para que un joiner tarde la reciba de todos los jugadores.
     CharacterAppearance appearance;
-
+    // Vida y energia del jugador (energia escalada x100).
+    uint16_t health;
+    uint16_t max_health;
+    uint16_t energy;      // x100
+    uint16_t max_energy;  // x100
+    // 1 = desmayado por falta de energía (vida intacta). 0 = no.
+    uint8_t fainted;
     ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
-                 const CharacterAppearance& appearance):
-            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance) {}
+                 const CharacterAppearance& appearance,
+                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy,
+                 uint8_t fainted):
+            player_id(player_id), x(x), y(y), direction(direction), appearance(appearance),
+            health(health), max_health(max_health), energy(energy), max_energy(max_energy),
+            fainted(fainted) {}
 };
 
 struct ServerWelcome {
@@ -77,11 +93,15 @@ struct ServerDropped {
     bool interactive;
 };
 
-// count 0 = slot vacío (content_id vacío).
+// count 0 = slot vacío (content_id vacío, tradable indiferente).
+// tradable: lo decide el servidor (Item::can_be_traded): las herramientas
+// no se regalan y el cliente ni ofrece el intercambio. Es la fuente única
+// de esa regla, así no se duplica el vocabulario en el cliente.
 struct ServerInventorySlot {
     uint8_t slot;
     uint8_t count;
     std::string content_id;
+    bool tradable;
 };
 
 // El jugador local obtuvo un contenido (evento puntual, no estado).
@@ -121,6 +141,28 @@ struct ServerAnimal {
     uint16_t y;
     Direction direction;
     bool ready_to_milk;
+};
+
+// Enemigo del mundo (esqueleto, orco, vampiro, skull). kind es el vocabulario de
+// enemies.toml; health 0 = muerto (el cliente muestra la pose de muerte).
+struct ServerEnemy {
+    uint16_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    Direction direction;
+    uint8_t health;
+    EnemyAction action;
+};
+
+// Llama de un skull: viaja en línea recta por celdas. kind es el vocabulario de
+// enemies.toml (skull_fire, skull_fire_green); no lleva vida ni acción.
+struct ServerProjectile {
+    uint16_t id;
+    std::string kind;
+    uint16_t x;
+    uint16_t y;
+    Direction direction;
 };
 
 // Aviso de sueño: sleeping de total jugadores están en la cama. Mientras
@@ -171,17 +213,45 @@ struct ServerCrop {
     uint8_t quality;
 };
 
-// Tierra tratada en una celda. Una celda regada manda Dug y después Watered.
+// Consecuencia en una celda: tierra arada/regada, o charco de sangre
+// (Blood, estado PERSISTENTE del dia: se seca al terminar el dia o lo
+// consume una vampira). Va a todos los jugadores para que vean de donde
+// pueden revivir los vampiros. Una celda regada manda Dug y despues Watered.
 struct ServerGroundEffect {
     uint16_t x;
     uint16_t y;
     GroundEffect effect;
 };
 
+// Mensaje de chat: player_id y characterName identifican al emisor (0/vacío si
+// es un mensaje de sistema, ej. respuesta de un cheat o error). system = true
+// indica que el cliente debe mostrarlo sin prefijo de jugador ("Servidor: ...").
+struct ServerChat {
+    uint8_t player_id;
+    std::string characterName;
+    std::string text;
+    bool system;
+};
+
+// Pedido de regalo hacia el receptor: el emisor ofreció su ítem equipado
+// (content_id) y el server lo reenvía junto con su characterName (el mismo
+// que ServerChat) para el copy del popup del receptor.
+struct ServerGiftRequest {
+    uint8_t sender_id;
+    std::string characterName;
+    std::string content_id;
+};
+
+// El receptor contestó el pedido de regalo (aceptando o rechazando): el
+// server lo manda SOLO al emisor, que así cierra su popup de espera.
+// Evento sin payload, igual que ServerDayEnd.
+struct ServerGiftAnswered {};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect>;
+                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered>;
 
 #endif

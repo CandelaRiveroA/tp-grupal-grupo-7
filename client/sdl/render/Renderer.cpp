@@ -18,13 +18,15 @@ Renderer::Renderer(SdlContext& context,
 		   const world::ResourceCatalog& resources,
 		   const world::ContentCatalog& content,
 		   const world::GroundCatalog& ground,
-		   const world::CropCatalog& crops)
+		   const world::CropCatalog& crops,
+		   const world::CharacterPalettes& palettes)
 	: context_(context)
 	, resources_(resources)
 	, content_(content)
 	, ground_(ground)
 	, sheetCache_(context)
-	, entityRenderer_(sheetCache_, characters, toolOverlay, content)
+	, entityRenderer_(context, sheetCache_, characters, toolOverlay,
+			  content, palettes)
 	, npcRenderer_(context)
 	, groundPainter_(sheetCache_, ground)
 	, cropPainter_(sheetCache_, crops) {}

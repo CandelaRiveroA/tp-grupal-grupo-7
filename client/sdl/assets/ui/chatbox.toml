@@ -1,0 +1,19 @@
+# Chatbox: dos cajas con el mismo sprite 9-slice. El historial se apila
+# arriba de la línea de tipeo; los altos salen del contenido.
+[chat]
+sheet           = "ui/chatbox.png"
+cell            = [264, 56]
+# Esquinas fijas del marco; 0 = sin 9-slice.
+border          = 8
+width_fraction  = 0.42
+# Margen izquierdo y límite de abajo (px).
+margin_x        = 12
+margin_bottom   = 12
+# Altura de la línea de tipeo, fracción de la ventana desde arriba.
+input_fraction  = 0.52
+text_pad        = 6
+font_size       = 20
+color           = [255, 255, 255, 255]
+# Preview del chat cerrado: alpha de su texto y renglones visibles.
+preview_alpha   = 160
+preview_rows    = 1

@@ -8,6 +8,9 @@ namespace world {
 struct EntityAppearance {
 	const Pose* pose;
 	bool mirrored;
+	// La acción resuelta: de ahí sale su hoja propia (si la declara) y
+	// su escala. El render la consulta para elegir la hoja correcta.
+	const ActionData* action;
 };
 
 // Resuelve la apariencia de una criatura a partir de sus datos: dado el

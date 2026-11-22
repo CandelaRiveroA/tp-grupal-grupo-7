@@ -137,6 +137,27 @@ frames = [
 	EXPECT_TRUE(action.frames[1].layers.empty());
 }
 
+TEST(ToolOverlayLoaderTest, LoadsBehindFlagPerFrame) {
+	const std::string toml = R"(
+[pickaxe.back]
+sheet       = "Tools.png"
+cell        = [16, 16]
+frame_ticks = 6
+frames = [
+  { anchor = "top", behind = true, layers = [ [3, 5, 1, 2] ] },
+  { layers = [] },
+]
+)";
+	const world::ToolOverlayCatalog catalog = loadString(toml);
+	const world::ToolOverlayAction& action =
+		*catalog.find(world::ItemKind::Pickaxe,
+				  world::Direction::Back);
+	ASSERT_EQ(action.frames.size(), 2u);
+	EXPECT_TRUE(action.frames[0].behind);
+	// behind es opcional: default false (delante del cuerpo).
+	EXPECT_FALSE(action.frames[1].behind);
+}
+
 TEST(ToolOverlayLoaderTest, FrameAnchorDefaultsToTop) {
 	const world::ToolOverlayCatalog catalog = loadString(kMinimalPickaxeBack);
 	const world::ToolOverlayAction& action =
@@ -347,6 +368,51 @@ TEST(ToolOverlayLoaderTest, LoadsRealToolsOverlayFile) {
 		EXPECT_EQ(left->frames[i].layers[0].layer.frame.col, 2);
 		EXPECT_EQ(left->frames[i].layers[0].layer.frame.row, 1);
 		EXPECT_TRUE(left->frames[i].flip) << "frame " << i;
+	}
+
+	// Espada: 6 cuadros, frame_ticks 5 (la misma sincronía que la
+	// acción "sword" de characters.toml), sprite único de Weapons.png.
+	const world::ToolOverlayAction* swordFront = catalog.find(
+		world::ItemKind::Sword, world::Direction::Front);
+	ASSERT_NE(swordFront, nullptr);
+	EXPECT_EQ(swordFront->action, world::ActionKind::Sword);
+	EXPECT_EQ(swordFront->frameTicks, 5);
+	ASSERT_EQ(swordFront->frames.size(), 6u);
+	// El frame 1 sale igual que el asset (angle 0) y el arco barre en
+	// sentido horario hasta cerrar la media U.
+	EXPECT_EQ(swordFront->frames[0].angle, 0);
+	EXPECT_LT(swordFront->frames[0].angle, swordFront->frames[5].angle);
+	for (std::size_t i = 0; i < swordFront->frames.size(); ++i) {
+		ASSERT_EQ(swordFront->frames[i].layers.size(), 1u) << "frame " << i;
+		EXPECT_EQ(swordFront->frames[i].layers[0].layer.frame.col, 0);
+		EXPECT_EQ(swordFront->frames[i].layers[0].layer.frame.row, 0);
+		// Delante del cuerpo: sin behind.
+		EXPECT_FALSE(swordFront->frames[i].behind) << "frame " << i;
+	}
+
+	// Espada de espaldas: el MISMO arco, todos los frames detrás del
+	// cuerpo (el cuerpo la tapa donde la cruza).
+	const world::ToolOverlayAction* swordBack = catalog.find(
+		world::ItemKind::Sword, world::Direction::Back);
+	ASSERT_NE(swordBack, nullptr);
+	ASSERT_EQ(swordBack->frames.size(), 6u);
+	for (std::size_t i = 0; i < swordBack->frames.size(); ++i) {
+		EXPECT_TRUE(swordBack->frames[i].behind) << "frame " << i;
+	}
+
+	// Espada de costado: left es el espejo de right (flip, ángulos de
+	// signo invertido).
+	const world::ToolOverlayAction* swordRight = catalog.find(
+		world::ItemKind::Sword, world::Direction::Right);
+	const world::ToolOverlayAction* swordLeft = catalog.find(
+		world::ItemKind::Sword, world::Direction::Left);
+	ASSERT_NE(swordRight, nullptr);
+	ASSERT_NE(swordLeft, nullptr);
+	ASSERT_EQ(swordRight->frames.size(), 6u);
+	ASSERT_EQ(swordLeft->frames.size(), swordRight->frames.size());
+	for (std::size_t i = 0; i < swordLeft->frames.size(); ++i) {
+		EXPECT_FALSE(swordRight->frames[i].flip) << "frame " << i;
+		EXPECT_TRUE(swordLeft->frames[i].flip) << "frame " << i;
 	}
 }
 #endif

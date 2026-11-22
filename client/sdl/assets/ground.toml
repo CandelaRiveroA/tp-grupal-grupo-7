@@ -22,6 +22,20 @@ cell  = [16, 16]
 [ground.dug]
 sprite = [0, 0]
 
+# Charco de sangre (hoy lo deja la demo de la tecla C; mañana la
+# fuente): la salpicadura de gotas de Animations.png, tintada bordó
+# (los sprites de la hoja son blancos). Hoja PROPIA (image + cell) porque
+# no vive en hoeDirt; el sprite es el BLOQUE 4x3 de sus 10 celdas de
+# gotas (las esquinas (12,0) y (15,0) quedan transparentes), `drawn` lo
+# dibuja a su tamaño del mapa apoyado a los pies y `tint` lo tiñe.
+[ground.blood]
+image  = "Farm/Animations.png"
+cell   = [16, 16]
+sprite = [12, 0]
+block  = [4, 3]
+drawn  = [48, 36]
+tint   = [128, 0, 32]
+
 # Auto-tiling: cada celda cavada dibuja la pieza que le corresponde por
 # sus VECINOS cavados (world::CellPatch arma la máscara). El nombre de
 # la pieza es su POSICIÓN dentro de la zona armada y su máscara son los

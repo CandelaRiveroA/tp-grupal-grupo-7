@@ -11,6 +11,8 @@ enum class Indication {
 	ReadyToWater,
 	// Sin energía: el personaje se desmaya y muestra las Z.
 	NoEnergy,
+	// El jugador local agradece un regalo aceptado (corazón).
+	GiftThanks,
 };
 
 }

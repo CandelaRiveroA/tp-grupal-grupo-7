@@ -26,6 +26,14 @@ bool SceneSwitcher::knows(const std::string& id) const {
 			   });
 }
 
+std::optional<std::string> SceneSwitcher::changeFor(
+	const std::string& requestedId) const {
+	if (requestedId.empty() || requestedId == id_ || !knows(requestedId)) {
+		return std::nullopt;
+	}
+	return requestedId;
+}
+
 void SceneSwitcher::switchTo(const std::string& id) {
 	for (const SceneSource* source : sources_) {
 		if (!source->has(id)) {

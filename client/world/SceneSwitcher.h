@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,11 @@ public:
 
 	// ¿Alguna fuente conoce esta escena?
 	bool knows(const std::string& id) const;
+
+	// Cambio que pide la fuente de estado (LocalWorldView::mapId): el id
+	// pedido si hay que cambiar de escena, o nada si no pidió ninguna
+	// (vacío), ya es la actual o ninguna fuente la conoce.
+	std::optional<std::string> changeFor(const std::string& requestedId) const;
 
 	// Carga la escena `id` y la deja como actual. Si ninguna fuente la
 	// conoce lanza ConfigError(MissingStructure, ...) y la actual no

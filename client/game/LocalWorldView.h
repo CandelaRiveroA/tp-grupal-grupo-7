@@ -249,6 +249,11 @@ struct LocalWorldView {
     // servidor (ServerFurniture), por ejemplo al cargar una partida
     // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
     std::vector<ViewFurniture> placedFurniture;
+    // Mapa en el que está el jugador (id del mapa del editor: "farm",
+    // "town", "market"...). Lo manda la fuente de estado cuando hay
+    // servidor. Vacío = el cliente elige la escena (teclas de prueba,
+    // edificios tocados); con valor, la escena sigue a la fuente.
+    std::string mapId;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;

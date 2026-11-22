@@ -191,6 +191,11 @@ void PlaySession::tick(int iteration) {
     // En el negro cambian los datos; mientras está activa se dibuja el
     // mundo con el fade encima y NO hay input (las colas se drenan para
     // que nada se dispare al volver).
+    // Con servidor, la escena la dice la fuente de estado (mapId): el
+    // cambio entra por el mismo fade (si ya hay uno en curso, sigue).
+    if (const std::optional<std::string> requested = sceneSwitcher_.changeFor(state.mapId)) {
+        sceneTransition_.changeTo(*requested);
+    }
     sceneTransition_.tick(iteration);
     if (sceneTransition_.swapDue()) {
         changeScene(sceneTransition_.scene());

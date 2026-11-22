@@ -109,6 +109,21 @@ TEST(SceneSwitcherTest, KnowsAnIdIfAnySourceHasIt) {
 	EXPECT_FALSE(switcher.knows("kitchen"));
 }
 
+TEST(SceneSwitcherTest, ChangeForFollowsTheStateSourceOnlyWhenItAsksForAnotherKnownScene) {
+	const FakeSource source({"bedroom", "farm"}, 10);
+	const world::SceneSwitcher switcher({&source}, "bedroom",
+					    initialScene());
+	// Sin pedido (sin servidor): el cliente elige.
+	EXPECT_FALSE(switcher.changeFor("").has_value());
+	// Ya está ahí.
+	EXPECT_FALSE(switcher.changeFor("bedroom").has_value());
+	// Un mapa que ninguna fuente conoce se ignora.
+	EXPECT_FALSE(switcher.changeFor("moon").has_value());
+	// Otro mapa conocido: hay que cambiar.
+	ASSERT_TRUE(switcher.changeFor("farm").has_value());
+	EXPECT_EQ(*switcher.changeFor("farm"), "farm");
+}
+
 TEST(SceneSwitcherTest, NextIdWithoutScenesKnownKeepsTheCurrent) {
 	const world::SceneSwitcher switcher({}, "bedroom", initialScene());
 	EXPECT_EQ(switcher.nextId(), "bedroom");

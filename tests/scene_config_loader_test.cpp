@@ -135,12 +135,13 @@ TEST(SceneConfigLoaderTest, LoadsRealBedroomFile) {
 	world::SceneConfigLoader loader;
 	const world::SceneDescription scene =
 		loader.loadFromFile(TALLER_SCENES_TOML, "bedroom");
-	// Fondo + 6 decoraciones: ventana, sconcelight, chimenea,
-	// cama (composición única), planta, alfombra.
+	// Estado inicial: fondo + ventana de día, ventana de noche,
+	// chimenea y cama (composición única). La planta y la alfombra ya
+	// no están: las consigue el jugador en la partida.
 	ASSERT_EQ(scene.tilesets.count("bedroom"), 1u);
 	ASSERT_EQ(scene.tilesets.count("decoration"), 1u);
 	ASSERT_EQ(scene.tilesets.count("sconcelight"), 1u);
-	ASSERT_EQ(scene.elements.size(), 7u);
+	ASSERT_EQ(scene.elements.size(), 5u);
 	EXPECT_EQ(scene.elements[0].tileset, "bedroom");
 	EXPECT_EQ(scene.elements[0].draw.mode, world::DrawMode::Single);
 	// El dormitorio NO puebla ni suena a animales: sus cues y sus

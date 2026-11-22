@@ -62,7 +62,7 @@ void HudOverlayPainter::drawLabels(const std::map<std::string, int>& values) {
 			label.boxWidth, label.boxHeight, windowWidth,
 			windowHeight);
 		text_.draw(catalog_.textFor(label, values), box, label.color,
-			   label.fontSize);
+			   label.fontSize, label.bold);
 	}
 }
 

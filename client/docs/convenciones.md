@@ -343,3 +343,17 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
 - **Sumar un sistema del campo** = una fila en la tabla que corresponda
   (`toolActions_`, `ToolUseSounds`) + sus datos en TOML; `PlaySession` solo
   compone y llama, no decide.
+
+## 13. NPCs del mercado (Pierre, Marnie, Clint, Robin)
+
+- **Lo visual es dato** (`npcs.toml`): hoja del cuerpo, retrato, texto, estilo
+  del popup y sala. Agregar un NPC = un bloque `[[npcs]]`, sin tocar código.
+- **Dónde está parado es estado de juego**: lo manda la fuente de estado
+  (el servidor) por `LocalWorldView::npcPlacements` (`ViewNpcPlacement`: `id`
+  de `npcs.toml` + celda). `game::NpcPlacementResolver` la traduce a
+  `world::NpcCells`, que usan el dibujo (`NpcRenderer`) y el click
+  (`NpcCatalog::npcAt`): ambos ven la MISMA celda.
+- **`at` del TOML es solo la posición por defecto.** Hoy nadie llena
+  `npcPlacements`, así que valen las `at`; un NPC que la fuente no menciona
+  también usa la suya. Al conectar el servidor solo cambia quién llena la
+  vista; el dibujo no se toca.

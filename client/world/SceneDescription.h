@@ -150,6 +150,12 @@ struct LayerCell {
 	GridCell sheetCell{0, 0};
 };
 
+// Pasada de dibujo de una capa de tiles respecto a las entidades y objetos.
+enum class LayerPass {
+	Background,
+	Foreground,
+};
+
 // Capa de tiles en grilla: UNA celda de arte por celda lógica del mapa
 // (el piso y los caminos del editor). `cells` es row-major, de tamaño
 // size.columns * size.rows. A diferencia de los elementos, no se indexa
@@ -158,6 +164,7 @@ struct TileLayer {
 	GridSpan size{0, 0};
 	std::vector<std::string> tilesets;
 	std::vector<LayerCell> cells;
+	LayerPass pass = LayerPass::Background;
 };
 
 struct SceneDescription {

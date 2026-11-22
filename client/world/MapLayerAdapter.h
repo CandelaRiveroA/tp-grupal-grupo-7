@@ -17,7 +17,8 @@ public:
 private:
 	// Una capa; si no tiene ningún tile no se agrega.
 	void addLayer(const worldmodel::TileGrid& grid, const std::string& path,
-		      const worldmodel::Map& map, SceneDescription& scene) const;
+		      const worldmodel::Map& map, SceneDescription& scene,
+		      LayerPass pass = LayerPass::Background) const;
 };
 
 }

@@ -11,14 +11,21 @@ namespace world {
 void MapLayerAdapter::add(const worldmodel::Map& map,
 			  const std::string& mapPath,
 			  SceneDescription& scene) const {
-	addLayer(map.ground, mapPath + ".ground", map, scene);
-	addLayer(map.paths, mapPath + ".paths", map, scene);
+	addLayer(map.ground, mapPath + ".ground", map, scene,
+		 LayerPass::Background);
+	addLayer(map.paths, mapPath + ".paths", map, scene,
+		 LayerPass::Background);
+	if (!map.front.empty()) {
+		addLayer(map.front, mapPath + ".front", map, scene,
+			 LayerPass::Foreground);
+	}
 }
 
 void MapLayerAdapter::addLayer(const worldmodel::TileGrid& grid,
 			       const std::string& path,
 			       const worldmodel::Map& map,
-			       SceneDescription& scene) const {
+			       SceneDescription& scene,
+			       const LayerPass pass) const {
 	const std::size_t cellCount =
 		static_cast<std::size_t>(map.width) *
 		static_cast<std::size_t>(map.height);
@@ -29,6 +36,7 @@ void MapLayerAdapter::addLayer(const worldmodel::TileGrid& grid,
 	TileLayer layer;
 	layer.size = {map.width, map.height};
 	layer.cells.assign(cellCount, LayerCell{});
+	layer.pass = pass;
 	bool hasTiles = false;
 	for (std::size_t i = 0; i < cellCount; ++i) {
 		if (!grid[i].has_value()) {

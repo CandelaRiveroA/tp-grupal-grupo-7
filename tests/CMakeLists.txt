@@ -75,6 +75,7 @@ target_sources(taller_tests
     world_factory_test.cpp
     world_repository_test.cpp
     world_validator_test.cpp
+    prefab_catalog_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
     audio_catalog_test.cpp

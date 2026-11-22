@@ -231,7 +231,7 @@ TEST(WorldValidatorTest, MissingObject) {
 TEST(WorldValidatorTest, DuplicateObject) {
 	World world = defaultWorld();
 	Map& town = mapOf(world, "town");
-	town.objects.push_back(objectOf(town, ObjectRole::Market));
+	town.objects.push_back(objectOf(town, ObjectRole::Carpentry));
 	expectIssue(world, IssueCode::DuplicateObject);
 }
 
@@ -267,6 +267,16 @@ TEST(WorldValidatorTest, ObjectDoorMissing) {
 	expectIssue(world, IssueCode::ObjectDoorMissing);
 }
 
+TEST(WorldValidatorTest, CommunityCenterWithoutDoorValidatesAndShopNeedsDoor) {
+	World world = defaultWorld();
+	Map& town = mapOf(world, "town");
+	EXPECT_FALSE(objectOf(town, ObjectRole::CommunityCenter).door.has_value());
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+
+	objectOf(town, ObjectRole::Carpentry).door.reset();
+	expectIssue(world, IssueCode::ObjectDoorMissing);
+}
+
 TEST(WorldValidatorTest, ObjectDoorOutOfBounds) {
 	World world = defaultWorld();
 	objectOf(mapOf(world, "farm"), ObjectRole::Cabin).door = {-1, 0};
@@ -294,22 +304,23 @@ TEST(WorldValidatorTest, MissingMarker) {
 
 TEST(WorldValidatorTest, MissingMerchantMarker) {
 	World world = defaultWorld();
-	Map& market = mapOf(world, "market");
-	market.markers.erase(
-		std::remove_if(market.markers.begin(), market.markers.end(),
+	Map& carpentry = mapOf(world, "carpentry");
+	carpentry.markers.erase(
+		std::remove_if(carpentry.markers.begin(),
+			       carpentry.markers.end(),
 			       [](const Marker& marker) {
 				       return marker.kind ==
 					      MarkerKind::MerchantRobin;
 			       }),
-		market.markers.end());
+		carpentry.markers.end());
 	expectIssue(world, IssueCode::MissingMarker);
 }
 
 TEST(WorldValidatorTest, DuplicateMarker) {
 	World world = defaultWorld();
-	Map& market = mapOf(world, "market");
-	market.markers.push_back(
-		markerOf(market, MarkerKind::MerchantMarnie));
+	Map& ranch = mapOf(world, "ranch");
+	ranch.markers.push_back(
+		markerOf(ranch, MarkerKind::MerchantMarnie));
 	expectIssue(world, IssueCode::DuplicateMarker);
 }
 

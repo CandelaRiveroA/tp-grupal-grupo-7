@@ -130,16 +130,18 @@ inline worldmodel::Scenario scenarioOf(const std::string& id,
 	return scenario;
 }
 
-// Un escenario por tipo: farm_a, town_a, cabin_a, market_a, center_a y
-// cave_a (este ultimo para las 10 mazmorras).
+// Un escenario por tipo: farm_a, town_a, cabin_a, los 4 comercios y cave_a.
 inline worldmodel::ScenarioLibrary fullLibrary() {
 	worldmodel::ScenarioLibrary library;
 	library.add(scenarioOf("farm_a", worldmodel::MapKind::Farm));
 	library.add(scenarioOf("town_a", worldmodel::MapKind::Town));
 	library.add(scenarioOf("cabin_a", worldmodel::MapKind::Cabin));
-	library.add(scenarioOf("market_a", worldmodel::MapKind::Market));
-	library.add(scenarioOf("center_a",
-			       worldmodel::MapKind::CommunityCenter));
+	library.add(scenarioOf("carpentry_a", worldmodel::MapKind::Carpentry));
+	library.add(
+		scenarioOf("blacksmith_a", worldmodel::MapKind::Blacksmith));
+	library.add(scenarioOf("general_store_a",
+			       worldmodel::MapKind::GeneralStore));
+	library.add(scenarioOf("ranch_a", worldmodel::MapKind::Ranch));
 	library.add(scenarioOf("cave_a", worldmodel::MapKind::Dungeon));
 	return library;
 }
@@ -149,8 +151,10 @@ inline worldmodel::ScenarioChoice validChoice() {
 	choice.farm = "farm_a";
 	choice.town = "town_a";
 	choice.cabin = "cabin_a";
-	choice.market = "market_a";
-	choice.communityCenter = "center_a";
+	choice.carpentry = "carpentry_a";
+	choice.blacksmith = "blacksmith_a";
+	choice.generalStore = "general_store_a";
+	choice.ranch = "ranch_a";
 	choice.dungeons.fill("cave_a");
 	return choice;
 }
@@ -180,6 +184,31 @@ inline worldmodel::PrefabCatalog defaultCatalog() {
 	cabin.collisionGrid[7 * 9 + 5] = false;
 	catalog.add(cabin);
 
+	const auto addShop = [&](const char* id, const char* name,
+				 worldmodel::ObjectRole role, int tileCol) {
+		worldmodel::PrefabDef shop;
+		shop.id = id;
+		shop.name = name;
+		shop.category = "casas_y_comercios";
+		shop.categoryLabel = "Casas y comercios";
+		shop.tile = worldmodel::TileRef{"prefab_casas_y_comercios",
+						tileCol, 0};
+		shop.width = 6;
+		shop.height = 5;
+		shop.role = role;
+		shop.door = worldmodel::TilePos{3, 4};
+		shop.collisionGrid.assign(30, true);
+		shop.collisionGrid[4 * 6 + 3] = false;
+		catalog.add(shop);
+	};
+	addShop("carpinteria", "Carpinteria", worldmodel::ObjectRole::Carpentry,
+		0);
+	addShop("herreria", "Herreria", worldmodel::ObjectRole::Blacksmith, 6);
+	addShop("tienda_pierre", "Tienda de Pierre",
+		worldmodel::ObjectRole::GeneralStore, 12);
+	addShop("rancho_marnie", "Rancho de Marnie",
+		worldmodel::ObjectRole::Ranch, 18);
+
 	worldmodel::PrefabDef center;
 	center.id = "centro_comunitario";
 	center.name = "Centro Comunitario (Restaurado)";
@@ -189,45 +218,80 @@ inline worldmodel::PrefabCatalog defaultCatalog() {
 	center.width = 12;
 	center.height = 10;
 	center.role = worldmodel::ObjectRole::CommunityCenter;
-	center.door = worldmodel::TilePos{5, 9};
 	center.collisionGrid.assign(120, true);
-	center.collisionGrid[9 * 12 + 5] = false;
 	catalog.add(center);
 
 	return catalog;
 }
 
-// Mundo "Primavera" valido (con 1 cabana, cabin_1 y portales externos) para tests.
+// Mundo "Primavera" valido (con 1 cabana, cabin_1, 4 comercios + centro y portales) para tests.
 inline worldmodel::World defaultWorld() {
 	const worldmodel::ScenarioLibrary lib = fullLibrary();
 	const worldmodel::PrefabCatalog cat = defaultCatalog();
 	worldmodel::World world = worldmodel::WorldFactory().makeDefault(
 		"Primavera", lib, cat, validChoice());
-	const worldmodel::PrefabDef* cabin =
-		cat.findByRole(worldmodel::ObjectRole::Cabin);
+	const auto placeFromPrefab = [&](worldmodel::Map& target,
+					 const worldmodel::PrefabDef* prefab,
+					 worldmodel::TilePos origin) {
+		world.tilesets.emplace(
+			prefab->tile.tileset,
+			cat.tilesets().at(prefab->tile.tileset));
+		std::optional<worldmodel::TilePos> door;
+		if (prefab->door.has_value()) {
+			door = worldmodel::TilePos{
+				origin.column + prefab->door->column,
+				origin.row + prefab->door->row};
+		}
+		target.objects.push_back(worldmodel::MapObject{
+			*prefab->role,
+			prefab->tile,
+			origin,
+			prefab->width,
+			prefab->height,
+			true,
+			door,
+			prefab->collisionGrid,
+		});
+		return door;
+	};
+
 	worldmodel::Map& farm = world.maps.at("farm");
-	world.tilesets.emplace(
-		cabin->tile.tileset,
-		cat.tilesets().at(cabin->tile.tileset));
-	farm.objects.push_back(worldmodel::MapObject{
-		worldmodel::ObjectRole::Cabin,
-		cabin->tile,
-		worldmodel::kFarmCabinOrigin,
-		cabin->width,
-		cabin->height,
-		true,
-		worldmodel::TilePos{
-			worldmodel::kFarmCabinOrigin.column +
-				cabin->door->column,
-			worldmodel::kFarmCabinOrigin.row + cabin->door->row},
-		cabin->collisionGrid,
-	});
+	placeFromPrefab(farm, cat.findByRole(worldmodel::ObjectRole::Cabin),
+			{2, 2});
 	farm.rebuildCollision();
 	worldmodel::WorldFactory().addCabinMap(world, 1, *lib.find("cabin_a"));
 
+	worldmodel::Map& town = world.maps.at("town");
+	const struct {
+		worldmodel::ObjectRole role;
+		const char* mapId;
+		worldmodel::TilePos origin;
+	} townShops[] = {
+		{worldmodel::ObjectRole::Carpentry, "carpentry", {2, 2}},
+		{worldmodel::ObjectRole::Blacksmith, "blacksmith", {10, 2}},
+		{worldmodel::ObjectRole::GeneralStore, "general_store",
+		 {18, 2}},
+		{worldmodel::ObjectRole::Ranch, "ranch", {26, 2}},
+	};
+	for (const auto& entry : townShops) {
+		const auto door = placeFromPrefab(
+			town, cat.findByRole(entry.role), entry.origin);
+		for (worldmodel::Portal& portal :
+		     world.maps.at(entry.mapId).portals) {
+			if (portal.kind ==
+			    worldmodel::PortalKind::InteriorExit) {
+				portal.targetMap = "town";
+				portal.targetCell = *door;
+			}
+		}
+	}
+	placeFromPrefab(
+		town, cat.findByRole(worldmodel::ObjectRole::CommunityCenter),
+		{2, 9});
+	town.rebuildCollision();
+
 	const worldmodel::TilePos farmTown{farm.width - 2, farm.height / 2};
 	const worldmodel::TilePos farmDungeon{farm.width - 3, 2};
-	worldmodel::Map& town = world.maps.at("town");
 	const worldmodel::TilePos townFarm{1, town.height / 2};
 	farm.portals.push_back(worldmodel::Portal{
 		worldmodel::PortalKind::TownEntrance, farmTown, "town",

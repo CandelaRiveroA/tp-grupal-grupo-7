@@ -58,10 +58,14 @@ TEST(WorldSerializerTest, RoundTripPreservesWorld) {
 	EXPECT_EQ(farm.portals[0].height, original.portals[0].height);
 
 	World multi = first;
+	multi.maps.at("farm").front.assign(multi.maps.at("farm").ground.size(),
+					   std::nullopt);
+	multi.maps.at("farm").front[0] = worldmodel::TileRef{"outdoors", 2, 3};
 	multi.maps.at("farm").portals[0].width = 2;
 	multi.maps.at("farm").portals[0].height = 2;
 	const World round =
 		serializer.loadFromString(serializer.saveToString(multi));
+	EXPECT_EQ(round.maps.at("farm").front, multi.maps.at("farm").front);
 	EXPECT_EQ(round.maps.at("farm").portals[0].width, 2);
 	EXPECT_EQ(round.maps.at("farm").portals[0].height, 2);
 }

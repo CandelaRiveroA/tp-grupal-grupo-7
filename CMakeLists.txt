@@ -501,5 +501,6 @@ if(TALLER_TESTS)
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
         TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
         TALLER_SCENARIO_FIXTURES_DIR=\"${CMAKE_SOURCE_DIR}/tests/fixtures/scenarios\"
+        TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
         TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
 endif()

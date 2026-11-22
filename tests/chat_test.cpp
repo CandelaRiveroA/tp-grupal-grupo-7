@@ -163,7 +163,7 @@ TEST(ChatRouterTest, EnergiaPositiveClearsFaint) {
     ChatRouter router;
     router.route("/energia 50", 1, world, names_with(1, "Pandamos"));
     EXPECT_FALSE(world.get_player(1).faintedByEnergy());
-    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+    EXPECT_EQ(world.get_player(1).get_energy(), 5000u);
 }
 
 TEST(ChatRouterTest, EnergiaFaintBlocksCancelBed) {
@@ -186,7 +186,7 @@ TEST(ChatRouterTest, EnergiaFaintPenalizedAtDawn) {
     router.route("/energia 0", 1, world, names_with(1, "Pandamos"));
     world.reset_player_for_day(1);
     EXPECT_EQ(world.get_player(1).get_health(), 50u);
-    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+    EXPECT_EQ(world.get_player(1).get_energy(), 5000u);
     EXPECT_FALSE(world.get_player(1).faintedByEnergy());
 }
 

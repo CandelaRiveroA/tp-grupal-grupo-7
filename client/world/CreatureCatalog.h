@@ -2,6 +2,7 @@
 
 #include <array>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "world/CharacterAppearance.h"
@@ -37,6 +38,8 @@ struct MoveCadence {
 struct HoldPresentation {
 	int offsetY = 0;
 	double scale = 1.0;
+	// Multiplicador extra por contentId (opcional; sin entrada = 1.0).
+	std::map<std::string, double> contentScale;
 };
 
 struct DirectionAppearance {

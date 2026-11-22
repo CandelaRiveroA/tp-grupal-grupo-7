@@ -31,6 +31,14 @@ cadence = { step = 24, frame = 12 }
   offset_y = -15
   scale    = 1.0
 
+  # Multiplicador extra por contenido sostenido (opcional): agranda
+  # solo a ese ítem; el resto queda en 1.0.
+  [characters.player.hold.content_scale]
+  strawberry_seeds = 1.5
+  onion_seeds      = 1.5
+  potato_seeds     = 1.5
+  pumpkin_seeds    = 1.5
+
   # Cada dirección: si se dibuja espejada y una subtabla por ACCIÓN
   # (idle, walk, ...). Cada acción: frames (lista de cuadros) + loops, y
   # opcionalmente `frame` (ticks por cuadro) con ritmo PROPIO; si no lo

@@ -29,6 +29,7 @@ constexpr const char* kMirrored = "mirrored";
 constexpr const char* kHold = "hold";
 constexpr const char* kOffsetY = "offset_y";
 constexpr const char* kScale = "scale";
+constexpr const char* kContentScale = "content_scale";
 
 // Apariencia personalizable.
 constexpr const char* kAppearance = "appearance";
@@ -324,6 +325,17 @@ HoldPresentation CharacterTomlReader::readHold(const std::string& base) const {
 			throw ConfigError(Kind::InvalidValue, scalePath);
 		}
 		hold.scale = scale;
+	}
+	const std::string contentBase = join(holdBase, kContentScale);
+	if (doc_.hasKey(contentBase)) {
+		for (const std::string& id : doc_.subtableKeys(contentBase)) {
+			const std::string path = join(contentBase, id);
+			const double factor = doc_.getDouble(path);
+			if (factor <= 0.0) {
+				throw ConfigError(Kind::InvalidValue, path);
+			}
+			hold.contentScale.emplace(id, factor);
+		}
 	}
 	return hold;
 }

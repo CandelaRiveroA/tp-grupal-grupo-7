@@ -720,6 +720,8 @@ id = "gallinero"
 name = "Gallinero (Coop)"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
+role = "barn"
+door = [1, 6]
 tile = "prefab_estructuras_granja:9,0"
 size = [6, 7]
 collision_grid = [
@@ -729,7 +731,7 @@ collision_grid = [
   false, false, false, false, false, false,
   true , true , true , true , true , true,
   true , true , true , true , true , true,
-  true , true , true , true , true , true,
+  true , false, true , true , true , true,
 ]
 
 [[prefabs]]

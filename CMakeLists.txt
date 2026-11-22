@@ -197,6 +197,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/OverlayLoader.cpp
         client/world/OverlayAudit.cpp
         client/world/DepthOrder.cpp
+        client/world/FurnitureLayout.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp

@@ -82,6 +82,12 @@ private:
 			  const world::ScenePixelMapper& mapper,
 			  const Viewport& viewport);
 
+	// Un mueble colocado (por contentId, con el visual de inventory.toml)
+	// en su caja de mundo.
+	void drawFurniture(const game::ViewFurniture& furniture,
+			   const world::ScenePixelMapper& mapper,
+			   const Viewport& viewport);
+
 	void drawDroppedItem(const game::ViewDroppedItem& item,
 			     const world::ScenePixelMapper& mapper,
 			     const Viewport& viewport);

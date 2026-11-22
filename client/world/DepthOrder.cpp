@@ -16,6 +16,12 @@ void DepthOrder::addElement(int baseRow, std::uint32_t index) {
 	sortedNow_ = false;
 }
 
+void DepthOrder::addFurniture(int baseRow, std::uint32_t index) {
+	items_.push_back(DepthItem{baseRow, DepthKind::Furniture, index});
+	hasElements_ = true;
+	sortedNow_ = false;
+}
+
 void DepthOrder::addEntity(int row, std::uint32_t index) {
 	items_.push_back(DepthItem{row, DepthKind::Entity, index});
 	sortedNow_ = false;
@@ -27,7 +33,7 @@ const std::vector<DepthItem>& DepthOrder::sorted() {
 	// Sin elementos no hay nada que intercalar: las entidades quedan en
 	// el orden en que llegaron.
 	if (hasElements_ && !sortedNow_) {
-		// Element < Entity en el enum: a igual fila el elemento va antes.
+		// Orden del enum: a igual fila lo fijo va antes que la entidad.
 		std::stable_sort(items_.begin(), items_.end(),
 				 [](const DepthItem& left, const DepthItem& right) {
 					 if (left.row != right.row) {

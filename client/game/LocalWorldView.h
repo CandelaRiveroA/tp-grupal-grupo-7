@@ -211,6 +211,17 @@ struct ViewNpcPlacement {
     int cellY;
 };
 
+// Mueble que el jugador tiene colocado en el mundo (lo que consiguió y
+// puso en la partida). Es estado PERSISTENTE: lo manda la fuente de
+// estado (ServerFurniture) con el contentId y la celda; el cliente solo
+// lo dibuja con el visual de ese contentId en inventory.toml. La celda
+// es la base del mueble (abajo-izquierda del sprite).
+struct ViewFurniture {
+    std::string contentId;
+    int cellX;
+    int cellY;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -234,6 +245,10 @@ struct LocalWorldView {
     // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
     // un NPC que la fuente no menciona también usa la suya.
     std::vector<ViewNpcPlacement> npcPlacements;
+    // Muebles colocados (persistente; ver ViewFurniture). Los manda el
+    // servidor (ServerFurniture), por ejemplo al cargar una partida
+    // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
+    std::vector<ViewFurniture> placedFurniture;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;

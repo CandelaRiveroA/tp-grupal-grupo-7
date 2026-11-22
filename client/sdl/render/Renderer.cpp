@@ -7,6 +7,7 @@
 #include "sdl/render/RenderConstants.h"
 #include "sdl/render/Viewport.h"
 #include "world/DroppedItemLayout.h"
+#include "world/FurnitureLayout.h"
 #include "world/ScenePixelMapper.h"
 #include "world/WorldConstants.h"
 
@@ -126,6 +127,10 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 
 	// Entidades y elementos de pie, en orden de profundidad: quien está
 	// detrás de la base de un árbol queda tapado por él.
+	for (std::size_t i = 0; i < view.placedFurniture.size(); ++i) {
+		depth_.addFurniture(view.placedFurniture[i].cellY,
+				    static_cast<std::uint32_t>(i));
+	}
 	for (const std::uint32_t index : visibleEntities_) {
 		depth_.addEntity(view.entities[index].cellY, index);
 	}
@@ -133,6 +138,11 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 		if (item.kind == world::DepthKind::Element) {
 			drawElement(scene, scene.elements[item.index], mapper,
 				    viewport);
+			continue;
+		}
+		if (item.kind == world::DepthKind::Furniture) {
+			drawFurniture(view.placedFurniture[item.index], mapper,
+				      viewport);
 			continue;
 		}
 		entityRenderer_.draw(view.entities[item.index], item.index, scene,
@@ -219,6 +229,28 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
 			visual.rows,
 			SDL2pp::Rect(x, y, w, h));
+}
+
+void Renderer::drawFurniture(const game::ViewFurniture& furniture,
+			     const world::ScenePixelMapper& mapper,
+			     const Viewport& viewport) {
+	// Un contentId sin visual no se dibuja (igual que un ítem del piso).
+	const world::SpriteVisual* visual = content_.find(furniture.contentId);
+	if (visual == nullptr) {
+		return;
+	}
+	const world::PixelRect box = world::FurnitureLayout(mapper).box(
+		*visual, world::GridCell{furniture.cellX, furniture.cellY});
+	const world::PixelRect onScreen = viewport.toScreen(box);
+	if (!viewport.intersects(onScreen)) {
+		return;
+	}
+	SpriteSheet& sheet = sheetCache_.sheet(
+		visual->sheetImage, core::assetPath(visual->sheetImage),
+		visual->cellWidth, visual->cellHeight);
+	sheet.drawBlock(visual->col, visual->row, visual->cols, visual->rows,
+			SDL2pp::Rect(onScreen.x, onScreen.y, onScreen.width,
+				     onScreen.height));
 }
 
 void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,

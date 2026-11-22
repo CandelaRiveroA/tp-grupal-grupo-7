@@ -5,8 +5,11 @@
 
 namespace world {
 
+// El orden del enum es el desempate a igual fila: lo fijo (elementos,
+// muebles) va antes que lo que se mueve (entidades).
 enum class DepthKind {
 	Element,
+	Furniture,
 	Entity,
 };
 
@@ -30,9 +33,12 @@ public:
 
 	void addElement(int baseRow, std::uint32_t index);
 
+	// Un mueble colocado, por la fila de su base.
+	void addFurniture(int baseRow, std::uint32_t index);
+
 	void addEntity(int row, std::uint32_t index);
 
-	// ¿Hay elementos para intercalar? Sin ellos el orden de las
+	// ¿Hay elementos o muebles para intercalar? Sin ellos el orden de las
 	// entidades no se toca (el dibujo de siempre).
 	bool hasElements() const;
 

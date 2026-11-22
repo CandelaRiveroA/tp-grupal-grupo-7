@@ -70,6 +70,22 @@ TEST(DepthOrderTest, MixedItemsAreSortedByRow) {
 		  (std::vector<std::uint32_t>{20, 0, 21, 1}));
 }
 
+TEST(DepthOrderTest, FurnitureIsSortedWithEntitiesAndBeforeThemOnTheSameRow) {
+	world::DepthOrder order;
+	order.addEntity(5, 0);
+	order.addFurniture(5, 3);
+	order.addEntity(2, 1);
+	order.addFurniture(8, 4);
+	EXPECT_TRUE(order.hasElements());
+	const std::vector<world::DepthItem>& items = order.sorted();
+	ASSERT_EQ(items.size(), 4u);
+	EXPECT_EQ(items[0].index, 1u);
+	EXPECT_EQ(items[1].kind, world::DepthKind::Furniture);
+	EXPECT_EQ(items[1].index, 3u);
+	EXPECT_EQ(items[2].kind, world::DepthKind::Entity);
+	EXPECT_EQ(items[3].index, 4u);
+}
+
 TEST(DepthOrderTest, ClearStartsAFreshFrame) {
 	world::DepthOrder order;
 	order.addElement(1, 1);

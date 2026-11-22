@@ -134,6 +134,7 @@ void MapLayerItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* opti
 	drawGridLayer(painter, map_->ground, ts, minCol, maxCol, minRow, maxRow);
 	drawGridLayer(painter, map_->paths, ts, minCol, maxCol, minRow, maxRow);
 	drawObjects(painter, ts, minCol, maxCol, minRow, maxRow);
+	drawGridLayer(painter, map_->front, ts, minCol, maxCol, minRow, maxRow);
 	drawMarkersAndPortals(painter, ts, minCol, maxCol, minRow, maxRow);
 	drawCellGrid(painter, ts, minCol, maxCol, minRow, maxRow);
 
@@ -216,7 +217,7 @@ void MapLayerItem::drawMoveObjectPreview(QPainter* painter, int ts) const {
 	const int x = hoverCell_->column * ts;
 	const int y = hoverCell_->row * ts;
 	painter->setOpacity(editor::kGhostOpacity);
-	drawObjectAt(painter, obj, x, y, ts);
+	drawObjectAt(painter, obj, x, y);
 	painter->setOpacity(1.0);
 	painter->setPen(QPen(QColor(255, 255, 255, 220), 0));
 	painter->setBrush(Qt::NoBrush);
@@ -267,18 +268,8 @@ void MapLayerItem::drawGridLayer(QPainter* painter, const worldmodel::TileGrid& 
 }
 
 void MapLayerItem::drawObjectAt(QPainter* painter,
-				const worldmodel::MapObject& obj, int x, int y,
-				int ts) const {
-	// Edificios sin sprite de prefab (placeholder de WorldFactory) se muestran como recuadro.
-	if (obj.role != worldmodel::ObjectRole::Decoration &&
-	    !obj.tile.tileset.starts_with("prefab_")) {
-		painter->save();
-		painter->setPen(QPen(QColor(255, 220, 80, 220), 0));
-		painter->setBrush(QColor(255, 200, 50, 70));
-		painter->drawRect(x, y, obj.width * ts, obj.height * ts);
-		painter->restore();
-		return;
-	}
+				const worldmodel::MapObject& obj, int x,
+				int y) const {
 	painter->drawPixmap(
 		x, y, tilesets_.tilePixmap(obj.tile, obj.width, obj.height));
 }
@@ -293,7 +284,7 @@ void MapLayerItem::drawObjects(QPainter* painter, int ts, int minCol, int maxCol
 			continue;
 		}
 		drawObjectAt(painter, obj, obj.cell.column * ts,
-			     obj.cell.row * ts, ts);
+			     obj.cell.row * ts);
 	}
 }
 

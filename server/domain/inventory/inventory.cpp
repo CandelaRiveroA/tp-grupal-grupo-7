@@ -106,7 +106,7 @@ std::vector<std::unique_ptr<Item>> Inventory::extract_items(ItemID id, uint16_t 
         while (remaining > 0 && !this->slots[i].is_empty() &&
                this->slots[i].item->get_id() == id &&
                this->slots[i].item->can_be_traded()) {
-            extracted.push_back(this->remove_item(i));
+            extracted.push_back(this->pop_one_item(i));
             remaining--;
         }
     }

@@ -524,6 +524,7 @@ if(TALLER_TESTS)
     # juego parsea y produce la escena esperada, sin copiarlo a mano.
     target_compile_definitions(taller_tests PRIVATE
         TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
+        TALLER_EDITOR_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
         TALLER_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/overlay.toml\"
         TALLER_NPCS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/npcs.toml\"
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"

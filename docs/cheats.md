@@ -39,6 +39,8 @@
 | --- | --- | --- |
 | `/completar_set [nombre_set]` | Completa un set (bundle) específico del centro comunitario y otorga su premio. Valores válidos: `cultivos`, `metales`, `animales`, `pelea`, `dinero`. | `/completar_set metales` |
 | `/completar_todo` | Completa todos los sets del centro comunitario de una sola vez. Útil para probar la pantalla de victoria del juego. | `/completar_todo` |
+| `/donar [set] [item] [cantidad]` | Dona productos o recursos de la mochila al set indicado. | `/donar cultivos frutilla 1` |
+| `/donar dinero [cantidad]` | Dona oro de la billetera al set de dinero. El set se completa al acumular 10.000 oro. | `/donar dinero 10000` |
 
 ### Mazmorra
 

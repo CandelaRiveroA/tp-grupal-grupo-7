@@ -40,6 +40,12 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
+- El Centro Comunitario usa chat:
+  `/donar [cultivos|minerales|animales] [item] [cantidad]`,
+  `/donar dinero [cantidad]`, `/completar_set [nombre]` y
+  `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
+  3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
+  `set_id u8`; `ServerVictory` no lleva payload.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la

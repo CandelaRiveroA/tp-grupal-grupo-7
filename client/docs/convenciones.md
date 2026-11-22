@@ -329,6 +329,11 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
   `InventoryLayout::count`) es local, pero al usar, `PickMessage.slot` manda
   el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
   ella lo decide la fuente.
+- **Centro Comunitario.** Los sets se identifican por nombre en el chat
+  (`cultivos`, `minerales`, `animales`, `pelea`, `dinero`) y por los IDs 1 a 5
+  en el protocolo. El servidor decide qué set está listo y aplica la
+  recompensa una sola vez. Los eventos `ServerSetCompleted` y `ServerVictory`
+  son del servidor; el chat de victoria se manda como mensaje de sistema.
 - **Modo de movimiento del jugador.** La tecla `Shift` envía
   `ToggleWalkingMessage`; el servidor alterna el estado privado `walking`
   de cada jugador. Normalmente una orden mueve 2 celdas, pero el modo

@@ -14,7 +14,7 @@ class Town: public Scene {
 private:
     std::vector<Merchant*> merchants;
 
-    void add_merchant(std::unique_ptr<Merchant> merchant);
+    
     void place_default_merchants();
     
 protected:
@@ -25,7 +25,9 @@ public:
     ~Town() override = default;
 
     Merchant* get_merchant_at(uint16_t x, uint16_t y);
-    void on_new_day(World& world);
+    Merchant* get_nearest_merchant(uint16_t x, uint16_t y) const;
+    void place_merchant(std::unique_ptr<Merchant> merchant);
+    void on_new_day(World& world) override;
 };
 
 #endif  // TOWN_H

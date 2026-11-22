@@ -89,6 +89,72 @@ TEST(WorldTest, AlternarModoWalkingReduceElMovimientoSinCambiarElDanio) {
     EXPECT_EQ(p->get_x(), 4);
 }
 
+TEST(WorldTest, CompletarSetCentroComunitarioAplicaRecompensa) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+
+    EXPECT_FALSE(world.is_set_completed("dinero"));
+    EXPECT_TRUE(world.complete_set("dinero"));
+    EXPECT_TRUE(world.is_set_completed("dinero"));
+    EXPECT_TRUE(world.is_market_discount_active());
+    EXPECT_TRUE(world.is_double_sell_active());
+}
+
+TEST(WorldTest, SetDineroSeCompletaAlDonarDiezMilOro) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+
+    Player& player = world.get_player(1);
+    player.set_gold(12000);
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "dinero", ItemID::GOLD_ORB, 6000));
+    EXPECT_EQ(player.get_gold(), 6000u);
+    EXPECT_FALSE(world.is_set_completed("dinero"));
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "dinero", ItemID::GOLD_ORB, 4000));
+    EXPECT_EQ(player.get_gold(), 2000u);
+    EXPECT_TRUE(world.is_set_completed("dinero"));
+
+    EXPECT_EQ(world.get_community_center().get_gold_donated(), 10000u);
+}
+
+TEST(WorldTest, SetMineralesRequiereLasCantidadesIndicadas) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    Player& player = world.get_player(1);
+
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "minerales", ItemID::COAL_ORB, 2));
+    EXPECT_FALSE(world.is_set_completed("minerales"));
+    EXPECT_EQ(player.get_inventory().get_amount(8), 0u);
+}
+
+TEST(WorldTest, DonacionIncompatibleNoConsumeElInventario) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    Player& player = world.get_player(1);
+
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+
+    EXPECT_FALSE(world.donate_to_community_center(
+            1, "cultivos", ItemID::COAL_ORB, 1));
+    EXPECT_FALSE(player.get_inventory().is_slot_empty(0));
+}
+
+TEST(WorldTest, CompletarTodosLosSetsProduceVictoria) {
+    World world(5, 5);
+
+    EXPECT_TRUE(world.complete_all_sets());
+    EXPECT_TRUE(world.is_community_center_completed());
+    EXPECT_TRUE(world.take_victory());
+    EXPECT_FALSE(world.take_victory());
+}
+
 TEST(WorldTest, JugadorNoPuedeSalirDelMapa) {
     World world(5, 5);
     

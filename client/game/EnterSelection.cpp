@@ -1,5 +1,6 @@
 #include "game/EnterSelection.h"
 
+#include "game/AreaProximity.h"
 #include "game/GameConstants.h"
 #include "world/ElementLayout.h"
 
@@ -140,12 +141,7 @@ bool EnterSelection::near(const Entrable& entry, const LocalWorldView& view) con
     }
     const ViewEntity& local = view.entities[kLocalPlayerIndex];
     // Sobre el elemento o en el anillo de una celda alrededor.
-    const int left = entry.at.column - 1;
-    const int top = entry.at.row - 1;
-    const int right = entry.at.column + entry.span.columns;
-    const int bottom = entry.at.row + entry.span.rows;
-    return local.cellX >= left && local.cellX <= right && local.cellY >= top &&
-           local.cellY <= bottom;
+    return AreaProximity(kInteractRing).around(entry.at, entry.span, local.cellX, local.cellY);
 }
 
 }  // namespace game

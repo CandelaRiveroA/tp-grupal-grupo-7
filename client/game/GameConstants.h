@@ -7,6 +7,11 @@ namespace game {
 // Constantes de la capa de estado/vista del juego.
 constexpr std::size_t kLocalPlayerIndex = 0;
 
+// Celdas de alcance alrededor de lo que se toca (la cama, un edificio):
+// el click solo hace algo si el jugador está sobre el elemento o a esta
+// distancia.
+constexpr int kInteractRing = 1;
+
 // --- Reglas del "server falso" (el server real pondrá las suyas) -------
 
 // Tope de ítems en el piso del mundo: sin recogida el mundo se llena.

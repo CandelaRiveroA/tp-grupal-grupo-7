@@ -115,6 +115,32 @@ Usa estos comandos en el chat para comerciar:
   cell   = [16, 16]
   region = [0, 0, 4, 4]
 
+# Popup del centro comunitario: contenido de un edificio del editor. No es
+# un NPC de ninguna escena: su `room` ("popup") no coincide con ningún mapa,
+# así que nunca se dibuja ni se toca; solo aporta el retrato y el texto que
+# abre el click sobre el edificio (overlay.toml: [roles.community_center]).
+# El texto y el retrato son PROVISORIOS (a definir).
+[[npcs]]
+id    = "community_center"
+room  = "popup"
+style = "default"
+text  = """
+Centro comunitario: aquí se juntan los vecinos del pueblo.
+
+(Texto provisorio)"""
+
+  [npcs.body]
+  sheet = "Players/NPCs/NPC_Robin.png"
+  cell  = [16, 16]
+  at    = [0, 0]
+  span  = [1, 2]
+  cells = [[0, 0], [0, 1]]
+
+  [npcs.portrait]
+  sheet  = "Players/NPCs/RobinPort.png"
+  cell   = [16, 16]
+  region = [0, 0, 4, 4]
+
 # Cofre del Market: objeto animado (sin popup). Un click lo abre (cuadros en
 # orden) y otro lo cierra (en orden inverso). Solo se anima la tapa (fila 32); la
 # mitad de abajo (2, 33) es la del cofre cerrado y queda fija. Posición y ritmo

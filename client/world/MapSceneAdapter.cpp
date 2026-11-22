@@ -139,6 +139,8 @@ void MapSceneAdapter::addObjects(const worldmodel::Map& map,
 		placement.draw = {DrawMode::Single, drawScale, drawScale};
 		placement.at = {object.cell.column, object.cell.row};
 		placement.span = {object.width, object.height};
+		// Lo que el editor coloca "de pie" tapa a quien pasa detrás.
+		placement.depthSorted = true;
 
 		// De noche la decoración cambia de aspecto (overlay): el
 		// elemento de día se esconde y entra el de noche, en el mismo

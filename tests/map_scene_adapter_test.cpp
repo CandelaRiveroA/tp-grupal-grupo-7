@@ -78,6 +78,13 @@ TEST(MapSceneAdapterTest, PieceIsTheContiguousBlockFromTheOriginTile) {
 	EXPECT_EQ(market.pieceCells[3].row, 1);
 }
 
+TEST(MapSceneAdapterTest, EditorObjectsAreSortedInDepthWithEntities) {
+	const world::SceneDescription scene = adaptTown();
+	for (const world::ElementPlacement& element : scene.elements) {
+		EXPECT_TRUE(element.depthSorted);
+	}
+}
+
 TEST(MapSceneAdapterTest, AllElementsShareTheMapScale) {
 	const world::SceneDescription scene = adaptTown();
 	for (const world::ElementPlacement& element : scene.elements) {
@@ -281,6 +288,9 @@ TEST(MapSceneAdapterOverlayTest, InitialElementsAreAppendedAfterTheObjects) {
 		world::MapSceneAdapter(overlay).adapt(
 			editor_world_fixtures::makeWorld(), "market");
 	ASSERT_EQ(scene.elements.size(), 1u);
+	// Las decoraciones iniciales del cliente van debajo de todo: no se
+	// ordenan con las entidades (como en scenes.toml).
+	EXPECT_FALSE(scene.elements[0].depthSorted);
 	EXPECT_EQ(scene.elements[0].tileset, "decoration");
 	EXPECT_EQ(scene.elements[0].at.column, 3);
 	// Su hoja es propia del cliente y queda disponible en la escena.

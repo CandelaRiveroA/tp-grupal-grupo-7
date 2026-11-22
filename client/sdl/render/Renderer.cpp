@@ -80,12 +80,20 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	// El piso en grilla (mapas del editor) va debajo de todo elemento.
 	layerPainter_.draw(scene, mapper, viewport);
 
+	depth_.clear();
 	for (const std::uint32_t index : visibleElements_) {
 		const world::ElementPlacement& element = scene.elements[index];
 		// El momento del día filtra: lo que solo se dibuja en su
 		// momento (key `when` de scenes.toml) no pasa de acá; el
 		// índice espacial y el resto del frame no se enteran.
 		if (!element.visibleAt(timeOfDay)) {
+			continue;
+		}
+		// Lo que está "de pie" (árboles, edificios) se ordena con las
+		// entidades más abajo; el resto va ya, debajo de todo.
+		if (element.depthSorted) {
+			depth_.addElement(element.at.row + element.span.rows - 1,
+					  index);
 			continue;
 		}
 		drawElement(scene, element, mapper, viewport);
@@ -116,9 +124,20 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	npcRenderer_.draw(viewport, scene.cellPixelSize,
 			  npcPlacements_.cellsFrom(view));
 
+	// Entidades y elementos de pie, en orden de profundidad: quien está
+	// detrás de la base de un árbol queda tapado por él.
 	for (const std::uint32_t index : visibleEntities_) {
-		entityRenderer_.draw(view.entities[index], index, scene, motion,
-				    actionResolver, animationTick, viewport);
+		depth_.addEntity(view.entities[index].cellY, index);
+	}
+	for (const world::DepthItem& item : depth_.sorted()) {
+		if (item.kind == world::DepthKind::Element) {
+			drawElement(scene, scene.elements[item.index], mapper,
+				    viewport);
+			continue;
+		}
+		entityRenderer_.draw(view.entities[item.index], item.index, scene,
+				    motion, actionResolver, animationTick,
+				    viewport);
 	}
 }
 

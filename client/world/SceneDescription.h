@@ -71,6 +71,12 @@ struct ElementPlacement {
 	DrawSpec draw;
 	GridCell at;
 	GridSpan span;
+	// ¿Se ordena en profundidad con las entidades (el jugador pasa por
+	// detrás si está más arriba que su base)? Es para lo que se ve "de
+	// pie" sobre el piso: árboles, edificios, muebles. Por defecto no:
+	// el fondo y los pisos van siempre debajo de todo (el caso de
+	// scenes.toml).
+	bool depthSorted = false;
 	// "Entrar" al elemento (OPCIONAL, subtabla `enter` del TOML). Sin
 	// esto el elemento es decoración pura y nada cambia.
 	std::optional<ElementEnter> enter = std::nullopt;

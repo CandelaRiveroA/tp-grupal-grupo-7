@@ -18,6 +18,7 @@
 #include "sdl/render/SheetCache.h"
 #include "sdl/render/TileLayerPainter.h"
 #include "world/ContentCatalog.h"
+#include "world/DepthOrder.h"
 #include "world/CropCatalog.h"
 #include "world/GroundCatalog.h"
 #include "world/ResourceCatalog.h"
@@ -113,6 +114,9 @@ private:
 	CropPainter cropPainter_;
 
 	world::SceneElementIndex sceneIndex_;
+	// Orden de dibujo en profundidad del frame (elementos de pie y
+	// entidades); se reutiliza para no reservar memoria por frame.
+	world::DepthOrder depth_;
 	game::ViewSpatialIndex viewIndex_;
 	bool sceneIndexReady_ = false;
 

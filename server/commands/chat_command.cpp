@@ -19,6 +19,20 @@ ChatRouter::ChatRouter() {
     handlers_["/vida"] = &ChatRouter::cmd_vida;
     handlers_["/energia"] = &ChatRouter::cmd_energia;
     handlers_["/oro"] = &ChatRouter::cmd_oro;
+    handlers_["/donar"] = &ChatRouter::cmd_donar;
+    handlers_["/completar_set"] = &ChatRouter::cmd_completar_set;
+    handlers_["/completar_todo"] = &ChatRouter::cmd_completar_todo;
+    community_item_names_ = {
+            {"frutilla", ItemID::STRAWBERRY},
+            {"cebolla", ItemID::GREEN_ONION},
+            {"papa", ItemID::POTATO},
+            {"calabaza", ItemID::PUMPKIN},
+            {"carbon", ItemID::COAL_ORB},
+            {"lapislazuli", ItemID::LAPIS_ORB},
+            {"plata", ItemID::SILVER_ORB},
+            {"oro", ItemID::GOLD_ORB},
+            {"leche", ItemID::MILK},
+            {"huevo", ItemID::EGG}};
 }
 
 std::vector<std::string> ChatRouter::split(const std::string& s) {
@@ -172,4 +186,76 @@ std::string ChatRouter::cmd_oro(World& world, uint8_t sender,
     int nuevo = std::clamp(static_cast<int>(p.get_gold()) + delta, 0, 65535);
     p.set_gold(static_cast<uint16_t>(nuevo));
     return "oro: " + std::to_string(nuevo);
+}
+
+ItemID ChatRouter::item_from_name(const std::string& name) const {
+    const auto it = community_item_names_.find(name);
+    return it != community_item_names_.end() ? it->second : ItemID::NONE;
+}
+
+std::string ChatRouter::cmd_donar(World& world, uint8_t sender,
+                                  const std::vector<std::string>& args) {
+    if (args.empty()) {
+        return "uso: /donar [set] [item] [cantidad] (/donar dinero [cantidad])";
+    }
+    if (args[0] == "dinero") {
+        if (args.size() != 2) {
+            return "uso: /donar dinero [cantidad]";
+        }
+        int quantity = 0;
+        if (!parse_int(args[1], quantity) || quantity <= 0) {
+            return "cantidad invalida";
+        }
+        if (quantity > 65535) {
+            return "cantidad fuera de rango";
+        }
+        if (!world.donate_to_community_center(sender, "dinero", ItemID::GOLD_ORB,
+                                              static_cast<uint16_t>(quantity))) {
+            return "no tenes suficiente oro";
+        }
+        return "donacion registrada";
+    }
+
+    if (args.size() != 3) {
+        return "uso: /donar [set] [item] [cantidad]";
+    }
+    int quantity = 0;
+    if (!parse_int(args[2], quantity) || quantity <= 0) {
+        return "cantidad invalida";
+    }
+    if (quantity > 65535) {
+        return "cantidad fuera de rango";
+    }
+
+    const ItemID item = this->item_from_name(args[1]);
+    if (item == ItemID::NONE) {
+        return "item desconocido";
+    }
+    if (!world.donate_to_community_center(sender, args[0], item,
+                                          static_cast<uint16_t>(quantity))) {
+        return "no tenes suficientes items para donar";
+    }
+    return "donacion registrada";
+}
+
+std::string ChatRouter::cmd_completar_set(World& world, uint8_t /*sender*/,
+                                          const std::vector<std::string>& args) {
+    if (args.size() != 1) {
+        return "uso: /completar_set [cultivos|minerales|metales|animales|pelea|dinero]";
+    }
+    if (!world.complete_set(args[0])) {
+        return "set desconocido o ya completado";
+    }
+    return "set completado";
+}
+
+std::string ChatRouter::cmd_completar_todo(World& world, uint8_t /*sender*/,
+                                           const std::vector<std::string>& args) {
+    if (!args.empty()) {
+        return "uso: /completar_todo";
+    }
+    if (!world.complete_all_sets()) {
+        return "todos los sets ya estan completos";
+    }
+    return "centro comunitario completado";
 }

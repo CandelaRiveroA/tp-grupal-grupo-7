@@ -190,6 +190,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ScenesRoomSource.cpp
         client/world/WorldMapLoader.cpp
         client/world/MapSceneAdapter.cpp
+        client/world/ArtCellFit.cpp
+        client/world/MapLayerAdapter.cpp
+        client/world/MapObjectAdapter.cpp
+        client/world/MapAnchorAdapter.cpp
         client/world/EditorWorldSource.cpp
         client/world/SceneSources.cpp
         client/world/TileLayerLayout.cpp

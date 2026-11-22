@@ -3,9 +3,10 @@
 #include <string>
 
 #include "world/ConfigError.h"
-#include "world/OverlayKeys.h"
+#include "world/MapAnchorAdapter.h"
+#include "world/MapLayerAdapter.h"
+#include "world/MapObjectAdapter.h"
 #include "world/SceneKeys.h"
-#include "world_model/WorldVocabulary.h"
 
 namespace world {
 
@@ -32,10 +33,10 @@ SceneDescription MapSceneAdapter::adapt(const worldmodel::World& world,
 
 	addTilesets(world, scene);
 	mergeOverlayTilesets(scene);
-	addLayers(map, mapPath, scene);
-	addObjects(map, mapPath, scene);
+	MapLayerAdapter().add(map, mapPath, scene);
+	MapObjectAdapter(overlay_).add(map, mapPath, scene);
 	addExtraElements(mapId, scene);
-	addAnchors(map, scene);
+	MapAnchorAdapter(overlay_).add(map, scene);
 	return scene;
 }
 
@@ -46,219 +47,6 @@ void MapSceneAdapter::addTilesets(const worldmodel::World& world,
 			name, TileSetDef{def.image, def.cellWidth,
 					 def.cellHeight});
 	}
-}
-
-void MapSceneAdapter::addLayers(const worldmodel::Map& map,
-				const std::string& mapPath,
-				SceneDescription& scene) const {
-	addLayer(map.ground, mapPath + ".ground", map, scene);
-	addLayer(map.paths, mapPath + ".paths", map, scene);
-}
-
-void MapSceneAdapter::addLayer(const worldmodel::TileGrid& grid,
-			       const std::string& path,
-			       const worldmodel::Map& map,
-			       SceneDescription& scene) const {
-	const std::size_t cellCount =
-		static_cast<std::size_t>(map.width) *
-		static_cast<std::size_t>(map.height);
-	if (grid.size() != cellCount) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, path);
-	}
-
-	TileLayer layer;
-	layer.size = {map.width, map.height};
-	layer.cells.assign(cellCount, LayerCell{});
-	bool hasTiles = false;
-	for (std::size_t i = 0; i < cellCount; ++i) {
-		if (!grid[i].has_value()) {
-			continue;
-		}
-		const worldmodel::TileRef& tile = *grid[i];
-		const auto tileset = scene.tilesets.find(tile.tileset);
-		if (tileset == scene.tilesets.end()) {
-			throw ConfigError(
-				ConfigErrorKind::InvalidValue,
-				path + "[" + std::to_string(i) + "]");
-		}
-		std::size_t index = 0;
-		while (index < layer.tilesets.size() &&
-		       layer.tilesets[index] != tile.tileset) {
-			++index;
-		}
-		if (index == layer.tilesets.size()) {
-			// Primera vez que la capa usa esta hoja: su celda de arte
-			// debe encajar exacta en la celda lógica.
-			drawScaleFor(tileset->second, scene.cellPixelSize,
-				     std::string(kKeyTilesets) + "." +
-					     tile.tileset + "." + kKeyCell);
-			layer.tilesets.push_back(tile.tileset);
-		}
-		layer.cells[i] = LayerCell{static_cast<int>(index),
-					   {tile.column, tile.row}};
-		hasTiles = true;
-	}
-	if (hasTiles) {
-		scene.layers.push_back(std::move(layer));
-	}
-}
-
-void MapSceneAdapter::addObjects(const worldmodel::Map& map,
-				 const std::string& mapPath,
-				 SceneDescription& scene) const {
-	// El orden del TOML es el orden de dibujo.
-	for (std::size_t i = 0; i < map.objects.size(); ++i) {
-		const worldmodel::MapObject& object = map.objects[i];
-		const std::string path =
-			mapPath + ".objects[" + std::to_string(i) + "]";
-
-		const auto tileset = scene.tilesets.find(object.tile.tileset);
-		if (tileset == scene.tilesets.end()) {
-			throw ConfigError(ConfigErrorKind::InvalidValue,
-					  path + ".tile");
-		}
-		if (object.width <= 0 || object.height <= 0) {
-			throw ConfigError(ConfigErrorKind::InvalidValue,
-					  path + ".size");
-		}
-		const int drawScale = drawScaleFor(
-			tileset->second, scene.cellPixelSize,
-			std::string(kKeyTilesets) + "." + object.tile.tileset +
-				"." + kKeyCell);
-
-		ElementPlacement placement;
-		placement.tileset = object.tile.tileset;
-		placement.pieceSize = {object.width, object.height};
-		// Bloque contiguo de la hoja desde el tile de origen (el mismo
-		// recorte que hace el editor), fila por fila.
-		for (int row = 0; row < object.height; ++row) {
-			for (int column = 0; column < object.width; ++column) {
-				placement.pieceCells.push_back(
-					{object.tile.column + column,
-					 object.tile.row + row});
-			}
-		}
-		placement.draw = {DrawMode::Single, drawScale, drawScale};
-		placement.at = {object.cell.column, object.cell.row};
-		placement.span = {object.width, object.height};
-		// Lo que el editor coloca "de pie" tapa a quien pasa detrás.
-		placement.depthSorted = true;
-
-		const auto overlay =
-			overlay_.decorations.find(object.tile.key());
-		const bool hasOverlay = overlay != overlay_.decorations.end();
-		if (hasOverlay && overlay->second.enter.has_value()) {
-			// Entrable y con versión de noche a la vez no se
-			// soporta: la capa frontal se dibujaría con la pieza
-			// de día.
-			if (overlay->second.night.has_value()) {
-				throw ConfigError(
-					ConfigErrorKind::InvalidValue,
-					std::string(kKeyOverlayDecorations) +
-						"." + object.tile.key());
-			}
-			placement.enter = enterFor(*overlay->second.enter,
-						   placement, map, mapPath,
-						   object.tile.key());
-		}
-
-		if (object.role != worldmodel::ObjectRole::Decoration) {
-			addStructure(object, scene.elements.size(), scene);
-		}
-
-		// De noche la decoración cambia de aspecto (overlay): el
-		// elemento de día se esconde y entra el de noche, en el mismo
-		// lugar del orden de dibujo.
-		if (hasOverlay && overlay->second.night.has_value()) {
-			placement.when = TimeOfDay::Day;
-			const ElementPlacement night = nightElement(
-				placement, *overlay->second.night,
-				std::string(kKeyOverlayDecorations) + "." +
-					object.tile.key() + "." +
-					kKeyOverlayNightTile,
-				scene);
-			scene.elements.push_back(std::move(placement));
-			scene.elements.push_back(night);
-			continue;
-		}
-		scene.elements.push_back(std::move(placement));
-	}
-}
-
-void MapSceneAdapter::addAnchors(const worldmodel::Map& map,
-				 SceneDescription& scene) const {
-	const worldmodel::WorldVocabulary vocabulary;
-	for (const worldmodel::Marker& marker : map.markers) {
-		const std::string kind = vocabulary.toText(marker.kind);
-		const GridCell cell{marker.cell.column, marker.cell.row};
-		scene.markers.push_back(SceneMarker{kind, cell});
-		const auto npc = overlay_.markerNpcs.find(kind);
-		if (npc != overlay_.markerNpcs.end()) {
-			scene.npcCells[npc->second] = cell;
-		}
-	}
-	for (const worldmodel::Portal& portal : map.portals) {
-		scene.portals.push_back(ScenePortal{
-			vocabulary.toText(portal.kind),
-			{portal.cell.column, portal.cell.row},
-			portal.targetMap,
-			{portal.targetCell.column, portal.targetCell.row}});
-	}
-}
-
-ElementEnter MapSceneAdapter::enterFor(const OverlayEnter& enter,
-				       const ElementPlacement& placement,
-				       const worldmodel::Map& map,
-				       const std::string& mapPath,
-				       const std::string& key) const {
-	const std::string enterPath = std::string(kKeyOverlayDecorations) +
-				      "." + key + "." + kKeyEnter;
-	if (enter.lastFrontRow >= placement.pieceSize.rows) {
-		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  enterPath + "." + kKeyEnterRows);
-	}
-	const worldmodel::WorldVocabulary vocabulary;
-	for (const worldmodel::Marker& marker : map.markers) {
-		if (vocabulary.toText(marker.kind) != enter.marker) {
-			continue;
-		}
-		const bool inside =
-			marker.cell.column >= placement.at.column &&
-			marker.cell.column <
-				placement.at.column + placement.span.columns &&
-			marker.cell.row >= placement.at.row &&
-			marker.cell.row <
-				placement.at.row + placement.span.rows;
-		if (!inside) {
-			throw ConfigError(ConfigErrorKind::InvalidValue,
-					  mapPath + "." + kKeyOverlayMarkers);
-		}
-		return ElementEnter{enter.firstFrontRow,
-				    enter.lastFrontRow,
-				    {marker.cell.column, marker.cell.row},
-				    enter.facing};
-	}
-	throw ConfigError(ConfigErrorKind::MissingStructure,
-			  mapPath + "." + kKeyOverlayMarkers);
-}
-
-void MapSceneAdapter::addStructure(const worldmodel::MapObject& object,
-				   std::size_t elementIndex,
-				   SceneDescription& scene) const {
-	SceneStructure structure;
-	structure.role = worldmodel::WorldVocabulary().toText(object.role);
-	structure.at = {object.cell.column, object.cell.row};
-	structure.span = {object.width, object.height};
-	if (object.door.has_value()) {
-		structure.door = GridCell{object.door->column, object.door->row};
-	}
-	structure.elementIndex = elementIndex;
-	const auto behavior = overlay_.roles.find(structure.role);
-	if (behavior != overlay_.roles.end()) {
-		structure.action = behavior->second.action;
-		structure.target = behavior->second.target;
-	}
-	scene.structures.push_back(std::move(structure));
 }
 
 void MapSceneAdapter::mergeOverlayTilesets(SceneDescription& scene) const {
@@ -287,47 +75,6 @@ void MapSceneAdapter::addExtraElements(const std::string& mapId,
 	for (const ElementPlacement& element : extra->second) {
 		scene.elements.push_back(element);
 	}
-}
-
-ElementPlacement MapSceneAdapter::nightElement(
-	const ElementPlacement& day, const NightVariant& night,
-	const std::string& path, const SceneDescription& scene) const {
-	const auto tileset = scene.tilesets.find(night.tileset);
-	if (tileset == scene.tilesets.end()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, path);
-	}
-	const int drawScale = drawScaleFor(
-		tileset->second, scene.cellPixelSize,
-		std::string(kKeyTilesets) + "." + night.tileset + "." +
-			kKeyCell);
-
-	ElementPlacement element = day;
-	element.tileset = night.tileset;
-	element.pieceCells.clear();
-	for (int row = 0; row < day.pieceSize.rows; ++row) {
-		for (int column = 0; column < day.pieceSize.columns; ++column) {
-			element.pieceCells.push_back(
-				{night.sheetCell.column + column,
-				 night.sheetCell.row + row});
-		}
-	}
-	element.draw = {DrawMode::Single, drawScale, drawScale};
-	element.when = TimeOfDay::Night;
-	return element;
-}
-
-int MapSceneAdapter::drawScaleFor(const TileSetDef& tileset,
-				  int cellPixelSize,
-				  const std::string& path) const {
-	const bool exact = tileset.cellWidth > 0 && tileset.cellHeight > 0 &&
-			   cellPixelSize % tileset.cellWidth == 0 &&
-			   cellPixelSize % tileset.cellHeight == 0 &&
-			   cellPixelSize / tileset.cellWidth ==
-				   cellPixelSize / tileset.cellHeight;
-	if (!exact) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, path);
-	}
-	return cellPixelSize / tileset.cellWidth;
 }
 
 }

@@ -30,6 +30,14 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 		  {MoveKind::Object, &MapCanvasView::moveObject},
 		  {MoveKind::Marker, &MapCanvasView::moveMarker},
 		  {MoveKind::Portal, &MapCanvasView::movePortal},
+	  },
+	  roleRequiredMap_{
+		  {worldmodel::ObjectRole::Cabin, editor::kHomeMapId},
+		  {worldmodel::ObjectRole::Carpentry, "town"},
+		  {worldmodel::ObjectRole::Blacksmith, "town"},
+		  {worldmodel::ObjectRole::GeneralStore, "town"},
+		  {worldmodel::ObjectRole::Ranch, "town"},
+		  {worldmodel::ObjectRole::CommunityCenter, "town"},
 	  } {
 	setRenderHint(QPainter::SmoothPixmapTransform, false);
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
@@ -252,20 +260,24 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 	    !map_->fits(cell, activePrefab_->width, activePrefab_->height)) {
 		return;
 	}
+	if (activePrefab_->role.has_value()) {
+		const auto reqIt = roleRequiredMap_.find(*activePrefab_->role);
+		if (reqIt != roleRequiredMap_.end() &&
+		    map_->id != reqIt->second) {
+			return;
+		}
+	}
 	const bool anyBlocked = std::any_of(
 		activePrefab_->collisionGrid.begin(),
 		activePrefab_->collisionGrid.end(), [](bool b) { return b; });
-	const bool isCabinOutsideFarm =
-		activePrefab_->role == worldmodel::ObjectRole::Cabin &&
-		map_->id != editor::kHomeMapId;
 	const worldmodel::ObjectRole role =
-		(!activePrefab_->role.has_value() || isCabinOutsideFarm)
-			? worldmodel::ObjectRole::Decoration
-			: *activePrefab_->role;
+		activePrefab_->role.value_or(worldmodel::ObjectRole::Decoration);
 	const std::optional<worldmodel::TilePos> door =
 		role != worldmodel::ObjectRole::Decoration
 			? prefabDoorAt(cell)
 			: std::nullopt;
+	const int doorWidth =
+		door.has_value() ? activePrefab_->doorWidth : 1;
 	map_->objects.push_back(worldmodel::MapObject{
 		role,
 		activePrefab_->tile,
@@ -275,6 +287,7 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 		anyBlocked,
 		door,
 		activePrefab_->collisionGrid,
+		doorWidth,
 	});
 	notifyMapEdited();
 }
@@ -295,8 +308,7 @@ void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 	for (auto it = map_->objects.rbegin(); it != map_->objects.rend(); ++it) {
 		const bool erasable =
 			it->role == worldmodel::ObjectRole::Decoration ||
-			(it->role == worldmodel::ObjectRole::Cabin &&
-			 map_->id == editor::kHomeMapId);
+			map_->id == editor::kHomeMapId || map_->id == "town";
 		if (!erasable ||
 		    !containsCell(it->cell, it->width, it->height, cell)) {
 			continue;
@@ -437,11 +449,12 @@ bool MapCanvasView::containsCell(worldmodel::TilePos origin, int width,
 
 std::optional<worldmodel::TilePos> MapCanvasView::prefabDoorAt(
 	worldmodel::TilePos cell) const {
-	const worldmodel::TilePos offset = activePrefab_->door.value_or(
-		worldmodel::TilePos{activePrefab_->width / 2,
-				    activePrefab_->height});
-	return worldmodel::TilePos{cell.column + offset.column,
-				   cell.row + offset.row};
+	if (!activePrefab_->door.has_value()) {
+		return std::nullopt;
+	}
+	return worldmodel::TilePos{
+		cell.column + activePrefab_->door->column,
+		cell.row + activePrefab_->door->row};
 }
 
 void MapCanvasView::resetToNavigate() {

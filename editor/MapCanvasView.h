@@ -8,6 +8,7 @@
 
 #include "MapLayerItem.h"
 #include "common/world_model/Geometry.h"
+#include "common/world_model/MapObject.h"
 #include "common/world_model/Portal.h"
 
 class QEvent;
@@ -86,6 +87,7 @@ private:
 	std::map<MoveKind,
 		 void (MapCanvasView::*)(std::size_t, worldmodel::TilePos)>
 		moveAppliers_;
+	std::map<worldmodel::ObjectRole, std::string> roleRequiredMap_;
 	worldmodel::PortalKind activePortalKind_ = worldmodel::PortalKind::Link;
 	int activePortalWidth_ = 1;
 	int activePortalHeight_ = 1;

@@ -112,6 +112,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		}
 		if (activeMapId_ == editor::kHomeMapId) {
 			syncFarmCabins(pendingErasedCabin_);
+		} else if (activeMapId_ == "town") {
+			syncTownShops();
 		}
 		pendingErasedCabin_.reset();
 		setDirty();
@@ -535,6 +537,40 @@ void WorkspaceView::syncFarmCabins(std::optional<int> erasedCabinIndex) {
 		}
 	}
 	tree_->setExtraMaps(world_);
+}
+
+void WorkspaceView::syncTownShops() {
+	const auto townIt = world_.maps.find("town");
+	if (townIt == world_.maps.end()) {
+		return;
+	}
+	const auto& objects = townIt->second.objects;
+	const std::pair<worldmodel::ObjectRole, const char*> shops[] = {
+		{worldmodel::ObjectRole::Carpentry, "carpentry"},
+		{worldmodel::ObjectRole::Blacksmith, "blacksmith"},
+		{worldmodel::ObjectRole::GeneralStore, "general_store"},
+		{worldmodel::ObjectRole::Ranch, "ranch"},
+	};
+	for (const auto& [role, mapId] : shops) {
+		const worldmodel::MapObject* match = nullptr;
+		int count = 0;
+		for (const auto& obj : objects) {
+			if (obj.role == role) {
+				match = &obj;
+				++count;
+			}
+		}
+		if (count != 1 || !match->door.has_value() ||
+		    !world_.maps.contains(mapId)) {
+			continue;
+		}
+		for (auto& portal : world_.maps.at(mapId).portals) {
+			if (portal.kind == worldmodel::PortalKind::InteriorExit) {
+				portal.targetMap = "town";
+				portal.targetCell = *match->door;
+			}
+		}
+	}
 }
 
 void WorkspaceView::uncheckToolButtons() {

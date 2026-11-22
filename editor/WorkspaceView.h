@@ -58,6 +58,7 @@ private:
 	void onTargetCellPicked(worldmodel::TilePos cell);
 	void onPickTargetCancelled();
 	void syncFarmCabins(std::optional<int> erasedCabinIndex);
+	void syncTownShops();
 	void uncheckToolButtons();
 	void setPickTargetUiLocked(bool locked);
 	void setDirty();

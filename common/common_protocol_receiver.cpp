@@ -49,6 +49,11 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::GiftAnswered, &ProtocolReceiver::receive_gift_answered_message},
                 {ServerMessageType::SetCompleted, &ProtocolReceiver::receive_set_completed_message},
                 {ServerMessageType::Victory, &ProtocolReceiver::receive_victory_message},
+                {ServerMessageType::Gold, &ProtocolReceiver::receive_gold_message},
+                {ServerMessageType::NpcPlacement,
+                 &ProtocolReceiver::receive_npc_placement_message},
+                {ServerMessageType::MarketOffer,
+                 &ProtocolReceiver::receive_market_offer_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -337,6 +342,42 @@ ServerMessage ProtocolReceiver::receive_server_chat_message() {
 
 ServerMessage ProtocolReceiver::receive_set_completed_message() {
     return ServerSetCompleted{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_gold_message() {
+    return ServerGold{receive_uint16()};
+}
+
+ServerMessage ProtocolReceiver::receive_npc_placement_message() {
+    std::string id = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    return ServerNpcPlacement{std::move(id), x, y};
+}
+
+ServerMessage ProtocolReceiver::receive_market_offer_message() {
+    std::string merchant_id = receive_string();
+    const uint16_t count = receive_uint16();
+    std::vector<ServerMarketEntry> entries;
+    entries.reserve(count);
+    for (uint16_t i = 0; i < count; ++i) {
+        std::string content_id = receive_string();
+        std::string label = receive_string();
+        const uint8_t side = receive_uint8();
+        if (side > static_cast<uint8_t>(ServerMarketSide::Buys)) {
+            throw std::invalid_argument("El lado de la oferta de mercado no es valido.");
+        }
+        const uint8_t has_price = receive_uint8();
+        if (has_price > 1) {
+            throw std::invalid_argument("El indicador de precio del mercado no es valido.");
+        }
+        const uint16_t price = receive_uint16();
+        entries.push_back(ServerMarketEntry{std::move(content_id),
+                                            std::move(label),
+                                            static_cast<ServerMarketSide>(side),
+                                            has_price == 1, price});
+    }
+    return ServerMarketOffer{std::move(merchant_id), std::move(entries)};
 }
 
 ServerMessage ProtocolReceiver::receive_victory_message() {

@@ -262,6 +262,31 @@ void ProtocolSender::send_message(const ServerChat& chat) {
     send_uint8(chat.system ? 1 : 0);
 }
 
+void ProtocolSender::send_message(const ServerGold& gold) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Gold));
+    send_uint16(gold.gold);
+}
+
+void ProtocolSender::send_message(const ServerNpcPlacement& placement) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::NpcPlacement));
+    send_string(placement.id);
+    send_uint16(placement.x);
+    send_uint16(placement.y);
+}
+
+void ProtocolSender::send_message(const ServerMarketOffer& offer) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::MarketOffer));
+    send_string(offer.merchant_id);
+    send_uint16(static_cast<uint16_t>(offer.entries.size()));
+    for (const ServerMarketEntry& entry: offer.entries) {
+        send_string(entry.content_id);
+        send_string(entry.label);
+        send_uint8(static_cast<uint8_t>(entry.side));
+        send_uint8(entry.has_price ? 1 : 0);
+        send_uint16(entry.price);
+    }
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }

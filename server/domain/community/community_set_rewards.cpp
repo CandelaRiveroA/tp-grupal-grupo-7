@@ -58,9 +58,12 @@ CommunitySetRewards::CommunitySetRewards():
                                 player.get_max_health() + player.get_max_health() / 4;
                         player.set_max_health(max_health);
                         player.set_health(player.get_health() + player.get_health() / 4);
-                        const float max_energy = player.get_max_energy() * 1.25f;
-                        player.set_max_energy(max_energy);
-                        player.set_energy(player.get_energy() * 1.25f);
+                        const uint32_t max_energy =
+                                static_cast<uint32_t>(player.get_max_energy()) * 125u / 100u;
+                        player.set_max_energy(static_cast<uint16_t>(max_energy));
+                        const uint32_t energy =
+                                static_cast<uint32_t>(player.get_energy()) * 125u / 100u;
+                        player.set_energy(static_cast<uint16_t>(energy));
                     }
                 }},
                 {CommunitySet::MONEY, [](World& world) {

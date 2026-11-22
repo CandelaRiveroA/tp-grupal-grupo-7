@@ -62,8 +62,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
                                    player.get_appearance(),
                                    player.get_health(), player.get_max_health(),
-                                   static_cast<uint16_t>(player.get_energy() * 100.0f),
-                                   static_cast<uint16_t>(player.get_max_energy() * 100.0f),
+                                   player.get_energy(),
+                                   player.get_max_energy(),
                                     player.faintedByEnergy() ? 1u : 0u));
     }
 

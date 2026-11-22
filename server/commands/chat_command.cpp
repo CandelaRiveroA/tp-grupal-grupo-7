@@ -162,12 +162,14 @@ std::string ChatRouter::cmd_vida(World& world, uint8_t sender,
 std::string ChatRouter::cmd_energia(World& world, uint8_t sender,
                                     const std::vector<std::string>& args) {
     if (args.size() != 1) return "uso: /energia [cantidad]";
-    float value = 0.0f;
-    if (!parse_float(args[0], value)) return "cantidad invalida";
+    int value = 0;
+    if (!parse_int(args[0], value)) return "cantidad invalida";
     Player& p = world.get_player(sender);
-    value = std::clamp(value, 0.0f, p.get_max_energy());
-    p.set_energy(value);
-    if (value == 0.0f) {
+    const int max_percent = static_cast<int>(p.get_max_energy() / 100);
+    value = std::clamp(value, 0, max_percent);
+    const uint16_t scaled = static_cast<uint16_t>(value * 100);
+    p.set_energy(scaled);
+    if (scaled == 0) {
         world.faint_player(sender);  // igual que apply_consume_energy al agotarse
     } else {
         p.setFaintedByEnergy(false);

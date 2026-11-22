@@ -746,11 +746,11 @@ void World::use_tool(uint8_t player_id) {
     }
 
     if (tool != ToolType::SWORD && tool != ToolType::HAND) {
-        apply_consume_energy(player_id, action_performed ? 5.0f : 1.0f);
+        apply_consume_energy(player_id, action_performed ? 500 : 100);
     }
 }
 
-void World::apply_consume_energy(uint8_t player_id, float amount) {
+void World::apply_consume_energy(uint8_t player_id, uint16_t amount) {
     Player& p = *this->players.at(player_id);
     p.consume_energy(amount);
     if (p.is_energy_depleted()) {
@@ -1024,7 +1024,7 @@ void World::reset_player_for_day(uint8_t player_id) {
     const bool penalized = p.diedInCombat() || p.faintedByTimeout() || p.faintedByEnergy();
     const uint16_t new_hp = penalized ? static_cast<uint16_t>(p.get_max_health() / 2)
                                      : p.get_max_health();
-    const float new_energy = penalized ? (p.get_max_energy() / 2.0f) : p.get_max_energy();
+    const uint16_t new_energy = penalized ? p.get_max_energy() / 2 : p.get_max_energy();
     p.set_health(new_hp);
     p.set_energy(new_energy);
     p.setDiedInCombat(false);

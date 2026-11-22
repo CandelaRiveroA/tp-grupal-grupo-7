@@ -93,7 +93,7 @@ private:
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
     std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
-    void apply_consume_energy(uint8_t player_id, float amount);
+    void apply_consume_energy(uint8_t player_id, uint16_t amount);
     CommunitySet community_set_from_name(const std::string& set_name) const;
     void apply_set_reward(CommunitySet set);
 public:

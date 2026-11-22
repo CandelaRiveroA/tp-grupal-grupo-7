@@ -61,11 +61,13 @@ void DungeonFloor::add_enemy(std::unique_ptr<Enemy> enemy, uint16_t enemy_id) {
         return;
     }
     enemy->set_id(enemy_id);
+    enemy->set_room(this->room_number);
+    set_entity_at(x, y, std::move(enemy));
     set_entity_at(x, y, std::move(enemy));
     enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
 }
 
-void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_id) {
+void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_id, uint16_t group_id) {
     const int pack_size = kOrcPackMin + std::rand() % (kOrcPackMax - kOrcPackMin + 1);
     std::vector<std::pair<uint16_t, uint16_t>> cells;
     for (int radius = 0; radius <= kOrcPackRadius; ++radius) {
@@ -91,12 +93,14 @@ void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_i
     for (int i = 0; i < pack_size && static_cast<size_t>(i) < cells.size(); ++i) {
         const auto& [orc_x, orc_y] = cells[(start + i) % cells.size()];
         if (can_walk_to(orc_x, orc_y)) {
-            add_enemy(std::make_unique<Orc>(orc_x, orc_y), next_enemy_id++);
+            auto orc = std::make_unique<Orc>(orc_x, orc_y);
+            orc->set_group_id(group_id);
+            add_enemy(std::move(orc), next_enemy_id++);
         }
     }
 }
 
-void DungeonFloor::spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_enemy_id) {
+void DungeonFloor::spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_enemy_id, uint16_t pair_id) {
     std::vector<std::pair<uint16_t, uint16_t>> cells;
     for (int dy = -kVampirePairRadius; dy <= kVampirePairRadius; ++dy) {
         for (int dx = -kVampirePairRadius; dx <= kVampirePairRadius; ++dx) {
@@ -121,6 +125,8 @@ void DungeonFloor::spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_ene
 
     auto vampire = std::make_unique<Vampire>(first_x, first_y);
     auto vampiress = std::make_unique<Vampiress>(second_x, second_y);
+    vampire->set_pair_id(pair_id);
+    vampiress->set_pair_id(pair_id);
     Vampire* vampire_ptr = vampire.get();
     Vampiress* vampiress_ptr = vampiress.get();
     vampire_ptr->set_partner(vampiress_ptr);

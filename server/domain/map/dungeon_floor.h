@@ -37,8 +37,8 @@ public:
 
     // --- Enemigos ---
     void add_enemy(std::unique_ptr<Enemy> enemy, uint16_t enemy_id);
-    void spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_id);
-    void spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_enemy_id);
+   void spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_id, uint16_t group_id);
+void spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_enemy_id, uint16_t pair_id);
     void clear_enemies();
     void tick_enemies(World& world);
     bool tick_enemies_pursuit(World& world);

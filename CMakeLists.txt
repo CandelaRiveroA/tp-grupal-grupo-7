@@ -264,16 +264,11 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/FootstepCue.cpp
         client/game/ResourceAudioCue.cpp
         client/game/ObtainedBannerQueue.cpp
-        client/game/MockGameClient.cpp
         client/game/LocalWorldView.cpp
         client/game/FloorItems.cpp
         client/game/InteractionSession.cpp
-        client/game/AnimalSystem.cpp
-        client/game/EnemyBot.cpp
-        client/game/MockWorldClient.cpp
         client/game/ObjectPicker.cpp
         client/game/DialogAnimator.cpp
-        client/game/MockAnimalSimulation.cpp
         client/game/SoundCue.cpp
         client/game/SoundGate.cpp
         client/game/MoveCommand.cpp

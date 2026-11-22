@@ -23,6 +23,7 @@ struct PrefabDef {
 	int height = 1;
 	std::optional<ObjectRole> role;
 	std::optional<TilePos> door;
+	int doorWidth = 1;
 	std::vector<bool> collisionGrid;
 };
 

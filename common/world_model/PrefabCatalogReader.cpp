@@ -84,6 +84,17 @@ PrefabDef PrefabCatalogReader::readPrefab(
 					  doorPath);
 		}
 		prefab.door = door;
+		const std::string doorWidthPath =
+			fields_.join(path, "door_width");
+		if (doc_.hasKey(doorWidthPath)) {
+			const int width = doc_.getInt(doorWidthPath);
+			if (width <= 0 ||
+			    door.column + width > prefab.width) {
+				throw FormatError(FormatErrorKind::InvalidValue,
+						  doorWidthPath);
+			}
+			prefab.doorWidth = width;
+		}
 	}
 
 	const std::string gridPath = fields_.join(path, "collision_grid");

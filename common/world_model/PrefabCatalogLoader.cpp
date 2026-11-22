@@ -12,4 +12,10 @@ PrefabCatalog PrefabCatalogLoader::loadFromFile(
 		path, tomlcfg::TomlDocument::Source::File);
 }
 
+PrefabCatalog PrefabCatalogLoader::loadFromString(
+	const std::string& tomlText) const {
+	return SerializerIO::load<PrefabCatalog, PrefabCatalogReader>(
+		tomlText, tomlcfg::TomlDocument::Source::Text);
+}
+
 }

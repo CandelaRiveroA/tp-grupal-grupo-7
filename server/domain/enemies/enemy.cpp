@@ -48,11 +48,20 @@ Enemy::Enemy(uint16_t x, uint16_t y, uint8_t health, uint8_t damage, uint8_t gol
         attack_cooldown(0),
         wander_dir(Direction::UP),
         ticks_to_turn(0),
-        ticks_to_pause(0) {}
+        ticks_to_pause(0),
+        group_id(0),
+        pair_id(0),
+        room(0) {}
 
 uint8_t Enemy::get_health() const { return this->health; }
 
 void Enemy::set_id(uint16_t new_id) { this->id = new_id; }
+
+void Enemy::set_group_id(uint16_t value) { this->group_id = value; }
+
+void Enemy::set_pair_id(uint16_t value) { this->pair_id = value; }
+
+void Enemy::set_room(uint16_t value) { this->room = value; }
 
 std::optional<EnemySnapshot> Enemy::enemy_snapshot() const {
     return EnemySnapshot{this->id, this->kind_name(), this->facing, this->health, this->action};
@@ -89,6 +98,8 @@ void Enemy::interact(Player& p, ToolType tool, World& w) {
         return;
     }
     if (this->take_damage(p.get_sword_damage())) {
+        w.record_enemy_killed(this->kind_name(), this->group_id, this->pair_id,
+                              this->room == 0 ? w.get_current_room() : this->room);
         this->drop_orb(w, ItemID::GOLD_ORB, kGoldOrbPrice, this->gold_drop_percent);
         this->on_death(w);
     }

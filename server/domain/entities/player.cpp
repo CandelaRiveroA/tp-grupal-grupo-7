@@ -19,7 +19,7 @@
 
 Player::Player(uint8_t id, uint16_t x, uint16_t y)
         : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
-          energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
+          energy(10000), max_energy(10000), hp(kMaxHealth), max_hp(kMaxHealth),
           walking(false), died_in_combat(false), fainted_by_timeout(false),
           fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
@@ -48,9 +48,11 @@ void Player::set_health(uint16_t hp) { this->hp = hp; }
 uint16_t Player::get_gold() const { return this->gold; }
 void Player::set_gold(uint16_t g) { this->gold = g; }
 uint16_t Player::get_max_health() const { return this->max_hp; }
-float Player::get_energy() const { return this->energy; }
-void Player::set_energy(float e) { this->energy = e; }
-float Player::get_max_energy() const { return this->max_energy; }
+uint16_t Player::get_energy() const { return this->energy; }
+void Player::set_energy(uint16_t e) { this->energy = e; }
+uint16_t Player::get_max_energy() const { return this->max_energy; }
+void Player::set_max_health(uint16_t value) { this->max_hp = value; }
+void Player::set_max_energy(uint16_t value) { this->max_energy = value; }
 
 void Player::add_gold(uint16_t amount) { this->gold += amount; }
 bool Player::try_remove_gold(uint16_t amount) {
@@ -161,21 +163,37 @@ std::vector<std::unique_ptr<Item>> Player::extract_items(ItemID id, uint16_t qty
     return this->backpack.extract_items(id, qty);
 }
 
-void Player::consume_energy(float amount) {
+std::vector<std::unique_ptr<Item>> Player::extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) {
+    return this->backpack.extract_items_with_min_quality(id, minimum_quality, qty);
+}
+
+bool Player::can_extract_items(ItemID id, uint16_t qty) const {
+    return this->backpack.can_extract_items(id, qty);
+}
+
+bool Player::can_extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) const {
+    return this->backpack.can_extract_items_with_min_quality(id, minimum_quality, qty);
+}
+
+void Player::consume_energy(uint16_t amount) {
     if (this->energy >= amount) {
         this->energy -= amount;
     } else {
-        this->energy = 0.0f;
+        this->energy = 0;
         // TODO: Disparar evento de desmayo automático[cite: 1]
     }
 }
 
 bool Player::is_exhausted() const {
-    return (this->energy / this->max_energy) <= 0.10f;
+    return this->max_energy == 0 ||
+           static_cast<uint32_t>(this->energy) * 100u <=
+                   static_cast<uint32_t>(this->max_energy) * 10u;
 }
 
 bool Player::is_energy_depleted() const {
-    return this->energy <= 0.0f;
+    return this->energy == 0;
 }
 
 bool Player::is_walkable() const { return true; }

@@ -25,8 +25,8 @@ private:
     Inventory backpack;
 
     uint16_t gold;
-    float energy;
-    float max_energy;
+    uint16_t energy;
+    uint16_t max_energy;
     // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
@@ -55,9 +55,11 @@ public:
     void set_health(uint16_t hp);
     uint16_t get_gold() const;
     void set_gold(uint16_t g);
-    void set_energy(float e);
-    float get_energy() const;
-    float get_max_energy() const;
+    void set_energy(uint16_t e);
+    uint16_t get_energy() const;
+    uint16_t get_max_energy() const;
+    void set_max_health(uint16_t value);
+    void set_max_energy(uint16_t value);
 
     void add_gold(uint16_t amount);
     bool try_remove_gold(uint16_t amount);
@@ -91,7 +93,7 @@ public:
     const Item* peek_equipped_item() const;
 
     //Energia y salud
-    void consume_energy(float amount);
+    void consume_energy(uint16_t amount);
     bool is_exhausted() const; //Caso debajo 10% energia
     bool is_energy_depleted() const; //Caso debajo 0% energia
 
@@ -100,6 +102,11 @@ public:
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
     std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
+    std::vector<std::unique_ptr<Item>> extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty);
+    bool can_extract_items(ItemID id, uint16_t qty) const;
+    bool can_extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty) const;
     bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity

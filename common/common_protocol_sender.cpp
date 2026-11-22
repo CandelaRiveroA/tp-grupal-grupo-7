@@ -300,3 +300,12 @@ void ProtocolSender::send_message(const ServerGiftRequest& request) {
 void ProtocolSender::send_message(const ServerGiftAnswered& /*answered*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::GiftAnswered));
 }
+
+void ProtocolSender::send_message(const ServerSetCompleted& completed) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SetCompleted));
+    send_uint8(completed.set_id);
+}
+
+void ProtocolSender::send_message(const ServerVictory& /*victory*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Victory));
+}

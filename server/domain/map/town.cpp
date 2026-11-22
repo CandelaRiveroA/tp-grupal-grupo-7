@@ -10,7 +10,16 @@
 #include "../npc/robin.h"
 
 Town::Town(uint16_t width, uint16_t height):
-        width(width), height(height), grid(height, std::vector<Cell>(width)), merchants() {
+        width(width), height(height), grid(), merchants() {
+    grid.reserve(height);
+    for (uint16_t y = 0; y < height; ++y) {
+        std::vector<Cell> row;
+        row.reserve(width);
+        for (uint16_t x = 0; x < width; ++x) {
+            row.emplace_back();
+        }
+        grid.push_back(std::move(row));
+    }
     place_default_merchants();
 }
 

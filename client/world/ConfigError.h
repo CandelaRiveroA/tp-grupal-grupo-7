@@ -4,6 +4,7 @@
 #include <string>
 
 #include "toml/TomlDocument.h"
+#include "world_model/FormatError.h"
 
 namespace world {
 
@@ -20,6 +21,10 @@ public:
 
 	explicit ConfigError(const tomlcfg::TomlError& error);
 
+	// Traduce el error del modelo de mundo del editor (common/
+	// world_model): misma categoría y mismo path crudo.
+	explicit ConfigError(const worldmodel::FormatError& error);
+
 	ConfigErrorKind kind() const;
 
 	const char* what() const noexcept override;
@@ -28,6 +33,7 @@ public:
 
 private:
 	ConfigErrorKind kindFor(tomlcfg::TomlErrorKind tomlKind) const;
+	ConfigErrorKind kindFor(worldmodel::FormatErrorKind formatKind) const;
 
 	ConfigErrorKind kind_;
 	std::string path_;

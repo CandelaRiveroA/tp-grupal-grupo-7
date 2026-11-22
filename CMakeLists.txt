@@ -188,6 +188,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/SceneTomlReader.cpp
         client/world/SceneSwitcher.cpp
         client/world/ScenesRoomSource.cpp
+        client/world/WorldMapLoader.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
@@ -311,7 +312,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
     target_link_libraries(taller_client_world PUBLIC utf8cpp
-                          taller_toml taller_common)
+                          taller_toml taller_world_model taller_common)
     set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 

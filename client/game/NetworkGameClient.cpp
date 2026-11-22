@@ -520,6 +520,9 @@ void NetworkGameClient::update(int) {
         // solo mientras dura su ventana.
         if (player.reaction == world::ActionKind::Faint) {
             entity.action = world::ActionKind::Faint;
+            // Muerte o desmayo: las Z aparecen una vez sobre el jugador y
+            // se van solas (hide_at_end); al despertar la indicación se quita.
+            entity.indication = world::Indication::NoEnergy;
         } else if (player.reaction == world::ActionKind::Damage &&
                    player.reactionRemaining > 0) {
             entity.action = world::ActionKind::Damage;

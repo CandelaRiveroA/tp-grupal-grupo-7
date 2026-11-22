@@ -9,91 +9,19 @@
 #include "../npc/marnie.h"
 #include "../npc/robin.h"
 
-Town::Town(uint16_t width, uint16_t height):
-        width(width), height(height), grid(), merchants() {
-    grid.reserve(height);
-    for (uint16_t y = 0; y < height; ++y) {
-        std::vector<Cell> row;
-        row.reserve(width);
-        for (uint16_t x = 0; x < width; ++x) {
-            row.emplace_back();
-        }
-        grid.push_back(std::move(row));
-    }
+Town::Town(uint16_t width, uint16_t height): Scene(width, height), merchants() {
     place_default_merchants();
 }
 
-uint16_t Town::get_width() const { return width; }
-uint16_t Town::get_height() const { return height; }
-
-bool Town::in_bounds(uint16_t x, uint16_t y) const { return x < width && y < height; }
-
-bool Town::is_walkable(uint16_t x, uint16_t y) const {
-    if (!in_bounds(x, y)) {
-        return false;
-    }
-    const Cell& cell = grid[y][x];
-    if (cell.is_there_a_wall()) {
-        return false;
-    }
-    for (const auto& ent: cell.entities) {
-        if (!ent->is_walkable()) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void Town::set_wall(uint16_t x, uint16_t y, bool wall) {
-    if (in_bounds(x, y)) {
-        grid[y][x].is_wall = wall;
-    }
-}
-
-void Town::set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> entity) {
-    if (!in_bounds(x, y) || !entity) {
-        return;
-    }
-    entity->set_position(x, y);
-    grid[y][x].entities.push_back(std::move(entity));
-}
-
-void Town::remove_entity(IEntity* target_entity) {
-    if (!target_entity) {
-        return;
-    }
-    const uint16_t x = target_entity->get_x();
-    const uint16_t y = target_entity->get_y();
-    if (!in_bounds(x, y)) {
-        return;
-    }
-
-    auto& ents = grid[y][x].entities;
-    ents.erase(std::remove_if(ents.begin(), ents.end(),
-                              [target_entity](const std::unique_ptr<IEntity>& ent) {
-                                  return ent.get() == target_entity;
-                              }),
-               ents.end());
-}
-
-std::vector<IEntity*> Town::get_entities_at(uint16_t x, uint16_t y) const {
-    std::vector<IEntity*> result;
-    if (!in_bounds(x, y)) {
-        return result;
-    }
-    const Cell& cell = grid[y][x];
-    result.reserve(cell.entities.size());
-    for (const auto& ent: cell.entities) {
-        result.push_back(ent.get());
-    }
-    return result;
+void Town::on_entity_removed(IEntity* entity) {
+    merchants.erase(std::remove(merchants.begin(), merchants.end(), entity), merchants.end());
 }
 
 Merchant* Town::get_merchant_at(uint16_t x, uint16_t y) {
     if (!in_bounds(x, y)) {
         return nullptr;
     }
-    for (const auto& ent: grid[y][x].entities) {
+    for (const auto& ent: this->grid[y][x].entities) {
         Merchant* merchant = dynamic_cast<Merchant*>(ent.get());
         if (merchant != nullptr) {
             return merchant;
@@ -102,39 +30,36 @@ Merchant* Town::get_merchant_at(uint16_t x, uint16_t y) {
     return nullptr;
 }
 
-void Town::on_new_day() {
+void Town::on_new_day(World& /*world*/) {
     for (Merchant* merchant: merchants) {
         merchant->on_new_day();
     }
 }
 
-void Town::place_default_merchants() {
-    // 1. Marnie (animales)
-    auto marnie = std::make_unique<Marnie>(4, 3);
-    merchants.push_back(marnie.get());
-    set_entity_at(4, 3, std::move(marnie));
+static CatalogEntry make_seed_entry(ItemID id, uint16_t price) {
+    return {id, price, [id, price]() {
+        return std::make_unique<Product>(id, price, Quality::BASE);
+    }};
+}
 
-    // 2. Robin (muebles con rotación diaria)
-    auto robin = std::make_unique<Robin>(7, 3);
-    merchants.push_back(robin.get());
-    set_entity_at(7, 3, std::move(robin));
+void Town::add_merchant(std::unique_ptr<Merchant> merchant) {
+    if (!merchant || !in_bounds(merchant->get_x(), merchant->get_y())) {
+        return;
+    }
+    const uint16_t x = merchant->get_x();
+    const uint16_t y = merchant->get_y();
+    merchants.push_back(merchant.get());
+    set_entity_at(x, y, std::move(merchant));
+}
 
-    // 3. Pierre (semillas + cultivos/productos animales)
-    std::map<std::string, CatalogEntry> pierre_sell = {
-        {"semilla_frutilla", {ItemID::STRAWBERRY_SEED, 20, []() {
-            return std::make_unique<Product>(ItemID::STRAWBERRY_SEED, 20, Quality::BASE);
-        }}},
-        {"semilla_cebolla", {ItemID::ONION_SEED, 20, []() {
-            return std::make_unique<Product>(ItemID::ONION_SEED, 20, Quality::BASE);
-        }}},
-        {"semilla_papa", {ItemID::POTATO_SEED, 20, []() {
-            return std::make_unique<Product>(ItemID::POTATO_SEED, 20, Quality::BASE);
-        }}},
-        {"semilla_calabaza", {ItemID::PUMPKIN_SEED, 20, []() {
-            return std::make_unique<Product>(ItemID::PUMPKIN_SEED, 20, Quality::BASE);
-        }}},
+static std::unique_ptr<Merchant> make_pierre(uint16_t x, uint16_t y) {
+    std::map<std::string, CatalogEntry> sell = {
+        {"semilla_frutilla", make_seed_entry(ItemID::STRAWBERRY_SEED, 20)},
+        {"semilla_cebolla",  make_seed_entry(ItemID::ONION_SEED, 20)},
+        {"semilla_papa",     make_seed_entry(ItemID::POTATO_SEED, 20)},
+        {"semilla_calabaza", make_seed_entry(ItemID::PUMPKIN_SEED, 20)},
     };
-    std::map<std::string, ItemID> pierre_buy = {
+    std::map<std::string, ItemID> buy = {
         {"frutilla", ItemID::STRAWBERRY},
         {"cebolla",  ItemID::GREEN_ONION},
         {"papa",     ItemID::POTATO},
@@ -142,21 +67,25 @@ void Town::place_default_merchants() {
         {"leche",    ItemID::MILK},
         {"huevo",    ItemID::EGG},
     };
-    auto pierre = std::make_unique<Merchant>(10, 3, "Pierre",
-                                             std::move(pierre_sell), std::move(pierre_buy));
-    merchants.push_back(pierre.get());
-    set_entity_at(10, 3, std::move(pierre));
+    return std::make_unique<Merchant>(x, y, "Pierre", std::move(sell), std::move(buy));
+}
 
-    // 4. Clint (minerales)
-    std::map<std::string, ItemID> clint_buy = {
+static std::unique_ptr<Merchant> make_clint(uint16_t x, uint16_t y) {
+    std::map<std::string, ItemID> buy = {
         {"carbon",      ItemID::COAL_ORB},
         {"lapislazuli", ItemID::LAPIS_ORB},
         {"plata",       ItemID::SILVER_ORB},
         {"oro",         ItemID::GOLD_ORB},
     };
-    auto clint = std::make_unique<Merchant>(13, 3, "Clint",
-                                            std::map<std::string, CatalogEntry>{},
-                                            std::move(clint_buy));
-    merchants.push_back(clint.get());
-    set_entity_at(13, 3, std::move(clint));
+    return std::make_unique<Merchant>(x, y, "Clint",
+                                      std::map<std::string, CatalogEntry>{},
+                                      std::move(buy));
+}
+
+void Town::place_default_merchants() {
+    //TODO: conectar con archivo toml
+    add_merchant(std::make_unique<Marnie>(4, 3));
+    add_merchant(std::make_unique<Robin>(7, 3));
+    add_merchant(make_pierre(10, 3));
+    add_merchant(make_clint(13, 3));
 }

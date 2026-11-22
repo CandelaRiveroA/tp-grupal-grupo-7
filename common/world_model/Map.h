@@ -20,6 +20,7 @@ enum class MapKind {
 	Blacksmith,
 	GeneralStore,
 	Ranch,
+	Barn,
 	Dungeon,
 };
 

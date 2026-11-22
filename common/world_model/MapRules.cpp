@@ -1,5 +1,6 @@
 #include "world_model/MapRules.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -7,7 +8,6 @@
 namespace worldmodel {
 
 MapRules::MapRules() {
-	rules_.reserve(kBaseMandatoryMaps + kMaxPlayers + kDungeonLevels);
 	const auto add = [this](const std::string& id, MapKind kind) -> MapRule& {
 		rules_.push_back(MapRule{});
 		MapRule& rule = rules_.back();
@@ -17,6 +17,7 @@ MapRules::MapRules() {
 	};
 
 	MapRule& farm = add("farm", MapKind::Farm);
+	farm.requiredObjects = {ObjectRole::Barn};
 	farm.requiredPortals = {PortalKind::TownEntrance,
 				PortalKind::DungeonEntrance};
 
@@ -60,6 +61,11 @@ MapRules::MapRules() {
 		shop.interiorExitTarget = "town";
 	}
 
+	MapRule& barn = add("barn", MapKind::Barn);
+	barn.requiredPortals = {PortalKind::InteriorExit};
+	barn.interiorObject = ObjectRole::Barn;
+	barn.interiorExitTarget = "farm";
+
 	for (int level = 1; level <= kDungeonLevels; ++level) {
 		MapRule& dungeon = add(dungeonId(level), MapKind::Dungeon);
 		dungeon.requiredPortals = {PortalKind::DungeonExit};
@@ -82,16 +88,51 @@ const MapRule* MapRules::find(const std::string& id) const {
 }
 
 std::vector<std::string> MapRules::requiredMapIds(int cabinCount) const {
-	std::vector<std::string> ids = {"farm",         "town",
-					"carpentry",    "blacksmith",
-					"general_store", "ranch"};
-	for (int k = kMinPlayers; k <= cabinCount && k <= kMaxPlayers; ++k) {
-		ids.push_back(cabinId(k));
-	}
-	for (int level = 1; level <= kDungeonLevels; ++level) {
-		ids.push_back(dungeonId(level));
+	std::vector<std::string> ids;
+	ids.reserve(rules_.size());
+	for (const MapRule& rule : rules_) {
+		const std::optional<int> cabin = cabinIndex(rule.id);
+		if (cabin.has_value() && *cabin > cabinCount) {
+			continue;
+		}
+		ids.push_back(rule.id);
 	}
 	return ids;
+}
+
+std::optional<std::string> MapRules::requiredHostMap(ObjectRole role) const {
+	for (const MapRule& rule : rules_) {
+		if (std::find(rule.requiredObjects.begin(),
+			      rule.requiredObjects.end(),
+			      role) != rule.requiredObjects.end()) {
+			return rule.id;
+		}
+	}
+	for (const MapRule& rule : rules_) {
+		if (rule.interiorObject == role &&
+		    rule.interiorExitTarget.has_value()) {
+			return rule.interiorExitTarget;
+		}
+	}
+	return std::nullopt;
+}
+
+std::vector<std::string> MapRules::fixedInteriorIds() const {
+	std::vector<std::string> ids;
+	for (const MapRule& rule : rules_) {
+		if (rule.interiorObject.has_value() &&
+		    rule.kind != MapKind::Cabin) {
+			ids.push_back(rule.id);
+		}
+	}
+	return ids;
+}
+
+bool MapRules::isInteriorHost(const std::string& mapId) const {
+	return std::any_of(rules_.begin(), rules_.end(),
+			   [&](const MapRule& rule) {
+				   return rule.interiorExitTarget == mapId;
+			   });
 }
 
 bool MapRules::isValidMapId(const std::string& id) const {

@@ -35,6 +35,11 @@ public:
 	const std::vector<MapRule>& all() const;
 	const MapRule* find(const std::string& id) const;
 	std::vector<std::string> requiredMapIds(int cabinCount) const;
+	// Mapa anfitrion donde debe colocarse un objeto con `role`, si aplica.
+	std::optional<std::string> requiredHostMap(ObjectRole role) const;
+	// IDs de interiores unicos (excluye cabanas por jugador).
+	std::vector<std::string> fixedInteriorIds() const;
+	bool isInteriorHost(const std::string& mapId) const;
 	bool isValidMapId(const std::string& id) const;
 	bool isValidWorldName(const std::string& name) const;
 	std::string cabinId(int k) const;

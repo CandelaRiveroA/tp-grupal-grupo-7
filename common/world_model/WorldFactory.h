@@ -1,8 +1,6 @@
 #pragma once
 
 #include <array>
-#include <map>
-#include <optional>
 #include <string>
 
 #include "world_model/Constants.h"
@@ -24,12 +22,13 @@ struct ScenarioChoice {
 	std::string blacksmith;
 	std::string generalStore;
 	std::string ranch;
+	std::string barn;
 	std::array<std::string, kDungeonLevels> dungeons;
 };
 
 class WorldFactory {
 public:
-	WorldFactory();
+	WorldFactory() = default;
 
 	World makeDefault(const std::string& name,
 			  const ScenarioLibrary& library,
@@ -51,13 +50,10 @@ public:
 	void removeExtraMap(World& world, const std::string& mapId) const;
 	void addCabinMap(World& world, int index,
 			 const Scenario& scenario) const;
+	// Recablea los portales InteriorExit segun las puertas unicas de cada mapa anfitrion.
+	void wirePortals(World& world) const;
 
 private:
-	struct InteriorSpec {
-		MarkerKind marker;
-		bool centerMarker = true;
-	};
-
 	// Coloca el escenario en el slot obligatorio mapId y coloca sus puntos.
 	void addMandatoryMap(World& world, const std::string& mapId,
 			     const Scenario& scenario) const;
@@ -68,10 +64,8 @@ private:
 	TilePos findWalkableNear(const Map& map, TilePos preferred) const;
 	void addMarker(Map& map, MarkerKind kind, TilePos cell) const;
 	void addPortal(Map& map, PortalKind kind, TilePos cell) const;
-	void wirePortals(World& world) const;
 
 	MapRules rules_;
-	std::map<MapKind, InteriorSpec> interiorSpecs_;
 };
 
 }

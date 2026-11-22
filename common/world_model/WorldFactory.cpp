@@ -1,8 +1,10 @@
 #include "world_model/WorldFactory.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -10,15 +12,6 @@
 #include "world_model/FormatError.h"
 
 namespace worldmodel {
-
-WorldFactory::WorldFactory()
-	: interiorSpecs_{
-		  {MapKind::Cabin, {MarkerKind::Bed, false}},
-		  {MapKind::Carpentry, {MarkerKind::MerchantRobin, true}},
-		  {MapKind::Blacksmith, {MarkerKind::MerchantClint, true}},
-		  {MapKind::GeneralStore, {MarkerKind::MerchantPierre, true}},
-		  {MapKind::Ranch, {MarkerKind::MerchantMarnie, true}},
-	  } {}
 
 World WorldFactory::makeDefault(const std::string& name,
 				const ScenarioLibrary& library,
@@ -43,6 +36,7 @@ World WorldFactory::makeDefault(const std::string& name,
 	addMandatoryMap(world, "blacksmith", require(choice.blacksmith));
 	addMandatoryMap(world, "general_store", require(choice.generalStore));
 	addMandatoryMap(world, "ranch", require(choice.ranch));
+	addMandatoryMap(world, "barn", require(choice.barn));
 	for (int level = 1; level <= kDungeonLevels; ++level) {
 		addMandatoryMap(world, rules_.dungeonId(level),
 				require(choice.dungeons[level - 1]));
@@ -66,6 +60,7 @@ ScenarioChoice WorldFactory::firstOfEachKind(
 	choice.blacksmith = firstId(MapKind::Blacksmith);
 	choice.generalStore = firstId(MapKind::GeneralStore);
 	choice.ranch = firstId(MapKind::Ranch);
+	choice.barn = firstId(MapKind::Barn);
 	choice.dungeons.fill(firstId(MapKind::Dungeon));
 	return choice;
 }
@@ -115,23 +110,7 @@ void WorldFactory::addCabinMap(World& world, int index,
 		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}
 	addMandatoryMap(world, cabinId, scenario);
-	const Map& farm = world.maps.at("farm");
-	int current = 0;
-	std::optional<TilePos> door;
-	for (const MapObject& obj : farm.objects) {
-		if (obj.role == ObjectRole::Cabin && ++current == index) {
-			door = obj.door;
-			break;
-		}
-	}
-	if (door.has_value()) {
-		for (Portal& portal : world.maps.at(cabinId).portals) {
-			if (portal.kind == PortalKind::InteriorExit) {
-				portal.targetMap = "farm";
-				portal.targetCell = *door;
-			}
-		}
-	}
+	wirePortals(world);
 }
 
 void WorldFactory::addMandatoryMap(World& world, const std::string& mapId,
@@ -208,19 +187,26 @@ void WorldFactory::mergeTilesets(World& world,
 
 void WorldFactory::placeMapPoints(World& world,
 				  const std::string& mapId) const {
-	Map& map = world.maps.at(mapId);
-	const auto it = interiorSpecs_.find(map.kind);
-	if (it == interiorSpecs_.end()) {
+	const MapRule* rule = rules_.find(mapId);
+	if (rule == nullptr) {
 		return;
 	}
-	const TilePos preferredMarker =
-		it->second.centerMarker
-			? TilePos{map.width / 2, map.height / 2}
-			: TilePos{2, 2};
-	addMarker(map, it->second.marker,
-		  findWalkableNear(map, preferredMarker));
-	addPortal(map, PortalKind::InteriorExit,
-		  findWalkableNear(map, {map.width / 2, map.height - 2}));
+	Map& map = world.maps.at(mapId);
+	for (const MarkerRule& marker : rule->requiredMarkers) {
+		const TilePos preferredMarker =
+			map.kind == MapKind::Cabin
+				? TilePos{2, 2}
+				: TilePos{map.width / 2, map.height / 2};
+		addMarker(map, marker.kind,
+			  findWalkableNear(map, preferredMarker));
+	}
+	if (std::find(rule->requiredPortals.begin(),
+		      rule->requiredPortals.end(),
+		      PortalKind::InteriorExit) !=
+	    rule->requiredPortals.end()) {
+		addPortal(map, PortalKind::InteriorExit,
+			  findWalkableNear(map, {map.width / 2, map.height - 2}));
+	}
 }
 
 TilePos WorldFactory::findWalkableNear(const Map& map,
@@ -262,18 +248,21 @@ void WorldFactory::addPortal(Map& map, PortalKind kind,
 }
 
 void WorldFactory::wirePortals(World& world) const {
-	const auto doorCell = [&](const std::string& mapId,
-				  ObjectRole role) -> std::optional<TilePos> {
+	const auto uniqueDoorCell = [&](const std::string& mapId,
+					ObjectRole role) -> std::optional<TilePos> {
 		const auto mapIt = world.maps.find(mapId);
 		if (mapIt == world.maps.end()) {
 			return std::nullopt;
 		}
+		std::optional<TilePos> door;
+		int count = 0;
 		for (const MapObject& object : mapIt->second.objects) {
-			if (object.role == role && object.door.has_value()) {
-				return *object.door;
+			if (object.role == role) {
+				door = object.door;
+				++count;
 			}
 		}
-		return std::nullopt;
+		return count == 1 ? door : std::nullopt;
 	};
 	const auto cabinDoorCell =
 		[&](int cabinIndex) -> std::optional<TilePos> {
@@ -293,38 +282,38 @@ void WorldFactory::wirePortals(World& world) const {
 	const auto setTarget = [&](const std::string& mapId, PortalKind kind,
 				   const std::string& targetId,
 				   std::optional<TilePos> targetCell) {
-		if (!targetCell.has_value()) {
-			return;
-		}
 		const auto mapIt = world.maps.find(mapId);
 		if (mapIt == world.maps.end()) {
 			return;
 		}
 		for (Portal& portal : mapIt->second.portals) {
 			if (portal.kind == kind) {
-				portal.targetMap = targetId;
-				portal.targetCell = *targetCell;
+				if (targetCell.has_value()) {
+					portal.targetMap = targetId;
+					portal.targetCell = *targetCell;
+				} else {
+					portal.targetMap.clear();
+					portal.targetCell = TilePos{};
+				}
 				return;
 			}
 		}
 	};
 
-	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
-		const std::string id = rules_.cabinId(k);
-		if (world.maps.contains(id)) {
-			setTarget(id, PortalKind::InteriorExit, "farm",
-				  cabinDoorCell(k));
+	for (const MapRule& rule : rules_.all()) {
+		if (!rule.interiorObject.has_value() ||
+		    !rule.interiorExitTarget.has_value() ||
+		    !world.maps.contains(rule.id)) {
+			continue;
 		}
-	}
-	const std::pair<const char*, ObjectRole> shops[] = {
-		{"carpentry", ObjectRole::Carpentry},
-		{"blacksmith", ObjectRole::Blacksmith},
-		{"general_store", ObjectRole::GeneralStore},
-		{"ranch", ObjectRole::Ranch},
-	};
-	for (const auto& [mapId, role] : shops) {
-		setTarget(mapId, PortalKind::InteriorExit, "town",
-			  doorCell("town", role));
+		const std::optional<int> cabinIdx = rules_.cabinIndex(rule.id);
+		const std::optional<TilePos> target =
+			cabinIdx.has_value()
+				? cabinDoorCell(*cabinIdx)
+				: uniqueDoorCell(*rule.interiorExitTarget,
+						 *rule.interiorObject);
+		setTarget(rule.id, PortalKind::InteriorExit,
+			  *rule.interiorExitTarget, target);
 	}
 }
 

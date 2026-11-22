@@ -16,6 +16,7 @@ const std::pair<MapKind, const char*> kMapKinds[] = {
 	{MapKind::Blacksmith, "blacksmith"},
 	{MapKind::GeneralStore, "general_store"},
 	{MapKind::Ranch, "ranch"},
+	{MapKind::Barn, "barn"},
 	{MapKind::Dungeon, "dungeon"},
 };
 
@@ -25,6 +26,7 @@ const std::pair<ObjectRole, const char*> kObjectRoles[] = {
 	{ObjectRole::Blacksmith, "blacksmith"},
 	{ObjectRole::GeneralStore, "general_store"},
 	{ObjectRole::Ranch, "ranch"},
+	{ObjectRole::Barn, "barn"},
 	{ObjectRole::CommunityCenter, "community_center"},
 	{ObjectRole::Decoration, "decoration"},
 };

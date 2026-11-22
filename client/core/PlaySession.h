@@ -96,7 +96,8 @@ public:
                 const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes,
-                game::EnemyTestTrigger* enemyTestTrigger = nullptr);
+                game::EnemyTestTrigger* enemyTestTrigger = nullptr,
+                const std::string& worldPath = "");
 
     // Corre el game loop hasta que se pida salir.
     void run();

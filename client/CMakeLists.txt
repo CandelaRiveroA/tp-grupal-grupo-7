@@ -30,10 +30,9 @@ target_sources(taller_client
     qt/services/SessionService.cpp
     qt/services/CharacterSpriteComposer.cpp
     qt/services/NetworkSessionService.cpp
+    qt/services/LocalWorldService.cpp
     qt/services/WorldService.cpp
     qt/services/fakes/FakeSaveService.cpp
-    qt/services/fakes/FakeSessionService.cpp
-    qt/services/fakes/FakeWorldService.cpp
     qt/theme/CharacterSheets.cpp
     qt/theme/GameCursor.cpp
     qt/theme/TitleBackdrop.cpp
@@ -117,11 +116,10 @@ target_sources(taller_client
     qt/services/ServiceError.h
     qt/services/SessionService.h
     qt/services/NetworkSessionService.h
+    qt/services/LocalWorldService.h
     qt/services/WorldService.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
-    qt/services/fakes/FakeSessionService.h
-    qt/services/fakes/FakeWorldService.h
     qt/theme/CharacterRects.h
     qt/theme/CloudRects.h
     qt/theme/JoinCodeRects.h
@@ -289,7 +287,8 @@ set_target_properties(taller_client PROPERTIES AUTOMOC ON AUTORCC ON)
 target_compile_definitions(taller_client PRIVATE
     # \" produce comillas literales: el macro llega como "…/assets"
     TALLER_ASSET_DIR=\"${CMAKE_BINARY_DIR}/assets\"
-    TALLER_SOUNDS_DIR=\"${CMAKE_BINARY_DIR}/sounds\")
+    TALLER_SOUNDS_DIR=\"${CMAKE_BINARY_DIR}/sounds\"
+    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
 
 # La raíz solo expone el repo root como include ("common/foo.h");
 # con esto los includes del cliente son "core/...", "qt/...", etc.

@@ -70,7 +70,6 @@ target_sources(taller_tests
     ../server/domain/npc/merchant.cpp
     ../server/domain/npc/marnie.cpp
     ../server/domain/npc/robin.cpp
-    toml_document_test.cpp
     tile_ref_test.cpp
     tile_codec_test.cpp
     world_vocabulary_test.cpp

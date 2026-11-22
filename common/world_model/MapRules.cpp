@@ -16,16 +16,13 @@ MapRules::MapRules() {
 		return rule;
 	};
 
-	const std::vector<MarkerKind> merchants{
-		MarkerKind::MerchantMarnie, MarkerKind::MerchantClint,
-		MarkerKind::MerchantPierre, MarkerKind::MerchantRobin};
-
 	MapRule& farm = add("farm", MapKind::Farm);
 	farm.requiredPortals = {PortalKind::TownEntrance,
 				PortalKind::DungeonEntrance};
 
 	MapRule& town = add("town", MapKind::Town);
-	town.requiredObjects = {ObjectRole::Market,
+	town.requiredObjects = {ObjectRole::Carpentry, ObjectRole::Blacksmith,
+				ObjectRole::GeneralStore, ObjectRole::Ranch,
 				ObjectRole::CommunityCenter};
 	town.requiredPortals = {PortalKind::FarmEntrance};
 
@@ -38,20 +35,30 @@ MapRules::MapRules() {
 		cabin.interiorExitTarget = "farm";
 	}
 
-	MapRule& market = add("market", MapKind::Market);
-	market.allowedMarkers = merchants;
-	market.requiredMarkers = {{MarkerKind::MerchantMarnie, true},
-				  {MarkerKind::MerchantClint, true},
-				  {MarkerKind::MerchantPierre, true},
-				  {MarkerKind::MerchantRobin, true}};
-	market.requiredPortals = {PortalKind::InteriorExit};
-	market.interiorObject = ObjectRole::Market;
-	market.interiorExitTarget = "town";
-
-	MapRule& center = add("community_center", MapKind::CommunityCenter);
-	center.requiredPortals = {PortalKind::InteriorExit};
-	center.interiorObject = ObjectRole::CommunityCenter;
-	center.interiorExitTarget = "town";
+	struct ShopRuleSpec {
+		const char* id;
+		MapKind mapKind;
+		ObjectRole role;
+		MarkerKind merchant;
+	};
+	const ShopRuleSpec shops[] = {
+		{"carpentry", MapKind::Carpentry, ObjectRole::Carpentry,
+		 MarkerKind::MerchantRobin},
+		{"blacksmith", MapKind::Blacksmith, ObjectRole::Blacksmith,
+		 MarkerKind::MerchantClint},
+		{"general_store", MapKind::GeneralStore,
+		 ObjectRole::GeneralStore, MarkerKind::MerchantPierre},
+		{"ranch", MapKind::Ranch, ObjectRole::Ranch,
+		 MarkerKind::MerchantMarnie},
+	};
+	for (const ShopRuleSpec& spec : shops) {
+		MapRule& shop = add(spec.id, spec.mapKind);
+		shop.allowedMarkers = {spec.merchant};
+		shop.requiredMarkers = {{spec.merchant, true}};
+		shop.requiredPortals = {PortalKind::InteriorExit};
+		shop.interiorObject = spec.role;
+		shop.interiorExitTarget = "town";
+	}
 
 	for (int level = 1; level <= kDungeonLevels; ++level) {
 		MapRule& dungeon = add(dungeonId(level), MapKind::Dungeon);
@@ -75,8 +82,9 @@ const MapRule* MapRules::find(const std::string& id) const {
 }
 
 std::vector<std::string> MapRules::requiredMapIds(int cabinCount) const {
-	std::vector<std::string> ids = {"farm", "town", "market",
-					"community_center"};
+	std::vector<std::string> ids = {"farm",         "town",
+					"carpentry",    "blacksmith",
+					"general_store", "ranch"};
 	for (int k = kMinPlayers; k <= cabinCount && k <= kMaxPlayers; ++k) {
 		ids.push_back(cabinId(k));
 	}

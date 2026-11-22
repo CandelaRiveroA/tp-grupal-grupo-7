@@ -10,7 +10,10 @@ namespace worldmodel {
 
 enum class ObjectRole {
 	Cabin,
-	Market,
+	Carpentry,
+	Blacksmith,
+	GeneralStore,
+	Ranch,
 	CommunityCenter,
 	Decoration,
 };
@@ -22,8 +25,15 @@ struct MapObject {
 	int width = 1;
 	int height = 1;
 	bool blocked = false;
-	std::optional<TilePos> door;   // celda absoluta en este mapa
+	std::optional<TilePos> door;   // celda absoluta izquierda de la puerta
 	std::vector<bool> collisionGrid;
+	int doorWidth = 1;
+
+	bool hitsDoor(TilePos pos) const {
+		return door.has_value() && pos.row == door->row &&
+		       pos.column >= door->column &&
+		       pos.column < door->column + doorWidth;
+	}
 };
 
 }

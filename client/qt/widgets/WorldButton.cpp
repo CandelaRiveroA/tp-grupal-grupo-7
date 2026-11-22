@@ -10,8 +10,9 @@
 
 using namespace WorldSpriteRects;
 
-WorldButton::WorldButton(const WorldSummary& world, const WorldSprites& sprites, QWidget* parent):
-        QAbstractButton(parent), world_(world), sprites_(sprites) {
+WorldButton::WorldButton(const WorldSummary& world, std::uint32_t iconId,
+                         const WorldSprites& sprites, QWidget* parent):
+        QAbstractButton(parent), world_(world), iconId_(iconId), sprites_(sprites) {
     setObjectName("worldButton");
     setCheckable(true);
     setAttribute(Qt::WA_Hover);
@@ -32,9 +33,9 @@ void WorldButton::paintEvent(QPaintEvent*) {
         painter.setOpacity(kDisabledOpacity);
     }
     if (underMouse() || hasFocus()) {
-        painter.drawPixmap(kIconOffsetX, kIconOffsetY, sprites_.hoverIconFor(world_.id));
+        painter.drawPixmap(kIconOffsetX, kIconOffsetY, sprites_.hoverIconFor(iconId_));
     } else {
-        painter.drawPixmap(kIconOffsetX, kIconOffsetY, sprites_.iconFor(world_.id));
+        painter.drawPixmap(kIconOffsetX, kIconOffsetY, sprites_.iconFor(iconId_));
     }
     if (isChecked()) {
         painter.drawPixmap(kIconOffsetX, kIconOffsetY, sprites_.selectedBorder());

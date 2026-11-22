@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 
 #include "common/model/draft/CharacterAppearance.h"
@@ -11,6 +10,6 @@ struct GameSelection {
 	std::string username;
 	std::string gameName;
 	std::string characterName;
-	std::uint32_t worldId = 0;
+	std::string worldName;
 	CharacterAppearance appearance;
 };

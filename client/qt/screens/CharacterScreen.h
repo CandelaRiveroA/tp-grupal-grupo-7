@@ -34,6 +34,7 @@ class WorldSelectorWidget;
 struct CharacterSelection {
 	std::string characterName;
 	std::string gameName;
+	std::string worldName;
 	CharacterAppearance appearance;
 };
 
@@ -97,7 +98,7 @@ private:
 	void updateValidation();
 	void submit();
 	void onCreated();
-	void onJoined(const std::string& gameName, std::uint32_t worldId);
+	void onJoined(const std::string& gameName, const std::string& worldName);
 	void onSessionFailed(ServiceError error);
 	void onWorldSelected(WorldSummary world);
 	void resetDraft();

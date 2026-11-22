@@ -274,12 +274,13 @@ void CharacterScreen::submit() {
 	showState(ScreenState::Loading, "Creando partida...");
 
 	selection_.appearance = editor_->appearance();
+	selection_.worldName = world_->name;
 
 	GameSelection game;
 	game.username = username();
 	game.gameName = selection_.gameName;
 	game.characterName = selection_.characterName;
-	game.worldId = world_->id;
+	game.worldName = world_->name;
 	game.appearance = selection_.appearance;
 	session_->createGame(game);
 }
@@ -293,11 +294,12 @@ void CharacterScreen::onCreated() {
 	emit characterConfirmed(selection_);
 }
 
-void CharacterScreen::onJoined(const std::string&, std::uint32_t) {
+void CharacterScreen::onJoined(const std::string&, const std::string& worldName) {
 	if (!submitting_) {
 		return;
 	}
 	submitting_ = false;
+	selection_.worldName = worldName;
 	emit characterConfirmed(selection_);
 }
 

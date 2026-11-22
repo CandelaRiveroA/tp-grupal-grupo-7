@@ -13,10 +13,6 @@ namespace {
 
 constexpr int kLobbyTimeoutSeconds = 5;
 
-// shortcut: el servidor todavía tiene un solo mundo y no lo informa en el
-// lobby; subir cuando haya mundos reales en el protocolo.
-constexpr std::uint32_t kJoinedWorldId = 1;
-
 ServiceError serviceErrorFor(LobbyStatus status) {
     static const std::unordered_map<LobbyStatus, ServiceError> statusToError = {
             {LobbyStatus::NameTaken, ServiceError::GameNameTaken},
@@ -43,6 +39,8 @@ NetworkSessionService::~NetworkSessionService() {
 }
 
 void NetworkSessionService::createGame(const GameSelection& selection) {
+    // shortcut: enviar selection.worldName en MatchRequest cuando el protocolo
+    // de lobby soporte elegir el mundo al crear la partida.
     sendRequest(MatchRequest{MatchRequestType::Create, selection.gameName, selection.gameName,
                              selection.username, selection.characterName, selection.appearance});
 }
@@ -99,6 +97,8 @@ void NetworkSessionService::runRequest(const MatchRequest& request) {
     if (request.type == MatchRequestType::Create) {
         emit gameCreated();
     } else {
-        emit gameJoined(request.codeMatch, kJoinedWorldId);
+        // shortcut: el servidor todavía no informa el mundo de la partida al
+        // unirse; subir cuando ServerWelcome incluya worldName.
+        emit gameJoined(request.codeMatch, "");
     }
 }

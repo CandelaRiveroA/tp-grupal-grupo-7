@@ -13,6 +13,13 @@
 #include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
+#include "domain/npc/marnie.h"
+#include "domain/npc/merchant.h"
+#include "domain/npc/robin.h"
+#include "domain/inventory/product.h"
+#include "domain/inventory/decoration_item.h"
+
+#include <map>
 
 // Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
 #define kWidth 30
@@ -151,6 +158,41 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
     world.set_current_room(kRoomNumber);
     place_animals();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
+    world.place_merchant(std::make_unique<Marnie>(9, 7));
+    world.place_merchant(std::make_unique<Robin>(10, 12));
+
+    std::map<std::string, CatalogEntry> pierre_sell = {
+            {"semilla_frutilla", {ItemID::STRAWBERRY_SEED, 20, []() {
+                return std::make_unique<Product>(ItemID::STRAWBERRY_SEED, 20, Quality::BASE);
+            }}},
+            {"semilla_cebolla", {ItemID::ONION_SEED, 20, []() {
+                return std::make_unique<Product>(ItemID::ONION_SEED, 20, Quality::BASE);
+            }}},
+            {"semilla_papa", {ItemID::POTATO_SEED, 20, []() {
+                return std::make_unique<Product>(ItemID::POTATO_SEED, 20, Quality::BASE);
+            }}},
+            {"semilla_calabaza", {ItemID::PUMPKIN_SEED, 20, []() {
+                return std::make_unique<Product>(ItemID::PUMPKIN_SEED, 20, Quality::BASE);
+            }}}};
+    std::map<std::string, ItemID> pierre_buy = {
+            {"frutilla", ItemID::STRAWBERRY},
+            {"cebolla", ItemID::GREEN_ONION},
+            {"papa", ItemID::POTATO},
+            {"calabaza", ItemID::PUMPKIN},
+            {"leche", ItemID::MILK},
+            {"huevo", ItemID::EGG}};
+    world.place_merchant(std::make_unique<Merchant>(
+            13, 9, "Pierre", "pierre",
+            std::move(pierre_sell), std::move(pierre_buy)));
+
+    std::map<std::string, ItemID> clint_buy = {
+            {"carbon", ItemID::COAL_ORB},
+            {"lapislazuli", ItemID::LAPIS_ORB},
+            {"plata", ItemID::SILVER_ORB},
+            {"oro", ItemID::GOLD_ORB}};
+    world.place_merchant(std::make_unique<Merchant>(
+            17, 7, "Clint", "clint",
+            std::map<std::string, CatalogEntry>{}, std::move(clint_buy)));
     place_minerals();
     place_enemies();
 }

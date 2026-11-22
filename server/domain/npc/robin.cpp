@@ -6,7 +6,7 @@
 #include "../inventory/decoration_item.h"
 
 Robin::Robin(uint16_t x, uint16_t y):
-        Merchant(x, y, "Robin"), full_pool(), current_offset(0) {
+        Merchant(x, y, "Robin", "robin"), full_pool(), current_offset(0) {
     // Ajustá los ItemID y model_id según tu enum ItemID actual
     full_pool = {
         {"cofre", {ItemID::CHEST, 100, []() {

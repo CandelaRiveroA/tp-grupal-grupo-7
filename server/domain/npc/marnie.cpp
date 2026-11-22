@@ -3,7 +3,7 @@
 #include "../entities/player.h"
 #include "../map/world.h"
 
-Marnie::Marnie(uint16_t x, uint16_t y): Merchant(x, y, "Marnie") {
+Marnie::Marnie(uint16_t x, uint16_t y): Merchant(x, y, "Marnie", "marnie") {
     // make_item = nullptr porque los animales no van al inventario sino a la granja
     sell_catalog["vacas"]    = {ItemID::COW, 80, nullptr};
     sell_catalog["gallinas"] = {ItemID::CHICKEN, 20, nullptr};

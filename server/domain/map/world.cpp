@@ -20,6 +20,7 @@
 #include "../animals/cow.h"
 #include "../animals/chicken.h"
 #include "../inventory/product.h"
+#include "../npc/merchant.h"
 
 // ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -451,6 +452,78 @@ void World::tick_animals() {
     }
 }
 
+// ---------------------------------------------------------
+// Comerciantes
+// ---------------------------------------------------------
+void World::place_merchant(std::unique_ptr<Merchant> merchant) {
+    if (!merchant) {
+        return;
+    }
+    const uint16_t x = merchant->get_x();
+    const uint16_t y = merchant->get_y();
+    set_entity_at(x, y, std::move(merchant));
+    this->merchants.push_back(
+            static_cast<Merchant*>(this->grid[y][x].entities.back().get()));
+}
+
+Merchant* World::get_nearest_merchant(uint8_t player_id) const {
+    const Player& player = get_player(player_id);
+    Merchant* nearest = nullptr;
+    int nearest_distance = 2;
+    for (Merchant* merchant: merchants) {
+        const int dx = std::abs(static_cast<int>(merchant->get_x()) -
+                                static_cast<int>(player.get_x()));
+        const int dy = std::abs(static_cast<int>(merchant->get_y()) -
+                                static_cast<int>(player.get_y()));
+        if (dx <= 1 && dy <= 1) {
+            const int distance = dx + dy;
+            if (distance < nearest_distance ||
+                (distance == nearest_distance && nearest == nullptr)) {
+                nearest = merchant;
+                nearest_distance = distance;
+            }
+        }
+    }
+    return nearest;
+}
+
+Merchant* World::get_merchant_for_command(uint8_t player_id) {
+    const auto selected = selected_merchants.find(player_id);
+    if (selected != selected_merchants.end()) {
+        Merchant* merchant = selected->second;
+        const Player& player = get_player(player_id);
+        const int dx = std::abs(static_cast<int>(merchant->get_x()) -
+                                static_cast<int>(player.get_x()));
+        const int dy = std::abs(static_cast<int>(merchant->get_y()) -
+                                static_cast<int>(player.get_y()));
+        if (dx <= 1 && dy <= 1) {
+            return merchant;
+        }
+        selected_merchants.erase(selected);
+    }
+    return get_nearest_merchant(player_id);
+}
+
+std::string World::process_merchant_command(uint8_t player_id,
+                                            const std::string& text) {
+    Merchant* merchant = get_merchant_for_command(player_id);
+    if (merchant == nullptr) {
+        return "No hay ningun comerciante cerca.";
+    }
+    return merchant->process_command(get_player(player_id), text, *this);
+}
+
+std::vector<MerchantPlacement> World::get_merchant_placements() const {
+    std::vector<MerchantPlacement> result;
+    result.reserve(merchants.size());
+    for (const Merchant* merchant: merchants) {
+        result.push_back(MerchantPlacement{merchant->get_id(),
+                                           merchant->get_x(),
+                                           merchant->get_y()});
+    }
+    return result;
+}
+
 void World::add_enemy(std::unique_ptr<Enemy> enemy) {
     const uint16_t x = enemy->get_x();
     const uint16_t y = enemy->get_y();
@@ -836,6 +909,13 @@ void World::take_item(uint8_t player_id) {
     }
     Player& p = *this->players.at(player_id);
 
+    Merchant* merchant = get_nearest_merchant(player_id);
+    if (merchant != nullptr) {
+        selected_merchants[player_id] = merchant;
+        merchant->interact(p, ToolType::HAND, *this);
+        return;
+    }
+
     // Ordeñar: un animal que responde a la mano a una celda de distancia (las 8
     // vecinas) tiene prioridad sobre lo que hay en el piso.
     for (Animal* animal: animals) {
@@ -951,6 +1031,7 @@ const Cell& World::get_cell(uint16_t x, uint16_t y) const {
 
 void World::remove_player(uint8_t player_id) {
     this->players.erase(player_id);
+    this->selected_merchants.erase(player_id);
     // Nadie queda esperando a un jugador que ya no está en la partida.
     this->sleepers.erase(player_id);
     this->accepted.erase(player_id);

@@ -99,6 +99,16 @@ TEST(SceneSwitcherTest, NextIdWalksAllSourcesWithoutRepeatingAndWraps) {
 	EXPECT_EQ(switcher.nextId(), "farm");
 }
 
+TEST(SceneSwitcherTest, KnowsAnIdIfAnySourceHasIt) {
+	const FakeSource editor({"farm"}, 20);
+	const FakeSource rooms({"bedroom"}, 10);
+	const world::SceneSwitcher switcher({&editor, &rooms}, "bedroom",
+					    initialScene());
+	EXPECT_TRUE(switcher.knows("farm"));
+	EXPECT_TRUE(switcher.knows("bedroom"));
+	EXPECT_FALSE(switcher.knows("kitchen"));
+}
+
 TEST(SceneSwitcherTest, NextIdWithoutScenesKnownKeepsTheCurrent) {
 	const world::SceneSwitcher switcher({}, "bedroom", initialScene());
 	EXPECT_EQ(switcher.nextId(), "bedroom");

@@ -68,6 +68,11 @@ private:
 			      const std::string& mapPath,
 			      const std::string& key) const;
 
+	// El edificio del editor como estructura de la escena (con el
+	// comportamiento que el overlay le da a su rol).
+	void addStructure(const worldmodel::MapObject& object,
+			  std::size_t elementIndex, SceneDescription& scene) const;
+
 	void addObjects(const worldmodel::Map& map,
 			const std::string& mapPath, SceneDescription& scene) const;
 

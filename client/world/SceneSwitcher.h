@@ -23,6 +23,9 @@ public:
 	// Id de la escena actual (sala o mapa).
 	const std::string& id() const;
 
+	// ¿Alguna fuente conoce esta escena?
+	bool knows(const std::string& id) const;
+
 	// Carga la escena `id` y la deja como actual. Si ninguna fuente la
 	// conoce lanza ConfigError(MissingStructure, ...) y la actual no
 	// cambia.

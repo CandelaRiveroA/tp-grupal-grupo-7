@@ -162,6 +162,10 @@ void MapSceneAdapter::addObjects(const worldmodel::Map& map,
 						   object.tile.key());
 		}
 
+		if (object.role != worldmodel::ObjectRole::Decoration) {
+			addStructure(object, scene.elements.size(), scene);
+		}
+
 		// De noche la decoración cambia de aspecto (overlay): el
 		// elemento de día se esconde y entra el de noche, en el mismo
 		// lugar del orden de dibujo.
@@ -236,6 +240,25 @@ ElementEnter MapSceneAdapter::enterFor(const OverlayEnter& enter,
 	}
 	throw ConfigError(ConfigErrorKind::MissingStructure,
 			  mapPath + "." + kKeyOverlayMarkers);
+}
+
+void MapSceneAdapter::addStructure(const worldmodel::MapObject& object,
+				   std::size_t elementIndex,
+				   SceneDescription& scene) const {
+	SceneStructure structure;
+	structure.role = worldmodel::WorldVocabulary().toText(object.role);
+	structure.at = {object.cell.column, object.cell.row};
+	structure.span = {object.width, object.height};
+	if (object.door.has_value()) {
+		structure.door = GridCell{object.door->column, object.door->row};
+	}
+	structure.elementIndex = elementIndex;
+	const auto behavior = overlay_.roles.find(structure.role);
+	if (behavior != overlay_.roles.end()) {
+		structure.action = behavior->second.action;
+		structure.target = behavior->second.target;
+	}
+	scene.structures.push_back(std::move(structure));
 }
 
 void MapSceneAdapter::mergeOverlayTilesets(SceneDescription& scene) const {

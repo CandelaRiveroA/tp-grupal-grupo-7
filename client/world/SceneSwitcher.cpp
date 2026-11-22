@@ -19,6 +19,13 @@ const SceneDescription& SceneSwitcher::scene() const { return scene_; }
 
 const std::string& SceneSwitcher::id() const { return id_; }
 
+bool SceneSwitcher::knows(const std::string& id) const {
+	return std::any_of(sources_.begin(), sources_.end(),
+			   [&id](const SceneSource* source) {
+				   return source->has(id);
+			   });
+}
+
 void SceneSwitcher::switchTo(const std::string& id) {
 	for (const SceneSource* source : sources_) {
 		if (!source->has(id)) {

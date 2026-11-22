@@ -22,6 +22,13 @@ inline constexpr const char* kDefaultEnterMarker = "bed";
 inline constexpr const char* kKeyOverlayMarkers = "markers";
 inline constexpr const char* kKeyOverlayNpc = "npc";
 
+// [roles.<role>] action = "popup" | "enter_map", target = "<id>".
+inline constexpr const char* kKeyOverlayRoles = "roles";
+inline constexpr const char* kKeyOverlayAction = "action";
+inline constexpr const char* kKeyOverlayTarget = "target";
+inline constexpr const char* kActionPopup = "popup";
+inline constexpr const char* kActionEnterMap = "enter_map";
+
 // [[maps.<id>.elements]]: decoraciones iniciales de un mapa.
 inline constexpr const char* kKeyOverlayMaps = "maps";
 

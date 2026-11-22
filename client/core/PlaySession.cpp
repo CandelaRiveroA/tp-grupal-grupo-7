@@ -83,6 +83,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
+        structureSelection_(scenario.scene(), scenario.scene().cellPixelSize),
+        structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup},
+                          {world::StructureAction::EnterMap, &PlaySession::enterStructureMap}},
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
@@ -661,6 +664,15 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
+        // Un edificio del editor: lejos no hace nada (como la cama),
+        // y en ambos casos el click se consume.
+        const game::StructureClick structureClick = structureSelection_.clickAt(worldClick, state);
+        if (structureClick.hit) {
+            if (structureClick.inRange) {
+                runStructureAction(*structureClick.structure);
+            }
+            continue;
+        }
         const game::PickTarget clicked =
                 picker_.pick(worldClick, state, motion_, iteration, scene().cellPixelSize);
         // Otro jugador: ofrecer un regalo. El click no dispara la
@@ -699,6 +711,7 @@ void PlaySession::tick(int iteration) {
         cursorKind = world::CursorKind::Gift;
     } else if (!worldBlocked &&
                (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
+                structureSelection_.hits(worldCursor, state) ||
                 npcCatalog_.npcAt(sceneSwitcher_.id(), worldCursor, scene().cellPixelSize,
                                   npcCells) != nullptr)) {
         cursorKind = world::CursorKind::Interactive;
@@ -745,6 +758,23 @@ void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
                                camera_.viewport(), front->firstRow, front->lastRow);
 }
 
+void PlaySession::runStructureAction(const world::SceneStructure& structure) {
+    const auto action = structureActions_.find(structure.action);
+    if (action != structureActions_.end()) {
+        (this->*(action->second))(structure.target);
+    }
+}
+
+void PlaySession::openStructurePopup(const std::string& npcId) {
+    npcPopup_ = npcCatalog_.find(npcId);
+}
+
+void PlaySession::enterStructureMap(const std::string& mapId) {
+    if (sceneSwitcher_.knows(mapId)) {
+        sceneTransition_.changeTo(mapId);
+    }
+}
+
 void PlaySession::changeScene(const std::string& room) {
     // El cambio en el negro de la transición: cambia QUÉ escena se
     // pinta (el dibujo es el mismo). La posición del personaje y todo
@@ -759,6 +789,7 @@ void PlaySession::changeScene(const std::string& room) {
     renderer_.prepareScene(current);
     renderer_.setNpcs(npcCatalog_.forRoom(room));
     enterSelection_.reindex(current, current.cellPixelSize);
+    structureSelection_.reindex(current, current.cellPixelSize);
     camera_.setWorldBounds(
             world::ScenePixelMapper(current.cellPixelSize).worldBounds(current.grid));
 }

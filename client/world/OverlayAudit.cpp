@@ -37,6 +37,13 @@ std::vector<ConfigError> OverlayAudit::unmatched(
 					entry.first);
 		}
 	}
+	for (const auto& entry : overlay.roles) {
+		if (!vocabulary.objectRoleFrom(entry.first).has_value()) {
+			findings.emplace_back(
+				ConfigErrorKind::UnmatchedEntry,
+				std::string(kKeyOverlayRoles) + "." + entry.first);
+		}
+	}
 	for (const auto& entry : overlay.mapElements) {
 		if (world.maps.count(entry.first) == 0) {
 			findings.emplace_back(

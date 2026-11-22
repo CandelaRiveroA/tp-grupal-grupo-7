@@ -13,6 +13,7 @@
 #include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
+#include "game/StructureSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
 #include "game/FractionStat.h"
@@ -142,6 +143,17 @@ private:
     // Borra el último caracter UTF-8 escrito
     void eraseLastCodepoint(std::string& text);
 
+    // Corre la acción de un edificio tocado (tabla structureActions_).
+    void runStructureAction(const world::SceneStructure& structure);
+
+    // Abre el popup de un NPC de npcs.toml (su contenido) por id.
+    void openStructurePopup(const std::string& npcId);
+
+    // Pasa a otro mapa. PROVISORIO: hoy el cambio es local (como la
+    // tecla M); cuando el server mande el mapa, esto solo manda la
+    // intención. Un destino que ninguna fuente conoce se ignora.
+    void enterStructureMap(const std::string& mapId);
+
     // Cambia la escena actual (en el negro de la transición): pide la
     // escena al switcher y reconstruye el índice del renderer, las
     // selecciones y la cámara. El dibujo no cambia: solo QUÉ escena se
@@ -220,6 +232,10 @@ private:
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
+    // Edificios clickeables del editor (rol con comportamiento en el
+    // overlay): qué hacer con cada acción es esta tabla, no un switch.
+    game::StructureSelection structureSelection_;
+    std::map<world::StructureAction, void (PlaySession::*)(const std::string&)> structureActions_;
     game::PopupState popupState_;
     // NPC con el popup abierto (nullptr = ninguno). El click lo abre y
     // cualquier click posterior lo cierra.

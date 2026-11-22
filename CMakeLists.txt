@@ -300,6 +300,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/CropSystem.cpp
         client/game/FarmSelection.cpp
         client/game/EnterSelection.cpp
+        client/game/AreaProximity.cpp
+        client/game/StructureSelection.cpp
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
         client/game/DayPhase.cpp
@@ -517,6 +519,8 @@ if(TALLER_TESTS)
     # juego parsea y produce la escena esperada, sin copiarlo a mano.
     target_compile_definitions(taller_tests PRIVATE
         TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
+        TALLER_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/overlay.toml\"
+        TALLER_NPCS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/npcs.toml\"
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
         TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"

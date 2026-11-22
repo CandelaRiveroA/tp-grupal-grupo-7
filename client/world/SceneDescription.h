@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <map>
 #include <optional>
 #include <string>
@@ -119,6 +120,29 @@ struct ScenePortal {
 	GridCell targetCell;
 };
 
+// Qué pasa al tocar una estructura (edificio del editor). Es vocabulario
+// del cliente; el destino lo dice el overlay.
+enum class StructureAction {
+	None,
+	// Abre el popup de un NPC de npcs.toml (el contenido del popup).
+	Popup,
+	// Pide pasar a otro mapa (`target` = id del mapa).
+	EnterMap,
+};
+
+// Edificio que colocó el editor (cabaña, mercado, centro comunitario):
+// su rol del vocabulario, el rectángulo de celdas que ocupa, la puerta y
+// qué elemento de la escena lo dibuja (su caja de click es la del dibujo).
+struct SceneStructure {
+	std::string role;
+	GridCell at;
+	GridSpan span;
+	std::optional<GridCell> door;
+	std::size_t elementIndex = 0;
+	StructureAction action = StructureAction::None;
+	std::string target;
+};
+
 // Una celda de una capa de piso: qué hoja (índice en `TileLayer::
 // tilesets`, -1 = vacía) y qué celda de esa hoja se dibuja en ella.
 struct LayerCell {
@@ -149,6 +173,7 @@ struct SceneDescription {
 	SceneSpawns spawns;
 	std::vector<SceneMarker> markers;
 	std::vector<ScenePortal> portals;
+	std::vector<SceneStructure> structures;
 	// Celda por defecto de cada NPC (por id de npcs.toml) que sale de
 	// los markers del mapa. La fuente de estado la pisa con la suya.
 	std::map<std::string, GridCell> npcCells;

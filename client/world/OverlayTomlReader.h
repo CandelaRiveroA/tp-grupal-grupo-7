@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+#include <string>
+
 #include "toml/TomlDocument.h"
 #include "world/WorldOverlay.h"
 
@@ -28,11 +31,16 @@ private:
 	// `[markers.<kind>] npc = "<id>"` -> NPC por marker.
 	void readMarkerNpcs(WorldOverlay& overlay) const;
 
+	// `[roles.<role>]` -> comportamiento del click por rol.
+	void readRoles(WorldOverlay& overlay) const;
+
 	// `[[maps.<id>.elements]]` -> decoraciones iniciales, con la misma
 	// sintaxis (y el mismo lector) que scenes.toml.
 	void readMapElements(WorldOverlay& overlay) const;
 
 	const tomlcfg::TomlDocument& doc_;
+	// Nombre de acción del TOML -> vocabulario (diccionario, no switch).
+	std::map<std::string, StructureAction> actionsByName_;
 };
 
 }

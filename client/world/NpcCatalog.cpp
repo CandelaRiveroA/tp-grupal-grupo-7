@@ -322,6 +322,15 @@ std::vector<const NpcDef*> NpcCatalog::forRoom(
 	return result;
 }
 
+const NpcDef* NpcCatalog::find(const std::string& id) const {
+	for (const NpcDef& npc : npcs_) {
+		if (npc.id == id) {
+			return &npc;
+		}
+	}
+	return nullptr;
+}
+
 const NpcDef* NpcCatalog::npcAt(const std::string& room,
 				const PixelPoint& point,
 				const int cellPixelSize,

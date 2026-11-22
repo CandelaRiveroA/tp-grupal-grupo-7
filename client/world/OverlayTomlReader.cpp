@@ -12,7 +12,9 @@
 namespace world {
 
 OverlayTomlReader::OverlayTomlReader(const tomlcfg::TomlDocument& doc)
-	: doc_(doc) {}
+	: doc_(doc)
+	, actionsByName_{{kActionPopup, StructureAction::Popup},
+			 {kActionEnterMap, StructureAction::EnterMap}} {}
 
 WorldOverlay OverlayTomlReader::read() const {
 	WorldOverlay overlay;
@@ -28,6 +30,7 @@ WorldOverlay OverlayTomlReader::read() const {
 
 	readDecorations(overlay);
 	readMarkerNpcs(overlay);
+	readRoles(overlay);
 	readMapElements(overlay);
 	return overlay;
 }
@@ -97,6 +100,32 @@ void OverlayTomlReader::readEnter(const std::string& base,
 					   ? doc_.getString(markerPath)
 					   : std::string(kDefaultEnterMarker);
 	decoration.enter = OverlayEnter{rows[0], rows[1], facing, marker};
+}
+
+void OverlayTomlReader::readRoles(WorldOverlay& overlay) const {
+	if (!doc_.hasKey(kKeyOverlayRoles)) {
+		return;
+	}
+	for (const std::string& role : doc_.subtableKeys(kKeyOverlayRoles)) {
+		const std::string base =
+			std::string(kKeyOverlayRoles) + "." + role;
+		const std::string actionPath =
+			base + "." + kKeyOverlayAction;
+		const auto action =
+			actionsByName_.find(doc_.getString(actionPath));
+		if (action == actionsByName_.end()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  actionPath);
+		}
+		const std::string targetPath =
+			base + "." + kKeyOverlayTarget;
+		const std::string target = doc_.getString(targetPath);
+		if (target.empty()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  targetPath);
+		}
+		overlay.roles[role] = RoleBehavior{action->second, target};
+	}
 }
 
 void OverlayTomlReader::readMarkerNpcs(WorldOverlay& overlay) const {

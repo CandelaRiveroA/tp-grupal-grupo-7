@@ -35,6 +35,12 @@ struct DecorationOverlay {
 	std::optional<OverlayEnter> enter;
 };
 
+// Qué hace el click sobre un edificio de cierto rol.
+struct RoleBehavior {
+	StructureAction action = StructureAction::None;
+	std::string target;
+};
+
 // Datos del cliente que completan el mundo del editor (overlay.toml):
 // DATOS puros, sin SDL. El editor decide DÓNDE está cada cosa; esto
 // dice cómo se escala, cómo cambia de noche y qué decoraciones iniciales
@@ -49,6 +55,9 @@ struct WorldOverlay {
 	// Qué NPC (id de npcs.toml) se ubica en cada kind de marker
 	// ("merchant_pierre" -> "pierre"): su celda por defecto.
 	std::map<std::string, std::string> markerNpcs;
+	// Comportamiento del click por rol del editor ("market",
+	// "community_center", ...).
+	std::map<std::string, RoleBehavior> roles;
 	// Decoraciones iniciales por id de mapa, en orden de dibujo.
 	std::map<std::string, std::vector<ElementPlacement>> mapElements;
 };

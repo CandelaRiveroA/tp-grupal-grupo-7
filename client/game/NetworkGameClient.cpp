@@ -186,6 +186,14 @@ void NetworkGameClient::apply(const ServerMessage& message) {
                     chat->text);
         return;
     }
+    if (const auto* set = std::get_if<ServerSetCompleted>(&message)) {
+        view_.setCompleted = set->set_id;
+        return;
+    }
+    if (std::holds_alternative<ServerVictory>(message)) {
+        view_.victory = true;
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {
@@ -216,6 +224,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         resources_.clear();
         dropped_.clear();
         crops_.clear();
+        furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
@@ -388,6 +397,11 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
                 resourceStateFor(resource->damage)};
         return;
     }
+    if (const auto* furniture = std::get_if<ServerFurniture>(&message)) {
+        furniture_.push_back(
+                ViewFurniture{furniture->content_id, furniture->x, furniture->y});
+        return;
+    }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
         const ServerDropped& drop = *dropped;
         dropped_.push_back(ViewDroppedItem{drop.content_id, drop.x, drop.y, drop.interactive});
@@ -457,6 +471,8 @@ void NetworkGameClient::update(int) {
     view_.dayEnded = false;
     view_.dayChanged = false;
     view_.giftAnswered = false;
+    view_.setCompleted = 0;
+    view_.victory = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -504,6 +520,9 @@ void NetworkGameClient::update(int) {
         // solo mientras dura su ventana.
         if (player.reaction == world::ActionKind::Faint) {
             entity.action = world::ActionKind::Faint;
+            // Muerte o desmayo: las Z aparecen una vez sobre el jugador y
+            // se van solas (hide_at_end); al despertar la indicación se quita.
+            entity.indication = world::Indication::NoEnergy;
         } else if (player.reaction == world::ActionKind::Damage &&
                    player.reactionRemaining > 0) {
             entity.action = world::ActionKind::Damage;
@@ -521,6 +540,7 @@ void NetworkGameClient::update(int) {
     }
     view_.droppedItems = dropped_;
     view_.plantedCrops = crops_;
+    view_.placedFurniture = furniture_;
     view_.groundEffects = groundEffects_;
     for (const auto& entry: animals_) {
         view_.entities.push_back(entry.second);

@@ -64,6 +64,7 @@ target_sources(taller_client
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/TileLayerPainter.cpp
     sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
@@ -167,14 +168,11 @@ target_sources(taller_client
     game/FractionStat.h
     game/LocalWorldView.h
     game/NetworkGameClient.h
-    game/MockGameClient.h
     game/MoveCommand.h
     game/Interactor.h
     game/FloorItems.h
     game/InteractionSession.h
-    game/AnimalSystem.h
     game/CropSystem.h
-    game/MockWorldClient.h
     game/DialogAnimator.h
     game/PlayerController.h
     game/PointerClick.h
@@ -251,6 +249,7 @@ target_sources(taller_client
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/TileLayerPainter.h
     sdl/render/Viewport.h
     sdl/render/Camera.h
     sdl/render/CharacterSprite.h

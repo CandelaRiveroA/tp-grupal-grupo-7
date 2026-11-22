@@ -9,7 +9,16 @@
 
 namespace protocol {
 
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7 };
+enum class ClientMessageType : uint8_t {
+    Move = 1,
+    Pick = 2,
+    Take = 3,
+    Sleep = 4,
+    Wake = 5,
+    Chat = 6,
+    GiftResponse = 7,
+    ToggleWalking = 8
+};
 
 // Move: camina en la dirección dada (y la fija como facing).
 struct MoveMessage {
@@ -54,8 +63,13 @@ struct GiftResponseMessage {
     bool accept;
 };
 
+// ToggleWalking: alterna el modo de caminar de 2 a 1 celda por movimiento.
+// El servidor puede ignorar el estado manual si el jugador está gravemente herido.
+struct ToggleWalkingMessage {};
+
 using ClientMessage =
-        std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage>;
+        std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage,
+                     GiftResponseMessage, ToggleWalkingMessage>;
 
 }  // namespace protocol
 

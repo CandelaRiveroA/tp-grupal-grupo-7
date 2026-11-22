@@ -211,6 +211,17 @@ struct ViewNpcPlacement {
     int cellY;
 };
 
+// Mueble que el jugador tiene colocado en el mundo (lo que consiguió y
+// puso en la partida). Es estado PERSISTENTE: lo manda la fuente de
+// estado (ServerFurniture) con el contentId y la celda; el cliente solo
+// lo dibuja con el visual de ese contentId en inventory.toml. La celda
+// es la base del mueble (abajo-izquierda del sprite).
+struct ViewFurniture {
+    std::string contentId;
+    int cellX;
+    int cellY;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -234,6 +245,15 @@ struct LocalWorldView {
     // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
     // un NPC que la fuente no menciona también usa la suya.
     std::vector<ViewNpcPlacement> npcPlacements;
+    // Muebles colocados (persistente; ver ViewFurniture). Los manda el
+    // servidor (ServerFurniture), por ejemplo al cargar una partida
+    // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
+    std::vector<ViewFurniture> placedFurniture;
+    // Mapa en el que está el jugador (id del mapa del editor: "farm",
+    // "town", "market"...). Lo manda la fuente de estado cuando hay
+    // servidor. Vacío = el cliente elige la escena (teclas de prueba,
+    // edificios tocados); con valor, la escena sigue a la fuente.
+    std::string mapId;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
@@ -250,6 +270,9 @@ struct LocalWorldView {
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Eventos del Centro Comunitario; valen solo el tick en que llegan.
+    uint8_t setCompleted = 0;
+    bool victory = false;
     // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
     // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
     // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de

@@ -41,6 +41,11 @@ public:
 
 	std::vector<const NpcDef*> forRoom(const std::string& room) const;
 
+	// El NPC con este id (nullptr si no existe). Sirve también para las
+	// entradas que solo aportan el contenido de un popup (su `room` no
+	// coincide con ninguna escena y nunca se dibujan).
+	const NpcDef* find(const std::string& id) const;
+
 	// NPC bajo un punto de mundo (el último del archivo gana, igual que
 	// el resto de los picks). nullptr si no hay ninguno. `placed` son las
 	// celdas que mandó la fuente de estado (las mismas con que se dibuja).

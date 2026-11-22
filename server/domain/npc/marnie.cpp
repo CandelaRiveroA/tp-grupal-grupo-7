@@ -13,13 +13,16 @@ Marnie::Marnie(uint16_t x, uint16_t y): Merchant(x, y, "Marnie") {
 }
 
 std::string Marnie::handle_buy(Player& p, const std::string& item_name, uint16_t qty,
-                               World& /*w*/) {
+                               World& w) {
     const auto it = sell_catalog.find(item_name);
     if (it == sell_catalog.end()) {
         return "Marnie: Solo vendo vacas y gallinas.";
     }
 
-    const uint16_t total_cost = static_cast<uint16_t>(it->second.price * qty);
+    uint16_t total_cost = static_cast<uint16_t>(it->second.price * qty);
+    if (w.is_market_discount_active()) {
+        total_cost = static_cast<uint16_t>(total_cost / 2);
+    }
     if (!p.try_remove_gold(total_cost)) {
         return "Marnie: No te alcanza el oro (necesitás " + std::to_string(total_cost) + "g).";
     }
@@ -34,7 +37,7 @@ std::string Marnie::handle_buy(Player& p, const std::string& item_name, uint16_t
 }
 
 std::string Marnie::handle_sell(Player& p, const std::string& item_name, uint16_t qty,
-                                World& /*w*/) {
+                                World& w) {
     const auto it = sell_catalog.find(item_name);
     if (it == sell_catalog.end()) {
         return "Marnie: Solo compro animales de granja.";
@@ -46,7 +49,10 @@ std::string Marnie::handle_sell(Player& p, const std::string& item_name, uint16_
     // }
 
     const uint16_t sell_price = static_cast<uint16_t>(it->second.price / 2);
-    const uint16_t total_earned = static_cast<uint16_t>(sell_price * qty);
+    uint16_t total_earned = static_cast<uint16_t>(sell_price * qty);
+    if (w.is_double_sell_active()) {
+        total_earned = static_cast<uint16_t>(total_earned * 2);
+    }
     p.add_gold(total_earned);
 
     return "Marnie: ¡Gracias! Te pagué " + std::to_string(total_earned) + "g.";

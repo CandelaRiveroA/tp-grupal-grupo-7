@@ -9,9 +9,6 @@
 #include "../inventory/product.h"
 #include "../map/world.h"
 
-// Daño de la espada por golpe. shortcut: placeholder; cuando exista daño por
-// ítem debería salir del inventario, no de una constante.
-#define kSwordDamage 1
 // Precio del orbe de oro: el mismo que la piedra de oro.
 #define kGoldOrbPrice 750
 // Radio de persecución cuerpo a cuerpo (celdas, distancia de Chebyshev).
@@ -51,11 +48,20 @@ Enemy::Enemy(uint16_t x, uint16_t y, uint8_t health, uint8_t damage, uint8_t gol
         attack_cooldown(0),
         wander_dir(Direction::UP),
         ticks_to_turn(0),
-        ticks_to_pause(0) {}
+        ticks_to_pause(0),
+        group_id(0),
+        pair_id(0),
+        room(0) {}
 
 uint8_t Enemy::get_health() const { return this->health; }
 
 void Enemy::set_id(uint16_t new_id) { this->id = new_id; }
+
+void Enemy::set_group_id(uint16_t value) { this->group_id = value; }
+
+void Enemy::set_pair_id(uint16_t value) { this->pair_id = value; }
+
+void Enemy::set_room(uint16_t value) { this->room = value; }
 
 std::optional<EnemySnapshot> Enemy::enemy_snapshot() const {
     return EnemySnapshot{this->id, this->kind_name(), this->facing, this->health, this->action};
@@ -86,12 +92,14 @@ bool Enemy::move(World& w, Direction dir) {
 // El cadáver no bloquea el paso.
 bool Enemy::is_walkable() const { return this->health == 0; }
 
-void Enemy::interact(Player& /*p*/, ToolType tool, World& w) {
+void Enemy::interact(Player& p, ToolType tool, World& w) {
     // Solo la espada hace daño; take_damage ignora los golpes de un muerto.
     if (tool != ToolType::SWORD) {
         return;
     }
-    if (this->take_damage(kSwordDamage)) {
+    if (this->take_damage(p.get_sword_damage())) {
+        w.record_enemy_killed(this->kind_name(), this->group_id, this->pair_id,
+                              this->room == 0 ? w.get_current_room() : this->room);
         this->drop_orb(w, ItemID::GOLD_ORB, kGoldOrbPrice, this->gold_drop_percent);
         this->on_death(w);
     }

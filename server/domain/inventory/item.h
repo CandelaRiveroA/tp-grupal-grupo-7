@@ -21,6 +21,7 @@ public:
     bool can_be_traded() const;
     
     virtual bool is_stackable_with(const Item& other) const;
+    virtual Quality get_quality() const;
     virtual std::unique_ptr<Item> clone() const = 0;
 };
 

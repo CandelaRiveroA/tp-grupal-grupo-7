@@ -28,6 +28,7 @@ private:
     void send_message(const protocol::SleepMessage& message);
     void send_message(const protocol::WakeMessage& message);
     void send_message(const protocol::ChatMessage& message);
+    void send_message(const protocol::ToggleWalkingMessage& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -62,6 +63,8 @@ public:
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
     void send_message(const protocol::GiftResponseMessage& message);
+    void send_message(const ServerSetCompleted& completed);
+    void send_message(const ServerVictory& victory);
 };
 
 #endif

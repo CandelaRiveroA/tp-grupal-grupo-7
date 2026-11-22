@@ -55,6 +55,9 @@ target_sources(taller_server
     domain/crops/green_onion.cpp
     domain/crops/potato.cpp
     domain/crops/pumpkin.cpp
+    domain/community/community_center.cpp
+    domain/community/community_set_catalog.cpp
+    domain/community/community_set_rewards.cpp
     domain/npc/merchant.cpp
     domain/npc/robin.cpp
     domain/npc/marnie.cpp

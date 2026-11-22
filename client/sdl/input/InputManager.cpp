@@ -97,6 +97,8 @@ auto InputManager::defaultCommandBindings() const
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
     // Cambio de escenario local: mercado / dormitorio.
     bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleMarket, 0}});
+    // DEMO: siguiente escena (lo reemplaza el mapa que mande el server).
+    bindings.insert({SDLK_o, game::InputCommand{Kind::CycleMap, 0}});
     // DEMO: catálogo del mercado (lo reemplaza el server).
     bindings.insert({SDLK_b, game::InputCommand{Kind::OpenCatalog, 0}});
     // DEMO: rota el estilo del catálogo (lo reemplaza el server).
@@ -108,6 +110,8 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
+    bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
+    bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(

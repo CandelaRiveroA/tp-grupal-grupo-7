@@ -31,6 +31,7 @@ private:
     protocol::ClientMessage receive_sleep_message();
     protocol::ClientMessage receive_wake_message();
     protocol::ClientMessage receive_chat_message();
+    protocol::ClientMessage receive_toggle_walking_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();
@@ -55,6 +56,8 @@ private:
     ServerMessage receive_server_chat_message();
     ServerMessage receive_gift_request_message();
     ServerMessage receive_gift_answered_message();
+    ServerMessage receive_set_completed_message();
+    ServerMessage receive_victory_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);

@@ -7,8 +7,13 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <functional>
+#include <unordered_map>
 
 #include "../entities/player.h"
+#include "../community/community_center.h"
+#include "../community/community_set_catalog.h"
+#include "../community/community_set_rewards.h"
 
 #include "cell.h"
 #include "flame.h"
@@ -43,6 +48,8 @@ private:
     // Próximo id de proyectil (rango distinto al de enemigos y animales:
     // ViewMotion empareja las entidades por id en una sola lista).
     uint16_t next_projectile_id;
+    uint16_t next_orc_group_id;
+    uint16_t next_vampire_pair_id;
     std::vector<Crop*> crops;
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
@@ -73,12 +80,22 @@ private:
     uint8_t day;
     // Para manejo de regalos
     std::vector<GiftOffer> pending_gifts;
+    CommunityCenter community_center;
+    bool community_victory;
+    uint8_t current_room;
+    bool market_discount_active;
+    bool double_sell_active;
+    bool skull_survived_without_damage;
+    CommunitySetCatalog community_set_catalog;
+    CommunitySetRewards community_set_rewards;
 
     // TODO: Persistencia del inventario del jugador.
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
     std::unordered_map<uint8_t, std::unique_ptr<Player>> players;
-    void apply_consume_energy(uint8_t player_id, float amount);
+    void apply_consume_energy(uint8_t player_id, uint16_t amount);
+    CommunitySet community_set_from_name(const std::string& set_name) const;
+    void apply_set_reward(CommunitySet set);
 public:
     World(uint16_t w, uint16_t h);
     ~World() = default;
@@ -92,6 +109,7 @@ public:
     void add_player(uint8_t player_id, std::unique_ptr<Player> player);
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
+    void toggle_player_walking(uint8_t player_id);
     const Player& get_player(uint8_t player_id) const;
     Player& get_player(uint8_t player_id);
     std::vector<uint8_t> get_player_ids() const;
@@ -192,6 +210,26 @@ public:
     void select_slot(uint8_t player_id, uint8_t slot);
     // Personalizacion del personaje del jugador (indices de capa, sin validar).
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
+    CommunityCenter& get_community_center();
+    const CommunityCenter& get_community_center() const;
+    void set_current_room(uint8_t room);
+    void leave_dungeon();
+    uint8_t get_current_room() const;
+    bool donate_to_community_center(uint8_t player_id, const std::string& set_name,
+                                    ItemID item, uint16_t quantity);
+    bool complete_set(const std::string& set_name);
+    bool complete_set(CommunitySet set);
+    bool complete_all_sets();
+    bool is_set_completed(const std::string& set_name) const;
+    bool is_community_center_completed() const;
+    void record_enemy_killed(const std::string& kind, uint16_t group_id,
+                             uint16_t pair_id, uint16_t room);
+    void record_gold_donated(uint16_t amount);
+    bool is_market_discount_active() const;
+    bool is_double_sell_active() const;
+    void activate_market_rewards();
+    std::vector<uint8_t> take_completed_sets();
+    bool take_victory();
     bool try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty);
     // TODO: Ver si está de más, ya que el jugador puede interactuar con la celda de frente, no con la propia. AUTO-PICK-UP
     void take_item(uint8_t player_id);

@@ -15,6 +15,8 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Action}},
 		  {world::ActionKind::Walk,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
+		  {world::ActionKind::Run,
+		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
 		  {world::ActionKind::CarryWalk,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
 		  // Acción: la enciende y apaga la fuente; se anima tal
@@ -48,6 +50,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},
 		  {world::ActionKind::Walk, world::ActionKind::CarryWalk},
+		  {world::ActionKind::Run, world::ActionKind::CarryWalk},
 	  }
 	, toolActions_{
 		  {world::ItemKind::WateringCan, world::ActionKind::Water},
@@ -84,9 +87,11 @@ world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 	const world::ActionKind fromSource = toolAction(entity);
 	world::ActionKind base = fromSource;
 	if (specFor(fromSource).role == ActionRole::Locomotion) {
-		base = motion_.isWalking(index, it, entity.moving)
-			       ? world::ActionKind::Walk
-			       : fromSource;
+		if (motion_.isRunning(index, it, entity.moving)) {
+			base = world::ActionKind::Run;
+		} else if (motion_.isWalking(index, it, entity.moving)) {
+			base = world::ActionKind::Walk;
+		}
 	}
 	// Sostener un contenido soltable es presentación LOCAL de la
 	// selección del HUD (como el marco rojo): mientras el jugador

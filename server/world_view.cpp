@@ -67,10 +67,30 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                     player.faintedByEnergy() ? 1u : 0u));
     }
 
+    /*
+    const Scene& scene = world.get_scene_of(player_id);
+
+    for (uint16_t y = 0; y < scene.get_height(); ++y) {
+        for (uint16_t x = 0; x < scene.get_width(); ++x) {
+            const SoilState soil = scene.get_soil_state(x, y);
+            if (soil != SoilState::NORMAL) {
+                out.push_back(ServerGroundEffect{x, y, GroundEffect::Dug});
+            }
+            if (soil == SoilState::WATERED) {
+                out.push_back(ServerGroundEffect{x, y, GroundEffect::Watered});
+            }
+            for (const IEntity* entity: scene.get_entity_at(x, y)) {
+                // ... igual que ahora ...
+            }
+        }
+    }
+    */
+
     for (uint16_t y = 0; y < world.get_height(); ++y) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
-            // El suelo no es entidad: su estado es la celda misma (Cell::soil_state).
-            const SoilState soil = world.get_cell(x, y).soil_state;
+            // El suelo no es entidad: su estado es la celda misma (Cell::soil_state)
+            // TODO: Cambiar por Cell::get_soil_state() a traves de scene
+            const SoilState soil = world.get_soil_state(x, y);
             if (soil != SoilState::NORMAL) {
                 out.push_back(ServerGroundEffect{x, y, GroundEffect::Dug});
             }

@@ -7,6 +7,11 @@ namespace game {
 // Constantes de la capa de estado/vista del juego.
 constexpr std::size_t kLocalPlayerIndex = 0;
 
+// Celdas de alcance alrededor de lo que se toca (la cama, un edificio):
+// el click solo hace algo si el jugador está sobre el elemento o a esta
+// distancia.
+constexpr int kInteractRing = 1;
+
 // --- Reglas del "server falso" (el server real pondrá las suyas) -------
 
 // Tope de ítems en el piso del mundo: sin recogida el mundo se llena.
@@ -17,16 +22,6 @@ constexpr int kMaxGroundItems = 3;
 // sola pasada.
 constexpr int kDefaultMilkCycles = 2;
 constexpr int kPickupCycles = 1;
-
-// ANDAMIAJE TEMPORAL: ciclos de la demo de daño recibido (tecla R). La
-// ventana sale de los MISMOS datos de la acción (ActionData); esto solo
-// dice cuántas vueltas de titilación. Se va con la tecla.
-constexpr int kHurtDemoCycles = 2;
-
-// ANDAMIAJE TEMPORAL: vida de un charco de sangre (tecla C), en ticks.
-// Cuando la fuente mande la sangre del terreno, la duración la decide
-// ella. Se va con la tecla.
-constexpr int kBloodPuddleTicks = 600;
 
 // Semilla de la simulación de animales: determinista (testeable).
 constexpr unsigned int kAnimalSeed = 20261027;
@@ -63,11 +58,15 @@ constexpr const char* kClockMinuteKey = "minuto";
 constexpr const char* kHudEnergyKey = "energia";
 constexpr const char* kHudLifeKey = "vida";
 
-// Costo de UNA acción simulada por tecla (hoy G para energía y H para
-// vida; mañana el gasto que mande el server por acción). 2% => unas 50
-// acciones para vaciar una barra en una partida de 14 minutos.
-constexpr double kEnergyCostPerAction = 0.02;
-constexpr double kLifeCostPerAction = 0.02;
+// --- Plata del jugador -------------------------------------------------
+
+// Plata con la que se muestra el HUD hasta que el server mande la suya
+// (el mismo valor que el default de SaveSummary::gold).
+constexpr int kStartingGold = 500;
+
+// Clave del valor crudo que lee la etiqueta de plata del HUD ({plata} en
+// ui/hud.toml).
+constexpr const char* kHudGoldKey = "plata";
 
 // --- Chat --------------------------------------------------------------
 

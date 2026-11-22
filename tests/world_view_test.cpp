@@ -142,6 +142,10 @@ TEST(WorldViewTest, WalkingOntoTheDropFreesTheCellAndFillsTheSlot) {
     EXPECT_EQ(own[8].slot, 8);
     EXPECT_EQ(own[8].count, 1);
     EXPECT_EQ(own[8].content_id, "coal");
+    // tradable lo pone el dominio: el pico (slot 0) no se regala y el
+    // carbón recogido sí, que es la regla que lee el cliente.
+    EXPECT_FALSE(own[0].tradable);
+    EXPECT_TRUE(own[8].tradable);
     EXPECT_EQ(only<ServerInventorySlot>(view.sync(world, 2)).size(), 8u);
 }
 
@@ -421,6 +425,15 @@ TEST(WorldViewTest, SinEnemigosNoSeEnviaNinguno) {
     WorldView view;
 
     EXPECT_TRUE(only<ServerEnemy>(view.sync(world, 1)).empty());
+}
+
+TEST(WorldViewTest, StatusCarriesFaintedFlag) {
+    World world(5, 5);
+    populate(world);
+    WorldView view;
+    EXPECT_EQ(only<ServerStatus>(view.sync(world, 1))[0].fainted, 0u);
+    world.faint_player(1);
+    EXPECT_EQ(only<ServerStatus>(view.sync(world, 1))[0].fainted, 1u);
 }
 
 }  // namespace

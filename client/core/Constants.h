@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <string>
 
+#include "common/common_constants.h"
+
 namespace core {
 
 
@@ -36,7 +38,16 @@ constexpr const char* kAssetsDir = TALLER_ASSET_DIR;
 constexpr const char* kSoundsDir = TALLER_SOUNDS_DIR;
 
 constexpr const char* kScenesFile = "scenes.toml";
+// Mundo que guarda el editor (common/world_model). Si el archivo no
+// existe, el cliente funciona solo con scenes.toml.
+constexpr const char* kWorldFile = "world.toml";
+// Datos propios del cliente que completan el mundo del editor (escala,
+// variantes de noche, decoraciones iniciales). Opcional.
+constexpr const char* kOverlayFile = "overlay.toml";
 constexpr const char* kInitialRoom = "bedroom";
+constexpr const char* kMarketRoom = "market";
+constexpr const char* kNpcsFile = "npcs.toml";
+constexpr const char* kMarketFile = "market.toml";
 
 constexpr const char* kCharactersFile = "characters.toml";
 constexpr const char* kEnemiesFile = "enemies.toml";
@@ -70,7 +81,7 @@ constexpr const char* kLightingFile = "ui/lighting.toml";
 constexpr int kChatBlinkTicks = 20;
 
 // Tope del texto tipeado: un paste largo encarece el wrap.
-constexpr std::size_t kChatMaxLength = 256;
+constexpr std::size_t kChatMaxLength = kMaxChatLength;
 
 // Cuánto se queda el preview del chat cerrado después de un mensaje.
 constexpr int kChatPreviewMs = 3000;

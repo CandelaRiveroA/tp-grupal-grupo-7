@@ -14,9 +14,12 @@ target_sources(taller_server
     commands/pick_command.cpp
     commands/take_command.cpp
     commands/sleep_command.cpp
+    commands/chat_command.cpp
+    commands/gift_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
+    domain/map/town.cpp
     domain/entities/i_entity.cpp
     domain/entities/i_movable.cpp
     domain/entities/entity_controller.cpp
@@ -39,6 +42,7 @@ target_sources(taller_server
     domain/inventory/product.cpp
     domain/inventory/decoration_item.cpp
     domain/inventory/slot.cpp
+    domain/inventory/tool.cpp
     domain/minerals/mineral.cpp
     domain/minerals/coal_rock.cpp
     domain/minerals/lapis_rock.cpp
@@ -51,6 +55,9 @@ target_sources(taller_server
     domain/crops/green_onion.cpp
     domain/crops/potato.cpp
     domain/crops/pumpkin.cpp
+    domain/npc/merchant.cpp
+    domain/npc/robin.cpp
+    domain/npc/marnie.cpp
     PUBLIC
     # .h files
     server.h

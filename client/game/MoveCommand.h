@@ -14,8 +14,9 @@ public:
     protocol::ClientMessage use(world::Direction direction, int slot) const;
 
     // Recoger un item del piso: apunta a la celda PROPIA del jugador. La
-    // fuente decide si hay algo para recoger.
-    protocol::ClientMessage take(world::Direction direction) const;
+    // fuente decide si hay algo para recoger. El casillero activo viaja
+    // (como en Pick): el server lo usa para saber qué tiene equipado.
+    protocol::ClientMessage take(world::Direction direction, int slot) const;
 };
 
 }  // namespace game

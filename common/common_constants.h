@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#define kMaxChatLength 256
+
 // Nuevos enumeradores para el Tablero
 enum class Direction : uint8_t { 
     UP = 0, 

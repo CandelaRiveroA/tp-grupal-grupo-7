@@ -231,3 +231,267 @@ cell  = [53, 64]
 at    = [0, 0]
 # drawn: tamaño de la leche en la celda del slot (afinado a ojo).
 drawn = [23, 27]
+
+[items.chicken]       # gallina: pose parada mirando a la derecha (misma
+                      # celda que characters.chicken.right.idle). Solo
+                      # se muestra en el catálogo de Marnie.
+sheet = "Farm/Chicken.png"
+cell  = [16, 16]
+at    = [2, 4]
+
+[items.cow]           # vaca: cara de vaca (Ambience/Market/vaca.png,
+                      # sprite único de 32x16). Solo en el catálogo de Marnie.
+sheet = "Ambience/Market/vaca.png"
+cell  = [32, 16]
+at    = [0, 0]
+
+# ---- Muebles de Robin (catálogo de la carpintería) ----
+# Cada mueble es un ítem; `span` = [cols, rows] de celdas que abarca en
+# la hoja. Las subtablas `side` / `back` son las vistas de costado y de
+# atrás (contenido `<id>_side` / `<id>_back`), para la colocación futura.
+
+[items.mesa_1]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [0, 35]
+span  = [2, 3]
+
+[items.mesa_2]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [2, 35]
+span  = [2, 3]
+
+[items.mesa_3]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [4, 35]
+span  = [2, 3]
+
+[items.mesa_4]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [6, 35]
+span  = [2, 3]
+
+[items.mesa_5]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [0, 38]
+span  = [2, 2]
+
+[items.mesa_6]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [2, 38]
+span  = [2, 2]
+
+[items.mesa_7]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [4, 38]
+span  = [2, 2]
+
+[items.mesa_8]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [6, 38]
+span  = [2, 2]
+
+[items.silla_1]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [0, 0]
+span  = [1, 2]
+
+[items.silla_1.side]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [1, 0]
+span  = [1, 2]
+
+[items.silla_1.back]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [2, 0]
+span  = [1, 2]
+
+[items.silla_2]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [3, 0]
+span  = [1, 2]
+
+[items.silla_2.side]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [4, 0]
+span  = [1, 2]
+
+[items.silla_2.back]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [5, 0]
+span  = [1, 2]
+
+[items.silla_3]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [6, 0]
+span  = [1, 2]
+
+[items.silla_3.side]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [7, 0]
+span  = [1, 2]
+
+[items.silla_3.back]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [8, 0]
+span  = [1, 2]
+
+[items.silla_4]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [9, 0]
+span  = [1, 2]
+
+[items.silla_4.side]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [10, 0]
+span  = [1, 2]
+
+[items.silla_4.back]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [11, 0]
+span  = [1, 2]
+
+[items.cofre]
+sheet = "Decorations/Craftables.png"
+cell  = [16, 16]
+at    = [2, 32]
+span  = [1, 2]
+
+[items.comoda_1]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [2, 15]
+span  = [2, 2]
+
+[items.comoda_2]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [4, 15]
+span  = [2, 2]
+
+[items.comoda_3]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [6, 15]
+span  = [2, 2]
+
+[items.comoda_4]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [8, 15]
+span  = [1, 2]
+
+[items.sillon_1]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [12, 15]
+span  = [3, 2]
+
+[items.sillon_1.side]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [10, 17]
+span  = [2, 3]
+
+[items.sillon_2]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [12, 17]
+span  = [3, 2]
+
+[items.sillon_2.side]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [14, 22]
+span  = [2, 3]
+
+[items.sillon_3]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [15, 16]
+span  = [3, 2]
+
+[items.sillon_3.side]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [12, 22]
+span  = [2, 3]
+
+[items.biblioteca_1]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [1, 18]
+span  = [2, 3]
+
+[items.biblioteca_2]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [3, 18]
+span  = [2, 3]
+
+[items.biblioteca_3]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [3, 40]
+span  = [2, 3]
+
+[items.biblioteca_4]
+sheet = "Decorations/Furniture.png"
+cell  = [16, 16]
+at    = [7, 40]
+span  = [2, 3]
+
+[items.planta_1]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [13, 46]
+span  = [1, 2]
+
+[items.planta_2]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [17, 11]
+span  = [1, 2]
+
+[items.planta_3]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [17, 13]
+span  = [1, 1]
+
+[items.planta_4]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [16, 13]
+span  = [1, 1]
+
+[items.planta_5]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [22, 15]
+span  = [1, 2]
+
+[items.planta_6]
+sheet = "Decorations/Towninterior.png"
+cell  = [16, 16]
+at    = [23, 15]
+span  = [1, 2]

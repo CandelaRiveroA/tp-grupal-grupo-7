@@ -232,6 +232,7 @@ void Match::broadcast_clock(uint16_t minutes) {
 
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
+    character_names[joined.player_id] = joined.characterName;
     world.add_player(joined.player_id,
                      std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
     world.set_player_appearance(joined.player_id, joined.appearance);
@@ -255,6 +256,10 @@ void Match::handle(const PlayerMessage& event) {
         broadcast(ServerToolUsed{event.player_id,
                                  equipped ? content_id_for(equipped->get_id()) : ""});
     }
+    if (std::holds_alternative<protocol::ChatMessage>(event.message)) {
+        handle_chat(event.player_id,
+                    std::get<protocol::ChatMessage>(event.message).text);
+    }
     // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
     // inventarios: solo se traduce a mensaje acá.
     for (const PlayerPickup& pickup: world.take_pickups()) {
@@ -263,9 +268,34 @@ void Match::handle(const PlayerMessage& event) {
     for (const ResourceHit& hit: world.take_resource_hits()) {
         broadcast(ServerResourceHit{hit.x, hit.y, hit.destroyed});
     }
+    for (const GiftOffer& offer : world.take_gift_requests()) {
+        // El nombre va en el mensaje: el cliente no conoce a los jugadores
+        // (mismo dato que usa el chat). Si el emisor ya no está en la sala,
+        // se manda vacío y el copy cae en el token sin nombre.
+        const auto sender = character_names.find(offer.sender_id);
+        const std::string characterName =
+                sender != character_names.end() ? sender->second : std::string{};
+        send_to(offer.receiver_id,
+                ServerGiftRequest{offer.sender_id, characterName, content_id_for(offer.item)});
+    }
+    // El emisor sigue esperando con el popup abierto: la respuesta del
+    // receptor (acepte o rechace) se lo cierra.
+    for (const uint8_t answered : world.take_gift_answers()) {
+        send_to(answered, ServerGiftAnswered{});
+    }
     sync_day();
     push_sleep_state();
     sync_all();
+}
+
+void Match::handle_chat(uint8_t player_id, const std::string& text) {
+    for (const ChatReply& reply : chat_router.route(text, player_id, world, character_names)) {
+        if (reply.broadcast) {
+            broadcast(reply.message);
+        } else {
+            send_to(reply.target, reply.message);
+        }
+    }
 }
 
 void Match::handle(const PlayerLeft& left) {
@@ -275,6 +305,7 @@ void Match::handle(const PlayerLeft& left) {
     }
     const std::shared_ptr<Queue<ServerMessage>> leaving = it->second;
     outputs.erase(it);
+    character_names.erase(left.player_id);
     // Saca al jugador de la votación: nadie queda esperando a un ausente.
     world.remove_player(left.player_id);
     sync_day();

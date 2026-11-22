@@ -186,6 +186,22 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/ConfigError.cpp
         client/world/SceneConfigLoader.cpp
         client/world/SceneTomlReader.cpp
+        client/world/SceneSwitcher.cpp
+        client/world/ScenesRoomSource.cpp
+        client/world/WorldMapLoader.cpp
+        client/world/MapSceneAdapter.cpp
+        client/world/ArtCellFit.cpp
+        client/world/MapLayerAdapter.cpp
+        client/world/MapObjectAdapter.cpp
+        client/world/MapAnchorAdapter.cpp
+        client/world/EditorWorldSource.cpp
+        client/world/SceneSources.cpp
+        client/world/TileLayerLayout.cpp
+        client/world/OverlayTomlReader.cpp
+        client/world/OverlayLoader.cpp
+        client/world/OverlayAudit.cpp
+        client/world/DepthOrder.cpp
+        client/world/FurnitureLayout.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
@@ -198,6 +214,12 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/InventoryTomlReader.cpp
         client/world/InventoryConfigLoader.cpp
         client/world/InventoryLayout.cpp
+        client/world/NpcCatalog.cpp
+        client/world/NpcVisuals.cpp
+        client/world/MarketCatalog.cpp
+        client/world/MarketPopupStyle.cpp
+        client/world/MarketSideNames.cpp
+        client/world/MarketOfferResolver.cpp
         client/world/ContentCatalog.cpp
         client/world/CursorCatalog.cpp
         client/world/CursorConfigLoader.cpp
@@ -259,7 +281,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewMotion.cpp
         client/game/WalkPacer.cpp
         client/game/ActionResolver.cpp
-        client/game/LocalActionWindow.cpp
+        client/game/NpcPlacementResolver.cpp
+        client/game/MarketPopupState.cpp
+        client/game/MarketSetCycle.cpp
+        client/game/PropAnimator.cpp
         client/game/InventorySelector.cpp
         # SDL: cultivos, terreno, build-place y contenido en las manos.
         client/world/ContentTraits.cpp
@@ -280,6 +305,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/CropSystem.cpp
         client/game/FarmSelection.cpp
         client/game/EnterSelection.cpp
+        client/game/AreaProximity.cpp
+        client/game/StructureSelection.cpp
         client/game/PopupState.cpp
         client/game/SceneTransition.cpp
         client/game/DayPhase.cpp
@@ -300,13 +327,14 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)
     target_link_libraries(taller_client_world PUBLIC utf8cpp
-                          taller_toml taller_common)
+                          taller_toml taller_world_model taller_common)
     set_project_warnings(taller_client_world ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 
 # Program section
 # ---------------
 if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_QT_HARNESS)
+    set(QT_NO_STANDARD_PROJECT_SETUP ON)
     find_package(Qt6 COMPONENTS Widgets REQUIRED)
 endif()
 
@@ -496,6 +524,9 @@ if(TALLER_TESTS)
     # juego parsea y produce la escena esperada, sin copiarlo a mano.
     target_compile_definitions(taller_tests PRIVATE
         TALLER_SCENES_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/scenes.toml\"
+        TALLER_EDITOR_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
+        TALLER_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/overlay.toml\"
+        TALLER_NPCS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/npcs.toml\"
         TALLER_CHARACTERS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/characters.toml\"
         TALLER_INVENTORY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/inventory.toml\"
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"

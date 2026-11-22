@@ -32,6 +32,9 @@ enum class ServerMessageType : uint8_t {
     GroundEffect = 20,
     Enemy = 21,
     Projectile = 22,
+    Chat = 23,
+    GiftRequest = 24,
+    GiftAnswered = 25,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -56,12 +59,15 @@ struct ServerStatus {
     uint16_t max_health;
     uint16_t energy;      // x100
     uint16_t max_energy;  // x100
-
+    // 1 = desmayado por falta de energía (vida intacta). 0 = no.
+    uint8_t fainted;
     ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
                  const CharacterAppearance& appearance,
-                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy):
+                 uint16_t health, uint16_t max_health, uint16_t energy, uint16_t max_energy,
+                 uint8_t fainted):
             player_id(player_id), x(x), y(y), direction(direction), appearance(appearance),
-            health(health), max_health(max_health), energy(energy), max_energy(max_energy) {}
+            health(health), max_health(max_health), energy(energy), max_energy(max_energy),
+            fainted(fainted) {}
 };
 
 struct ServerWelcome {
@@ -87,11 +93,15 @@ struct ServerDropped {
     bool interactive;
 };
 
-// count 0 = slot vacío (content_id vacío).
+// count 0 = slot vacío (content_id vacío, tradable indiferente).
+// tradable: lo decide el servidor (Item::can_be_traded): las herramientas
+// no se regalan y el cliente ni ofrece el intercambio. Es la fuente única
+// de esa regla, así no se duplica el vocabulario en el cliente.
 struct ServerInventorySlot {
     uint8_t slot;
     uint8_t count;
     std::string content_id;
+    bool tradable;
 };
 
 // El jugador local obtuvo un contenido (evento puntual, no estado).
@@ -213,10 +223,35 @@ struct ServerGroundEffect {
     GroundEffect effect;
 };
 
+// Mensaje de chat: player_id y characterName identifican al emisor (0/vacío si
+// es un mensaje de sistema, ej. respuesta de un cheat o error). system = true
+// indica que el cliente debe mostrarlo sin prefijo de jugador ("Servidor: ...").
+struct ServerChat {
+    uint8_t player_id;
+    std::string characterName;
+    std::string text;
+    bool system;
+};
+
+// Pedido de regalo hacia el receptor: el emisor ofreció su ítem equipado
+// (content_id) y el server lo reenvía junto con su characterName (el mismo
+// que ServerChat) para el copy del popup del receptor.
+struct ServerGiftRequest {
+    uint8_t sender_id;
+    std::string characterName;
+    std::string content_id;
+};
+
+// El receptor contestó el pedido de regalo (aceptando o rechazando): el
+// server lo manda SOLO al emisor, que así cierra su popup de espera.
+// Evento sin payload, igual que ServerDayEnd.
+struct ServerGiftAnswered {};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
-                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile>;
+                     ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered>;
 
 #endif

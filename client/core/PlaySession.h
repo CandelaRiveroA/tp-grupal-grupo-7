@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 
 #include "core/StartupScreens.h"
@@ -11,14 +13,15 @@
 #include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
+#include "game/StructureSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
 #include "game/FractionStat.h"
 #include "game/InputCommand.h"
-#include "game/LocalActionWindow.h"
 #include "game/ObjectPicker.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
+#include "game/PropAnimator.h"
 #include "game/PopupState.h"
 #include "game/ResourceAudioCue.h"
 #include "game/SceneTransition.h"
@@ -34,6 +37,8 @@
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/HudOverlayPainter.h"
 #include "sdl/render/InventoryHud.h"
+#include "sdl/render/MarketPopupPainter.h"
+#include "sdl/render/NpcPopupPainter.h"
 #include "sdl/render/ObtainedBannerHud.h"
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
@@ -43,8 +48,15 @@
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
 #include "world/InventoryLayout.h"
+#include "world/MarketCatalog.h"
+#include "game/MarketPopupState.h"
+#include "game/MarketSetCycle.h"
+#include "game/NpcPlacementResolver.h"
+#include "world/NpcCatalog.h"
 #include "world/PromptLayout.h"
 #include "world/SceneDescription.h"
+#include "world/SceneSwitcher.h"
+#include "world/SceneSources.h"
 
 namespace game {
 class GameClient;
@@ -74,6 +86,7 @@ class PlaySession {
 public:
     PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                 game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                const world::NpcCatalog& npcs, const world::MarketCatalog& market,
                 const world::InventoryLayout& inventory,
                 const world::ToolOverlayCatalog& toolOverlay,
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
@@ -91,10 +104,12 @@ public:
 private:
     void tick(int iteration);
 
+    // La escena actual (la que resuelve el switcher).
+    const world::SceneDescription& scene() const;
+
     // Vista de presentación del tick: la de "meterse" (EnterSelection)
-    // más el override LOCAL del desmayo (pose, frente y, al terminar la
-    // caída, la indicación de las Z). La consumen el movimiento, el
-    // renderer y los diálogos; el estado de juego queda intacto.
+    // más el agradecimiento LOCAL del regalo. La consumen el movimiento,
+    // el renderer y los diálogos; el estado de juego queda intacto.
     game::LocalWorldView presentationView(const game::LocalWorldView& view) const;
 
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
@@ -111,15 +126,38 @@ private:
     // esto solo compone la llamada.
     void drawPopup(const world::PixelBox& panel);
 
+    // El popup de un NPC: mismo panel que el resto y, adentro, el
+    // retrato y el texto que dicen sus datos.
+    void drawNpcPopup();
+
+    // Popup del catálogo del mercado. Quien lo pide (hoy la tecla demo,
+    // mañana el mensaje del server) solo llama a open/close; el dibujo
+    // y los datos no cambian.
+    void openMarketOfSpokenNpc();
+    void openMarketFromView(const game::LocalWorldView& view);
+    void drawMarketCatalog();
+
     // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
     void closeChat();
 
     // Borra el último caracter UTF-8 escrito
     void eraseLastCodepoint(std::string& text);
 
-    // Cambia la escena actual (en el negro de la transición): carga la
-    // sala pedida, reconstruye el índice del renderer y la cámara. El
-    // dibujo no cambia: solo QUÉ escena se pinta.
+    // Corre la acción de un edificio tocado (tabla structureActions_).
+    void runStructureAction(const world::SceneStructure& structure);
+
+    // Abre el popup de un NPC de npcs.toml (su contenido) por id.
+    void openStructurePopup(const std::string& npcId);
+
+    // Pasa a otro mapa. PROVISORIO: hoy el cambio es local (como la
+    // tecla M); cuando el server mande el mapa, esto solo manda la
+    // intención. Un destino que ninguna fuente conoce se ignora.
+    void enterStructureMap(const std::string& mapId);
+
+    // Cambia la escena actual (en el negro de la transición): pide la
+    // escena al switcher y reconstruye el índice del renderer, las
+    // selecciones y la cámara. El dibujo no cambia: solo QUÉ escena se
+    // pinta.
     void changeScene(const std::string& room);
 
     // La cámara sigue el rectángulo dibujado del jugador local, no su
@@ -131,9 +169,19 @@ private:
     // decide); esto solo lo lee para elegir la variante del cursor.
     bool isInteractive(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
+    // ¿El objetivo es OTRO jugador (no el local)? Lo decide la vista:
+    // mismo tipo Player y un índice distinto de kLocalPlayerIndex.
+    // Además exige algo transferible en el casillero activo: con una
+    // herramienta el server no arma el pedido (ver isGiftTarget).
+    bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
+
     // La escena actual: intercambiable al cambiar de escenario (la
-    // ventana la sigue dando el Scenario).
-    world::SceneDescription scene_;
+    // ventana la sigue dando el Scenario). De dónde sale cada escena
+    // lo resuelve el switcher a partir de sus fuentes (las salas de
+    // scenes.toml y, si hay, los mapas del editor); las fuentes se
+    // declaran ANTES porque el switcher las guarda prestadas.
+    world::SceneSources sources_;
+    world::SceneSwitcher sceneSwitcher_;
     game::GameClient& gameClient_;
     // ANDAMIAJE TEMPORAL (prueba): disparador de acciones de enemigos
     // del mundo simulado (null si no hay). Se va con las teclas de
@@ -149,6 +197,9 @@ private:
     // Kind -> tipo de proyectil. Se va con el andamiaje.
     std::map<game::InputCommand::Kind, world::CreatureKind> attackProjectiles_;
     const world::CharacterCatalog& characters_;
+    const world::NpcCatalog& npcCatalog_;
+    game::NpcPlacementResolver npcPlacements_;
+    const world::MarketCatalog& marketCatalog_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario
     // con los sacos y la cosecha ya registrados. Van ANTES de todo lo
@@ -181,7 +232,18 @@ private:
     game::ResourceAudioCue resourceAudioCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
+    // Edificios clickeables del editor (rol con comportamiento en el
+    // overlay): qué hacer con cada acción es esta tabla, no un switch.
+    game::StructureSelection structureSelection_;
+    std::map<world::StructureAction, void (PlaySession::*)(const std::string&)> structureActions_;
     game::PopupState popupState_;
+    // NPC con el popup abierto (nullptr = ninguno). El click lo abre y
+    // cualquier click posterior lo cierra.
+    const world::NpcDef* npcPopup_ = nullptr;
+    // Id (npcs.toml) del último NPC con el que se habló: B abre el catálogo
+    // de ESE comerciante. Provisorio hasta que el chat lo pida (validado por
+    // el servidor). Vacío = ninguno.
+    std::string lastNpcId_;
     // Sueño: último aviso recibido y si el jugador ya votó Sí en esta noche.
     int lastSleeping_ = 0;
     int lastTotal_ = 0;
@@ -194,53 +256,28 @@ private:
     // el preview se muestra hasta chatPreviewUntilTick_.
     int seenChatVersion_ = 0;
     int chatPreviewUntilTick_ = -1;
-    // Próximo mensaje de la demo (rota los casos del wrap).
-    std::size_t demoChatNext_ = 0;
     game::SceneTransition sceneTransition_;
     // El momento del día (filtra los elementos `when` y gradúa la luz) y
     // el reloj del HUD. Entrada: el reloj del server (setClock en cada
     // tick).
     game::DayPhase dayPhase_;
     // Stats simulados del jugador: hoy los simula el cliente y el server
-    // los reemplazará. `stats_` es estado; `statSpends_` es la regla de
-    // qué comando gasta cuál. La traducción a las claves del HUD queda en
-    // el borde de dibujo, no en el estado.
-    struct StatSpend {
-        game::StatKind stat;
-        double cost = 0.0;
-    };
+    // los reemplazará. La traducción a las claves del HUD queda en el
+    // borde de dibujo, no en el estado.
     std::map<game::StatKind, game::FractionStat> stats_;
-    std::map<game::InputCommand::Kind, StatSpend> statSpends_;
-    // Fila de las demos de ACCIÓN LOCAL (andamiaje): Kind -> acción de la
-    // fuente que dispara + ciclos de su ventana (mismo patrón que
-    // statSpends_). Lo consume game::LocalActionWindow; se va cuando el
-    // server mande esas acciones.
-    struct LocalActionDemo {
-        world::ActionKind action;
-        int cycles;
-    };
-    std::map<game::InputCommand::Kind, LocalActionDemo> localActions_;
-    // Ventana de presentación local de esas demos (el daño recibido):
-    // mientras está activa, su acción manda en la vista.
-    game::LocalActionWindow actionWindow_;
-    // Demo del desmayo (tecla F): presentación local mientras el server
-    // no manda la acción. El reloj cuenta desde el inicio de la caída
-    // para recién entonces mostrar las Z.
-    bool faintRequested_ = false;
-    int faintFallTicks_ = 0;
+    // Regalo aceptado: el diálogo de agradecimiento es presentación
+    // local hasta que el server mande la indicación. El reloj dura lo
+    // que la animación (dato del catálogo), así se puede repetir.
+    bool giftThanksActive_ = false;
+    int giftThanksTicks_ = 0;
+    // Pedido de regalo pendiente de respuesta: el emisor (senderId del
+    // ServerGiftRequest que abrió el popup), que viaja en el
+    // protocol::GiftResponseMessage. Sin pedido = nullopt.
+    std::optional<std::uint8_t> pendingGiftSenderId_;
     game::ActionResolver actionResolver_;
     game::PlayerController player_;
     game::ObjectPicker picker_;
     sdl::BuildPlacePainter markerPainter_;
-    // Charcos de sangre (ANDAMIAJE): la demo de la tecla C los deja
-    // donde está el jugador y se acumulan; cada uno vence a los
-    // kBloodPuddleTicks y desaparece. Se van cuando la fuente mande la
-    // sangre del terreno (ViewGroundEffect).
-    struct BloodPuddle {
-        world::GridCell cell;
-        int ticksRemaining;
-    };
-    std::vector<BloodPuddle> bloodPuddles_;
     world::CursorCatalog cursorCatalog_;
     sdl::CursorPainter cursorPainter_;
     game::DialogAnimator dialogAnimator_;
@@ -248,6 +285,15 @@ private:
     sdl::DialogPainter dialogPainter_;
     world::PromptLayout promptLayout_;
     sdl::PromptPainter promptPainter_;
+    sdl::NpcPopupPainter npcPopupPainter_;
+    sdl::MarketPopupPainter marketPopupPainter_;
+    // Popup del catálogo del comerciante: se declara después de
+    // marketCatalog_ y de inventory_ (guarda referencias a ambos).
+    game::MarketPopupState marketPopup_;
+    // PROVISORIO: estilo de catálogo elegido con N (el servidor lo rotará).
+    game::MarketSetCycle marketCycle_;
+    // Objetos animados clickeables (cofre): abierto/cerrado por id.
+    game::PropAnimator props_;
     sdl::ChatPainter chatPainter_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una

@@ -15,6 +15,7 @@
 #include "game/GameConstants.h"
 #include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
+#include "sdl/log/Logger.h"
 #include "sdl/loop/GameLoop.h"
 #include "world/CreatureCatalog.h"
 #include "world/EntityAppearance.h"
@@ -24,27 +25,11 @@
 #include "world/ViewDirection.h"
 #include "world/WorldConstants.h"
 
-namespace {
-
-// Mensajes de la demo (tecla M): corto, con wrap y sin espacios.
-struct DemoChatMessage {
-    std::uint8_t playerId;
-    const char* name;
-    const char* text;
-};
-
-constexpr std::array<DemoChatMessage, 3> kDemoChatMessages{{
-        {1, "Juan", "¡Hola!"},
-        {2, "Maria", "Nos vemos en la granja en un rato, llevo las semillas"},
-        {1, "Juan", "jajajajajajajajajajajajajajajajajajajajajajajajajajajajajajajaja"},
-}};
-
-}  // namespace
-
 namespace core {
 
 PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                          game::GameClient& gameClient, const world::CharacterCatalog& characters,
+                         const world::NpcCatalog& npcs, const world::MarketCatalog& market,
                          const world::InventoryLayout& inventory,
                          const world::ToolOverlayCatalog& toolOverlay,
                          const world::ResourceCatalog& resources,
@@ -56,7 +41,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger):
-        scene_(scenario.scene()),
+        sources_(core::assetPath(core::kScenesFile), core::assetPath(core::kWorldFile),
+                 core::assetPath(core::kOverlayFile)),
+        sceneSwitcher_(sources_.byPriority(), core::kInitialRoom, scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
@@ -73,6 +60,8 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         attackProjectiles_{{game::InputCommand::Kind::TestGreenFire,
                             world::CreatureKind::SkullFireGreen}},
         characters_(characters),
+        npcCatalog_(npcs),
+        marketCatalog_(market),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
         inventory_(farm_.withCropContents(inventory)),
@@ -94,6 +83,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
+        structureSelection_(scenario.scene(), scenario.scene().cellPixelSize),
+        structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup},
+                          {world::StructureAction::EnterMap, &PlaySession::enterStructureMap}},
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
@@ -101,14 +93,6 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::StatKind::Energy, game::FractionStat{}},
                 {game::StatKind::Life, game::FractionStat{}},
         },
-        statSpends_{
-                {game::InputCommand::Kind::SpendEnergy,
-                 {game::StatKind::Energy, game::kEnergyCostPerAction}},
-                {game::InputCommand::Kind::SpendLife,
-                 {game::StatKind::Life, game::kLifeCostPerAction}},
-        },
-        localActions_{{game::InputCommand::Kind::Hurt,
-                       {world::ActionKind::Damage, game::kHurtDemoCycles}}},
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
@@ -120,13 +104,25 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         dialogPainter_(sdlContext_),
         promptLayout_(prompt),
         promptPainter_(sdlContext_, textRenderer_, promptLayout_),
+        npcPopupPainter_(sdlContext_, textRenderer_),
+        marketPopupPainter_(sdlContext_, textRenderer_),
+        marketPopup_(market, inventory_),
         chatPainter_(sdlContext_, textRenderer_, chat),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
         } {
-    renderer_.prepareScene(scene_);
+    renderer_.prepareScene(scene());
+    renderer_.setNpcs(npcCatalog_.forRoom(sceneSwitcher_.id()));
+    // Entradas del overlay que no coinciden con nada del mundo: un
+    // aviso por cada una (el path dice cuál), no frena el juego.
+    const sdl::Logger logger;
+    for (const world::ConfigError& finding: sources_.findings()) {
+        logger.warning(finding.what());
+    }
 }
+
+const world::SceneDescription& PlaySession::scene() const { return sceneSwitcher_.scene(); }
 
 void PlaySession::run() {
     sdl::GameLoop loop(input_, [this, &loop](int iteration) {
@@ -141,27 +137,23 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    if (faintRequested_) {
-        ++faintFallTicks_;
+    // El diálogo de agradecimiento dura lo que digan sus datos. Al
+    // terminar se limpia el flag local para que un regalo nuevo lo
+    // vuelva a disparar desde cero.
+    if (giftThanksActive_) {
+        const world::DialogData* thanks =
+                dialogCatalog_.find(world::Indication::GiftThanks);
+        if (thanks == nullptr || giftThanksTicks_ >= thanks->animation.durationTicks()) {
+            giftThanksActive_ = false;
+        } else {
+            ++giftThanksTicks_;
+        }
     }
-    // Las ventanas de presentación local corren con el tick (la del daño
-    // recibido se suelta sola).
-    actionWindow_.advance();
-    // Los charcos de sangre vencen con su reloj (ANDAMIAJE): al llegar
-    // a 0 desaparecen de la vista de una.
-    for (BloodPuddle& puddle : bloodPuddles_) {
-        --puddle.ticksRemaining;
-    }
-    bloodPuddles_.erase(std::remove_if(bloodPuddles_.begin(),
-                                       bloodPuddles_.end(),
-                                       [](const BloodPuddle& puddle) {
-                                           return puddle.ticksRemaining <= 0;
-                                       }),
-                        bloodPuddles_.end());
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
     const game::LocalWorldView presentation = presentationView(state);
     motion_.observe(presentation, iteration);
+    renderer_.setNpcFrames(props_.frames(iteration));
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
     dayPhase_.setClock(state.dayNumber, state.clockMinutes);
@@ -175,6 +167,9 @@ void PlaySession::tick(int iteration) {
     if (state.dayEnded) {
         voted_ = false;
         woke_ = false;
+        npcPopup_ = nullptr;
+        lastNpcId_.clear();
+        marketPopup_.close();
         popupState_.hide();
         sceneTransition_.changeTo(core::kInitialRoom, true);
     }
@@ -196,6 +191,11 @@ void PlaySession::tick(int iteration) {
     // En el negro cambian los datos; mientras está activa se dibuja el
     // mundo con el fade encima y NO hay input (las colas se drenan para
     // que nada se dispare al volver).
+    // Con servidor, la escena la dice la fuente de estado (mapId): el
+    // cambio entra por el mismo fade (si ya hay uno en curso, sigue).
+    if (const std::optional<std::string> requested = sceneSwitcher_.changeFor(state.mapId)) {
+        sceneTransition_.changeTo(*requested);
+    }
     sceneTransition_.tick(iteration);
     if (sceneTransition_.swapDue()) {
         changeScene(sceneTransition_.scene());
@@ -234,7 +234,7 @@ void PlaySession::tick(int iteration) {
                 break;
             }
         } else {
-            renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+            renderer_.drawWorld(scene(), presentation, motion_, actionResolver_, iteration,
                                 camera_.viewport(), dayPhase_.phase());
             lightingPainter_.draw({}, dayPhase_.nightFactor());
         }
@@ -264,11 +264,15 @@ void PlaySession::tick(int iteration) {
     // Muerto (vida o energía): el server lo da por aceptado en la cama y
     // no puede levantarse, así que espera sin pregunta y sin cancelar.
     const bool localDied =
-            state.playerMaxHealth > 0 && state.playerHealth == 0;
+            (state.playerMaxHealth > 0 && state.playerHealth == 0) ||
+            state.playerFainted;
     popupState_.setWaitingCancelable(!localDied);
     if (state.sleep.sleeping != lastSleeping_ || state.sleep.total != lastTotal_) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
+        npcPopup_ = nullptr;
+        lastNpcId_.clear();
+        marketPopup_.close();
         if (lastSleeping_ == 0) {
             voted_ = false;
         }
@@ -280,6 +284,20 @@ void PlaySession::tick(int iteration) {
     if (localDied && popupState_.view() == game::PopupView::Question) {
         voted_ = true;
         popupState_.showWaiting(lastSleeping_, lastTotal_);
+    }
+
+    // Llegó un pedido de regalo (ServerGiftRequest): abre el popup del
+    // receptor con el nombre del emisor y guarda a quién se le contesta.
+    if (state.giftRequest.has_value()) {
+        pendingGiftSenderId_ = state.giftRequest->senderId;
+        popupState_.showGiftReceived(state.giftRequest->senderName);
+    }
+
+    // El receptor contestó MI oferta (acepte o rechace): se cierra la
+    // espera. Solo si sigue abierta: la respuesta puede llegar tarde,
+    // después de cancelar a mano.
+    if (state.giftAnswered && popupState_.view() == game::PopupView::GiftWaiting) {
+        popupState_.hide();
     }
 
     // Lo tipeado y los backspaces del frame entran al buffer.
@@ -300,6 +318,7 @@ void PlaySession::tick(int iteration) {
         chatPreviewUntilTick_ = iteration + core::kChatPreviewTicks;
     }
 
+    openMarketFromView(state);
     const std::vector<game::InputCommand> commands = input_.takeCommands();
     std::vector<game::InputCommand> playerCommands;
     // ANDAMIAJE TEMPORAL (prueba): las teclas G/F/H/K disparan acciones
@@ -342,65 +361,50 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
-        if (popupState_.modal()) {
-            // El popup manda: el resto de las intenciones se descartan
-            // (no se encolan para cuando cierre).
-            continue;
-        }
         if (command.kind == game::InputCommand::Kind::OpenChat) {
             input_.setTextMode(true);
             sdlContext_.startTextInput();
             continue;
         }
-        // Demo (tecla M): el mensaje entra por el mismo embudo que usará
-        // la red; esta rama se borra sin tocar el resto.
-        if (command.kind == game::InputCommand::Kind::SimulateChatMessage) {
-            const DemoChatMessage& demo =
-                    kDemoChatMessages[demoChatNext_ % kDemoChatMessages.size()];
-            ++demoChatNext_;
-            gameClient_.receiveChat(demo.playerId, demo.name, demo.text);
-            continue;
-        }
-        if (const auto spend = statSpends_.find(command.kind);
-            spend != statSpends_.end()) {
-            // Simulación local del gasto: no es una intención para el
-            // GameClient, la consumen los stats del cliente.
-            stats_.at(spend->second.stat).spend(spend->second.cost);
-            continue;
-        }
-        if (const auto demo = localActions_.find(command.kind);
-            demo != localActions_.end()) {
-            // Demo local de una acción de la fuente (andamiaje): corre
-            // por la ventana de presentación local. La ventana se arma
-            // de los MISMOS datos de la acción (contrato §10).
-            const world::CreatureData& creature =
-                    characters_.dataFor(world::CreatureKind::Player);
-            actionWindow_.open(demo->second.action,
-                               creature.actionCycleTicks(demo->second.action) *
-                                       demo->second.cycles);
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::Faint) {
-            // Demo local: la primera pulsación dispara la caída; con el
-            // personaje ya desmayado no se reinicia.
-            if (!faintRequested_) {
-                faintRequested_ = true;
-                faintFallTicks_ = 0;
-                audio_.play(sdl::SoundId::Death);
+        if (command.kind == game::InputCommand::Kind::NextMarketSet) {
+            // DEMO (tecla N): rota el estilo del último comerciante y, si
+            // su catálogo está abierto, lo reabre con el estilo nuevo.
+            if (!lastNpcId_.empty() && sceneSwitcher_.id() == core::kMarketRoom) {
+                marketCycle_.next(marketCatalog_.defaultSetCount(lastNpcId_));
+                if (marketPopup_.isOpen()) {
+                    marketPopup_.close();
+                    openMarketOfSpokenNpc();
+                }
             }
             continue;
         }
-        if (command.kind == game::InputCommand::Kind::BloodPuddle) {
-            // ANDAMIAJE TEMPORAL: la demo del charco de sangre (tecla
-            // C) deja un charco en la celda del jugador (se acumulan),
-            // con su reloj de vida.
-            if (!state.entities.empty()) {
-                const game::ViewEntity& local =
-                        state.entities[game::kLocalPlayerIndex];
-                bloodPuddles_.push_back(BloodPuddle{
-                    world::GridCell{local.cellX, local.cellY},
-                    game::kBloodPuddleTicks});
-            }
+        // Con el popup de un NPC abierto el mundo está bloqueado: el
+        // click lo cierra y el resto de las intenciones se descartan.
+        if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
+            continue;
+        }
+        if (popupState_.modal()) {
+            // El popup manda: el resto de las intenciones se descartan
+            // (no se encolan para cuando cierre).
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::OpenCatalog) {
+            // DEMO (tecla B): el server pedirá el popup cuando el
+            // jugador escriba el comando; entonces se borra esta rama
+            // y la tecla, y el handler del mensaje llama a
+            // marketPopup_.open(oferta).
+            openMarketOfSpokenNpc();
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ToggleMarket) {
+            // Cambio de escenario local: mercado ↔ dormitorio.
+            sceneTransition_.changeTo(sceneSwitcher_.id() == core::kMarketRoom ? core::kInitialRoom
+                                                                        : core::kMarketRoom);
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::CycleMap) {
+            // DEMO: escena siguiente (mapas del editor y salas).
+            sceneTransition_.changeTo(sceneSwitcher_.nextId());
             continue;
         }
         playerCommands.push_back(command);
@@ -409,7 +413,9 @@ void PlaySession::tick(int iteration) {
     // en curso (el "meterse") termina su paso y después el personaje
     // queda quieto hasta que se responda.
     const game::PlayerEvents events =
-            player_.tick(iteration, popupState_.modal() ? std::nullopt : pressed, playerCommands);
+            player_.tick(iteration,
+                         popupState_.modal() || npcPopup_ != nullptr || marketPopup_.isOpen() ? std::nullopt : pressed,
+                         playerCommands);
     if (events.toolSwitched) {
         audio_.play(sdl::SoundId::ToolSwitch);
     }
@@ -417,10 +423,13 @@ void PlaySession::tick(int iteration) {
     // Presentación local del campo (saco en la cabeza y lugar de
     // plantado): sobre la selección fresca de este tick, y la celda que
     // apunta el puntero (el Viewport traduce a mundo).
-    const world::ScenePixelMapper cells(scene_.cellPixelSize);
+    const world::ScenePixelMapper cells(scene().cellPixelSize);
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
+    // Dónde está cada NPC lo manda la fuente de estado (vista); sin eso,
+    // valen las celdas por defecto de npcs.toml.
+    const world::NpcCells npcCells = npcPlacements_.cellsFrom(state, scene());
 
     if (!state.entities.empty()) {
         const game::ViewEntity& local = state.entities[game::kLocalPlayerIndex];
@@ -473,7 +482,7 @@ void PlaySession::tick(int iteration) {
     // El mundo se dibuja con la vista "puesta": si el jugador está
     // metido en un elemento, en su pose (presentación local; ver
     // EnterSelection). Encima, la capa frontal que lo tapa.
-    renderer_.drawWorld(scene_, presentation, motion_, actionResolver_, iteration,
+    renderer_.drawWorld(scene(), presentation, motion_, actionResolver_, iteration,
                         camera_.viewport(), dayPhase_.phase());
     drawEnteredFront(presentation, cells);
     drawPlantingMarker(cells);
@@ -488,7 +497,7 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         const world::PixelRect entityBox =
-                motion_.drawBoxFor(entity, i, iteration, scene_.cellPixelSize);
+                motion_.drawBoxFor(entity, i, iteration, scene().cellPixelSize);
         dialogPainter_.draw(dialogCatalog_, *entity.indication, entityBox,
                             dialogAnimator_.animationTickFor(entity, iteration),
                             camera_.viewport());
@@ -529,7 +538,10 @@ void PlaySession::tick(int iteration) {
                 stats_.at(game::StatKind::Life).fraction();
     }
     hudOverlayPainter_.draw(hudFillValues);
-    hudOverlayPainter_.drawLabels(dayPhase_.clockValues());
+    // Valores crudos de las etiquetas: el reloj y la plata (la manda la fuente).
+    std::map<std::string, int> hudValues = dayPhase_.clockValues();
+    hudValues[game::kHudGoldKey] = state.gold;
+    hudOverlayPainter_.drawLabels(hudValues);
     // Abierto: historial + tipeo (el cursor parpadea con el tick).
     // Cerrado: el preview atenuado, que se apaga solo.
     if (input_.chatOpen()) {
@@ -539,11 +551,13 @@ void PlaySession::tick(int iteration) {
         chatPainter_.drawPreview(state.chatLog);
     }
     drawPopup(popupBox);
+    drawNpcPopup();
+    drawMarketCatalog();
 
     // El puntero: la variante la decide el estado de juego (si hay algo
     // interactivo bajo el cursor); el painter solo dibuja.
     const game::PickTarget target =
-            picker_.pick(worldCursor, state, motion_, iteration, scene_.cellPixelSize);
+            picker_.pick(worldCursor, state, motion_, iteration, scene().cellPixelSize);
 
     // El click sobre algo interactivo manda la intención de tomarlo; el
     // resto (piso, rocas, nada) cae al uso de herramienta hacia esa
@@ -553,39 +567,94 @@ void PlaySession::tick(int iteration) {
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
-        // El botón de cancelar del popup "Esperando..." sale de la cama
-        // (el server borra el OK de este jugador). Un muerto no cancela.
-        if (popupState_.view() == game::PopupView::Waiting &&
-            popupState_.waitingCancelable() &&
-            promptLayout_.buttonAt(world::kPromptCancelButton, popupBox,
-                                   world::PixelPoint{click.x, click.y})) {
-            gameClient_.sendCommand(protocol::SleepMessage{false});
-            voted_ = false;
+        // El popup de un NPC o el del catálogo se cierra con cualquier click.
+        if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
+            npcPopup_ = nullptr;
+            marketPopup_.close();
+            continue;
+        }
+        const world::PixelPoint screenClick{click.x, click.y};
+        const game::PopupView view = popupState_.view();
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+
+        // El botón de cancelar de los popups de espera (sueño y regalo)
+        // reutiliza el botón del layout. Cancelar el regalo solo cierra a
+        // nivel dibujo: la consecuencia la decidirá el server.
+        const bool cancelShown = view == game::PopupView::GiftWaiting ||
+                                 (view == game::PopupView::Waiting &&
+                                  popupState_.waitingCancelable());
+        if (cancelShown &&
+            !prompt.button.empty() &&
+            promptLayout_.buttonAt(prompt.button, popupBox, screenClick)) {
+            if (view == game::PopupView::Waiting) {
+                gameClient_.sendCommand(protocol::SleepMessage{false});
+                voted_ = false;
+            }
             popupState_.hide();
             continue;
         }
-        // El popup con la pregunta está encima de todo: sus opciones se
-        // resuelven primero (coords de pantalla: es HUD), con las
-        // MISMAS cajas que se dibujan. Sí (índice 0) confirma dormir; No
-        // sale de la cama.
-        if (popupState_.view() == game::PopupView::Question) {
-            const int option =
-                    promptLayout_.optionAt(popupBox, world::PixelPoint{click.x, click.y});
+
+        // Las preguntas (sueño, ofrecer regalo, aceptar regalo) usan las
+        // MISMAS cajas que se dibujan.
+        if (view != game::PopupView::Hidden && !prompt.options.empty()) {
+            const int option = promptLayout_.optionAt(
+                    popupBox, screenClick, prompt);
             if (option >= 0) {
-                voted_ = option == 0;
-                gameClient_.sendCommand(protocol::SleepMessage{voted_});
-                if (voted_) {
-                    popupState_.showWaiting(lastSleeping_, lastTotal_);
-                } else {
+                if (view == game::PopupView::Question) {
+                    voted_ = option == 0;
+                    gameClient_.sendCommand(protocol::SleepMessage{voted_});
+                    if (voted_) {
+                        popupState_.showWaiting(lastSleeping_, lastTotal_);
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftOffer) {
+                    // Sí manda la intención (Take con la mano, igual que
+                    // cualquier interact): el server dispara el pedido de
+                    // regalo hacia el otro jugador. No: solo cierra.
+                    if (option == 0) {
+                        player_.interact();
+                        popupState_.showGiftWaiting();
+                    } else {
+                        popupState_.hide();
+                    }
+                } else if (view == game::PopupView::GiftReceived) {
+                    // La respuesta va al emisor del pedido (si el popup no
+                    // lo abrió la red, no hay a quién contestarle).
                     popupState_.hide();
+                    if (pendingGiftSenderId_.has_value()) {
+                        gameClient_.sendCommand(protocol::GiftResponseMessage{
+                                *pendingGiftSenderId_, option == 0});
+                        pendingGiftSenderId_.reset();
+                        if (option == 0) {
+                            giftThanksActive_ = true;
+                            giftThanksTicks_ = 0;
+                        }
+                    }
                 }
                 continue;
             }
         }
+
         // Modal: con el popup abierto el mundo está bloqueado; el resto
         // de los clicks no hace nada (se drenan para que no se disparen
         // en cascada al cerrar).
         if (popupState_.modal()) {
+            continue;
+        }
+        // Un NPC: abre su popup y consume el click.
+        if (const world::NpcDef* npc = npcCatalog_.npcAt(sceneSwitcher_.id(), worldClick,
+                                                         scene().cellPixelSize, npcCells);
+            npc != nullptr) {
+            if (!npc->hasPopup()) {
+                // Objeto animado (cofre): el click lo abre o lo cierra.
+                props_.toggle(npc->id, static_cast<int>(npc->body.frames.size()),
+                              npc->body.frameTicks, iteration);
+                continue;
+            }
+            npcPopup_ = npc;
+            // Con quién hablé: B abre SU catálogo (hasta que el chat lo pida).
+            lastNpcId_ = npc->id;
             continue;
         }
         // La cama. Caminar hasta ella lo decide EnterSelection; el popup
@@ -600,8 +669,23 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
+        // Un edificio del editor: lejos no hace nada (como la cama),
+        // y en ambos casos el click se consume.
+        const game::StructureClick structureClick = structureSelection_.clickAt(worldClick, state);
+        if (structureClick.hit) {
+            if (structureClick.inRange) {
+                runStructureAction(*structureClick.structure);
+            }
+            continue;
+        }
         const game::PickTarget clicked =
-                picker_.pick(worldClick, state, motion_, iteration, scene_.cellPixelSize);
+                picker_.pick(worldClick, state, motion_, iteration, scene().cellPixelSize);
+        // Otro jugador: ofrecer un regalo. El click no dispara la
+        // herramienta ni la interacción.
+        if (isGiftTarget(clicked, state)) {
+            popupState_.showGiftOffer();
+            continue;
+        }
         if (clicked.kind != game::PickTarget::Kind::None && isInteractive(clicked, state)) {
             player_.interact();
             continue;
@@ -610,58 +694,49 @@ void PlaySession::tick(int iteration) {
     }
 
     // El puntero: mientras el popup es modal, el mundo está bloqueado y
-    // solo es apretable lo del popup (las opciones de la pregunta o el
-    // botón de cancelar).
+    // solo es apretable lo del popup (las opciones o el botón de su
+    // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
-    bool interactive = isInteractive(target, state) || enterSelection_.hits(worldCursor, state);
+    world::CursorKind cursorKind = world::CursorKind::Normal;
+    // Con el popup de un NPC o del catálogo abierto el mundo está bloqueado.
+    const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen();
     if (popupState_.modal()) {
-        interactive = (popupState_.view() == game::PopupView::Question &&
-                       promptLayout_.optionAt(popupBox, mousePoint) >= 0) ||
-                      (popupState_.view() == game::PopupView::Waiting &&
-                       popupState_.waitingCancelable() &&
-                       promptLayout_.buttonAt(world::kPromptCancelButton, popupBox, mousePoint));
+        const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+        bool overPopup = false;
+        if (!prompt.options.empty()) {
+            overPopup = promptLayout_.optionAt(
+                    popupBox, mousePoint, prompt) >= 0;
+        } else if (!prompt.button.empty() &&
+                   (popupState_.view() != game::PopupView::Waiting ||
+                    popupState_.waitingCancelable())) {
+            overPopup = promptLayout_.buttonAt(prompt.button, popupBox, mousePoint);
+        }
+        cursorKind = overPopup ? world::CursorKind::Interactive : world::CursorKind::Normal;
+    } else if (!worldBlocked && isGiftTarget(target, state)) {
+        cursorKind = world::CursorKind::Gift;
+    } else if (!worldBlocked &&
+               (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
+                structureSelection_.hits(worldCursor, state) ||
+                npcCatalog_.npcAt(sceneSwitcher_.id(), worldCursor, scene().cellPixelSize,
+                                  npcCells) != nullptr)) {
+        cursorKind = world::CursorKind::Interactive;
     }
-    cursorPainter_.draw(cursorCatalog_,
-                        interactive ? world::CursorKind::Interactive : world::CursorKind::Normal,
-                        input_.mousePosition());
+    cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
     sdlContext_.present();
 }
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
-    // Primero la pose de "meterse" (EnterSelection) y encima los
-    // overrides locales: la ventana de acción (demo de daño recibido),
-    // los charcos de sangre (demo) y el desmayo, que manda sobre todo
-    // lo demás.
+    // Primero la pose de "meterse" (EnterSelection) y encima el
+    // agradecimiento local del regalo.
     game::LocalWorldView display = enterSelection_.displayView(view);
-    if (actionWindow_.active() && !display.entities.empty() &&
-        display.entities[game::kLocalPlayerIndex].action != world::ActionKind::Faint) {
-        // Ventana de acción local: su acción manda hasta que se suelte
-        // (presentación local; la fuente la mandará tal cual). No pisa
-        // el desmayo que llegó por red: la fuente manda.
-        display.entities[game::kLocalPlayerIndex].action = actionWindow_.action();
-    }
-    // Los charcos de sangre (ANDAMIAJE) entran como consecuencia de
-    // terreno: así se dibujan bajo las entidades (el personaje pisa el
-    // charco) y mañana la fuente los manda tal cual. Solo los vivos:
-    // los vencidos ya salieron del estado.
-    for (const BloodPuddle& puddle : bloodPuddles_) {
-        display.groundEffects.push_back(game::ViewGroundEffect{
-            puddle.cell.column, puddle.cell.row,
-            world::GroundConsequence::Blood});
-    }
-    if (!faintRequested_ || display.entities.empty()) {
+    if (display.entities.empty()) {
         return display;
     }
     game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
-    local.action = world::ActionKind::Faint;
-    local.facing = world::Direction::Front;
-    local.moving = false;
-    // Las Z aparecen recién cuando la caída mostró todas sus poses. La
-    // duración sale de los MISMOS datos de la acción (contrato §10), no
-    // de una constante duplicada.
-    const world::CreatureData& creature = characters_.dataFor(local.kind);
-    if (faintFallTicks_ >= creature.actionCycleTicks(world::ActionKind::Faint)) {
-        local.indication = world::Indication::NoEnergy;
+    // El agradecimiento del regalo es presentación local mientras el
+    // server no mande la indicación.
+    if (giftThanksActive_) {
+        local.indication = world::Indication::GiftThanks;
     }
     return display;
 }
@@ -684,18 +759,44 @@ void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
     if (!front.has_value()) {
         return;
     }
-    renderer_.drawElementFront(scene_, scene_.elements[front->elementIndex], cells,
+    renderer_.drawElementFront(scene(), scene().elements[front->elementIndex], cells,
                                camera_.viewport(), front->firstRow, front->lastRow);
+}
+
+void PlaySession::runStructureAction(const world::SceneStructure& structure) {
+    const auto action = structureActions_.find(structure.action);
+    if (action != structureActions_.end()) {
+        (this->*(action->second))(structure.target);
+    }
+}
+
+void PlaySession::openStructurePopup(const std::string& npcId) {
+    npcPopup_ = npcCatalog_.find(npcId);
+}
+
+void PlaySession::enterStructureMap(const std::string& mapId) {
+    if (sceneSwitcher_.knows(mapId)) {
+        sceneTransition_.changeTo(mapId);
+    }
 }
 
 void PlaySession::changeScene(const std::string& room) {
     // El cambio en el negro de la transición: cambia QUÉ escena se
     // pinta (el dibujo es el mismo). La posición del personaje y todo
-    // lo demás lo sigue mandando la fuente de estado por la vista.
-    scene_ = world::SceneConfigLoader().loadFromFile(core::assetPath(core::kScenesFile), room);
-    renderer_.prepareScene(scene_);
-    enterSelection_.reindex(scene_, scene_.cellPixelSize);
-    camera_.setWorldBounds(world::ScenePixelMapper(scene_.cellPixelSize).worldBounds(scene_.grid));
+    // lo demás lo sigue mandando la fuente de estado por la vista. De
+    // dónde sale la escena lo resuelve SceneSwitcher; esto solo aplica
+    // el resultado a quienes la usan.
+    sceneSwitcher_.switchTo(room);
+    const world::SceneDescription& current = sceneSwitcher_.scene();
+    npcPopup_ = nullptr;
+    lastNpcId_.clear();
+    marketPopup_.close();
+    renderer_.prepareScene(current);
+    renderer_.setNpcs(npcCatalog_.forRoom(room));
+    enterSelection_.reindex(current, current.cellPixelSize);
+    structureSelection_.reindex(current, current.cellPixelSize);
+    camera_.setWorldBounds(
+            world::ScenePixelMapper(current.cellPixelSize).worldBounds(current.grid));
 }
 
 void PlaySession::drawPopup(const world::PixelBox& panel) {
@@ -709,7 +810,11 @@ void PlaySession::drawPopup(const world::PixelBox& panel) {
     }
     inventoryHud_.drawPanel(panel, promptLayout_.grid.columns, promptLayout_.grid.rows);
     const world::PixelPoint mouse{input_.mousePosition().x, input_.mousePosition().y};
-    promptPainter_.draw(popupState_, promptLayout_.optionAt(panel, mouse), panel);
+    const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
+    const int hovered = prompt.options.empty()
+            ? -1
+            : promptLayout_.optionAt(panel, mouse, prompt);
+    promptPainter_.draw(popupState_, hovered, panel);
 }
 
 void PlaySession::closeChat() {
@@ -727,13 +832,59 @@ void PlaySession::eraseLastCodepoint(std::string& text) {
     text.erase(it, text.end());
 }
 
+void PlaySession::drawNpcPopup() {
+    // Mismo panel que el popup del inventario, con la grilla y el
+    // contenido que declara el NPC.
+    if (npcPopup_ == nullptr) {
+        return;
+    }
+    const world::GridSpan grid = npcPopup_->popup.grid;
+    const world::PixelBox panel = inventory_.centeredBox(
+            sdlContext_.width(), sdlContext_.height(), grid.columns, grid.rows);
+    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
+    npcPopupPainter_.draw(*npcPopup_, panel);
+}
+
+void PlaySession::openMarketOfSpokenNpc() {
+    // El catálogo solo existe en el mercado y es el del último comerciante
+    // con el que se habló; sin comerciante (o sin catálogo) no abre nada.
+    if (sceneSwitcher_.id() != core::kMarketRoom || lastNpcId_.empty()) {
+        return;
+    }
+    const int setCount = marketCatalog_.defaultSetCount(lastNpcId_);
+    marketPopup_.open(world::MarketOffer{
+            lastNpcId_,
+            marketCatalog_.defaultEntries(lastNpcId_, marketCycle_.current() % setCount)});
+}
+
+void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
+    // El catálogo que pide la fuente de estado. Mientras haya un popup abierto
+    // (catálogo, NPC o sueño) no se toca nada: la oferta se ignora.
+    if (!view.marketOffer.has_value() || sceneSwitcher_.id() != core::kMarketRoom ||
+        npcPopup_ != nullptr || marketPopup_.isOpen() || popupState_.modal()) {
+        return;
+    }
+    marketPopup_.open(*view.marketOffer);
+}
+
+void PlaySession::drawMarketCatalog() {
+    if (!marketPopup_.isOpen()) {
+        return;
+    }
+    const world::GridSpan grid = marketPopup_.panelGrid();
+    const world::PixelBox panel = marketPopup_.panel(sdlContext_.width(), sdlContext_.height());
+    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
+    marketPopupPainter_.draw(marketCatalog_.style(), marketPopup_.sections(), panel,
+                             inventory_.content);
+}
+
 void PlaySession::updateCamera(const game::LocalWorldView& view, const game::ViewMotion& motion,
                                int iteration) {
     if (view.entities.empty()) {
         return;
     }
     camera_.follow(motion.drawBoxFor(view.entities[game::kLocalPlayerIndex],
-                                     game::kLocalPlayerIndex, iteration, scene_.cellPixelSize));
+                                     game::kLocalPlayerIndex, iteration, scene().cellPixelSize));
 }
 
 bool PlaySession::isInteractive(const game::PickTarget& target,
@@ -749,6 +900,29 @@ bool PlaySession::isInteractive(const game::PickTarget& target,
         return view.plantedCrops[target.index].interactive;
     }
     return false;
+}
+
+bool PlaySession::isGiftTarget(const game::PickTarget& target,
+                               const game::LocalWorldView& view) const {
+    // "Otro humano como nosotros, pero NO nosotros": mismo tipo Player y
+    // un índice distinto del local. Lo decide la vista, no el render.
+    if (target.kind != game::PickTarget::Kind::Entity ||
+        target.index == game::kLocalPlayerIndex ||
+        target.index >= view.entities.size()) {
+        return false;
+    }
+    if (view.entities[target.index].kind != world::CreatureKind::Player) {
+        return false;
+    }
+    // Solo se ofrece con algo transferible en el casillero activo: lo dice
+    // el servidor (slot.tradable); con una herramienta o el casillero vacío
+    // no se arma el pedido y el emisor quedaría esperando en vano.
+    const int slot = player_.activeSlot();
+    const auto held = std::find_if(view.inventory.begin(), view.inventory.end(),
+                                   [slot](const game::ViewInventorySlot& inventorySlot) {
+                                       return inventorySlot.slotIndex == slot;
+                                   });
+    return held != view.inventory.end() && held->tradable;
 }
 
 }  // namespace core

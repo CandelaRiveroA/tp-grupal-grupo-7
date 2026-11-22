@@ -2,6 +2,7 @@ target_sources(taller_tests
     PRIVATE
     # .cpp files
     character_layers.cpp
+    chat_test.cpp
     index_cycle.cpp
     invite_code_format.cpp
     matches_monitor_test.cpp
@@ -24,11 +25,14 @@ target_sources(taller_tests
     ../server/commands/pick_command.cpp
     ../server/commands/take_command.cpp
     ../server/commands/sleep_command.cpp
+    ../server/commands/chat_command.cpp
+    ../server/commands/gift_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
     ../server/domain/inventory/decoration_item.cpp
     ../server/domain/inventory/slot.cpp
     ../server/domain/inventory/inventory.cpp
+    ../server/domain/inventory/tool.cpp
     ../server/domain/entities/player.cpp
     ../server/domain/entities/i_entity.cpp
     ../server/domain/entities/i_movable.cpp
@@ -78,6 +82,16 @@ target_sources(taller_tests
     prefab_catalog_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
+    scene_switcher_test.cpp
+    world_map_loader_test.cpp
+    map_scene_adapter_test.cpp
+    tile_layer_layout_test.cpp
+    depth_order_test.cpp
+    npc_placement_resolver_test.cpp
+    structure_selection_test.cpp
+    real_overlay_assets_test.cpp
+    furniture_layout_test.cpp
+    real_editor_world_test.cpp
     audio_catalog_test.cpp
     sound_gate_test.cpp
     sound_cue_catalog_test.cpp
@@ -134,6 +148,7 @@ target_sources(taller_tests
     startup_sequence_test.cpp
     logger.cpp
     farming_test.cpp
+    player_economy_gift_test.cpp
     # IndexCycle y CharacterLayers no tienen dependencias (ni Qt): el target
     # de tests los compila directo en vez de linkear el cliente.
     ${PROJECT_SOURCE_DIR}/client/qt/util/CharacterLayers.cpp

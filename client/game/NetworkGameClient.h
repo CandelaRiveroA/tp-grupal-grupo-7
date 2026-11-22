@@ -57,6 +57,7 @@ private:
         int maxHealth = 0;
         int energy = 0;      // x100
         int maxEnergy = 0;  // x100
+        bool fainted = false;  // desmayado por falta de energía
         // Reacción al daño: la enciende el flanco de health en
         // ServerStatus (bajó = titilación con ventana; 0 = desmayo, se
         // queda tirado hasta que la vida vuelva a subir). Mismo dato y
@@ -133,6 +134,7 @@ private:
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;
     std::vector<ViewCrop> crops_;
+    std::vector<ViewFurniture> furniture_;
     std::vector<ViewGroundEffect> groundEffects_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;
@@ -142,6 +144,8 @@ private:
     std::vector<ServerMessage> batch_;
     // Eventos llegados desde el último update(); update() los pasa a view_.obtained.
     std::vector<ViewObtained> obtained_;
+    // Pedido de regalo desde el último update(); update() lo pasa a view_.giftRequest.
+    std::optional<ViewGiftRequest> giftRequest_;
     LocalWorldView view_;
 };
 

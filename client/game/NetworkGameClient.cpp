@@ -7,6 +7,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <utility>
 #include <variant>
 
 #include <sys/socket.h>
@@ -94,11 +95,9 @@ void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
 }
 
 void NetworkGameClient::sendChat(const std::string& text) {
-    // Eco local: el día que el server reparta el mensaje hay que sacarlo
-    // o se ve dos veces.
-    view_.addChatLine(ViewChatLine{localPlayerId_, kLocalPlayerName, text});
-
-    // TODO(protocolo): acá viaja el texto cuando el protocolo lo conecte.
+    // El servidor reparte el mensaje (broadcast o privado) y lo devuelve en un
+    // ServerChat: no hacemos eco local para no verlo dos veces.
+    commands_.push(protocol::ChatMessage{text});
 }
 
 void NetworkGameClient::receiveChat(const std::uint8_t playerId,
@@ -180,6 +179,13 @@ void NetworkGameClient::startPickup() {
 }
 
 void NetworkGameClient::apply(const ServerMessage& message) {
+    // El chat es un evento, no estado: se aplica ya (fuera del lote).
+    if (const auto* chat = std::get_if<ServerChat>(&message)) {
+        receiveChat(chat->player_id,
+                    chat->system ? std::string("Servidor") : chat->characterName,
+                    chat->text);
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {
@@ -210,6 +216,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         resources_.clear();
         dropped_.clear();
         crops_.clear();
+        furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
@@ -328,20 +335,23 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // cualquier reacción (y un joiner con la vida ya completa no
         // arranca en reaction de nadie).
         const int previousHealth = player.health;
+        const bool previousFainted = player.fainted;
         player.health = status->health;
         player.maxHealth = status->max_health;
         player.energy = status->energy;
         player.maxEnergy = status->max_energy;
-        if (status->health == 0) {
+        player.fainted = (status->fainted != 0);
+        if (status->health == 0 || player.fainted) {
             player.reaction = world::ActionKind::Faint;
+            player.reactionRemaining = 0;
+        } else if (previousFainted || status->health > previousHealth) {
+            // Despertó o revivió: limpia el desmayo (y el daño no cuenta).
+            player.reaction = world::ActionKind::Idle;
             player.reactionRemaining = 0;
         } else if (status->health < previousHealth) {
             player.reaction = world::ActionKind::Damage;
             player.reactionRemaining = characters_->dataFor(world::CreatureKind::Player)
                                               .actionCycleTicks(world::ActionKind::Damage);
-        } else if (status->health > previousHealth) {
-            player.reaction = world::ActionKind::Idle;
-            player.reactionRemaining = 0;
         }
         return;
     }
@@ -379,6 +389,11 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
                 resourceStateFor(resource->damage)};
         return;
     }
+    if (const auto* furniture = std::get_if<ServerFurniture>(&message)) {
+        furniture_.push_back(
+                ViewFurniture{furniture->content_id, furniture->x, furniture->y});
+        return;
+    }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
         const ServerDropped& drop = *dropped;
         dropped_.push_back(ViewDroppedItem{drop.content_id, drop.x, drop.y, drop.interactive});
@@ -388,7 +403,8 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         if (slot->count == 0) {
             inventory_.erase(slot->slot);
         } else {
-            inventory_[slot->slot] = ViewInventorySlot{slot->slot, slot->content_id, slot->count};
+            inventory_[slot->slot] =
+                    ViewInventorySlot{slot->slot, slot->content_id, slot->count, slot->tradable};
         }
         return;
     }
@@ -396,6 +412,20 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // El evento de obtención viaja por content_id (vocabulario
         // genérico): el view lo refleja tal cual.
         obtained_.push_back(ViewObtained{obtained->content_id});
+        return;
+    }
+    if (const auto* gift = std::get_if<ServerGiftRequest>(&message)) {
+        // Pedido de regalo: evento (no estado), como Obtained. Lo consume
+        // PlaySession en el mismo tick y contesta con GiftResponseMessage.
+        // shortcut: si llegan dos pedidos en el mismo tick pisa el anterior
+        // (el primer emisor queda esperando); pasar a cola cuando dos
+        // regalos simultáneos dejen de ser un caso raro.
+        giftRequest_ = ViewGiftRequest{gift->sender_id, gift->characterName};
+        return;
+    }
+    if (std::holds_alternative<ServerGiftAnswered>(message)) {
+        // El receptor contestó: PlaySession cierra su popup de espera.
+        view_.giftAnswered = true;
         return;
     }
     if (const auto* used = std::get_if<ServerToolUsed>(&message)) {
@@ -432,6 +462,7 @@ void NetworkGameClient::update(int) {
     view_.resourceHits.clear();
     view_.dayEnded = false;
     view_.dayChanged = false;
+    view_.giftAnswered = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -496,6 +527,7 @@ void NetworkGameClient::update(int) {
     }
     view_.droppedItems = dropped_;
     view_.plantedCrops = crops_;
+    view_.placedFurniture = furniture_;
     view_.groundEffects = groundEffects_;
     for (const auto& entry: animals_) {
         view_.entities.push_back(entry.second);
@@ -514,6 +546,7 @@ void NetworkGameClient::update(int) {
         view_.playerMaxHealth = localIt->second.maxHealth;
         view_.playerEnergy = localIt->second.energy;
         view_.playerMaxEnergy = localIt->second.maxEnergy;
+        view_.playerFainted = localIt->second.fainted;
     }
     session_.advance();
     if (!view_.entities.empty()) {
@@ -525,6 +558,7 @@ void NetworkGameClient::update(int) {
     }
     view_.obtained = std::move(obtained_);
     obtained_.clear();
+    view_.giftRequest = std::exchange(giftRequest_, std::nullopt);
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }

@@ -19,6 +19,12 @@ class Animal;
 class Enemy;
 class Crop;
 
+struct GiftOffer {
+    uint8_t sender_id;
+    uint8_t receiver_id;
+    ItemID item;
+};
+
 class World {
 private:
     uint16_t width;
@@ -44,6 +50,8 @@ private:
     // cuando un jugador queda por debajo del 20 % de vida y los consumen los
     // vampiros al morir. La posición queda para un futuro render.
     std::vector<std::pair<uint16_t, uint16_t>> blood_puddles;
+    // Emisor de un pedido de regalo ya contestado (los consume Match).
+    std::vector<uint8_t> gift_answers;
 
     // Sueño: jugadores en la cama (sleepers) y los que ya dieron OK
     // (accepted). accepted ⊆ sleepers, así que vaciar sleepers vacía
@@ -63,6 +71,9 @@ private:
     bool day_started;
     // Día de juego: de 1 a 28, después del 28 vuelve al 1.
     uint8_t day;
+    // Para manejo de regalos
+    std::vector<GiftOffer> pending_gifts;
+
     // TODO: Persistencia del inventario del jugador.
 
     // Diccionario de jugadores activos en este mapa (por ID de cliente/jugador)
@@ -82,6 +93,7 @@ public:
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
     const Player& get_player(uint8_t player_id) const;
+    Player& get_player(uint8_t player_id);
     std::vector<uint8_t> get_player_ids() const;
 
     uint16_t get_width() const;
@@ -204,6 +216,7 @@ public:
     void clear_sleep();
     void set_player_position(uint8_t player_id, uint16_t x, uint16_t y);
     void kill_player(uint8_t player_id);
+    void faint_player(uint8_t player_id);
     void reset_player_for_day(uint8_t player_id);
     void mark_all_fainted_by_timeout();
 
@@ -216,6 +229,15 @@ public:
     // true una sola vez por transición. Los consume Match.
     bool take_day_ended();
     bool take_day_started();
+
+    //funcion para avisar del regalo de un item a otro jugador
+    void notify_gift_request(uint8_t sender_id, uint8_t receiver_id, ItemID item_id);
+    // El receptor contestó (acepte o no): Match lo manda como
+    // ServerGiftAnswered para que el emisor cierre su popup de espera.
+    void notify_gift_answered(uint8_t sender_id);
+    void process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id);
+    std::vector<GiftOffer> take_gift_requests();
+    std::vector<uint8_t> take_gift_answers();
 
 private:
     void try_advance_sleep();

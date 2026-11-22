@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "world/AnchorLayout.h"
+#include "world/WorldConstants.h"
 
 namespace world {
 
@@ -128,6 +129,14 @@ PixelBox InventoryLayout::gridBox(const int columns, const int rows) const {
 	box.height = rows * slotDrawHeight() + (rows - 1) * gapPx() +
 		     2 * slotInset();
 	return box;
+}
+
+int InventoryLayout::rowsFitting(const int heightPx) const {
+	int rows = 1;
+	while (rows < kMaxPanelRows && gridBox(1, rows).height < heightPx) {
+		++rows;
+	}
+	return rows;
 }
 
 FrameLayout InventoryLayout::frameLayout(const PixelBox& box) const {

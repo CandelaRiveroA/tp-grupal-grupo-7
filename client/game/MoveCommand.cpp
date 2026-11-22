@@ -10,8 +10,8 @@ protocol::ClientMessage MoveCommand::use(world::Direction direction, int slot) c
     return protocol::PickMessage{world::wireDirectionFrom(direction), static_cast<uint8_t>(slot)};
 }
 
-protocol::ClientMessage MoveCommand::take(world::Direction direction) const {
-    return protocol::TakeMessage{world::wireDirectionFrom(direction)};
+protocol::ClientMessage MoveCommand::take(world::Direction direction, int slot) const {
+    return protocol::TakeMessage{world::wireDirectionFrom(direction), static_cast<uint8_t>(slot)};
 }
 
 }  // namespace game

@@ -10,6 +10,8 @@
 
 #include "domain/map/world.h"
 
+#include "commands/chat_command.h"
+
 #include "common_command.h"
 #include "common_queue.h"
 #include "common_server_status.h"
@@ -28,6 +30,9 @@ struct PlayerJoined {
     std::shared_ptr<Queue<ServerMessage>> statuses;
     // Personalizacion del personaje que mando al entrar (MatchRequest).
     CharacterAppearance appearance;
+    // Nombre del personaje (único por partida): el que se muestra en el chat
+    // y contra el que se resuelve el '@' de los mensajes privados.
+    std::string characterName;
 };
 
 struct PlayerLeft {
@@ -80,6 +85,9 @@ private:
     World world;
     DayClock clock;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
+    // Nombre de personaje por jugador (para mostrar en el chat y resolver '@').
+    std::map<uint8_t, std::string> character_names;
+    ChatRouter chat_router;
     WorldView views;
     // Último ServerSleep enviado: solo se manda si cambió.
     uint8_t sleeping_sent;
@@ -90,6 +98,7 @@ private:
 
     void handle(const PlayerJoined& joined);
     void handle(const PlayerMessage& event);
+    void handle_chat(uint8_t player_id, const std::string& text);
     void handle(const PlayerLeft& left);
     void handle(const DayPassed& day);
     void handle(const CreatureTick& tick);

@@ -130,6 +130,7 @@ void World::move_player(uint8_t player_id, Direction dir) {
 }
 
 const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }
+Player& World::get_player(uint8_t player_id) { return *this->players.at(player_id); }
 
 std::vector<uint8_t> World::get_player_ids() const {
     std::vector<uint8_t> ids;
@@ -533,7 +534,7 @@ void World::apply_consume_energy(uint8_t player_id, float amount) {
     Player& p = *this->players.at(player_id);
     p.consume_energy(amount);
     if (p.is_energy_depleted()) {
-        this->kill_player(player_id);
+        this->faint_player(player_id);
     }
 }
 
@@ -647,6 +648,22 @@ void World::take_item(uint8_t player_id) {
             ent->interact(p, ToolType::HAND, *this);
         }
     }
+
+    // Otro jugador en la celda propia o en las 8 vecinas: pide el regalo del
+    // ítem equipado (Player::interact). Los jugadores no son entidades de la
+    // celda (viven solo en players), así que se los recorre a mano, con el
+    // mismo radio que los animales y los huevos.
+    for (const auto& [id, other]: this->players) {
+        if (id == player_id) {
+            continue;
+        }
+        const int dx = other->get_x() - p.get_x();
+        const int dy = other->get_y() - p.get_y();
+        if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+            other->interact(p, ToolType::HAND, *this);
+            return;
+        }
+    }
 }
 
 void World::dry_soil() {
@@ -732,6 +749,15 @@ void World::kill_player(uint8_t player_id) {
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
 }
 
+void World::faint_player(uint8_t player_id) {
+    Player& player = *this->players.at(player_id);
+    // Desmayo por falta de energía: la vida queda intacta, pero el flujo
+    // (teletransporte a la cama, sueño no cancelable, penalización al
+    // amanecer) es el mismo que la muerte en combate. El cliente se entera
+    // por el flag `fainted` de Status (energía 0 es el disparador).
+    player.setFaintedByEnergy(true);
+    this->death_to_bed.emplace(player_id, kDeathToBedSteps);
+}
 bool World::tick_death_to_bed() {
     bool arrived = false;
     for (auto it = this->death_to_bed.begin(); it != this->death_to_bed.end();) {
@@ -746,7 +772,9 @@ bool World::tick_death_to_bed() {
         it = this->death_to_bed.erase(it);
         Player& player = *this->players.at(id);
         // Revivió (amaneció) mientras esperaba: no hay cama que buscar.
-        if (player.get_health() > 0) {
+        // Un desmayado conserva la vida, así que también hay que mirar el
+        // flag: si ya no está desmayado, saltearlo.
+        if (player.get_health() > 0 && !player.faintedByEnergy()) {
             continue;
         }
         player.set_position(20, 13);  // misma cama que kBedX/kBedY (match.cpp)
@@ -765,7 +793,7 @@ void World::mark_all_fainted_by_timeout() {
 
 void World::reset_player_for_day(uint8_t player_id) {
     Player& p = *this->players.at(player_id);
-    const bool penalized = p.diedInCombat() || p.faintedByTimeout();
+    const bool penalized = p.diedInCombat() || p.faintedByTimeout() || p.faintedByEnergy();
     const uint16_t new_hp = penalized ? static_cast<uint16_t>(p.get_max_health() / 2)
                                      : p.get_max_health();
     const float new_energy = penalized ? (p.get_max_energy() / 2.0f) : p.get_max_energy();
@@ -773,6 +801,7 @@ void World::reset_player_for_day(uint8_t player_id) {
     p.set_energy(new_energy);
     p.setDiedInCombat(false);
     p.setFaintedByTimeout(false);
+    p.setFaintedByEnergy(false);
 }
 
 
@@ -800,7 +829,8 @@ void World::answer_sleep(uint8_t player_id, bool accept) {
 
     if (!accept) {
         // Un jugador muerto no puede levantarse: se queda dormido hasta el amanecer.
-        if (this->players.at(player_id)->diedInCombat()) {
+        if (this->players.at(player_id)->diedInCombat() ||
+            this->players.at(player_id)->faintedByEnergy()) {
             this->accepted.insert(player_id);
             this->try_advance_sleep();
             return;
@@ -851,6 +881,36 @@ void World::try_start_day() {
     this->woke.clear();
     this->advance_day();
     this->day_started = true;
+}
+
+void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    this->pending_gifts.push_back({sender, receiver, item});
+}
+
+void World::notify_gift_answered(uint8_t sender_id) {
+    this->gift_answers.push_back(sender_id);
+}
+
+std::vector<GiftOffer> World::take_gift_requests() {
+    return std::move(this->pending_gifts);
+}
+
+std::vector<uint8_t> World::take_gift_answers() {
+    return std::move(this->gift_answers);
+}
+
+void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
+    auto sender_it = this->players.find(sender_id);
+    auto receiver_it = this->players.find(receiver_id);
+    
+    if (sender_it == this->players.end() || receiver_it == this->players.end()) {
+        return;
+    }
+
+    Player& sender = *sender_it->second;
+    Player& receiver = *receiver_it->second;
+
+    sender.finalize_gift_reception(receiver);
 }
 
 bool World::is_waking() const { return this->waking; }

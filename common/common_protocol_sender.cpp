@@ -70,6 +70,7 @@ void ProtocolSender::send_message(const protocol::TakeMessage& message) {
 
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Take));
     send_uint8(static_cast<uint8_t>(message.direction));
+    send_uint8(message.slot);
 }
 
 void ProtocolSender::send_message(const protocol::SleepMessage& message) {
@@ -79,6 +80,11 @@ void ProtocolSender::send_message(const protocol::SleepMessage& message) {
 
 void ProtocolSender::send_message(const protocol::WakeMessage& /*message*/) {
     send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Wake));
+}
+
+void ProtocolSender::send_message(const protocol::ChatMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Chat));
+    send_string(message.text);
 }
 
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
@@ -98,8 +104,8 @@ void ProtocolSender::send_message(const ServerStatus& status) {
     send_uint16(status.max_health);
     send_uint16(status.energy);
     send_uint16(status.max_energy);
+    send_uint8(status.fainted);
 }
-
 void ProtocolSender::send_message(const ServerLeave& leave) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Leave));
     send_uint8(leave.player_id);
@@ -126,6 +132,7 @@ void ProtocolSender::send_message(const ServerInventorySlot& slot) {
     send_uint8(slot.slot);
     send_uint8(slot.count);
     send_string(slot.content_id);
+    send_uint8(slot.tradable ? 1 : 0);
 }
 
 void ProtocolSender::send_message(const ServerObtained& obtained) {
@@ -243,6 +250,14 @@ void ProtocolSender::send_message(const ServerGroundEffect& ground) {
     send_uint8(static_cast<uint8_t>(ground.effect));
 }
 
+void ProtocolSender::send_message(const ServerChat& chat) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Chat));
+    send_uint8(chat.player_id);
+    send_string(chat.characterName);
+    send_string(chat.text);
+    send_uint8(chat.system ? 1 : 0);
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -263,4 +278,21 @@ void ProtocolSender::send_match_request(const MatchRequest& request) {
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {
     send_uint8(static_cast<uint8_t>(status));
+}
+
+void ProtocolSender::send_message(const protocol::GiftResponseMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::GiftResponse));
+    send_uint8(message.sender_id);
+    send_uint8(message.accept ? 1 : 0);
+}
+
+void ProtocolSender::send_message(const ServerGiftRequest& request) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GiftRequest));
+    send_uint8(request.sender_id);
+    send_string(request.characterName);
+    send_string(request.content_id);
+}
+
+void ProtocolSender::send_message(const ServerGiftAnswered& /*answered*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GiftAnswered));
 }

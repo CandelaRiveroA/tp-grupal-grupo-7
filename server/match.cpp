@@ -148,6 +148,7 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         sleeping_sent(0),
         total_sent(0),
         clock_minutes_sent(0) {
+    world.set_current_room(kRoomNumber);
     place_animals();
     world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
     place_minerals();
@@ -159,6 +160,7 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
 void Match::handle(const DayPassed& /*day*/) {
     world.mark_all_fainted_by_timeout();
     world.end_day();
+    flush_community_events();
     sync_day();
     push_sleep_state();
     sync_all();
@@ -169,11 +171,13 @@ void Match::handle(const CreatureTick& /*tick*/) {
         world.tick_animals();
         world.tick_enemies();
     }
+    flush_community_events();
     sync_all();
 }
 
 void Match::handle(const EnemyTick& /*tick*/) {
     if (world.is_waking()) {
+        flush_community_events();
         return;
     }
     // Solo sincroniza si algo cambió: hay llamas en vuelo o alguien persiguiendo.
@@ -188,6 +192,7 @@ void Match::handle(const EnemyTick& /*tick*/) {
     // es decir, recién cuando se mueve. Los dos deduplican solos.
     sync_day();
     push_sleep_state();
+    flush_community_events();
     if (flames_flying || someone_pursuing || arrived_at_bed) {
         sync_all();
     }
@@ -283,9 +288,20 @@ void Match::handle(const PlayerMessage& event) {
     for (const uint8_t answered : world.take_gift_answers()) {
         send_to(answered, ServerGiftAnswered{});
     }
+    flush_community_events();
     sync_day();
     push_sleep_state();
     sync_all();
+}
+
+void Match::flush_community_events() {
+    for (const uint8_t set_id: world.take_completed_sets()) {
+        broadcast(ServerSetCompleted{set_id});
+    }
+    if (world.take_victory()) {
+        broadcast(ServerVictory{});
+        broadcast(ServerChat{0, "", "El Centro Comunitario fue completado", true});
+    }
 }
 
 void Match::handle_chat(uint8_t player_id, const std::string& text) {

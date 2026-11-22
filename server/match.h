@@ -114,6 +114,7 @@ private:
     void broadcast_clock(uint16_t minutes);
     void sync_day();
     void closeOutputs();
+    void flush_community_events();
 
 public:
     Match(Queue<MatchEvent>& events, ServerOutputMonitor& output);

@@ -35,11 +35,25 @@ target_sources(taller_editor
 target_link_libraries(taller_editor PRIVATE taller_common taller_world_model
                       Qt6::Widgets)
 
-# Carpeta fija de presets de escenario, mundos guardados y assets.
+# Carpetas de presets de escenario, mundos guardados y assets. Se pueden
+# sobreescribir al configurar (p. ej. para una instalacion en /opt/taller)
+# pasando -DTALLER_INSTALL_*.
+if(NOT DEFINED TALLER_INSTALL_SCENARIOS_DIR)
+    set(TALLER_INSTALL_SCENARIOS_DIR "${CMAKE_SOURCE_DIR}/editor/scenarios")
+endif()
+if(NOT DEFINED TALLER_INSTALL_WORLDS_DIR)
+    set(TALLER_INSTALL_WORLDS_DIR "${CMAKE_SOURCE_DIR}/worlds")
+endif()
+if(NOT DEFINED TALLER_INSTALL_PREFABS_TOML)
+    set(TALLER_INSTALL_PREFABS_TOML "${CMAKE_SOURCE_DIR}/editor/prefabs.toml")
+endif()
+if(NOT DEFINED TALLER_INSTALL_ASSETS_DIR)
+    set(TALLER_INSTALL_ASSETS_DIR "${TALLER_ASSETS_DIR}")
+endif()
 target_compile_definitions(taller_editor PRIVATE
-    TALLER_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
-    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\"
-    TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
-    TALLER_ASSETS_DIR=\"${TALLER_ASSETS_DIR}\")
+    TALLER_SCENARIOS_DIR=\"${TALLER_INSTALL_SCENARIOS_DIR}\"
+    TALLER_WORLDS_DIR=\"${TALLER_INSTALL_WORLDS_DIR}\"
+    TALLER_PREFABS_TOML=\"${TALLER_INSTALL_PREFABS_TOML}\"
+    TALLER_ASSETS_DIR=\"${TALLER_INSTALL_ASSETS_DIR}\")
 
 set_target_properties(taller_editor PROPERTIES AUTOMOC ON)

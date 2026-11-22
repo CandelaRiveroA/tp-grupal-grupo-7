@@ -9,7 +9,10 @@
 #include "../map/world.h"
 
 Merchant::Merchant(uint16_t x, uint16_t y, std::string name):
-        IEntity(x, y), name(std::move(name)) {}
+        IEntity(x, y), name(std::move(name)), id() {}
+
+Merchant::Merchant(uint16_t x, uint16_t y, std::string name, std::string id):
+        IEntity(x, y), name(std::move(name)), id(std::move(id)) {}
 
 Merchant::Merchant(uint16_t x, uint16_t y, std::string name,
                    std::map<std::string, CatalogEntry> sell_catalog,
@@ -19,13 +22,29 @@ Merchant::Merchant(uint16_t x, uint16_t y, std::string name,
         sell_catalog(std::move(sell_catalog)),
         buy_catalog(std::move(buy_catalog)) {}
 
+Merchant::Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
+                   std::map<std::string, CatalogEntry> sell_catalog,
+                   std::map<std::string, ItemID> buy_catalog):
+        IEntity(x, y),
+        name(std::move(name)),
+        id(std::move(id)),
+        sell_catalog(std::move(sell_catalog)),
+        buy_catalog(std::move(buy_catalog)) {}
+
 bool Merchant::is_walkable() const { return false; }
 
 void Merchant::update(World& /*w*/) {}
 
 void Merchant::interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) {
-    // Al cliquearlo, el NPC saluda e indica los comandos disponibles.
-    // TODO: conectar con cola de mensajes de chat en World/Match.
+}
+
+const std::string& Merchant::get_id() const { return id; }
+const std::string& Merchant::get_name() const { return name; }
+const std::map<std::string, CatalogEntry>& Merchant::get_sell_catalog() const {
+    return sell_catalog;
+}
+const std::map<std::string, ItemID>& Merchant::get_buy_catalog() const {
+    return buy_catalog;
 }
 
 std::string Merchant::process_command(Player& p, const std::string& raw_command, World& w) {
@@ -34,22 +53,7 @@ std::string Merchant::process_command(Player& p, const std::string& raw_command,
     iss >> action;
 
     if (action == "/consultar_catalogo") {
-        std::ostringstream out;
-        out << "--- Catálogo de " << name << " ---\n";
-        if (!sell_catalog.empty()) {
-            out << "Vendo:\n";
-            for (const auto& [item_name, entry]: sell_catalog) {
-                out << " - " << item_name << ": " << entry.price << "g\n";
-            }
-        }
-        if (!buy_catalog.empty()) {
-            out << "Compro:\n";
-            for (const auto& [item_name, id]: buy_catalog) {
-                (void)id;
-                out << " - " << item_name << "\n";
-            }
-        }
-        return out.str();
+        return "";
     }
 
     std::string item_name;

@@ -23,11 +23,18 @@
 class Animal;
 class Enemy;
 class Crop;
+class Merchant;
 
 struct GiftOffer {
     uint8_t sender_id;
     uint8_t receiver_id;
     ItemID item;
+};
+
+struct MerchantPlacement {
+    std::string id;
+    uint16_t x;
+    uint16_t y;
 };
 
 class World {
@@ -41,6 +48,11 @@ private:
     // No poseen: los dueños son las celdas. Se mantienen para tick_enemies;
     // remove_entity también los saca de acá.
     std::vector<Enemy*> enemies;
+    // Comerciantes colocados en el mundo. Las celdas poseen los objetos.
+    std::vector<Merchant*> merchants;
+    // Último comerciante seleccionado por cada jugador al interactuar.
+    // Los comandos siguen limitados a las 8 celdas vecinas.
+    std::unordered_map<uint8_t, Merchant*> selected_merchants;
     // Próximo id de enemigo (lo ve el cliente para seguirlo entre mensajes).
     uint16_t next_enemy_id;
     // Llamas en vuelo (poseídas por el mundo, no por las celdas: no bloquean).
@@ -125,6 +137,11 @@ public:
 
     void add_animal(std::unique_ptr<Animal> animal);
     void add_enemy(std::unique_ptr<Enemy> enemy);
+    void place_merchant(std::unique_ptr<Merchant> merchant);
+    Merchant* get_nearest_merchant(uint8_t player_id) const;
+    std::vector<MerchantPlacement> get_merchant_placements() const;
+    Merchant* get_merchant_for_command(uint8_t player_id);
+    std::string process_merchant_command(uint8_t player_id, const std::string& text);
 
     // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 de (x, y).
     void spawn_orc_pack(uint16_t x, uint16_t y);

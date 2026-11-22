@@ -26,6 +26,9 @@ target_sources(taller_tests
     ../server/commands/take_command.cpp
     ../server/commands/sleep_command.cpp
     ../server/commands/chat_command.cpp
+    ../server/commands/cmd/player_commands.cpp
+    ../server/commands/cmd/community_commands.cpp
+    ../server/commands/cmd/merchant_commands.cpp
     ../server/commands/gift_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp

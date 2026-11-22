@@ -67,6 +67,10 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                     player.faintedByEnergy() ? 1u : 0u));
     }
 
+    for (const MerchantPlacement& placement: world.get_merchant_placements()) {
+        out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
+    }
+
     for (uint16_t y = 0; y < world.get_height(); ++y) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
             // El suelo no es entidad: su estado es la celda misma (Cell::soil_state).
@@ -140,6 +144,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               item->can_be_traded()});
         }
     }
+    out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
     out.push_back(ServerSyncEnd{});
     return out;

@@ -133,6 +133,10 @@ struct InventoryLayout {
 	// separaciones + el inset del marco).
 	PixelBox gridBox(int columns, int rows) const;
 
+	// Cantidad mínima de filas (al menos 1) cuya caja gridBox alcanza a
+	// contener `heightPx` de contenido. Usa gridBox, no repite su fórmula.
+	int rowsFitting(int heightPx) const;
+
 	std::vector<PixelBox> slotBoxesNatural(int windowWidth,
 					       int windowHeight) const;
 

@@ -16,6 +16,21 @@ struct InputCommand {
         SelectSlot,
         // Alterna entre caminar 1 y 2 celdas por movimiento.
         ToggleWalking,
+        // Cambio de escenario local (tecla M): alterna mercado y
+        // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
+        ToggleMarket,
+        // DEMO (tecla O): pasa a la escena siguiente (mapas del editor
+        // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
+        // GameClient. Se borra cuando el server mande el mapa.
+        CycleMap,
+        // DEMO (tecla B): abre el catálogo del mercado. Lo reemplaza el
+        // mensaje del server; borrar junto con su tecla. Lo consume
+        // PlaySession; NO viaja al GameClient.
+        OpenCatalog,
+        // DEMO (tecla N): rota el estilo del catálogo del comerciante. Lo
+        // consume PlaySession; NO viaja al GameClient. Se borra cuando el
+        // servidor rote los estilos.
+        NextMarketSet,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
         // muerte), de sus proyectiles (J avanzar, L desaparecer) y el

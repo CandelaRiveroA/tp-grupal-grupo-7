@@ -87,6 +87,16 @@ target_sources(taller_tests
     world_validator_test.cpp
     scene_config_loader_test.cpp
     scene_config_error_test.cpp
+    scene_switcher_test.cpp
+    world_map_loader_test.cpp
+    map_scene_adapter_test.cpp
+    tile_layer_layout_test.cpp
+    depth_order_test.cpp
+    npc_placement_resolver_test.cpp
+    structure_selection_test.cpp
+    real_overlay_assets_test.cpp
+    furniture_layout_test.cpp
+    real_editor_world_test.cpp
     audio_catalog_test.cpp
     sound_gate_test.cpp
     sound_cue_catalog_test.cpp

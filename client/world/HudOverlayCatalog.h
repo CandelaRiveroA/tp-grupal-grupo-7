@@ -90,6 +90,8 @@ struct HudLabel {
 	int boxWidth = 0;
 	int boxHeight = 0;
 	int fontSize = 0;
+	// Negrita (key opcional `bold`; default false).
+	bool bold = false;
 	Color color = Color{0, 0, 0, 255};
 	std::map<std::string, HudTokenFormat> tokens;
 };

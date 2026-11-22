@@ -64,6 +64,7 @@ target_sources(taller_client
     sdl/loop/GameLoop.cpp
     sdl/render/Renderer.cpp
     sdl/render/ElementPainter.cpp
+    sdl/render/TileLayerPainter.cpp
     sdl/render/EntityRenderer.cpp
     sdl/render/SheetCache.cpp
     sdl/render/SpriteSheet.cpp
@@ -82,6 +83,9 @@ target_sources(taller_client
     sdl/render/DialogPainter.cpp
     sdl/render/TextRenderer.cpp
     sdl/render/PromptPainter.cpp
+    sdl/render/NpcRenderer.cpp
+    sdl/render/NpcPopupPainter.cpp
+    sdl/render/MarketPopupPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
@@ -179,6 +183,10 @@ target_sources(taller_client
     game/ViewMotion.h
     game/WalkPacer.h
     game/ActionResolver.h
+    game/NpcPlacementResolver.h
+    game/MarketPopupState.h
+    game/MarketSetCycle.h
+    game/PropAnimator.h
     game/InventorySelector.h
     world/ActionNames.h
     world/CharacterAppearance.h
@@ -244,6 +252,7 @@ target_sources(taller_client
     sdl/render/SheetCache.h
     sdl/render/SpriteSheet.h
     sdl/render/TileLayout.h
+    sdl/render/TileLayerPainter.h
     sdl/render/Viewport.h
     sdl/render/Camera.h
     sdl/render/CharacterSprite.h

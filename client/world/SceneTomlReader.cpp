@@ -69,7 +69,7 @@ SceneDescription SceneTomlReader::readRoom(
 	return scene;
 }
 
-void SceneTomlReader::readTileSets(SceneDescription& scene) const {
+void SceneTomlReader::readTileSetEntries(SceneDescription& scene) const {
 	const std::vector<std::string> names =
 		doc_.subtableKeys(kKeyTilesets);
 	for (const std::string& name : names) {
@@ -82,6 +82,26 @@ void SceneTomlReader::readTileSets(SceneDescription& scene) const {
 		def.cellHeight = cell[1];
 		scene.tilesets.emplace(name, def);
 	}
+}
+
+void SceneTomlReader::readExtraTileSets(SceneDescription& scene) const {
+	if (!doc_.hasKey(kKeyTilesets)) {
+		return;
+	}
+	readTileSetEntries(scene);
+}
+
+void SceneTomlReader::readExtraElements(const std::string& base,
+					int defaultScale,
+					SceneDescription& scene) const {
+	if (!doc_.hasKey(join(base, kKeyElements))) {
+		return;
+	}
+	readElements(base, defaultScale, scene);
+}
+
+void SceneTomlReader::readTileSets(SceneDescription& scene) const {
+	readTileSetEntries(scene);
 	if (scene.tilesets.empty()) {
 		throw ConfigError(ConfigErrorKind::MissingStructure,
 				  kKeyTilesets);

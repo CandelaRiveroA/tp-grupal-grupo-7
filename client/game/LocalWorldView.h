@@ -6,9 +6,11 @@
 #include <vector>
 
 #include "common/model/draft/CharacterAppearance.h"
+#include "game/GameConstants.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
+#include "world/MarketOffer.h"
 #include "world/Grid.h"
 #include "world/GroundCatalog.h"
 #include "world/Indication.h"
@@ -199,6 +201,27 @@ struct ViewSleep {
     int total = 0;
 };
 
+// Dónde está parado un NPC del mercado. Es estado PERSISTENTE del mundo: lo
+// manda la fuente de estado (el servidor). `id` es el de npcs.toml. El
+// cliente solo lo dibuja y lo hace clickeable ahí; lo visual (hoja, retrato,
+// texto) sigue siendo del TOML.
+struct ViewNpcPlacement {
+    std::string id;
+    int cellX;
+    int cellY;
+};
+
+// Mueble que el jugador tiene colocado en el mundo (lo que consiguió y
+// puso en la partida). Es estado PERSISTENTE: lo manda la fuente de
+// estado (ServerFurniture) con el contentId y la celda; el cliente solo
+// lo dibuja con el visual de ese contentId en inventory.toml. La celda
+// es la base del mueble (abajo-izquierda del sprite).
+struct ViewFurniture {
+    std::string contentId;
+    int cellX;
+    int cellY;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -218,6 +241,19 @@ struct LocalWorldView {
     // Los cultivos plantados (persistente; ver ViewCrop). Los manda el
     // servidor (ServerCrop).
     std::vector<ViewCrop> plantedCrops;
+    // Posición de cada NPC (persistente; ver ViewNpcPlacement). La manda el
+    // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
+    // un NPC que la fuente no menciona también usa la suya.
+    std::vector<ViewNpcPlacement> npcPlacements;
+    // Muebles colocados (persistente; ver ViewFurniture). Los manda el
+    // servidor (ServerFurniture), por ejemplo al cargar una partida
+    // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
+    std::vector<ViewFurniture> placedFurniture;
+    // Mapa en el que está el jugador (id del mapa del editor: "farm",
+    // "town", "market"...). Lo manda la fuente de estado cuando hay
+    // servidor. Vacío = el cliente elige la escena (teclas de prueba,
+    // edificios tocados); con valor, la escena sigue a la fuente.
+    std::string mapId;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
@@ -226,6 +262,9 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
+    // Plata del jugador. La manda el servidor al comenzar y cada vez que
+    // cambia; mientras no la mande vale la inicial local (kStartingGold).
+    int gold = kStartingGold;
     // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
     // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
     // amanecer se levanta el negro con el gallo.
@@ -234,6 +273,13 @@ struct LocalWorldView {
     // Eventos del Centro Comunitario; valen solo el tick en que llegan.
     uint8_t setCompleted = 0;
     bool victory = false;
+    // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
+    // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
+    // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de
+    // npcs.toml; sin entradas = SDL muestra la oferta por defecto de ese
+    // comerciante (market.toml); con entradas, esas (las que SDL conoce) con el
+    // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
+    std::optional<world::MarketOffer> marketOffer;
 
     // Vida y energía del jugador local (0..max).
     int playerHealth = 0;

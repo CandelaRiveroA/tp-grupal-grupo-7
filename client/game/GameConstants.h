@@ -7,6 +7,11 @@ namespace game {
 // Constantes de la capa de estado/vista del juego.
 constexpr std::size_t kLocalPlayerIndex = 0;
 
+// Celdas de alcance alrededor de lo que se toca (la cama, un edificio):
+// el click solo hace algo si el jugador está sobre el elemento o a esta
+// distancia.
+constexpr int kInteractRing = 1;
+
 // --- Reglas del "server falso" (el server real pondrá las suyas) -------
 
 // Tope de ítems en el piso del mundo: sin recogida el mundo se llena.
@@ -52,6 +57,16 @@ constexpr const char* kClockMinuteKey = "minuto";
 // (`[overlay.fill].value` en ui/hud.toml).
 constexpr const char* kHudEnergyKey = "energia";
 constexpr const char* kHudLifeKey = "vida";
+
+// --- Plata del jugador -------------------------------------------------
+
+// Plata con la que se muestra el HUD hasta que el server mande la suya
+// (el mismo valor que el default de SaveSummary::gold).
+constexpr int kStartingGold = 500;
+
+// Clave del valor crudo que lee la etiqueta de plata del HUD ({plata} en
+// ui/hud.toml).
+constexpr const char* kHudGoldKey = "plata";
 
 // --- Chat --------------------------------------------------------------
 

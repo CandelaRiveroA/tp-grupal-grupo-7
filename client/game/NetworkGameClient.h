@@ -134,6 +134,7 @@ private:
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;
     std::vector<ViewCrop> crops_;
+    std::vector<ViewFurniture> furniture_;
     std::vector<ViewGroundEffect> groundEffects_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;

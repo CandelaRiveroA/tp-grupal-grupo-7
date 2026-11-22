@@ -12,6 +12,10 @@ constexpr int kOriginRow = 0;
 constexpr int kDefaultChunkSizePixels = 32;
 constexpr GridSpan kUnitCellSpan{1, 1};
 
+// Escala de dibujo por defecto de los mapas del editor (px de pantalla
+// por px de arte) cuando el overlay no declara `[world] scale`.
+constexpr int kDefaultWorldScale = 2;
+
 // Bits de la máscara de vecinos del auto-tiling (world::CellPatch):
 // qué vecinos cardinales de una celda pertenecen al mismo parche. El
 // nombre de cada pieza del TOML se traduce a una combinación de estos
@@ -24,5 +28,9 @@ constexpr std::uint8_t kNeighborWest = 8;
 // Nombres de los botones del popup ([prompt.<nombre>] en ui/text.toml).
 constexpr const char* kPromptCancelButton = "cancel";
 constexpr const char* kPromptOkButton = "ok";
+
+// Tope de filas que se prueba al buscar cuántas necesita un popup
+// (InventoryLayout::rowsFitting): corta el cálculo ante datos absurdos.
+constexpr int kMaxPanelRows = 32;
 
 }

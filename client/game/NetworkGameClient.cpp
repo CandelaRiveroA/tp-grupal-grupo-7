@@ -224,6 +224,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         resources_.clear();
         dropped_.clear();
         crops_.clear();
+        furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
@@ -396,6 +397,11 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
                 resourceStateFor(resource->damage)};
         return;
     }
+    if (const auto* furniture = std::get_if<ServerFurniture>(&message)) {
+        furniture_.push_back(
+                ViewFurniture{furniture->content_id, furniture->x, furniture->y});
+        return;
+    }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
         const ServerDropped& drop = *dropped;
         dropped_.push_back(ViewDroppedItem{drop.content_id, drop.x, drop.y, drop.interactive});
@@ -531,6 +537,7 @@ void NetworkGameClient::update(int) {
     }
     view_.droppedItems = dropped_;
     view_.plantedCrops = crops_;
+    view_.placedFurniture = furniture_;
     view_.groundEffects = groundEffects_;
     for (const auto& entry: animals_) {
         view_.entities.push_back(entry.second);

@@ -95,6 +95,14 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
+    // Cambio de escenario local: mercado / dormitorio.
+    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleMarket, 0}});
+    // DEMO: siguiente escena (lo reemplaza el mapa que mande el server).
+    bindings.insert({SDLK_o, game::InputCommand{Kind::CycleMap, 0}});
+    // DEMO: catálogo del mercado (lo reemplaza el server).
+    bindings.insert({SDLK_b, game::InputCommand{Kind::OpenCatalog, 0}});
+    // DEMO: rota el estilo del catálogo (lo reemplaza el server).
+    bindings.insert({SDLK_n, game::InputCommand{Kind::NextMarketSet, 0}});
     // Los teclas de test de enemigos (G/F/H/K/V/J/L) quedaron SIN bind
     // a propósito: los enemigos los manda el server por red y la
     // envoltura MockWorldClient (el disparador de esas pruebas) ya no se

@@ -71,12 +71,6 @@ struct ElementPlacement {
 	DrawSpec draw;
 	GridCell at;
 	GridSpan span;
-	// ¿Se ordena en profundidad con las entidades (el jugador pasa por
-	// detrás si está más arriba que su base)? Es para lo que se ve "de
-	// pie" sobre el piso: árboles, edificios, muebles. Por defecto no:
-	// el fondo y los pisos van siempre debajo de todo (el caso de
-	// scenes.toml).
-	bool depthSorted = false;
 	// "Entrar" al elemento (OPCIONAL, subtabla `enter` del TOML). Sin
 	// esto el elemento es decoración pura y nada cambia.
 	std::optional<ElementEnter> enter = std::nullopt;
@@ -86,6 +80,12 @@ struct ElementPlacement {
 	// de día y la de noche ocupan la misma celda). El filtro lo
 	// aplica el render con visibleAt; el índice espacial no cambia.
 	std::optional<TimeOfDay> when = std::nullopt;
+	// ¿Se ordena en profundidad con las entidades (el jugador pasa por
+	// detrás si está más arriba que su base)? Es para lo que se ve "de
+	// pie" sobre el piso: árboles, edificios, muebles. Por defecto no:
+	// el fondo y los pisos van siempre debajo de todo (el caso de
+	// scenes.toml).
+	bool depthSorted = false;
 
 	// ¿Se dibuja en el momento dado? Sin `when`, siempre: el
 	// elemento es decoración de cualquier momento del día.

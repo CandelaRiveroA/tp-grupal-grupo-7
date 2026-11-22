@@ -31,6 +31,10 @@ protocol::ClientMessage take(world::Direction direction) {
     return protocol::TakeMessage{world::wireDirectionFrom(direction), 0};
 }
 
+protocol::ClientMessage toggleWalking() {
+    return protocol::ToggleWalkingMessage{};
+}
+
 TEST(MockGameClientTest, StartsWithLocalPlayerEntity) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
     const game::LocalWorldView& view = tick(client);
@@ -39,11 +43,11 @@ TEST(MockGameClientTest, StartsWithLocalPlayerEntity) {
     EXPECT_EQ(view.entities[0].cellY, 5);
 }
 
-TEST(MockGameClientTest, WalkMovesOneCellInDirection) {
+TEST(MockGameClientTest, WalkMovesTwoCellsInDirection) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
     client.sendCommand(walk(world::Direction::Right));
     const game::ViewEntity& player = tick(client).entities[0];
-    EXPECT_EQ(player.cellX, 6);
+    EXPECT_EQ(player.cellX, 7);
     EXPECT_EQ(player.cellY, 5);
     EXPECT_EQ(player.facing, world::Direction::Right);
     EXPECT_TRUE(player.moving);
@@ -54,8 +58,8 @@ TEST(MockGameClientTest, WalkAccumulatesPosition) {
     client.sendCommand(walk(world::Direction::Left));
     client.sendCommand(walk(world::Direction::Front));
     const game::ViewEntity& player = tick(client).entities[0];
-    EXPECT_EQ(player.cellX, 4);
-    EXPECT_EQ(player.cellY, 6);
+    EXPECT_EQ(player.cellX, 3);
+    EXPECT_EQ(player.cellY, 7);
 }
 
 TEST(MockGameClientTest, WalkClampsAtGridEdge) {
@@ -267,6 +271,7 @@ TEST(MockGameClientTest, ExhaustingMineralDoesNotEmitObtainedAutomatically) {
 
 TEST(MockGameClientTest, TakeOnDroppedCellEmitsObtained) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);
     // El jugador se para sobre la celda del item y lo recoge.
     client.sendCommand(walk(world::Direction::Right));
@@ -287,6 +292,7 @@ TEST(MockGameClientTest, TakeOnEmptyCellEmitsNothing) {
 
 TEST(MockGameClientTest, ObtainedFromTakeLastsOnlyOneTick) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
@@ -311,6 +317,7 @@ std::optional<int> inventoryCount(const game::MockGameClient& client,
 TEST(MockGameClientTest, TakingMineralAddsItToInventoryWithCountOne) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
     EXPECT_FALSE(inventoryCount(client, "silver").has_value());
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);  // silver (6,5)
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
@@ -323,6 +330,7 @@ TEST(MockGameClientTest, TakingMineralAddsItToInventoryWithCountOne) {
 TEST(MockGameClientTest, TakingSameMineralTwiceAccumulatesCount) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
     // Dos piedras de plata: (6,5) y (5,7).
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);  // silver (6,5)
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
@@ -339,6 +347,7 @@ TEST(MockGameClientTest, TakingSameMineralTwiceAccumulatesCount) {
 
 TEST(MockGameClientTest, TakingDifferentMineralsUsesDifferentSlots) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);  // silver (6,5)
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));
@@ -379,6 +388,7 @@ TEST(MockGameClientTest, WorldStateDoesNotAdvanceUntilUpdate) {
 
 TEST(MockGameClientTest, ObtainedIsEmittedOncePerUpdate) {
     game::MockGameClient client(10, 10, 5, 5, kToolTicks);
+    client.sendCommand(toggleWalking());
     exhaustFacingMineral(client, world::Direction::Right);
     client.sendCommand(walk(world::Direction::Right));
     client.sendCommand(take(world::Direction::Right));

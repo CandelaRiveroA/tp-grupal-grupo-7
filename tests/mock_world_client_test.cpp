@@ -178,12 +178,12 @@ TEST(MockWorldClientTest, AnimalActionMatchesItsMovement) {
 TEST(MockWorldClientTest, CommandsReachTheInnerSource) {
     const std::unique_ptr<GameClient> client = makeClient(worldCatalog());
 
-    // El jugador camina una celda a la derecha en el mock de adentro;
+    // El jugador camina dos celdas a la derecha en el mock de adentro;
     // la vista fusionada lo muestra (con su id estable 0).
     client->sendCommand(walk(world::Direction::Right));
     client->update(0);
     const LocalWorldView& view = client->worldState();
-    EXPECT_EQ(view.entities[0].cellX, kPlayerX + 1);
+    EXPECT_EQ(view.entities[0].cellX, kPlayerX + 2);
     EXPECT_EQ(view.entities[0].cellY, kPlayerY);
     EXPECT_EQ(view.entities[0].id, 0);
 }

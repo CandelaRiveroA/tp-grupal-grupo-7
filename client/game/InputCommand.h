@@ -14,6 +14,8 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Alterna entre caminar 1 y 2 celdas por movimiento.
+        ToggleWalking,
         // Cambio de escenario local (tecla M): alterna mercado y
         // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
         ToggleMarket,

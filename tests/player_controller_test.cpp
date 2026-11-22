@@ -49,6 +49,10 @@ InputCommand selectSlot(int slot) {
     return InputCommand{InputCommand::Kind::SelectSlot, slot};
 }
 
+InputCommand toggleWalking() {
+    return InputCommand{InputCommand::Kind::ToggleWalking, 0};
+}
+
 TEST(PlayerControllerTest, StepSendsMoveOnWalkCadence) {
     RecordingGameClient client;
     PlayerController player(client, kCadence, 4);
@@ -61,6 +65,16 @@ TEST(PlayerControllerTest, StepSendsMoveOnWalkCadence) {
     client.sent.clear();
     player.tick(1, std::nullopt, {});
     EXPECT_TRUE(client.sent.empty());
+}
+
+TEST(PlayerControllerTest, ToggleWalkingSendsDedicatedMessage) {
+    RecordingGameClient client;
+    PlayerController player(client, kCadence, 4);
+
+    player.tick(5, std::nullopt, {toggleWalking()});
+
+    ASSERT_EQ(client.sent.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<protocol::ToggleWalkingMessage>(client.sent[0]));
 }
 
 TEST(PlayerControllerTest, UseToolIsGatedWhileWalking) {

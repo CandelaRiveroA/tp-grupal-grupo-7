@@ -98,19 +98,18 @@ void World::move_player(uint8_t player_id, Direction dir) {
     }
 
     p.set_facing(dir);
+    for (uint8_t step = 0; step < p.get_movement_steps(); ++step) {
+        auto [next_x, next_y] = p.get_target_tile();
+        if (!this->can_walk_to(next_x, next_y)) {
+            break;
+        }
 
-    auto [next_x, next_y] = p.get_target_tile();
-
-    // Chequeamos colisiones
-    if (this->can_walk_to(next_x, next_y)) {
         p.set_position(next_x, next_y);
         Cell& current_cell = this->grid[next_y][next_x];
 
         // Efecto imán / Auto-Pickup: Interactuamos con TODAS las entidades pisables (ej. varios
         // drops)
         if (!current_cell.is_empty()) {
-            // Usamos un vector temporal de punteros para iterar de forma segura,
-            // ya que `interact` podría eliminar la entidad de la lista durante el ciclo.
             std::vector<IEntity*> iteratable_entities;
             for (const auto& ent: current_cell.entities) {
                 // cppcheck-suppress useStlAlgorithm; copia cruda para poder borrar durante
@@ -126,7 +125,18 @@ void World::move_player(uint8_t player_id, Direction dir) {
                 ent->interact(p, ToolType::HAND, *this);
             }
         }
+
+        // Una interacción caminable puede bloquear al jugador (por ejemplo,
+        // pisar la cama). No debe continuar el segundo paso después de ella.
+        if (this->is_sleeping(player_id)) {
+            break;
+        }
     }
+}
+
+void World::toggle_player_walking(uint8_t player_id) {
+    Player& p = *this->players.at(player_id);
+    p.toggle_walking();
 }
 
 const Player& World::get_player(uint8_t player_id) const { return *this->players.at(player_id); }

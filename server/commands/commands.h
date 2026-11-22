@@ -18,6 +18,7 @@ void apply(World& world, uint8_t player_id, const protocol::SleepMessage& messag
 void apply(World& world, uint8_t player_id, const protocol::WakeMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::ChatMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::GiftResponseMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::ToggleWalkingMessage& message);
 }  // namespace commands
 
 #endif

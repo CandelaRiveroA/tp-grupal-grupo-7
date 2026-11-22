@@ -52,7 +52,7 @@ TEST(WorldInteractionTest, MoversePicarYLevantarCarbonAutomaticamente) {
     world.move_player(1, Direction::RIGHT);
 
     // Verificamos que efectivamente avanzó
-    EXPECT_EQ(p_ref->get_x(), 2);
+    EXPECT_EQ(p_ref->get_x(), 3);
     EXPECT_EQ(p_ref->get_y(), 1);
 
     // VERIFICACIÓN FINAL: El Inventario

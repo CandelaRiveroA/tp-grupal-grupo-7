@@ -329,6 +329,13 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
   `InventoryLayout::count`) es local, pero al usar, `PickMessage.slot` manda
   el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
   ella lo decide la fuente.
+- **Modo de movimiento del jugador.** La tecla `Shift` envía
+  `ToggleWalkingMessage`; el servidor alterna el estado privado `walking`
+  de cada jugador. Normalmente una orden mueve 2 celdas, pero el modo
+  `walking` mueve 1. Estar por debajo del 20 % de vida impone 1 celda
+  aunque el jugador no haya activado el modo manual. Al volver a al menos
+  el 20 %, recupera el modo elegido. Esta preferencia de movimiento no
+  cambia el daño de la espada: normal 2 y menos del 20 % 1.
 - **Presentación local del campo** (`game::FarmSelection`): lo que se
   sostiene sobre la cabeza (contenido `droppable` del slot activo) y el
   marcador de plantado bajo el puntero salen de la selección del HUD; el

@@ -12,11 +12,16 @@
 #define kPercentMax 100
 // Por debajo de este porcentaje de la vida máxima el jugador queda gravemente herido.
 #define kGravelyWoundedPercent 20
+#define kNormalMovementSteps 2
+#define kWoundedMovementSteps 1
+#define kNormalSwordDamage 2
+#define kWoundedSwordDamage 1
 
 Player::Player(uint8_t id, uint16_t x, uint16_t y)
         : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
           energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
-          died_in_combat(false), fainted_by_timeout(false), fainted_by_energy(false) {
+          walking(false), died_in_combat(false), fainted_by_timeout(false),
+          fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Tool>(ItemID::PICKAXE));
     this->backpack.add_item(std::make_unique<Tool>(ItemID::SHOVEL));
@@ -64,6 +69,23 @@ void Player::setFaintedByEnergy(bool v) { this->fainted_by_energy = v; }
 
 bool Player::is_gravely_wounded() const {
     return this->hp * kPercentMax < this->max_hp * kGravelyWoundedPercent;
+}
+
+uint8_t Player::get_movement_steps() const {
+    if (this->is_gravely_wounded() || this->walking) {
+        return kWoundedMovementSteps;
+    }
+    return kNormalMovementSteps;
+}
+
+void Player::toggle_walking() { this->walking = !this->walking; }
+
+void Player::set_walking(bool active) { this->walking = active; }
+
+bool Player::is_walking() const { return this->walking; }
+
+uint8_t Player::get_sword_damage() const {
+    return this->is_gravely_wounded() ? kWoundedSwordDamage : kNormalSwordDamage;
 }
 
 bool Player::take_damage(uint8_t incoming) {

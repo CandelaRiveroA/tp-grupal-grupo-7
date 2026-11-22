@@ -31,6 +31,7 @@ private:
     protocol::ClientMessage receive_sleep_message();
     protocol::ClientMessage receive_wake_message();
     protocol::ClientMessage receive_chat_message();
+    protocol::ClientMessage receive_toggle_walking_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();

@@ -17,6 +17,8 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Chat, &ProtocolReceiver::receive_chat_message},
                 {protocol::ClientMessageType::GiftResponse,
                  &ProtocolReceiver::receive_gift_response_message},
+                {protocol::ClientMessageType::ToggleWalking,
+                 &ProtocolReceiver::receive_toggle_walking_message},
         },
         server_handlers{
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -137,6 +139,10 @@ protocol::ClientMessage ProtocolReceiver::receive_wake_message() { return protoc
 
 protocol::ClientMessage ProtocolReceiver::receive_chat_message() {
     return protocol::ChatMessage{receive_string()};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_toggle_walking_message() {
+    return protocol::ToggleWalkingMessage{};
 }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {

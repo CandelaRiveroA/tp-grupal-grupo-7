@@ -109,7 +109,7 @@ TEST(FurnitureTest, UnGolpeDePicoLaDestruyeYDejaElDecorationItem) {
     // El jugador camina sobre el drop y lo recoge (efecto imán).
     world.move_player(1, Direction::DOWN);
     EXPECT_EQ(p->get_x(), 1);
-    EXPECT_EQ(p->get_y(), 3);
+    EXPECT_EQ(p->get_y(), 4);
     EXPECT_TRUE(has_item(*p, ItemID::BED));
 
     const std::vector<PlayerPickup> pickups = world.take_pickups();
@@ -153,7 +153,7 @@ TEST(FurnitureTest, PisarLaCamaPideDormirYBloqueaElMovimiento) {
     world.answer_sleep(1, false);
     EXPECT_EQ(world.sleeping_count(), 0);
     world.move_player(1, Direction::LEFT);
-    EXPECT_EQ(p->get_x(), 1);
+    EXPECT_EQ(p->get_x(), 0);
     EXPECT_EQ(p->get_y(), 2);
 }
 

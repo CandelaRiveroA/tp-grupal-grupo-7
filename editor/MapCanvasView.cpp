@@ -30,14 +30,6 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 		  {MoveKind::Object, &MapCanvasView::moveObject},
 		  {MoveKind::Marker, &MapCanvasView::moveMarker},
 		  {MoveKind::Portal, &MapCanvasView::movePortal},
-	  },
-	  roleRequiredMap_{
-		  {worldmodel::ObjectRole::Cabin, editor::kHomeMapId},
-		  {worldmodel::ObjectRole::Carpentry, "town"},
-		  {worldmodel::ObjectRole::Blacksmith, "town"},
-		  {worldmodel::ObjectRole::GeneralStore, "town"},
-		  {worldmodel::ObjectRole::Ranch, "town"},
-		  {worldmodel::ObjectRole::CommunityCenter, "town"},
 	  } {
 	setRenderHint(QPainter::SmoothPixmapTransform, false);
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
@@ -261,9 +253,9 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 		return;
 	}
 	if (activePrefab_->role.has_value()) {
-		const auto reqIt = roleRequiredMap_.find(*activePrefab_->role);
-		if (reqIt != roleRequiredMap_.end() &&
-		    map_->id != reqIt->second) {
+		const std::optional<std::string> requiredMap =
+			rules_.requiredHostMap(*activePrefab_->role);
+		if (requiredMap.has_value() && map_->id != *requiredMap) {
 			return;
 		}
 	}

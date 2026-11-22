@@ -7,7 +7,7 @@
 #include <QVBoxLayout>
 
 #include "Constants.h"
-#include "world_model/MapRules.h"
+#include "world_model/Constants.h"
 
 MapTreeWidget::MapTreeWidget(QWidget* parent) : QWidget(parent) {
 	tree_ = new QTreeWidget(this);
@@ -21,14 +21,12 @@ MapTreeWidget::MapTreeWidget(QWidget* parent) : QWidget(parent) {
 		return group;
 	};
 	addGroup("Exteriores", {"farm", "town"});
-	interiorsItem_ = addGroup("Interiores",
-				  {"cabin_1", "carpentry", "blacksmith",
-				   "general_store", "ranch"});
-	// Orden explicito 1..10, no el alfanumerico de map
-	const worldmodel::MapRules rules;
+	interiorsItem_ = addGroup("Interiores", {});
+	populateInteriors(nullptr);
+	// Orden explicito 1..kDungeonLevels, no el alfanumerico de map
 	std::vector<std::string> dungeons;
-	for (int level = 1; level <= 10; ++level) {
-		dungeons.push_back(rules.dungeonId(level));
+	for (int level = 1; level <= worldmodel::kDungeonLevels; ++level) {
+		dungeons.push_back(rules_.dungeonId(level));
 	}
 	addGroup("Mazmorras", dungeons);
 	extrasItem_ = addGroup("Mapas extra", {});
@@ -66,24 +64,31 @@ void MapTreeWidget::addLeaf(QTreeWidgetItem* group, const std::string& id) {
 	new QTreeWidgetItem(group, {QString::fromStdString(id)});
 }
 
-void MapTreeWidget::setExtraMaps(const worldmodel::World& world) {
+void MapTreeWidget::populateInteriors(const worldmodel::World* world) {
 	// takeChildren no borra los items: hay que destruirlos a mano.
 	qDeleteAll(interiorsItem_->takeChildren());
-	qDeleteAll(extrasItem_->takeChildren());
-	const worldmodel::MapRules rules;
-	for (int k = worldmodel::kMinPlayers; k <= worldmodel::kMaxPlayers;
-	     ++k) {
-		const std::string id = rules.cabinId(k);
-		if (world.maps.contains(id)) {
-			addLeaf(interiorsItem_, id);
+	if (world == nullptr) {
+		addLeaf(interiorsItem_,
+			rules_.cabinId(worldmodel::kMinPlayers));
+	} else {
+		for (int k = worldmodel::kMinPlayers;
+		     k <= worldmodel::kMaxPlayers; ++k) {
+			const std::string id = rules_.cabinId(k);
+			if (world->maps.contains(id)) {
+				addLeaf(interiorsItem_, id);
+			}
 		}
 	}
-	for (const char* id :
-	     {"carpentry", "blacksmith", "general_store", "ranch"}) {
+	for (const std::string& id : rules_.fixedInteriorIds()) {
 		addLeaf(interiorsItem_, id);
 	}
+}
+
+void MapTreeWidget::setExtraMaps(const worldmodel::World& world) {
+	populateInteriors(&world);
+	qDeleteAll(extrasItem_->takeChildren());
 	for (const auto& [id, map] : world.maps) {
-		if (rules.find(id) == nullptr) {
+		if (rules_.find(id) == nullptr) {
 			addLeaf(extrasItem_, id);
 		}
 	}

@@ -4,6 +4,7 @@
 
 #include <QWidget>
 
+#include "world_model/MapRules.h"
 #include "world_model/World.h"
 
 class QPushButton;
@@ -29,7 +30,9 @@ signals:
 
 private:
 	void addLeaf(QTreeWidgetItem* group, const std::string& id);
+	void populateInteriors(const worldmodel::World* world);
 
+	worldmodel::MapRules rules_;
 	QTreeWidget* tree_ = nullptr;
 	QTreeWidgetItem* interiorsItem_ = nullptr;
 	QTreeWidgetItem* extrasItem_ = nullptr;

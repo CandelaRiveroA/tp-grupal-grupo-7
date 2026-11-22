@@ -55,7 +55,9 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
                        {"vampiress", world::CreatureKind::Vampire},
                        {"skull", world::CreatureKind::Skull},
                        {"skull_fire", world::CreatureKind::SkullFire},
-                       {"skull_fire_green", world::CreatureKind::SkullFireGreen}} {
+                       {"skull_fire_green", world::CreatureKind::SkullFireGreen}},
+        marketSides_{{ServerMarketSide::Sells, world::MarketSide::Sells},
+                     {ServerMarketSide::Buys, world::MarketSide::Buys}} {
     clientSender_.start();
     clientReceiver_.start();
 }
@@ -228,10 +230,36 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         groundEffects_.clear();
         inventory_.clear();
         animals_.clear();
+        view_.npcPlacements.clear();
         // enemigos_ y projectiles_ NO se borran acá: cada uno guarda la
         // ventana de animación del último golpe y vaciarla en cada lote
         // (cada 400 ms) la reiniciaría sin parar. Se podan en SyncEnd con
         // lo que el lote no volvió.
+        return;
+    }
+    if (const auto* gold = std::get_if<ServerGold>(&message)) {
+        view_.gold = gold->gold;
+        return;
+    }
+    if (const auto* placement = std::get_if<ServerNpcPlacement>(&message)) {
+        view_.npcPlacements.push_back(ViewNpcPlacement{
+                placement->id, placement->x, placement->y});
+        return;
+    }
+    if (const auto* offer = std::get_if<ServerMarketOffer>(&message)) {
+        world::MarketOffer marketOffer;
+        marketOffer.merchantId = offer->merchant_id;
+        for (const ServerMarketEntry& entry: offer->entries) {
+            world::MarketEntry marketEntry;
+            marketEntry.contentId = entry.content_id;
+            marketEntry.label = entry.label;
+            marketEntry.side = marketSides_.at(entry.side);
+            marketEntry.price = entry.has_price
+                    ? std::optional<int>(entry.price)
+                    : std::nullopt;
+            marketOffer.entries.push_back(std::move(marketEntry));
+        }
+        view_.marketOffer = std::move(marketOffer);
         return;
     }
     if (const auto* crop = std::get_if<ServerCrop>(&message)) {
@@ -348,7 +376,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         player.maxHealth = status->max_health;
         player.energy = status->energy;
         player.maxEnergy = status->max_energy;
-        player.fainted = (status->fainted != 0);
+        player.fainted = (status->fainted != 0) || status->health == 0;
         if (status->health == 0 || player.fainted) {
             player.reaction = world::ActionKind::Faint;
             player.reactionRemaining = 0;
@@ -473,6 +501,7 @@ void NetworkGameClient::update(int) {
     view_.giftAnswered = false;
     view_.setCompleted = 0;
     view_.victory = false;
+    view_.marketOffer.reset();
     for (auto& entry: players_) {
         entry.second.moving = false;
     }
@@ -520,6 +549,7 @@ void NetworkGameClient::update(int) {
         // solo mientras dura su ventana.
         if (player.reaction == world::ActionKind::Faint) {
             entity.action = world::ActionKind::Faint;
+            entity.facing = world::Direction::Front;
         } else if (player.reaction == world::ActionKind::Damage &&
                    player.reactionRemaining > 0) {
             entity.action = world::ActionKind::Damage;

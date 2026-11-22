@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "world/InventoryLayout.h"
@@ -28,6 +29,7 @@ public:
 	void open(const world::MarketOffer& offer);
 	void close();
 	bool isOpen() const;
+	const std::string& merchantId() const;
 
 	// Lo que se dibuja ahora.
 	const std::vector<world::MarketSection>& sections() const;
@@ -42,6 +44,7 @@ private:
 	const world::InventoryLayout& inventory_;
 	world::MarketOfferResolver resolver_;
 	bool open_ = false;
+	std::string merchantId_;
 	std::vector<world::MarketSection> sections_;
 	world::GridSpan panelGrid_{0, 0};
 };

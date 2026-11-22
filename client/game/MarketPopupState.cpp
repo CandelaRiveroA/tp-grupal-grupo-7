@@ -19,15 +19,21 @@ void MarketPopupState::open(const world::MarketOffer& offer) {
 		style.panelColumns,
 		inventory_.rowsFitting(style.contentHeight(sections))};
 	sections_ = std::move(sections);
+	merchantId_ = offer.merchantId;
 	open_ = true;
 }
 
 void MarketPopupState::close() {
 	open_ = false;
+	merchantId_.clear();
 	sections_.clear();
 }
 
 bool MarketPopupState::isOpen() const { return open_; }
+
+const std::string& MarketPopupState::merchantId() const {
+	return merchantId_;
+}
 
 const std::vector<world::MarketSection>& MarketPopupState::sections() const {
 	return sections_;

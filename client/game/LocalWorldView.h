@@ -231,6 +231,9 @@ struct LocalWorldView {
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Eventos del Centro Comunitario; valen solo el tick en que llegan.
+    uint8_t setCompleted = 0;
+    bool victory = false;
 
     // Vida y energía del jugador local (0..max).
     int playerHealth = 0;

@@ -186,6 +186,14 @@ void NetworkGameClient::apply(const ServerMessage& message) {
                     chat->text);
         return;
     }
+    if (const auto* set = std::get_if<ServerSetCompleted>(&message)) {
+        view_.setCompleted = set->set_id;
+        return;
+    }
+    if (std::holds_alternative<ServerVictory>(message)) {
+        view_.victory = true;
+        return;
+    }
     // El lote Reset…SyncEnd se aplica entero de una: el cierre recién ahí
     // limpia y rellena, así nunca se dibuja un estado a medias.
     if (std::holds_alternative<ServerReset>(message)) {
@@ -457,6 +465,8 @@ void NetworkGameClient::update(int) {
     view_.dayEnded = false;
     view_.dayChanged = false;
     view_.giftAnswered = false;
+    view_.setCompleted = 0;
+    view_.victory = false;
     for (auto& entry: players_) {
         entry.second.moving = false;
     }

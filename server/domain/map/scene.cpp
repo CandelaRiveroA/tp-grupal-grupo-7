@@ -149,11 +149,15 @@ void Scene::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
     this->grid[y][x].entities.push_back(std::move(moved));
 }
 
-bool Scene::try_till_soil(uint16_t x, uint16_t y) {
+std::vector<MerchantPlacement> Scene::get_merchant_placements() const {
+    return std::vector<MerchantPlacement>();
+}
+
+bool Scene::try_till_soil(uint16_t /*x*/, uint16_t /*y*/) {
     return false;
 }
 
-bool Scene::try_water_soil(uint16_t x, uint16_t y) {
+bool Scene::try_water_soil(uint16_t /*x*/, uint16_t /*y*/) {
     return false;
 }
 

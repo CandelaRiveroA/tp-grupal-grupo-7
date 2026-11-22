@@ -32,7 +32,7 @@ public:
     // --- Suelo y cultivos (Tell, Don't Ask sobre Cell) ---
     void till_soil(uint16_t x, uint16_t y);
     void water_soil(uint16_t x, uint16_t y);
-    bool try_plant_seed(Player& player, uint16_t tx, uint16_t ty);
+    bool try_plant_seed(Player& player, uint16_t tx, uint16_t ty) override;
 
     // --- Fin / inicio de día ---
     void on_new_day(World& world) override;

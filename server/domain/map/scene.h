@@ -28,6 +28,12 @@ enum class SceneId : uint8_t {
     DUNGEON_10
 };
 
+struct MerchantPlacement {
+    std::string id;
+    uint16_t x;
+    uint16_t y;
+};
+
 class Scene {
 protected:
     uint16_t width;
@@ -64,6 +70,7 @@ public:
     void remove_entity(IEntity* target_entity);
     void remove_entity_at(uint16_t x, uint16_t y);
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);
+    virtual std::vector<MerchantPlacement> get_merchant_placements() const;
 
     // --- Gestion de acciones sobre el suelo ---
     virtual bool try_till_soil(uint16_t x, uint16_t y);         // devuelve false

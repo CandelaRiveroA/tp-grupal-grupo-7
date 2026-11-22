@@ -13,6 +13,13 @@
 #include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
+#include "domain/npc/marnie.h"
+#include "domain/npc/merchant.h"
+#include "domain/npc/robin.h"
+#include "domain/inventory/product.h"
+#include "domain/inventory/decoration_item.h"
+
+#include <map>
 
 // Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
 #define kWidth 30
@@ -22,7 +29,7 @@
 
 // TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
 // (ver MineController::make_rock).
-#define kRoomNumber 1
+#define kDungeonRooms 10
 
 // Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
 // compartida: los durmientes no colisionan, así todos caben en ella.
@@ -120,10 +127,12 @@ void DayClock::execute() {
 }
 
 void Match::place_minerals() {
-    // El controller se construye de nuevo en cada llamada: así la semilla
-    // aleatoria cambia y cada generación dispone los minerales distinto.
-    MineController mine(kRoomNumber);
-    mine.populate(world, kSpawnX, kSpawnY);
+    for (uint8_t room = 1; room <= kDungeonRooms; ++room) {
+        const DungeonFloor& floor = world.get_dungeon_floor(room);
+        world.set_active_scene(floor.get_scene_id());
+        MineController mine(room);
+        mine.populate(world, floor.get_spawn_x(), floor.get_spawn_y());
+    }
 }
 
 void Match::place_animals() {
@@ -135,9 +144,12 @@ void Match::place_animals() {
 }
 
 void Match::place_enemies() {
-    // Igual que las piedras: cada día la caverna repone sus enemigos.
-    EnemyController enemies(kRoomNumber);
-    enemies.populate(world, kSpawnX, kSpawnY);
+    for (uint8_t room = 1; room <= kDungeonRooms; ++room) {
+        const DungeonFloor& floor = world.get_dungeon_floor(room);
+        world.set_active_scene(floor.get_scene_id());
+        EnemyController enemies(room);
+        enemies.populate(world, floor.get_spawn_x(), floor.get_spawn_y());
+    }
 }
 
 Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
@@ -148,9 +160,15 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
         sleeping_sent(0),
         total_sent(0),
         clock_minutes_sent(0) {
-    world.set_current_room(kRoomNumber);
+    // Inicio
+    world.get_scene(SceneId::FARMHOUSE)
+            .set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
+    // Granja
     place_animals();
-    world.set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
+    // Pueblo
+    // Comerciantes nacen solos cuando se crea Town
+    // TODO: Dejo nota para persistencia
+    // Mazmorra
     place_minerals();
     place_enemies();
 }
@@ -221,7 +239,7 @@ void Match::sync_day() {
     }
     if (world.take_day_started()) {
         for (const uint8_t id: world.get_player_ids()) {
-            world.set_player_position(id, kBedX, kBedY);
+            world.transfer_player(id, SceneId::FARMHOUSE, kBedX, kBedY);
             world.reset_player_for_day(id);
         }
         clock.restart();
@@ -426,3 +444,22 @@ void Match::execute() {
     clock.stop();
     clock.join();
 }
+ /*
+ // Cabaña <-> Granja
+world.get_scene(SceneId::FARMHOUSE)
+        .set_entity_at(15, 19, std::make_unique<Portal>(15, 19, SceneId::FARM, 15, 2));
+world.get_scene(SceneId::FARM)
+        .set_entity_at(15, 1, std::make_unique<Portal>(15, 1, SceneId::FARMHOUSE, 15, 18));
+
+// Granja <-> Pueblo
+world.get_scene(SceneId::FARM)
+        .set_entity_at(29, 10, std::make_unique<Portal>(29, 10, SceneId::TOWN, 1, 10));
+world.get_scene(SceneId::TOWN)
+        .set_entity_at(0, 10, std::make_unique<Portal>(0, 10, SceneId::FARM, 28, 10));
+
+// Granja <-> Dungeon piso 1
+world.get_scene(SceneId::FARM)
+        .set_entity_at(15, 19, std::make_unique<Portal>(15, 19, SceneId::DUNGEON_1, 15, 2));
+world.get_scene(SceneId::DUNGEON_1)
+        .set_entity_at(15, 1, std::make_unique<Portal>(15, 1, SceneId::FARM, 15, 18));
+ */

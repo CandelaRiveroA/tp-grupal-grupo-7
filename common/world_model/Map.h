@@ -16,8 +16,10 @@ enum class MapKind {
 	Farm,
 	Town,
 	Cabin,
-	Market,
-	CommunityCenter,
+	Carpentry,
+	Blacksmith,
+	GeneralStore,
+	Ranch,
 	Dungeon,
 };
 
@@ -32,6 +34,7 @@ struct Map {
 	std::vector<bool> collision;
 	TileGrid ground;
 	TileGrid paths;
+	TileGrid front;
 	std::vector<MapObject> objects;
 	std::vector<Marker> markers;
 	std::vector<Portal> portals;

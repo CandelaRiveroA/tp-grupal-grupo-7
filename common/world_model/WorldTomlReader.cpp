@@ -84,6 +84,13 @@ Map WorldTomlReader::readMap(const World& world,
 	} else {
 		map.paths.assign(cells, std::nullopt);
 	}
+	const std::string frontPath = fields_.join(path, "front");
+	if (doc_.hasKey(frontPath)) {
+		map.front = fields_.readGrid(frontPath, map.width,
+					     map.height, world.tilesets);
+	} else {
+		map.front.assign(cells, std::nullopt);
+	}
 
 	const std::string objectsPath = fields_.join(path, "objects");
 	if (doc_.hasKey(objectsPath)) {
@@ -140,6 +147,17 @@ void WorldTomlReader::readObjects(const World& world,
 		const std::string doorPath = fields_.join(path, "door");
 		if (doc_.hasKey(doorPath)) {
 			object.door = fields_.readTilePos(doorPath);
+			const std::string doorWidthPath =
+				fields_.join(path, "door_width");
+			if (doc_.hasKey(doorWidthPath)) {
+				const int width = doc_.getInt(doorWidthPath);
+				if (width <= 0) {
+					throw FormatError(
+						FormatErrorKind::InvalidValue,
+						doorWidthPath);
+				}
+				object.doorWidth = width;
+			}
 		}
 
 		const std::string collisionGridPath =

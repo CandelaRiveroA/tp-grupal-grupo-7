@@ -1,5 +1,7 @@
 #include "world_model/ScenarioTomlWriter.h"
 
+#include <algorithm>
+#include <optional>
 #include <sstream>
 
 #include <toml++/toml.hpp>
@@ -31,6 +33,14 @@ toml::table ScenarioTomlWriter::writeScenario(
 	table.insert("collision",
 		     FieldWriter::writeBooleans(scenario.collision));
 	table.insert("ground", FieldWriter::writeGrid(scenario.ground));
+	const bool hasFront = std::any_of(
+		scenario.front.begin(), scenario.front.end(),
+		[](const std::optional<TileRef>& tile) {
+			return tile.has_value();
+		});
+	if (hasFront) {
+		table.insert("front", FieldWriter::writeGrid(scenario.front));
+	}
 	return table;
 }
 

@@ -45,6 +45,14 @@ Scenario ScenarioTomlReader::read() const {
 	scenario.ground = fields_.readGrid(
 		fields_.join("scenario", "ground"), scenario.width,
 		scenario.height, scenario.tilesets);
+	const std::string frontPath = fields_.join("scenario", "front");
+	if (doc_.hasKey(frontPath)) {
+		scenario.front = fields_.readGrid(frontPath, scenario.width,
+						  scenario.height,
+						  scenario.tilesets);
+	} else {
+		scenario.front.assign(cells, std::nullopt);
+	}
 	return scenario;
 }
 

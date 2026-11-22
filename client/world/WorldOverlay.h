@@ -18,9 +18,21 @@ struct NightVariant {
 	GridCell sheetCell;
 };
 
+// La decoración es "entrable" (la cama): las filas de su pieza que
+// tapan a quien se mete, hacia dónde mira y qué marker del mapa marca
+// la celda donde queda acostado. Mismo concepto que `enter` de
+// scenes.toml, pero la celda sale del mapa (la misma que usa el server).
+struct OverlayEnter {
+	int firstFrontRow;
+	int lastFrontRow;
+	Direction facing;
+	std::string marker;
+};
+
 // Lo que el cliente agrega a una decoración que puso el editor.
 struct DecorationOverlay {
 	std::optional<NightVariant> night;
+	std::optional<OverlayEnter> enter;
 };
 
 // Datos del cliente que completan el mundo del editor (overlay.toml):
@@ -34,6 +46,9 @@ struct WorldOverlay {
 	std::map<std::string, TileSetDef> tilesets;
 	// Por tile de origen ("tileset:col,row").
 	std::map<std::string, DecorationOverlay> decorations;
+	// Qué NPC (id de npcs.toml) se ubica en cada kind de marker
+	// ("merchant_pierre" -> "pierre"): su celda por defecto.
+	std::map<std::string, std::string> markerNpcs;
 	// Decoraciones iniciales por id de mapa, en orden de dibujo.
 	std::map<std::string, std::vector<ElementPlacement>> mapElements;
 };

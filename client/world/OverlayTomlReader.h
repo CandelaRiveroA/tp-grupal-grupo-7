@@ -21,6 +21,13 @@ private:
 	// `[decorations."tileset:col,row"]` -> variantes de noche.
 	void readDecorations(WorldOverlay& overlay) const;
 
+	// `[decorations."..."] enter = { rows, facing, marker }`.
+	void readEnter(const std::string& base,
+		       DecorationOverlay& decoration) const;
+
+	// `[markers.<kind>] npc = "<id>"` -> NPC por marker.
+	void readMarkerNpcs(WorldOverlay& overlay) const;
+
 	// `[[maps.<id>.elements]]` -> decoraciones iniciales, con la misma
 	// sintaxis (y el mismo lector) que scenes.toml.
 	void readMapElements(WorldOverlay& overlay) const;

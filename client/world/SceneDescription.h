@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -101,6 +102,23 @@ struct SceneSpawns {
 	bool minerals = false;
 };
 
+// Punto de colocación que dice el mapa (marker del editor): qué es
+// (el texto del vocabulario: "player_spawn", "bed", "merchant_pierre")
+// y en qué celda. DATOS: qué hacer con cada kind lo decide quien lo usa.
+struct SceneMarker {
+	std::string kind;
+	GridCell cell;
+};
+
+// Paso a otro mapa (portal del editor): kind del vocabulario, celda
+// donde está y a qué mapa y celda lleva.
+struct ScenePortal {
+	std::string kind;
+	GridCell cell;
+	std::string targetMap;
+	GridCell targetCell;
+};
+
 // Una celda de una capa de piso: qué hoja (índice en `TileLayer::
 // tilesets`, -1 = vacía) y qué celda de esa hoja se dibuja en ella.
 struct LayerCell {
@@ -129,6 +147,11 @@ struct SceneDescription {
 	std::vector<ElementPlacement> elements;
 	std::vector<std::string> soundCues;
 	SceneSpawns spawns;
+	std::vector<SceneMarker> markers;
+	std::vector<ScenePortal> portals;
+	// Celda por defecto de cada NPC (por id de npcs.toml) que sale de
+	// los markers del mapa. La fuente de estado la pisa con la suya.
+	std::map<std::string, GridCell> npcCells;
 };
 
 }

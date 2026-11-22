@@ -56,6 +56,18 @@ private:
 	void addLayer(const worldmodel::TileGrid& grid, const std::string& path,
 		      const worldmodel::Map& map, SceneDescription& scene) const;
 
+	// Markers y portales del mapa como datos de la escena, y la celda
+	// por defecto de los NPC que el overlay ata a un marker.
+	void addAnchors(const worldmodel::Map& map, SceneDescription& scene) const;
+
+	// `enter` de una decoración: la celda donde queda acostado sale del
+	// marker del mapa (la misma que usa el server).
+	ElementEnter enterFor(const OverlayEnter& enter,
+			      const ElementPlacement& placement,
+			      const worldmodel::Map& map,
+			      const std::string& mapPath,
+			      const std::string& key) const;
+
 	void addObjects(const worldmodel::Map& map,
 			const std::string& mapPath, SceneDescription& scene) const;
 

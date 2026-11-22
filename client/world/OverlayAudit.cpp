@@ -4,6 +4,7 @@
 #include <string>
 
 #include "world/OverlayKeys.h"
+#include "world_model/WorldVocabulary.h"
 
 namespace world {
 
@@ -22,6 +23,17 @@ std::vector<ConfigError> OverlayAudit::unmatched(
 			findings.emplace_back(
 				ConfigErrorKind::UnmatchedEntry,
 				std::string(kKeyOverlayDecorations) + "." +
+					entry.first);
+		}
+	}
+	// Un marker del overlay que el vocabulario del editor no conoce
+	// nunca va a aparecer en un mapa.
+	const worldmodel::WorldVocabulary vocabulary;
+	for (const auto& entry : overlay.markerNpcs) {
+		if (!vocabulary.markerKindFrom(entry.first).has_value()) {
+			findings.emplace_back(
+				ConfigErrorKind::UnmatchedEntry,
+				std::string(kKeyOverlayMarkers) + "." +
 					entry.first);
 		}
 	}

@@ -5,6 +5,7 @@
 #include "world/ConfigError.h"
 #include "world/OverlayKeys.h"
 #include "world/SceneKeys.h"
+#include "world_model/WorldVocabulary.h"
 
 namespace world {
 
@@ -34,6 +35,7 @@ SceneDescription MapSceneAdapter::adapt(const worldmodel::World& world,
 	addLayers(map, mapPath, scene);
 	addObjects(map, mapPath, scene);
 	addExtraElements(mapId, scene);
+	addAnchors(map, scene);
 	return scene;
 }
 
@@ -142,13 +144,28 @@ void MapSceneAdapter::addObjects(const worldmodel::Map& map,
 		// Lo que el editor coloca "de pie" tapa a quien pasa detrás.
 		placement.depthSorted = true;
 
+		const auto overlay =
+			overlay_.decorations.find(object.tile.key());
+		const bool hasOverlay = overlay != overlay_.decorations.end();
+		if (hasOverlay && overlay->second.enter.has_value()) {
+			// Entrable y con versión de noche a la vez no se
+			// soporta: la capa frontal se dibujaría con la pieza
+			// de día.
+			if (overlay->second.night.has_value()) {
+				throw ConfigError(
+					ConfigErrorKind::InvalidValue,
+					std::string(kKeyOverlayDecorations) +
+						"." + object.tile.key());
+			}
+			placement.enter = enterFor(*overlay->second.enter,
+						   placement, map, mapPath,
+						   object.tile.key());
+		}
+
 		// De noche la decoración cambia de aspecto (overlay): el
 		// elemento de día se esconde y entra el de noche, en el mismo
 		// lugar del orden de dibujo.
-		const auto overlay =
-			overlay_.decorations.find(object.tile.key());
-		if (overlay != overlay_.decorations.end() &&
-		    overlay->second.night.has_value()) {
+		if (hasOverlay && overlay->second.night.has_value()) {
 			placement.when = TimeOfDay::Day;
 			const ElementPlacement night = nightElement(
 				placement, *overlay->second.night,
@@ -162,6 +179,63 @@ void MapSceneAdapter::addObjects(const worldmodel::Map& map,
 		}
 		scene.elements.push_back(std::move(placement));
 	}
+}
+
+void MapSceneAdapter::addAnchors(const worldmodel::Map& map,
+				 SceneDescription& scene) const {
+	const worldmodel::WorldVocabulary vocabulary;
+	for (const worldmodel::Marker& marker : map.markers) {
+		const std::string kind = vocabulary.toText(marker.kind);
+		const GridCell cell{marker.cell.column, marker.cell.row};
+		scene.markers.push_back(SceneMarker{kind, cell});
+		const auto npc = overlay_.markerNpcs.find(kind);
+		if (npc != overlay_.markerNpcs.end()) {
+			scene.npcCells[npc->second] = cell;
+		}
+	}
+	for (const worldmodel::Portal& portal : map.portals) {
+		scene.portals.push_back(ScenePortal{
+			vocabulary.toText(portal.kind),
+			{portal.cell.column, portal.cell.row},
+			portal.targetMap,
+			{portal.targetCell.column, portal.targetCell.row}});
+	}
+}
+
+ElementEnter MapSceneAdapter::enterFor(const OverlayEnter& enter,
+				       const ElementPlacement& placement,
+				       const worldmodel::Map& map,
+				       const std::string& mapPath,
+				       const std::string& key) const {
+	const std::string enterPath = std::string(kKeyOverlayDecorations) +
+				      "." + key + "." + kKeyEnter;
+	if (enter.lastFrontRow >= placement.pieceSize.rows) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  enterPath + "." + kKeyEnterRows);
+	}
+	const worldmodel::WorldVocabulary vocabulary;
+	for (const worldmodel::Marker& marker : map.markers) {
+		if (vocabulary.toText(marker.kind) != enter.marker) {
+			continue;
+		}
+		const bool inside =
+			marker.cell.column >= placement.at.column &&
+			marker.cell.column <
+				placement.at.column + placement.span.columns &&
+			marker.cell.row >= placement.at.row &&
+			marker.cell.row <
+				placement.at.row + placement.span.rows;
+		if (!inside) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  mapPath + "." + kKeyOverlayMarkers);
+		}
+		return ElementEnter{enter.firstFrontRow,
+				    enter.lastFrontRow,
+				    {marker.cell.column, marker.cell.row},
+				    enter.facing};
+	}
+	throw ConfigError(ConfigErrorKind::MissingStructure,
+			  mapPath + "." + kKeyOverlayMarkers);
 }
 
 void MapSceneAdapter::mergeOverlayTilesets(SceneDescription& scene) const {

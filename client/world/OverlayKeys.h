@@ -13,6 +13,15 @@ inline constexpr const char* kKeyOverlayScale = "scale";
 inline constexpr const char* kKeyOverlayDecorations = "decorations";
 inline constexpr const char* kKeyOverlayNightTile = "night_tile";
 
+// [decorations."..."] enter = { rows = [a, b], facing = "right",
+// marker = "bed" }: la celda sale del marker (default "bed").
+inline constexpr const char* kKeyOverlayEnterMarker = "marker";
+inline constexpr const char* kDefaultEnterMarker = "bed";
+
+// [markers.<kind>] npc = "<id>": el NPC que se ubica en ese marker.
+inline constexpr const char* kKeyOverlayMarkers = "markers";
+inline constexpr const char* kKeyOverlayNpc = "npc";
+
 // [[maps.<id>.elements]]: decoraciones iniciales de un mapa.
 inline constexpr const char* kKeyOverlayMaps = "maps";
 

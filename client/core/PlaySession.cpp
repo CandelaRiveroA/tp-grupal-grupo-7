@@ -421,7 +421,7 @@ void PlaySession::tick(int iteration) {
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
     // Dónde está cada NPC lo manda la fuente de estado (vista); sin eso,
     // valen las celdas por defecto de npcs.toml.
-    const world::NpcCells npcCells = npcPlacements_.cellsFrom(state);
+    const world::NpcCells npcCells = npcPlacements_.cellsFrom(state, scene());
 
     if (!state.entities.empty()) {
         const game::ViewEntity& local = state.entities[game::kLocalPlayerIndex];

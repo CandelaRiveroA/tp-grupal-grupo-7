@@ -86,6 +86,7 @@ target_sources(taller_tests
     map_scene_adapter_test.cpp
     tile_layer_layout_test.cpp
     depth_order_test.cpp
+    npc_placement_resolver_test.cpp
     audio_catalog_test.cpp
     sound_gate_test.cpp
     sound_cue_catalog_test.cpp

@@ -423,6 +423,143 @@ TEST(OverlayAuditTest, MatchingOverlayHasNoFindings) {
 			    .empty());
 }
 
+// --- Anchors: markers, portales, NPC y la cama -------------------------
+
+TEST(MapSceneAdapterAnchorsTest, MarkersAndPortalsBecomeSceneData) {
+	const world::SceneDescription market = world::MapSceneAdapter(
+		overlayWith(kScale)).adapt(editor_world_fixtures::makeWorld(),
+					   "market");
+	ASSERT_EQ(market.markers.size(), 1u);
+	EXPECT_EQ(market.markers[0].kind, "merchant_pierre");
+	EXPECT_EQ(market.markers[0].cell.column, 2);
+	EXPECT_EQ(market.markers[0].cell.row, 2);
+
+	const world::SceneDescription town = adaptTown();
+	ASSERT_EQ(town.portals.size(), 1u);
+	EXPECT_EQ(town.portals[0].kind, "farm_entrance");
+	EXPECT_EQ(town.portals[0].targetMap, "town");
+	EXPECT_EQ(town.portals[0].cell.row, 4);
+}
+
+TEST(MapSceneAdapterAnchorsTest, MarkerBoundToAnNpcGivesItsDefaultCell) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[markers.merchant_pierre]
+npc = "pierre"
+)");
+	const world::SceneDescription market =
+		world::MapSceneAdapter(overlay).adapt(
+			editor_world_fixtures::makeWorld(), "market");
+	ASSERT_EQ(market.npcCells.count("pierre"), 1u);
+	EXPECT_EQ(market.npcCells.at("pierre").column, 2);
+	EXPECT_EQ(market.npcCells.at("pierre").row, 2);
+}
+
+TEST(MapSceneAdapterAnchorsTest, MarkersWithoutAnNpcBindingLeaveNoNpcCells) {
+	const world::SceneDescription market = world::MapSceneAdapter(
+		overlayWith(kScale)).adapt(editor_world_fixtures::makeWorld(),
+					   "market");
+	EXPECT_TRUE(market.npcCells.empty());
+}
+
+// El tile del "mueble" de la cabaña (cama 2x2 en (0,0)) lo agrega el
+// test: el fixture solo trae el marker `bed` en (1,1).
+worldmodel::World worldWithBed() {
+	worldmodel::World world = editor_world_fixtures::makeWorld();
+	world.maps["cabin"].objects.push_back(editor_world_fixtures::object(
+		worldmodel::ObjectRole::Decoration,
+		editor_world_fixtures::tile("prefab_b", 6, 0), 0, 0, 2, 4));
+	return world;
+}
+
+const char* const kBedOverlay = R"(
+[decorations."prefab_b:6,0"]
+enter = { rows = [2, 3], facing = "right" }
+)";
+
+TEST(MapSceneAdapterAnchorsTest, BedMarkerGivesTheCellWhereThePlayerLies) {
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kBedOverlay);
+	const world::SceneDescription cabin =
+		world::MapSceneAdapter(overlay).adapt(worldWithBed(), "cabin");
+	ASSERT_EQ(cabin.elements.size(), 1u);
+	ASSERT_TRUE(cabin.elements[0].enter.has_value());
+	const world::ElementEnter& enter = *cabin.elements[0].enter;
+	EXPECT_EQ(enter.lie.column, 1);
+	EXPECT_EQ(enter.lie.row, 1);
+	EXPECT_EQ(enter.firstFrontRow, 2);
+	EXPECT_EQ(enter.lastFrontRow, 3);
+	EXPECT_EQ(enter.facing, world::Direction::Right);
+}
+
+TEST(MapSceneAdapterAnchorsTest, EnterWithoutItsMarkerIsMissingStructure) {
+	worldmodel::World world = worldWithBed();
+	world.maps["cabin"].markers.clear();
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kBedOverlay);
+	try {
+		world::MapSceneAdapter(overlay).adapt(world, "cabin");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::MissingStructure);
+		EXPECT_EQ(error.path(), "maps.cabin.markers");
+	}
+}
+
+TEST(MapSceneAdapterAnchorsTest, MarkerOutsideTheDecorationIsInvalid) {
+	worldmodel::World world = worldWithBed();
+	world.maps["cabin"].markers[0].cell = {3, 3};
+	const world::WorldOverlay overlay =
+		world::OverlayLoader().loadFromString(kBedOverlay);
+	try {
+		world::MapSceneAdapter(overlay).adapt(world, "cabin");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(), "maps.cabin.markers");
+	}
+}
+
+TEST(MapSceneAdapterAnchorsTest, FrontRowsBeyondThePieceAreInvalid) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[decorations."prefab_b:6,0"]
+enter = { rows = [2, 9], facing = "right" }
+)");
+	try {
+		world::MapSceneAdapter(overlay).adapt(worldWithBed(), "cabin");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(), "decorations.prefab_b:6,0.enter.rows");
+	}
+}
+
+TEST(MapSceneAdapterAnchorsTest, EnterAndNightVariantTogetherAreInvalid) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[decorations."prefab_b:6,0"]
+night_tile = "prefab_b:0,0"
+enter = { rows = [2, 3], facing = "right" }
+)");
+	try {
+		world::MapSceneAdapter(overlay).adapt(worldWithBed(), "cabin");
+		FAIL() << "se esperaba ConfigError";
+	} catch (const world::ConfigError& error) {
+		EXPECT_EQ(error.kind(), world::ConfigErrorKind::InvalidValue);
+		EXPECT_EQ(error.path(), "decorations.prefab_b:6,0");
+	}
+}
+
+TEST(OverlayAuditTest, UnknownMarkerKindIsReported) {
+	const world::WorldOverlay overlay = world::OverlayLoader().loadFromString(R"(
+[markers.merchant_nadie]
+npc = "nadie"
+)");
+	const std::vector<world::ConfigError> findings =
+		world::OverlayAudit().unmatched(
+			editor_world_fixtures::makeWorld(), overlay);
+	ASSERT_EQ(findings.size(), 1u);
+	EXPECT_EQ(findings[0].path(), "markers.merchant_nadie");
+}
+
 TEST(EditorWorldSourceTest, KnowsTheMapsOfTheWorld) {
 	const world::EditorWorldSource source(
 		editor_world_fixtures::makeWorld(), overlayWith(kScale));

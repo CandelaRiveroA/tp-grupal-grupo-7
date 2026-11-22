@@ -122,7 +122,7 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 
 	// NPCs estáticos: debajo de las entidades, como los recursos.
 	npcRenderer_.draw(viewport, scene.cellPixelSize,
-			  npcPlacements_.cellsFrom(view));
+			  npcPlacements_.cellsFrom(view, scene));
 
 	// Entidades y elementos de pie, en orden de profundidad: quien está
 	// detrás de la base de un árbol queda tapado por él.

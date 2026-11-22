@@ -1,5 +1,6 @@
 #include "world/OverlayTomlReader.h"
 
+#include <array>
 #include <string>
 
 #include "world/ConfigError.h"
@@ -26,6 +27,7 @@ WorldOverlay OverlayTomlReader::read() const {
 	}
 
 	readDecorations(overlay);
+	readMarkerNpcs(overlay);
 	readMapElements(overlay);
 	return overlay;
 }
@@ -70,7 +72,41 @@ void OverlayTomlReader::readDecorations(WorldOverlay& overlay) const {
 				throw ConfigError(error);
 			}
 		}
+		readEnter(base, decoration);
 		overlay.decorations.emplace(key, decoration);
+	}
+}
+
+void OverlayTomlReader::readEnter(const std::string& base,
+				  DecorationOverlay& decoration) const {
+	const std::string enterPath = base + "." + kKeyEnter;
+	if (!doc_.hasKey(enterPath)) {
+		return;
+	}
+	const std::array<int, 2> rows =
+		doc_.getIntArray<2>(enterPath + "." + kKeyEnterRows);
+	if (rows[0] < 0 || rows[1] < rows[0]) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  enterPath + "." + kKeyEnterRows);
+	}
+	const Direction facing = SceneTomlReader(doc_).parseFacing(
+		doc_.getString(enterPath + "." + kKeyEnterFacing), enterPath);
+	const std::string markerPath =
+		enterPath + "." + kKeyOverlayEnterMarker;
+	const std::string marker = doc_.hasKey(markerPath)
+					   ? doc_.getString(markerPath)
+					   : std::string(kDefaultEnterMarker);
+	decoration.enter = OverlayEnter{rows[0], rows[1], facing, marker};
+}
+
+void OverlayTomlReader::readMarkerNpcs(WorldOverlay& overlay) const {
+	if (!doc_.hasKey(kKeyOverlayMarkers)) {
+		return;
+	}
+	for (const std::string& kind : doc_.subtableKeys(kKeyOverlayMarkers)) {
+		const std::string path = std::string(kKeyOverlayMarkers) + "." +
+					 kind + "." + kKeyOverlayNpc;
+		overlay.markerNpcs[kind] = doc_.getString(path);
 	}
 }
 

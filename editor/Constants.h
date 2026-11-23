@@ -18,6 +18,7 @@ const QList<int> kBodySplitterSizes{220, 600, 240};
 const QSize kValidationDialogSize{480, 320};
 constexpr int kHeadingIndent = 4;
 constexpr int kTopBarSpacing = 8;
+const QMargins kTopBarMargins{8, 4, 8, 4};
 constexpr int kToolIconSize = 32;   // iconos de editor/resources/ui a tamano nativo
 
 // MapTreeWidget.cpp

@@ -65,3 +65,105 @@ QListWidget#paletteList::item:selected, QListWidget#portalList::item:selected {
     border-image: url(:/editor/ui/editor_button_hover.png) 8 8 8 8 stretch;
     border-width: 8px;
 }
+
+QDialog#newWorldDialog, QDialog#addExtraMapDialog, QDialog#validationDialog,
+QDialog#editorDialog {
+    background: #44121c;
+}
+QLabel#editorDialogText { color: #4a1808; }
+QLineEdit#editorField {
+    border-image: url(:/ui/character/text_box.png) 8 8 8 12 stretch;
+    border-width: 8px 8px 8px 12px;
+    padding: 0 4px;
+    color: #4a1808;
+}
+QLabel#validityHint { color: #8b1e1e; }
+QLabel#validationStatus { font-family: "StardewValley"; font-size: 20px; }
+QListWidget#issueList { background: #ffd284; border: none; color: #4a1808; }
+QListWidget#issueList::item {
+    border-image: url(:/ui/character/recessed_box.png) 5 5 5 5 stretch;
+    border-width: 5px;
+}
+
+QListWidget#paletteList QScrollBar:vertical,
+QListWidget#portalList QScrollBar:vertical,
+QTreeWidget#mapTree QScrollBar:vertical,
+QListWidget#issueList QScrollBar:vertical,
+QListWidget#worldList QScrollBar:vertical {
+    background: #e8b86b;
+    width: 12px;
+    margin: 0;
+    border: 1px solid #4a1808;
+}
+QListWidget#paletteList QScrollBar::handle:vertical,
+QListWidget#portalList QScrollBar::handle:vertical,
+QTreeWidget#mapTree QScrollBar::handle:vertical,
+QListWidget#issueList QScrollBar::handle:vertical,
+QListWidget#worldList QScrollBar::handle:vertical {
+    background: #8b4a2b;
+    border: 1px solid #4a1808;
+    min-height: 24px;
+}
+QListWidget#paletteList QScrollBar::handle:vertical:hover,
+QListWidget#portalList QScrollBar::handle:vertical:hover,
+QTreeWidget#mapTree QScrollBar::handle:vertical:hover,
+QListWidget#issueList QScrollBar::handle:vertical:hover,
+QListWidget#worldList QScrollBar::handle:vertical:hover {
+    background: #a85c36;
+}
+QListWidget#paletteList QScrollBar::add-line:vertical,
+QListWidget#paletteList QScrollBar::sub-line:vertical,
+QListWidget#portalList QScrollBar::add-line:vertical,
+QListWidget#portalList QScrollBar::sub-line:vertical,
+QTreeWidget#mapTree QScrollBar::add-line:vertical,
+QTreeWidget#mapTree QScrollBar::sub-line:vertical,
+QListWidget#issueList QScrollBar::add-line:vertical,
+QListWidget#issueList QScrollBar::sub-line:vertical,
+QListWidget#worldList QScrollBar::add-line:vertical,
+QListWidget#worldList QScrollBar::sub-line:vertical {
+    height: 0;
+    border: none;
+}
+QListWidget#paletteList QScrollBar::add-page:vertical,
+QListWidget#paletteList QScrollBar::sub-page:vertical,
+QListWidget#portalList QScrollBar::add-page:vertical,
+QListWidget#portalList QScrollBar::sub-page:vertical,
+QTreeWidget#mapTree QScrollBar::add-page:vertical,
+QTreeWidget#mapTree QScrollBar::sub-page:vertical,
+QListWidget#issueList QScrollBar::add-page:vertical,
+QListWidget#issueList QScrollBar::sub-page:vertical,
+QListWidget#worldList QScrollBar::add-page:vertical,
+QListWidget#worldList QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+QTreeWidget#mapTree QScrollBar:horizontal,
+QListWidget#issueList QScrollBar:horizontal {
+    background: #e8b86b;
+    height: 12px;
+    margin: 0;
+    border: 1px solid #4a1808;
+}
+QTreeWidget#mapTree QScrollBar::handle:horizontal,
+QListWidget#issueList QScrollBar::handle:horizontal {
+    background: #8b4a2b;
+    border: 1px solid #4a1808;
+    min-width: 24px;
+}
+QTreeWidget#mapTree QScrollBar::handle:horizontal:hover,
+QListWidget#issueList QScrollBar::handle:horizontal:hover {
+    background: #a85c36;
+}
+QTreeWidget#mapTree QScrollBar::add-line:horizontal,
+QTreeWidget#mapTree QScrollBar::sub-line:horizontal,
+QListWidget#issueList QScrollBar::add-line:horizontal,
+QListWidget#issueList QScrollBar::sub-line:horizontal {
+    width: 0;
+    border: none;
+}
+QTreeWidget#mapTree QScrollBar::add-page:horizontal,
+QTreeWidget#mapTree QScrollBar::sub-page:horizontal,
+QListWidget#issueList QScrollBar::add-page:horizontal,
+QListWidget#issueList QScrollBar::sub-page:horizontal {
+    background: transparent;
+}

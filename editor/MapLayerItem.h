@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QGraphicsItem>
+#include <QPixmap>
 #include <cstddef>
 #include <map>
 #include <optional>
@@ -46,6 +47,23 @@ public:
 		   QWidget* widget) override;
 
 private:
+	const TilesetCache& tilesets_;
+	QPixmap markerSprite_;
+	QPixmap portalSprite_;
+	std::map<EditorTool, bool (MapLayerItem::*)() const> previewChecks_;
+	std::map<EditorTool, void (MapLayerItem::*)(QPainter*, int) const>
+		previewDrawers_;
+	std::map<MoveKind, void (MapLayerItem::*)(QPainter*, int) const>
+		movePreviewDrawers_;
+	const worldmodel::Map* map_ = nullptr;
+	bool showCollision_ = false;
+	EditorTool tool_ = EditorTool::Navigate;
+	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	std::optional<MoveTarget> moveTarget_;
+	int portalPreviewW_ = 1;
+	int portalPreviewH_ = 1;
+	std::optional<worldmodel::TilePos> hoverCell_;
+
 	bool hasValidMap() const;
 	bool hasPreview() const;
 	bool hasPrefabPreview() const;
@@ -65,19 +83,4 @@ private:
 			  int minRow, int maxRow) const;
 	void drawCollisionOverlay(QPainter* painter, int ts, int minCol,
 				  int maxCol, int minRow, int maxRow) const;
-
-	const TilesetCache& tilesets_;
-	std::map<EditorTool, bool (MapLayerItem::*)() const> previewChecks_;
-	std::map<EditorTool, void (MapLayerItem::*)(QPainter*, int) const>
-		previewDrawers_;
-	std::map<MoveKind, void (MapLayerItem::*)(QPainter*, int) const>
-		movePreviewDrawers_;
-	const worldmodel::Map* map_ = nullptr;
-	bool showCollision_ = false;
-	EditorTool tool_ = EditorTool::Navigate;
-	const worldmodel::PrefabDef* activePrefab_ = nullptr;
-	std::optional<MoveTarget> moveTarget_;
-	int portalPreviewW_ = 1;
-	int portalPreviewH_ = 1;
-	std::optional<worldmodel::TilePos> hoverCell_;
 };

@@ -18,6 +18,8 @@
 
 MapLayerItem::MapLayerItem(const TilesetCache& tilesets)
 	: tilesets_(tilesets),
+	  markerSprite_(":/editor/ui/spawn_marker.png"),
+	  portalSprite_(":/editor/ui/portal_rune.png"),
 	  previewChecks_{
 		  {EditorTool::Place, &MapLayerItem::hasPrefabPreview},
 		  {EditorTool::Move, &MapLayerItem::hasMovePreview},
@@ -256,19 +258,22 @@ void MapLayerItem::drawPickTargetPreview(QPainter* painter, int ts) const {
 void MapLayerItem::drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 					 int maxCol, int minRow,
 					 int maxRow) const {
+	// shortcut: un sprite para todos los MarkerKind; si hay que distinguirlos, std::map<MarkerKind, QPixmap> miembro (sin switch).
 	painter->setPen(QPen(QColor(0, 230, 255, 200), 0));
-	painter->setBrush(QColor(0, 210, 230, 110));
+	painter->setBrush(Qt::NoBrush);
 	for (const auto& marker : map_->markers) {
 		if (marker.cell.column >= minCol &&
 		    marker.cell.column <= maxCol &&
 		    marker.cell.row >= minRow && marker.cell.row <= maxRow) {
-			painter->drawRect(marker.cell.column * ts,
-					  marker.cell.row * ts, ts, ts);
+			const QRect rect(marker.cell.column * ts,
+					 marker.cell.row * ts, ts, ts);
+			painter->drawPixmap(rect, markerSprite_);
+			painter->drawRect(rect);
 		}
 	}
 
 	painter->setPen(QPen(QColor(190, 100, 255, 200), 0));
-	painter->setBrush(QColor(170, 70, 230, 110));
+	painter->setBrush(QColor(170, 70, 230, 60));
 	for (const auto& portal : map_->portals) {
 		if (portal.cell.column + portal.width - 1 < minCol ||
 		    portal.cell.column > maxCol ||
@@ -279,6 +284,15 @@ void MapLayerItem::drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 		painter->drawRect(portal.cell.column * ts,
 				  portal.cell.row * ts, portal.width * ts,
 				  portal.height * ts);
+		for (int r = 0; r < portal.height; ++r) {
+			for (int c = 0; c < portal.width; ++c) {
+				painter->drawPixmap(
+					QRect((portal.cell.column + c) * ts,
+					      (portal.cell.row + r) * ts, ts,
+					      ts),
+					portalSprite_);
+			}
+		}
 	}
 	painter->setBrush(Qt::NoBrush);
 }

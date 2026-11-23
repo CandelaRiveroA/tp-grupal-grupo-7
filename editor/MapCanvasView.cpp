@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPixmap>
 #include <QScrollBar>
 #include <QWheelEvent>
 #include <algorithm>
@@ -32,6 +33,8 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 		  {MoveKind::Portal, &MapCanvasView::movePortal},
 	  } {
 	setRenderHint(QPainter::SmoothPixmapTransform, false);
+	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 	setResizeAnchor(QGraphicsView::AnchorViewCenter);
 	setMouseTracking(true);
@@ -40,6 +43,7 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 
 	scene_ = new QGraphicsScene(this);
 	setScene(scene_);
+	setBackgroundBrush(QPixmap(":/editor/ui/editor_canvas_bg.png"));
 
 	layerItem_ = new MapLayerItem(tilesets);
 	scene_->addItem(layerItem_);

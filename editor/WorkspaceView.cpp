@@ -103,6 +103,12 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		});
 	connect(palette_, &PaletteView::prefabSelected, this,
 		&WorkspaceView::onPrefabSelected);
+	connect(palette_, &PaletteView::bedSelected, this,
+		&WorkspaceView::onBedSelected);
+	connect(canvas_, &MapCanvasView::placementRejected, this,
+		[this](const QString& title, const QString& message) {
+			EditorDialog(this).info(title, message);
+		});
 	connect(portals_, &PortalsView::portalPicked, this,
 		&WorkspaceView::onPortalPicked);
 	connect(canvas_, &MapCanvasView::cabinErased, this,
@@ -435,6 +441,7 @@ std::vector<const worldmodel::Scenario*> WorkspaceView::scenarioOptions()
 }
 
 void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
+	canvas_->setPlacingBed(false);
 	if (prefab == nullptr) {
 		setActivePrefab(nullptr);
 		return;
@@ -451,6 +458,13 @@ void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
 		return;
 	}
 	setActivePrefab(prefab);
+	placeButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Place);
+}
+
+void WorkspaceView::onBedSelected() {
+	setActivePrefab(nullptr);
+	canvas_->setPlacingBed(true);
 	placeButton_->setChecked(true);
 	canvas_->setTool(EditorTool::Place);
 }

@@ -18,7 +18,11 @@
 
 MapLayerItem::MapLayerItem(const TilesetCache& tilesets)
 	: tilesets_(tilesets),
-	  markerSprite_(":/editor/ui/spawn_marker.png"),
+	  defaultMarkerSprite_(":/editor/ui/spawn_marker.png"),
+	  markerSprites_{
+		  {worldmodel::MarkerKind::Bed,
+		   QPixmap(":/editor/ui/bed_marker.png")},
+	  },
 	  portalSprite_(":/editor/ui/portal_rune.png"),
 	  previewChecks_{
 		  {EditorTool::Place, &MapLayerItem::hasPrefabPreview},
@@ -71,6 +75,17 @@ void MapLayerItem::setActivePrefab(const worldmodel::PrefabDef* prefab) {
 	}
 	const bool hadPreview = hasPreview();
 	activePrefab_ = prefab;
+	if (hadPreview || hasPreview()) {
+		update();
+	}
+}
+
+void MapLayerItem::setPlacingBed(bool placing) {
+	if (placingBed_ == placing) {
+		return;
+	}
+	const bool hadPreview = hasPreview();
+	placingBed_ = placing;
 	if (hadPreview || hasPreview()) {
 		update();
 	}
@@ -156,7 +171,7 @@ bool MapLayerItem::hasPreview() const {
 }
 
 bool MapLayerItem::hasPrefabPreview() const {
-	return activePrefab_ != nullptr;
+	return activePrefab_ != nullptr || placingBed_;
 }
 
 bool MapLayerItem::hasMovePreview() const {
@@ -188,6 +203,23 @@ void MapLayerItem::drawPlacementPreview(QPainter* painter, int ts) const {
 }
 
 void MapLayerItem::drawPrefabPreview(QPainter* painter, int ts) const {
+	if (placingBed_) {
+		const QRect rect(hoverCell_->column * ts, hoverCell_->row * ts,
+				 ts, 2 * ts);
+		painter->setOpacity(editor::kGhostOpacity);
+		painter->drawPixmap(
+			rect, markerSprites_.at(worldmodel::MarkerKind::Bed));
+		painter->setOpacity(1.0);
+		const bool valid =
+			map_->fits(*hoverCell_, 1, 2) &&
+			map_->isWalkable(*hoverCell_) &&
+			map_->isWalkable(
+				{hoverCell_->column, hoverCell_->row + 1});
+		painter->setPen(QPen(
+			valid ? QColor(0, 230, 255) : QColor(240, 60, 60), 0));
+		painter->drawRect(rect);
+		return;
+	}
 	const int x = hoverCell_->column * ts;
 	const int y = hoverCell_->row * ts;
 	const int w = activePrefab_->width * ts;
@@ -226,11 +258,17 @@ void MapLayerItem::drawMoveObjectPreview(QPainter* painter, int ts) const {
 	painter->drawRect(x, y, obj.width * ts, obj.height * ts);
 }
 
+int MapLayerItem::markerHeight(worldmodel::MarkerKind kind) const {
+	return kind == worldmodel::MarkerKind::Bed ? 2 : 1;
+}
+
 void MapLayerItem::drawMoveMarkerPreview(QPainter* painter, int ts) const {
+	const int height =
+		markerHeight(map_->markers[moveTarget_->index].kind);
 	painter->setPen(QPen(QColor(0, 230, 255), 0));
 	painter->setBrush(QColor(0, 210, 230, 140));
 	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts, ts,
-			  ts);
+			  height * ts);
 }
 
 void MapLayerItem::drawMovePortalPreview(QPainter* painter, int ts) const {
@@ -262,12 +300,18 @@ void MapLayerItem::drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 	painter->setPen(QPen(QColor(0, 230, 255, 200), 0));
 	painter->setBrush(Qt::NoBrush);
 	for (const auto& marker : map_->markers) {
+		const int height = markerHeight(marker.kind);
 		if (marker.cell.column >= minCol &&
 		    marker.cell.column <= maxCol &&
-		    marker.cell.row >= minRow && marker.cell.row <= maxRow) {
+		    marker.cell.row + height - 1 >= minRow &&
+		    marker.cell.row <= maxRow) {
 			const QRect rect(marker.cell.column * ts,
-					 marker.cell.row * ts, ts, ts);
-			painter->drawPixmap(rect, markerSprite_);
+					 marker.cell.row * ts, ts, height * ts);
+			const auto it = markerSprites_.find(marker.kind);
+			const QPixmap& sprite = it != markerSprites_.end()
+							? it->second
+							: defaultMarkerSprite_;
+			painter->drawPixmap(rect, sprite);
 			painter->drawRect(rect);
 		}
 	}

@@ -37,6 +37,10 @@ bool MinimapGenerator::generate(const worldmodel::World& world, const TilesetCac
         return false;
     }
     for (const auto& [mapId, map]: world.maps) {
+        if (map.kind != worldmodel::MapKind::Farm &&
+            map.kind != worldmodel::MapKind::Town) {
+            continue;
+        }
         const QImage image = renderMap(map, tilesets);
         const QString path = QString::fromStdString(worlds.minimapPathFor(world.name, mapId));
         if (image.isNull() || !image.save(path, "PNG")) {

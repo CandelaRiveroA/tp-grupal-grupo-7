@@ -85,6 +85,7 @@ private:
 	void removeExtraMap();
 	void replaceScenario();
 	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
+	void onBedSelected();
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
 	void onPortalPicked(worldmodel::PortalKind kind, int width, int height);
 	void onPortalTargetRequested(std::size_t portalIndex);

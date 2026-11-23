@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "common/world_model/Geometry.h"
+#include "common/world_model/Marker.h"
 #include "common/world_model/Tile.h"
 
 class QPainter;
@@ -38,6 +39,7 @@ public:
 	void setShowCollision(bool show);
 	void setTool(EditorTool tool);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void setPlacingBed(bool placing);
 	void setMoveTarget(std::optional<MoveTarget> target);
 	void setPortalPreviewSize(int width, int height);
 	void setHoverCell(std::optional<worldmodel::TilePos> cell);
@@ -48,7 +50,8 @@ public:
 
 private:
 	const TilesetCache& tilesets_;
-	QPixmap markerSprite_;
+	QPixmap defaultMarkerSprite_;
+	std::map<worldmodel::MarkerKind, QPixmap> markerSprites_;
 	QPixmap portalSprite_;
 	std::map<EditorTool, bool (MapLayerItem::*)() const> previewChecks_;
 	std::map<EditorTool, void (MapLayerItem::*)(QPainter*, int) const>
@@ -59,6 +62,7 @@ private:
 	bool showCollision_ = false;
 	EditorTool tool_ = EditorTool::Navigate;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	bool placingBed_ = false;
 	std::optional<MoveTarget> moveTarget_;
 	int portalPreviewW_ = 1;
 	int portalPreviewH_ = 1;
@@ -83,4 +87,5 @@ private:
 			  int minRow, int maxRow) const;
 	void drawCollisionOverlay(QPainter* painter, int ts, int minCol,
 				  int maxCol, int minRow, int maxRow) const;
+	int markerHeight(worldmodel::MarkerKind kind) const;
 };

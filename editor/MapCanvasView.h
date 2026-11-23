@@ -32,6 +32,7 @@ public:
 	void setShowCollision(bool show);
 	void setTool(EditorTool tool);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void setPlacingBed(bool placing);
 	void setActivePortal(worldmodel::PortalKind kind, int width, int height);
 	void setPickTargetSize(int width, int height);
 	void zoomIn();
@@ -45,6 +46,7 @@ signals:
 	void targetCellPicked(worldmodel::TilePos cell);
 	void pickTargetCancelled();
 	void toolResetToNavigate();
+	void placementRejected(const QString& title, const QString& message);
 
 protected:
 	void wheelEvent(QWheelEvent* event) override;
@@ -60,6 +62,8 @@ private:
 	std::optional<worldmodel::TilePos> cellAt(const QPoint& pos) const;
 	void updateHoverCell(std::optional<worldmodel::TilePos> cell);
 	void placePrefabAt(worldmodel::TilePos cell);
+	void placeBedAt(worldmodel::TilePos cell);
+	bool canPlacePrefab(const worldmodel::PrefabDef& prefab);
 	void eraseAt(worldmodel::TilePos cell);
 	void moveAt(worldmodel::TilePos cell);
 	std::optional<MoveTarget> pickMoveTarget(worldmodel::TilePos cell) const;
@@ -82,6 +86,7 @@ private:
 	MapLayerItem* layerItem_ = nullptr;
 	worldmodel::Map* map_ = nullptr;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
+	bool placingBed_ = false;
 	std::optional<MoveTarget> moveTarget_;
 	std::map<EditorTool, void (MapCanvasView::*)(worldmodel::TilePos)>
 		clickHandlers_;

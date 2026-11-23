@@ -14,6 +14,7 @@
 
 #include "Constants.h"
 #include "MapLayerItem.h"
+#include "common/world_model/Constants.h"
 #include "common/world_model/Map.h"
 #include "common/world_model/MapObject.h"
 #include "common/world_model/PrefabCatalog.h"
@@ -73,6 +74,11 @@ void MapCanvasView::setTool(EditorTool tool) {
 void MapCanvasView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
 	activePrefab_ = prefab;
 	layerItem_->setActivePrefab(prefab);
+}
+
+void MapCanvasView::setPlacingBed(bool placing) {
+	placingBed_ = placing;
+	layerItem_->setPlacingBed(placing);
 }
 
 void MapCanvasView::setActivePortal(worldmodel::PortalKind kind, int width,
@@ -251,17 +257,99 @@ void MapCanvasView::updateHoverCell(std::optional<worldmodel::TilePos> cell) {
 	layerItem_->setHoverCell(hoverCell_);
 }
 
-void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
-	if (!map_ || !activePrefab_ ||
-	    !map_->fits(cell, activePrefab_->width, activePrefab_->height)) {
+void MapCanvasView::placeBedAt(worldmodel::TilePos cell) {
+	if (!map_->contains(cell)) {
 		return;
 	}
-	if (activePrefab_->role.has_value()) {
-		const std::optional<std::string> requiredMap =
-			rules_.requiredHostMap(*activePrefab_->role);
-		if (requiredMap.has_value() && map_->id != *requiredMap) {
+	if (!rules_.cabinIndex(map_->id).has_value()) {
+		emit placementRejected(
+			"Ubicacion no permitida",
+			"La cama solo puede colocarse en el interior "
+			"de una cabana.");
+		return;
+	}
+	if (!map_->fits(cell, 1, 2) || !map_->isWalkable(cell) ||
+	    !map_->isWalkable({cell.column, cell.row + 1})) {
+		emit placementRejected(
+			"Ubicacion no valida",
+			"La cama ocupa 1x2 celdas y ambas deben ser "
+			"transitables.");
+		return;
+	}
+	for (auto& marker : map_->markers) {
+		if (marker.kind == worldmodel::MarkerKind::Bed) {
+			marker.cell = cell;
+			notifyMapEdited();
 			return;
 		}
+	}
+	map_->markers.push_back({worldmodel::MarkerKind::Bed, cell});
+	notifyMapEdited();
+}
+
+bool MapCanvasView::canPlacePrefab(const worldmodel::PrefabDef& prefab) {
+	if (!prefab.role.has_value()) {
+		return true;
+	}
+	const worldmodel::ObjectRole role = *prefab.role;
+	if (role == worldmodel::ObjectRole::Cabin) {
+		if (map_->id != editor::kHomeMapId) {
+			emit placementRejected(
+				"Ubicacion no permitida",
+				"Las cabanas solo pueden colocarse en la "
+				"granja (farm).");
+			return false;
+		}
+		const int cabins = static_cast<int>(std::count_if(
+			map_->objects.begin(), map_->objects.end(),
+			[](const worldmodel::MapObject& obj) {
+				return obj.role ==
+				       worldmodel::ObjectRole::Cabin;
+			}));
+		if (cabins >= worldmodel::kMaxPlayers) {
+			emit placementRejected(
+				"Limite de cabanas",
+				"No se pueden colocar mas de 4 cabanas en la "
+				"granja.");
+			return false;
+		}
+	}
+	const bool isShop = role == worldmodel::ObjectRole::Carpentry ||
+			    role == worldmodel::ObjectRole::Blacksmith ||
+			    role == worldmodel::ObjectRole::GeneralStore ||
+			    role == worldmodel::ObjectRole::Ranch;
+	if (isShop && map_->id != "town") {
+		emit placementRejected(
+			"Ubicacion no permitida",
+			"Las casas de los comerciantes solo pueden colocarse "
+			"en el pueblo (town).");
+		return false;
+	}
+	const std::optional<std::string> requiredMap =
+		rules_.requiredHostMap(role);
+	if (requiredMap.has_value() && map_->id != *requiredMap) {
+		emit placementRejected(
+			"Ubicacion no permitida",
+			QString::fromStdString(
+				"Este edificio solo puede colocarse en " +
+				*requiredMap + "."));
+		return false;
+	}
+	return true;
+}
+
+void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
+	if (!map_) {
+		return;
+	}
+	if (placingBed_) {
+		placeBedAt(cell);
+		return;
+	}
+	if (!activePrefab_ ||
+	    !map_->fits(cell, activePrefab_->width, activePrefab_->height) ||
+	    !canPlacePrefab(*activePrefab_)) {
+		return;
 	}
 	const bool anyBlocked = std::any_of(
 		activePrefab_->collisionGrid.begin(),
@@ -269,7 +357,8 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 	const worldmodel::ObjectRole role =
 		activePrefab_->role.value_or(worldmodel::ObjectRole::Decoration);
 	const std::optional<worldmodel::TilePos> door =
-		role != worldmodel::ObjectRole::Decoration
+		role != worldmodel::ObjectRole::Decoration &&
+				role != worldmodel::ObjectRole::Building
 			? prefabDoorAt(cell)
 			: std::nullopt;
 	const int doorWidth =
@@ -304,6 +393,7 @@ void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 	for (auto it = map_->objects.rbegin(); it != map_->objects.rend(); ++it) {
 		const bool erasable =
 			it->role == worldmodel::ObjectRole::Decoration ||
+			it->role == worldmodel::ObjectRole::Building ||
 			map_->id == editor::kHomeMapId || map_->id == "town";
 		if (!erasable ||
 		    !containsCell(it->cell, it->width, it->height, cell)) {
@@ -350,7 +440,11 @@ void MapCanvasView::moveAt(worldmodel::TilePos cell) {
 std::optional<MoveTarget> MapCanvasView::pickMoveTarget(
 	worldmodel::TilePos cell) const {
 	for (std::size_t i = map_->markers.size(); i-- > 0;) {
-		if (map_->markers[i].cell == cell) {
+		const int height =
+			map_->markers[i].kind == worldmodel::MarkerKind::Bed
+				? 2
+				: 1;
+		if (containsCell(map_->markers[i].cell, 1, height, cell)) {
 			return MoveTarget{MoveKind::Marker, i};
 		}
 	}

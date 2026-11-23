@@ -30,5 +30,6 @@
         <file>ui/tree_extras.png</file>
         <file>ui/portal_rune.png</file>
         <file>ui/spawn_marker.png</file>
+        <file>ui/bed_marker.png</file>
     </qresource>
 </RCC>

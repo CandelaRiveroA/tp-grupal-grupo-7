@@ -59,13 +59,6 @@ private:
 	void drawMovePortalPreview(QPainter* painter, int ts) const;
 	void drawPlacePortalPreview(QPainter* painter, int ts) const;
 	void drawPickTargetPreview(QPainter* painter, int ts) const;
-	void drawObjectAt(QPainter* painter, const worldmodel::MapObject& obj,
-			  int x, int y) const;
-	void drawGridLayer(QPainter* painter, const std::vector<std::optional<worldmodel::TileRef>>& grid,
-			   int ts, int minCol, int maxCol, int minRow,
-			   int maxRow) const;
-	void drawObjects(QPainter* painter, int ts, int minCol, int maxCol,
-			 int minRow, int maxRow) const;
 	void drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 				   int maxCol, int minRow, int maxRow) const;
 	void drawCellGrid(QPainter* painter, int ts, int minCol, int maxCol,

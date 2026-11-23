@@ -9,6 +9,7 @@
 
 #include "Constants.h"
 #include "TilesetCache.h"
+#include "WorldPainter.h"
 #include "common/world_model/Map.h"
 #include "common/world_model/MapObject.h"
 #include "common/world_model/Marker.h"
@@ -131,10 +132,8 @@ void MapLayerItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* opti
 		return;
 	}
 
-	drawGridLayer(painter, map_->ground, ts, minCol, maxCol, minRow, maxRow);
-	drawGridLayer(painter, map_->paths, ts, minCol, maxCol, minRow, maxRow);
-	drawObjects(painter, ts, minCol, maxCol, minRow, maxRow);
-	drawGridLayer(painter, map_->front, ts, minCol, maxCol, minRow, maxRow);
+	WorldPainter().paintWorldLayers(painter, *map_, tilesets_, minCol,
+					maxCol, minRow, maxRow);
 	drawMarkersAndPortals(painter, ts, minCol, maxCol, minRow, maxRow);
 	drawCellGrid(painter, ts, minCol, maxCol, minRow, maxRow);
 
@@ -217,7 +216,8 @@ void MapLayerItem::drawMoveObjectPreview(QPainter* painter, int ts) const {
 	const int x = hoverCell_->column * ts;
 	const int y = hoverCell_->row * ts;
 	painter->setOpacity(editor::kGhostOpacity);
-	drawObjectAt(painter, obj, x, y);
+	painter->drawPixmap(
+		x, y, tilesets_.tilePixmap(obj.tile, obj.width, obj.height));
 	painter->setOpacity(1.0);
 	painter->setPen(QPen(QColor(255, 255, 255, 220), 0));
 	painter->setBrush(Qt::NoBrush);
@@ -251,41 +251,6 @@ void MapLayerItem::drawPickTargetPreview(QPainter* painter, int ts) const {
 	painter->setBrush(QColor(40, 230, 110, 90));
 	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
 			  portalPreviewW_ * ts, portalPreviewH_ * ts);
-}
-
-void MapLayerItem::drawGridLayer(QPainter* painter, const worldmodel::TileGrid& grid,
-				 int ts, int minCol, int maxCol, int minRow,
-				 int maxRow) const {
-	for (int row = minRow; row <= maxRow; ++row) {
-		for (int col = minCol; col <= maxCol; ++col) {
-			const std::size_t idx = map_->cellIndex({col, row});
-			if (idx < grid.size() && grid[idx].has_value()) {
-				painter->drawPixmap(col * ts, row * ts,
-						    tilesets_.tilePixmap(*grid[idx]));
-			}
-		}
-	}
-}
-
-void MapLayerItem::drawObjectAt(QPainter* painter,
-				const worldmodel::MapObject& obj, int x,
-				int y) const {
-	painter->drawPixmap(
-		x, y, tilesets_.tilePixmap(obj.tile, obj.width, obj.height));
-}
-
-void MapLayerItem::drawObjects(QPainter* painter, int ts, int minCol, int maxCol,
-			       int minRow, int maxRow) const {
-	for (const auto& obj : map_->objects) {
-		if (obj.cell.column + obj.width - 1 < minCol ||
-		    obj.cell.column > maxCol ||
-		    obj.cell.row + obj.height - 1 < minRow ||
-		    obj.cell.row > maxRow) {
-			continue;
-		}
-		drawObjectAt(painter, obj, obj.cell.column * ts,
-			     obj.cell.row * ts);
-	}
 }
 
 void MapLayerItem::drawMarkersAndPortals(QPainter* painter, int ts, int minCol,

@@ -61,12 +61,13 @@ public:
     // --- Colisiones y celdas ---
     bool can_walk_to(uint16_t x, uint16_t y) const;
     void set_wall(uint16_t x, uint16_t y, bool wall);
+    Cell& get_cell(uint16_t x, uint16_t y);
     const Cell& get_cell(uint16_t x, uint16_t y) const;
     SoilState get_soil_state(uint16_t x, uint16_t y) const;
 
     // --- Gestión de entidades en O(1) ---
     std::vector<IEntity*> get_entity_at(uint16_t x, uint16_t y) const;
-    void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> entity);
+    virtual void set_entity_at(uint16_t x, uint16_t y, std::unique_ptr<IEntity> entity);
     void remove_entity(IEntity* target_entity);
     void remove_entity_at(uint16_t x, uint16_t y);
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);

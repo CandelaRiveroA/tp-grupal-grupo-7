@@ -389,27 +389,33 @@ void World::clear_flames() {
 }
 
 void World::tick_enemies() {
+    const SceneId previous = this->active_scene;
     for (DungeonFloor* floor: this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         floor->tick_enemies(*this);
     }
+    this->active_scene = previous;
 }
 
 bool World::tick_enemies_pursuit() {
+    const SceneId previous = this->active_scene;
     bool changed = false;
     for (DungeonFloor* floor: this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         changed = floor->tick_enemies_pursuit(*this) || changed;
     }
+    this->active_scene = previous;
     return changed;
 }
 
 bool World::tick_flames() {
+    const SceneId previous = this->active_scene;
     bool any_flying = false;
     for (DungeonFloor* floor: this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         any_flying = floor->tick_flames(*this) || any_flying;
     }
+    this->active_scene = previous;
     return any_flying;
 }
 
@@ -665,18 +671,6 @@ void World::record_pickup(uint8_t player_id, ItemID item) {
     this->pickups.push_back(PlayerPickup{player_id, item});
 }
 
-void World::remove_player(uint8_t player_id) {
-    this->players.erase(player_id);
-    // Nadie queda esperando a un jugador que ya no está en la partida.
-    this->sleepers.erase(player_id);
-    this->accepted.erase(player_id);
-    this->woke.erase(player_id);
-    this->death_to_bed.erase(player_id);
-    // Si el que se fue era el único que faltaba aceptar o despertar, el día tiene que avanzar.
-    this->try_advance_sleep();
-    this->try_start_day();
-}
-
 std::vector<PlayerPickup> World::take_pickups() {
     std::vector<PlayerPickup> taken;
     taken.swap(this->pickups);
@@ -687,10 +681,12 @@ std::vector<PlayerPickup> World::take_pickups() {
 // DÍA Y SUEÑO
 // ---------------------------------------------------------
 void World::tick_day() {
+    const SceneId previous = this->active_scene;
     for (auto& [scene_id, scene_ptr]: this->scenes) {
         this->active_scene = scene_id;
         scene_ptr->on_new_day(*this);
     }
+    this->active_scene = previous;
 }
 
 void World::advance_day() {

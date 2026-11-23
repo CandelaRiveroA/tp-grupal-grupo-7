@@ -34,12 +34,6 @@ struct GiftOffer {
     ItemID item;
 };
 
-struct MerchantPlacement {
-    std::string id;
-    uint16_t x;
-    uint16_t y;
-};
-
 class World {
 private:
     // Dueño de todos los escenarios de la partida (FARMHOUSE, FARM, TOWN, DUNGEON_1..10).

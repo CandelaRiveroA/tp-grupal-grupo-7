@@ -46,6 +46,13 @@ void Scene::set_wall(uint16_t x, uint16_t y, bool wall) {
     }
 }
 
+Cell& Scene::get_cell(uint16_t x, uint16_t y) {
+    if (!in_bounds(x, y)) {
+        throw std::out_of_range("Cell coordinates out of bounds");
+    }
+    return this->grid[y][x];
+}
+
 const Cell& Scene::get_cell(uint16_t x, uint16_t y) const {
     if (!in_bounds(x, y)) {
         throw std::out_of_range("Cell coordinates out of bounds");

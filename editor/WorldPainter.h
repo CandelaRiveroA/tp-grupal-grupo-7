@@ -21,5 +21,6 @@ private:
                        const worldmodel::TileGrid& grid, int ts, int minCol, int maxCol, int minRow,
                        int maxRow) const;
     void drawObjects(QPainter* painter, const worldmodel::Map& map, const TilesetCache& tilesets,
-                     int ts, int minCol, int maxCol, int minRow, int maxRow) const;
+                     int ts, int minCol, int maxCol, int minRow, int maxRow,
+                     bool buildingsOnly) const;
 };

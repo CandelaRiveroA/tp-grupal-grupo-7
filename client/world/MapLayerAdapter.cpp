@@ -16,9 +16,32 @@ void MapLayerAdapter::add(const worldmodel::Map& map,
 	addLayer(map.paths, mapPath + ".paths", map, scene,
 		 LayerPass::Background);
 	if (!map.front.empty()) {
-		addLayer(map.front, mapPath + ".front", map, scene,
-			 LayerPass::Foreground);
+		addLayer(frontWithoutBuildings(map), mapPath + ".front", map,
+			 scene, LayerPass::Foreground);
 	}
+}
+
+worldmodel::TileGrid MapLayerAdapter::frontWithoutBuildings(
+	const worldmodel::Map& map) const {
+	worldmodel::TileGrid visible = map.front;
+	for (const auto& obj : map.objects) {
+		if (obj.role == worldmodel::ObjectRole::Decoration) {
+			continue;
+		}
+		for (int r = obj.cell.row; r < obj.cell.row + obj.height; ++r) {
+			for (int c = obj.cell.column;
+			     c < obj.cell.column + obj.width; ++c) {
+				if (!map.contains({c, r})) {
+					continue;
+				}
+				const std::size_t idx = map.cellIndex({c, r});
+				if (idx < visible.size()) {
+					visible[idx].reset();
+				}
+			}
+		}
+	}
+	return visible;
 }
 
 void MapLayerAdapter::addLayer(const worldmodel::TileGrid& grid,

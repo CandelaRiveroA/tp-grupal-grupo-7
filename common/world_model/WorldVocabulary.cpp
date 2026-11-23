@@ -28,6 +28,7 @@ const std::pair<ObjectRole, const char*> kObjectRoles[] = {
 	{ObjectRole::Ranch, "ranch"},
 	{ObjectRole::Barn, "barn"},
 	{ObjectRole::CommunityCenter, "community_center"},
+	{ObjectRole::Building, "building"},
 	{ObjectRole::Decoration, "decoration"},
 };
 

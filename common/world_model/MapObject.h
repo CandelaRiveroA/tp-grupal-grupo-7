@@ -16,6 +16,7 @@ enum class ObjectRole {
 	Ranch,
 	Barn,
 	CommunityCenter,
+	Building,
 	Decoration,
 };
 

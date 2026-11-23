@@ -23,8 +23,12 @@ void WorldPainter::drawGridLayer(QPainter* painter, const worldmodel::Map& map,
 
 void WorldPainter::drawObjects(QPainter* painter, const worldmodel::Map& map,
                                const TilesetCache& tilesets, int ts, int minCol, int maxCol,
-                               int minRow, int maxRow) const {
+                               int minRow, int maxRow, bool buildingsOnly) const {
     for (const auto& obj: map.objects) {
+        const bool isBuilding = obj.role != worldmodel::ObjectRole::Decoration;
+        if (isBuilding != buildingsOnly) {
+            continue;
+        }
         if (obj.cell.column + obj.width - 1 < minCol || obj.cell.column > maxCol ||
             obj.cell.row + obj.height - 1 < minRow || obj.cell.row > maxRow) {
             continue;
@@ -40,6 +44,7 @@ void WorldPainter::paintWorldLayers(QPainter* painter, const worldmodel::Map& ma
     const int ts = map.tileSize;
     drawGridLayer(painter, map, tilesets, map.ground, ts, minCol, maxCol, minRow, maxRow);
     drawGridLayer(painter, map, tilesets, map.paths, ts, minCol, maxCol, minRow, maxRow);
-    drawObjects(painter, map, tilesets, ts, minCol, maxCol, minRow, maxRow);
+    drawObjects(painter, map, tilesets, ts, minCol, maxCol, minRow, maxRow, false);
     drawGridLayer(painter, map, tilesets, map.front, ts, minCol, maxCol, minRow, maxRow);
+    drawObjects(painter, map, tilesets, ts, minCol, maxCol, minRow, maxRow, true);
 }

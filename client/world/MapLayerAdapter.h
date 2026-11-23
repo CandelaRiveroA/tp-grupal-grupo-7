@@ -15,6 +15,8 @@ public:
 		 SceneDescription& scene) const;
 
 private:
+	worldmodel::TileGrid frontWithoutBuildings(
+		const worldmodel::Map& map) const;
 	// Una capa; si no tiene ningún tile no se agrega.
 	void addLayer(const worldmodel::TileGrid& grid, const std::string& path,
 		      const worldmodel::Map& map, SceneDescription& scene,

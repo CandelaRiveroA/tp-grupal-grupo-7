@@ -46,7 +46,8 @@ void MapObjectAdapter::addObject(const worldmodel::Map& map,
 					   map, mapPath, object.tile.key());
 	}
 
-	if (object.role != worldmodel::ObjectRole::Decoration) {
+	if (object.role != worldmodel::ObjectRole::Decoration &&
+	    object.role != worldmodel::ObjectRole::Building) {
 		addStructure(object, scene.elements.size(), scene);
 	}
 

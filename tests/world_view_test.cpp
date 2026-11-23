@@ -254,7 +254,7 @@ Player* populateWithStrawberrySeed(World& world) {
     Player* ref = player.get();
     world.add_player(1, std::move(player));
     world.set_player_facing(1, Direction::RIGHT);
-    world.get_cell(2, 1).till_soil();
+    world.get_farm().till_soil(2, 1);
     ref->select_slot(4);
     return ref;
 }

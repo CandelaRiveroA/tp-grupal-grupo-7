@@ -9,7 +9,7 @@
 #include "../../../common/model/draft/CharacterAppearance.h"
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
-#include "../map/world.h"
+#include "../map/scene.h"
 
 #include "i_attackable.h"
 #include "i_entity.h"
@@ -17,6 +17,7 @@
 class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
+    SceneId current_scene;
     Direction facing;
     // Personalizacion del personaje (indices de capa, sin validar): la manda
     // el cliente en el MatchRequest y vuelve en cada ServerStatus.
@@ -36,7 +37,7 @@ private:
     bool fainted_by_energy;
 
 public:
-    Player(uint8_t id, uint16_t x, uint16_t y);
+    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene = SceneId::FARMHOUSE);
     ~Player() override = default;
 
     Player(const Player&) = delete;
@@ -47,6 +48,7 @@ public:
     // Observadores espaciales y de estado
     // Necesario para el DTO
     uint8_t get_id() const;
+    SceneId get_scene() const;
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;
@@ -61,6 +63,7 @@ public:
     void set_max_health(uint16_t value);
     void set_max_energy(uint16_t value);
 
+    void set_scene(SceneId scene);
     void add_gold(uint16_t amount);
     bool try_remove_gold(uint16_t amount);
     bool diedInCombat() const;

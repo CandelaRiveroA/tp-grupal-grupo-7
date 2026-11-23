@@ -103,6 +103,7 @@ public:
     const Scene& get_scene(SceneId id) const;
     const Scene& get_scene_of(uint8_t player_id) const;
     void set_active_scene(SceneId id);
+    SceneId get_active_scene() const;
     Farm& get_farm();
     Town& get_town();
     DungeonFloor& get_dungeon_floor(uint8_t room_number);

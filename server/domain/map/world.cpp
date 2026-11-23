@@ -99,6 +99,7 @@ const Scene& World::get_scene_of(uint8_t player_id) const {
 }
 
 void World::set_active_scene(SceneId id) { this->active_scene = id; }
+SceneId World::get_active_scene() const { return this->active_scene; }
 
 Farm& World::get_farm() { return *this->farm; }
 

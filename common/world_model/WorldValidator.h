@@ -22,7 +22,7 @@ private:
     int countMarker(const Map& map, MarkerKind kind) const;
     int countPortal(const Map& map, PortalKind kind) const;
     void addIssue(std::vector<ValidationIssue>& issues, IssueCode code, const std::string& mapId,
-                  TilePos cell = {-1, -1}) const;
+                  TilePos cell = {-1, -1}, const std::string& detail = "") const;
     void requireUniqueRole(const Map& map, ObjectRole role,
                            std::vector<ValidationIssue>& issues) const;
     void requireMarker(const Map& map, MarkerKind kind, std::vector<ValidationIssue>& issues) const;

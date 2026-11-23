@@ -4,7 +4,7 @@
 #include <QMargins>
 #include <QtGlobal>
 
-#include "NineSlice.h"
+#include "qt_theme/NineSlice.h"
 #include "SaveListRects.h"
 
 SaveListSprites::SaveListSprites():

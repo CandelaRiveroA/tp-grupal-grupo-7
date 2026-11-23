@@ -23,7 +23,7 @@
 #include "qt/theme/WorldSpriteRects.h"
 #include "qt/widgets/CharacterAppearanceEditor.h"
 #include "qt/widgets/InputBox.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 #include "qt/widgets/WorldSelectorWidget.h"
 
 CharacterScreen::CharacterScreen(SessionService* session,

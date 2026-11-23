@@ -5,7 +5,7 @@
 
 #include <utility>
 
-#include "qt/theme/TitleSpriteRects.h"
+#include "qt_theme/TitleSpriteRects.h"
 
 UsernamePlate::UsernamePlate(const QPixmap& plate, QWidget* parent): QWidget(parent), plate_(plate) {
     setObjectName("usernamePlate");

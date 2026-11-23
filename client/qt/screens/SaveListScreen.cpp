@@ -18,7 +18,7 @@
 #include "qt/services/SaveService.h"
 #include "qt/services/SessionService.h"
 #include "qt/widgets/SaveRowButton.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 SaveListScreen::SaveListScreen(SaveService* saves, SessionService* sessions,
 			       const CharacterLayerSource* source, QWidget* parent)

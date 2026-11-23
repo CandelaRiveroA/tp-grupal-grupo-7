@@ -5,7 +5,7 @@
 #include <QtGlobal>
 
 #include "JoinCodeRects.h"
-#include "NineSlice.h"
+#include "qt_theme/NineSlice.h"
 
 JoinCodeSprites::JoinCodeSprites() {
     QPixmap scroll(":/ui/join/scroll.png");

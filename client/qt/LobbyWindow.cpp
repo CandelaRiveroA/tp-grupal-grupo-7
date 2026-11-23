@@ -18,7 +18,7 @@
 #include "qt/services/WorldService.h"
 #include "qt/services/fakes/FakeSaveService.h"
 #include "qt/services/CharacterSpriteComposer.h"
-#include "qt/theme/GameCursor.h"
+#include "qt_theme/GameCursor.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 			 const world::CharacterCatalog& characters,

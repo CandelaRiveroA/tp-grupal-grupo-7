@@ -42,9 +42,12 @@ NewWorldDialog::NewWorldDialog(const worldmodel::WorldRepository& worlds,
 	layout->addWidget(validityLabel_);
 	QHBoxLayout* buttons = new QHBoxLayout;
 	buttons->addStretch();
-	buttons->addWidget(cancelButton);
 	buttons->addWidget(createButton_);
+	buttons->addWidget(cancelButton);
 	layout->addLayout(buttons);
+	
+	createButton_->setDefault(true);
+	cancelButton->setAutoDefault(false);
 
 	QVBoxLayout* root = new QVBoxLayout(this);
 	root->setContentsMargins(0, 0, 0, 0);

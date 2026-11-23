@@ -24,7 +24,6 @@ CLONE=0
 # Flags se procesan mas abajo, despues de asegurar root.
 
 # Usuario real que invoco sudo (para los accesos directos del Desktop).
-# Usuario real que invoco sudo (para los accesos directos del Desktop).
 if [[ -n "${SUDO_USER:-}" ]]; then
     TARGET_USER="$SUDO_USER"
 elif command -v logname >/dev/null 2>&1; then

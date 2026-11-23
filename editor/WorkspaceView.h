@@ -43,27 +43,6 @@ signals:
 	void backRequested();
 
 private:
-	QHBoxLayout* buildTopBar();
-	std::vector<const worldmodel::Scenario*> scenarioOptions() const;
-	void selectMap(const std::string& mapId);
-	void validateNow();
-	void saveNow();
-	void addExtraMap();
-	void removeExtraMap();
-	void replaceScenario();
-	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
-	void setActivePrefab(const worldmodel::PrefabDef* prefab);
-	void onPortalPicked(worldmodel::PortalKind kind, int width, int height);
-	void onPortalTargetRequested(std::size_t portalIndex);
-	void onTargetCellPicked(worldmodel::TilePos cell);
-	void onPickTargetCancelled();
-	void syncFarmCabins(std::optional<int> erasedCabinIndex);
-	void uncheckToolButtons();
-	void setPickTargetUiLocked(bool locked);
-	void setDirty();
-	void updateHeading();
-	bool hasTilesetConflict(const std::string& tilesetId) const;
-
 	struct PendingPortalTarget {
 		std::string originMapId;
 		std::size_t portalIndex = 0;
@@ -94,4 +73,27 @@ private:
 	PaletteView* palette_ = nullptr;
 	PortalsView* portals_ = nullptr;
 	QDialog* validationDialog_ = nullptr;
+
+	QHBoxLayout* buildTopBar();
+	QToolButton* makeToolButton(const QString& text, const QString& icon,
+				    bool checkable);
+	std::vector<const worldmodel::Scenario*> scenarioOptions() const;
+	void selectMap(const std::string& mapId);
+	void validateNow();
+	void saveNow();
+	void addExtraMap();
+	void removeExtraMap();
+	void replaceScenario();
+	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
+	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void onPortalPicked(worldmodel::PortalKind kind, int width, int height);
+	void onPortalTargetRequested(std::size_t portalIndex);
+	void onTargetCellPicked(worldmodel::TilePos cell);
+	void onPickTargetCancelled();
+	void syncFarmCabins(std::optional<int> erasedCabinIndex);
+	void uncheckToolButtons();
+	void setPickTargetUiLocked(bool locked);
+	void setDirty();
+	void updateHeading();
+	bool hasTilesetConflict(const std::string& tilesetId) const;
 };

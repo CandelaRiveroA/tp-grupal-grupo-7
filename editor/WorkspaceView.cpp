@@ -7,10 +7,12 @@
 #include <QButtonGroup>
 #include <QDialog>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSize>
 #include <QSplitter>
 #include <QStringList>
 #include <QTabWidget>
@@ -40,6 +42,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	  scenarios_(scenarios),
 	  worlds_(worlds),
 	  tilesets_(editor::kAssetsDir) {
+	setObjectName("workspaceView");
+	setAttribute(Qt::WA_StyledBackground);
 	try {
 		catalog_ = worldmodel::PrefabCatalogLoader().loadFromFile(
 			editor::kPrefabsTomlPath);
@@ -54,6 +58,7 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	palette_ = new PaletteView(catalog_, tilesets_, this);
 	portals_ = new PortalsView(this);
 	rightTabs_ = new QTabWidget(this);
+	rightTabs_->setObjectName("rightTabs");
 	rightTabs_->addTab(palette_, "Prefabs");
 	rightTabs_->addTab(portals_, "Portales");
 
@@ -130,30 +135,49 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		[this] { navigateButton_->setChecked(true); });
 }
 
+QToolButton* WorkspaceView::makeToolButton(const QString& text,
+					   const QString& icon,
+					   bool checkable) {
+	auto* btn = new QToolButton(this);
+	btn->setText(text);
+	btn->setToolTip(text);
+	btn->setIcon(QIcon(icon));
+	btn->setIconSize(QSize(editor::kToolIconSize, editor::kToolIconSize));
+	btn->setCheckable(checkable);
+	btn->setObjectName("editorToolButton");
+	return btn;
+}
+
 QHBoxLayout* WorkspaceView::buildTopBar() {
 	heading_ = new QLabel(this);
+	heading_->setObjectName("worldHeading");
 	heading_->setIndent(editor::kHeadingIndent);
+	const QSize iconSize(editor::kToolIconSize, editor::kToolIconSize);
 	QPushButton* backButton = new QPushButton("Volver al inicio", this);
+	backButton->setObjectName("editorButton");
 	QPushButton* validateButton = new QPushButton("Validar", this);
+	validateButton->setIcon(QIcon(":/editor/ui/icon_validate.png"));
+	validateButton->setIconSize(iconSize);
+	validateButton->setObjectName("editorButton");
 	QPushButton* saveButton = new QPushButton("Guardar", this);
+	saveButton->setIcon(QIcon(":/editor/ui/icon_save.png"));
+	saveButton->setIconSize(iconSize);
+	saveButton->setObjectName("editorButton");
 	QToolButton* mapsButton = new QToolButton(this);
 	mapsButton->setText("Mapas");
 	mapsButton->setCheckable(true);
 	mapsButton->setChecked(true);
+	mapsButton->setObjectName("editorToolButton");
 
-	navigateButton_ = new QToolButton(this);
-	navigateButton_->setText("Navegar");
-	navigateButton_->setCheckable(true);
+	navigateButton_ = makeToolButton("Navegar",
+					 ":/editor/ui/tool_navigate.png", true);
 	navigateButton_->setChecked(true);
-	placeButton_ = new QToolButton(this);
-	placeButton_->setText("Colocar");
-	placeButton_->setCheckable(true);
-	eraseButton_ = new QToolButton(this);
-	eraseButton_->setText("Borrar");
-	eraseButton_->setCheckable(true);
-	moveButton_ = new QToolButton(this);
-	moveButton_->setText("Mover");
-	moveButton_->setCheckable(true);
+	placeButton_ =
+		makeToolButton("Colocar", ":/editor/ui/tool_place.png", true);
+	eraseButton_ =
+		makeToolButton("Borrar", ":/editor/ui/tool_erase.png", true);
+	moveButton_ =
+		makeToolButton("Mover", ":/editor/ui/tool_move.png", true);
 
 	toolGroup_ = new QButtonGroup(this);
 	toolGroup_->setExclusive(true);
@@ -166,15 +190,14 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	toolGroup_->addButton(moveButton_,
 			      static_cast<int>(EditorTool::Move));
 
-	QToolButton* collisionButton = new QToolButton(this);
-	collisionButton->setText("Colision");
-	collisionButton->setCheckable(true);
-	QToolButton* zoomOutButton = new QToolButton(this);
-	zoomOutButton->setText("-");
-	QToolButton* zoomResetButton = new QToolButton(this);
-	zoomResetButton->setText("100%");
-	QToolButton* zoomInButton = new QToolButton(this);
-	zoomInButton->setText("+");
+	QToolButton* collisionButton = makeToolButton(
+		"Colision", ":/editor/ui/icon_collision.png", true);
+	QToolButton* zoomOutButton = makeToolButton(
+		"Alejar", ":/editor/ui/icon_zoom_out.png", false);
+	QToolButton* zoomResetButton = makeToolButton(
+		"100%", ":/editor/ui/icon_zoom_reset.png", false);
+	QToolButton* zoomInButton = makeToolButton(
+		"Acercar", ":/editor/ui/icon_zoom_in.png", false);
 
 	QHBoxLayout* top = new QHBoxLayout;
 	top->addWidget(mapsButton);

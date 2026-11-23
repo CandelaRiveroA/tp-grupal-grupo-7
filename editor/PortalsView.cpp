@@ -10,13 +10,16 @@
 
 #include "Constants.h"
 
-PortalsView::PortalsView(QWidget* parent) : QWidget(parent) {
+PortalsView::PortalsView(QWidget* parent)
+	: QWidget(parent), rune_(":/editor/ui/portal_rune.png") {
 	sizeCombo_ = new QComboBox(this);
+	sizeCombo_->setObjectName("editorCombo");
 	for (const SizeOption& opt : sizeOptions_) {
 		sizeCombo_->addItem(opt.label);
 	}
 
 	list_ = new QListWidget(this);
+	list_->setObjectName("portalList");
 	list_->setViewMode(QListView::IconMode);
 	list_->setIconSize(
 		QSize(editor::kPaletteIconSize, editor::kPaletteIconSize));
@@ -66,16 +69,15 @@ QIcon PortalsView::portalPreviewIcon(int width, int height) const {
 	const int blockH = height * editor::kPortalPreviewCellPx;
 	const int x0 = (pix.width() - blockW) / 2;
 	const int y0 = (pix.height() - blockH) / 2;
-	p.setPen(QPen(QColor(190, 100, 255), 2));
-	p.setBrush(QColor(170, 70, 230, 140));
 	for (int r = 0; r < height; ++r) {
 		for (int c = 0; c < width; ++c) {
-			p.drawRect(x0 + c * editor::kPortalPreviewCellPx,
-				   y0 + r * editor::kPortalPreviewCellPx,
-				   editor::kPortalPreviewCellPx,
-				   editor::kPortalPreviewCellPx);
+			p.drawPixmap(x0 + c * editor::kPortalPreviewCellPx,
+				     y0 + r * editor::kPortalPreviewCellPx,
+				     rune_);
 		}
 	}
+	p.setBrush(Qt::NoBrush);
+	p.drawRect(x0, y0, blockW, blockH);
 	return QIcon(pix);
 }
 

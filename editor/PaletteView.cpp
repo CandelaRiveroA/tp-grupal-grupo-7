@@ -20,12 +20,14 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 			 const TilesetCache& tilesets, QWidget* parent)
 	: QWidget(parent), catalog_(catalog), tilesets_(tilesets) {
 	categoryCombo_ = new QComboBox(this);
+	categoryCombo_->setObjectName("editorCombo");
 	for (const auto& [category, label] : catalog_.categories()) {
 		categoryCombo_->addItem(QString::fromStdString(label),
 					QString::fromStdString(category));
 	}
 
 	list_ = new QListWidget(this);
+	list_->setObjectName("paletteList");
 	list_->setViewMode(QListView::IconMode);
 	list_->setMovement(QListView::Static);
 	list_->setResizeMode(QListView::Adjust);

@@ -2,7 +2,9 @@
 
 #include <vector>
 
+#include <QIcon>
 #include <QPushButton>
+#include <QSize>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -11,33 +13,41 @@
 
 MapTreeWidget::MapTreeWidget(QWidget* parent) : QWidget(parent) {
 	tree_ = new QTreeWidget(this);
+	tree_->setObjectName("mapTree");
 	tree_->setHeaderHidden(true);
-	const auto addGroup = [this](const QString& title,
+	tree_->setIconSize(QSize(editor::kToolIconSize, editor::kToolIconSize));
+	const auto addGroup = [this](const QString& title, const QString& icon,
 				     const std::vector<std::string>& ids) {
 		QTreeWidgetItem* group = new QTreeWidgetItem(tree_, {title});
+		group->setIcon(0, QIcon(icon));
 		for (const std::string& id : ids) {
 			addLeaf(group, id);
 		}
 		return group;
 	};
-	addGroup("Exteriores", {"farm", "town"});
-	interiorsItem_ = addGroup("Interiores", {});
+	addGroup("Exteriores", ":/editor/ui/tree_exteriors.png",
+		 {"farm", "town"});
+	interiorsItem_ =
+		addGroup("Interiores", ":/editor/ui/tree_interiors.png", {});
 	populateInteriors(nullptr);
 	// Orden explicito 1..kDungeonLevels, no el alfanumerico de map
 	std::vector<std::string> dungeons;
 	for (int level = 1; level <= worldmodel::kDungeonLevels; ++level) {
 		dungeons.push_back(rules_.dungeonId(level));
 	}
-	addGroup("Mazmorras", dungeons);
-	extrasItem_ = addGroup("Mapas extra", {});
+	addGroup("Mazmorras", ":/editor/ui/tree_dungeons.png", dungeons);
+	extrasItem_ = addGroup("Mapas extra", ":/editor/ui/tree_extras.png", {});
 	tree_->expandAll();
 
 	addButton_ = new QPushButton("+ Agregar mapa extra...", this);
+	addButton_->setObjectName("editorButton");
 	addButton_->setMinimumWidth(editor::kAddMapButtonMinWidth);
 	removeButton_ = new QPushButton("Eliminar mapa extra", this);
+	removeButton_->setObjectName("editorButton");
 	removeButton_->setEnabled(false);
 	changeScenarioButton_ =
 		new QPushButton("Cambiar escenario base...", this);
+	changeScenarioButton_->setObjectName("editorButton");
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->addWidget(tree_);

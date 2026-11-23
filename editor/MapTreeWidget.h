@@ -29,9 +29,6 @@ signals:
 	void changeScenarioRequested();
 
 private:
-	void addLeaf(QTreeWidgetItem* group, const std::string& id);
-	void populateInteriors(const worldmodel::World* world);
-
 	worldmodel::MapRules rules_;
 	QTreeWidget* tree_ = nullptr;
 	QTreeWidgetItem* interiorsItem_ = nullptr;
@@ -39,4 +36,7 @@ private:
 	QPushButton* addButton_ = nullptr;
 	QPushButton* removeButton_ = nullptr;
 	QPushButton* changeScenarioButton_ = nullptr;
+
+	void addLeaf(QTreeWidgetItem* group, const std::string& id);
+	void populateInteriors(const worldmodel::World* world);
 };

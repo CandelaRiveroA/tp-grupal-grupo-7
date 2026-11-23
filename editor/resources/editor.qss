@@ -19,3 +19,49 @@ QListWidget#worldList::item:selected, QListWidget#worldList::item:hover {
     color: #56160c;
 }
 QLabel#welcomeEmpty { color: #7a5230; }
+
+QWidget#workspaceView { background: #5b2b2a; }
+QLabel#worldHeading { font-family: "StardewValley"; font-size: 22px; color: #fff0ba; }
+
+QToolButton#editorToolButton, QPushButton#editorButton, QComboBox#editorCombo {
+    border-image: url(:/editor/ui/editor_button_normal.png) 8 8 8 8 stretch;
+    border-width: 8px;
+    color: #4a1808;
+    padding: 0 4px;
+}
+QToolButton#editorToolButton:hover, QToolButton#editorToolButton:checked,
+QPushButton#editorButton:hover, QComboBox#editorCombo:hover {
+    border-image: url(:/editor/ui/editor_button_hover.png) 8 8 8 8 stretch;
+}
+QPushButton#editorButton:disabled, QToolButton#editorToolButton:disabled {
+    color: #7a5a40;
+}
+
+QTreeWidget#mapTree { background: #ffd284; color: #4a1808; border: none; }
+QTreeWidget#mapTree::item:selected { background: #e4ae6e; color: #56160c; }
+
+#rightTabs QTabBar::tab {
+    border-image: url(:/editor/ui/editor_tab_inactive.png) 8 8 8 8 stretch;
+    border-width: 8px;
+    font-family: "StardewValley";
+    color: #4a1808;
+    padding: 0 6px;
+}
+#rightTabs QTabBar::tab:selected {
+    border-image: url(:/editor/ui/editor_tab_active.png) 8 8 8 8 stretch;
+}
+#rightTabs::pane { background: #ffd284; border: none; }
+
+QListWidget#paletteList, QListWidget#portalList {
+    background: #ffd284;
+    border: none;
+    color: #4a1808;
+}
+QListWidget#paletteList::item, QListWidget#portalList::item {
+    border-image: url(:/ui/character/recessed_box.png) 5 5 5 5 stretch;
+    border-width: 5px;
+}
+QListWidget#paletteList::item:selected, QListWidget#portalList::item:selected {
+    border-image: url(:/editor/ui/editor_button_hover.png) 8 8 8 8 stretch;
+    border-width: 8px;
+}

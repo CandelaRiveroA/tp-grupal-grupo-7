@@ -49,6 +49,6 @@ const std::string kAssetsDir = TALLER_ASSETS_DIR;
 const std::string kPrefabsTomlPath = TALLER_PREFABS_TOML;
 
 // MinimapGenerator.cpp
-constexpr int kMinimapPxPerCell = 4;
+constexpr int kMinimapPxPerCell = 8;
 
 }  // namespace editor

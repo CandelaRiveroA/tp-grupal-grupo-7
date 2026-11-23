@@ -66,11 +66,17 @@ cadence = { step = 24, frame = 12 }
 
     # Pelo: 32 opciones. Va sobre la cabeza (anchor = head): su offset.y es
     # relativo a la coronilla, así la sigue cuando la cabeza sube/baja.
+    # La coronilla NO cae en la misma fila en todas las caras (de costado
+    # la cabeza empieza en la fila 4 del cuerpo; de frente y de espaldas,
+    # en la 5): por eso frente/espalda llevan 1 px más de subida, así el
+    # pelo cae siempre en la fila 0 del cuerpo, como en la vista de Qt.
     [characters.player.appearance.hair]
     sheet  = "Players/appareance/hairstyles.png"
     grid   = [16, 16]
     anchor = "head"
     offset = [0, -4]
+    offset_front = [0, -5]
+    offset_back  = [0, -5]
 
       [[characters.player.appearance.hair.option]]
       front = [0, 0, 1, 1]
@@ -528,12 +534,16 @@ cadence = { step = 24, frame = 12 }
 
     # Accesorio: la opción 0 es "ninguno". Después, tus 19 accesorios.
     # Sólo frente y lado; de espaldas no hay arte, así que no se dibuja.
-    # Va sobre la cabeza (anchor = head), como el pelo.
+    # Va sobre la cabeza (anchor = head), como el pelo. Mismo ajuste por
+    # cara que el pelo (la coronilla de frente está 1 px más abajo que de
+    # costado): de frente cae en la fila 2 del cuerpo, como en Qt, y los
+    # anteojos quedan sobre los ojos y no sobre la nariz.
     [characters.player.appearance.accessory]
     sheet  = "Players/appareance/accesories.png"
     grid   = [16, 16]
     anchor = "head"
     offset = [0, -2]
+    offset_front = [0, -3]
 
       [[characters.player.appearance.accessory.option]]
       # 0 = ninguno: sin caras

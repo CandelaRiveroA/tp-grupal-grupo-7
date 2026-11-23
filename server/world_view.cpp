@@ -71,6 +71,10 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                    player.faintedByEnergy() ? 1u : 0u));
     }
 
+    for (const MerchantPlacement& placement: world.get_merchant_placements()) {
+        out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
+    }
+
     for (const MerchantPlacement& placement: scene.get_merchant_placements()) {
         out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
     }
@@ -147,6 +151,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               item->can_be_traded()});
         }
     }
+    out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
     out.push_back(ServerSyncEnd{});

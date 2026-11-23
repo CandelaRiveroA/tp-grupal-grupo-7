@@ -34,6 +34,12 @@ struct GiftOffer {
     ItemID item;
 };
 
+struct MerchantPlacement {
+    std::string id;
+    uint16_t x;
+    uint16_t y;
+};
+
 class World {
 private:
     // Dueño de todos los escenarios de la partida (FARMHOUSE, FARM, TOWN, DUNGEON_1..10).
@@ -146,6 +152,8 @@ public:
 
     // --- Enemigos, llamas y sangre (delegados a DungeonFloor) ---
     void add_enemy(std::unique_ptr<Enemy> enemy);
+
+    // Manada de 3 a 6 orcos en celdas caminables con radio <= 2 de (x, y).
     void spawn_orc_pack(uint16_t x, uint16_t y);
     void spawn_vampire_pair(uint16_t x, uint16_t y);
     void clear_enemies();

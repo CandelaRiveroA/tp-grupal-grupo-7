@@ -665,6 +665,18 @@ void World::record_pickup(uint8_t player_id, ItemID item) {
     this->pickups.push_back(PlayerPickup{player_id, item});
 }
 
+void World::remove_player(uint8_t player_id) {
+    this->players.erase(player_id);
+    // Nadie queda esperando a un jugador que ya no está en la partida.
+    this->sleepers.erase(player_id);
+    this->accepted.erase(player_id);
+    this->woke.erase(player_id);
+    this->death_to_bed.erase(player_id);
+    // Si el que se fue era el único que faltaba aceptar o despertar, el día tiene que avanzar.
+    this->try_advance_sleep();
+    this->try_start_day();
+}
+
 std::vector<PlayerPickup> World::take_pickups() {
     std::vector<PlayerPickup> taken;
     taken.swap(this->pickups);

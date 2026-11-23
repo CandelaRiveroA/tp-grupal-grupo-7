@@ -13,13 +13,6 @@
 #include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
-#include "domain/npc/marnie.h"
-#include "domain/npc/merchant.h"
-#include "domain/npc/robin.h"
-#include "domain/inventory/product.h"
-#include "domain/inventory/decoration_item.h"
-
-#include <map>
 
 // Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
 #define kWidth 30

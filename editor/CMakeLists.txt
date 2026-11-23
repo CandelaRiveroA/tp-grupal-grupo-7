@@ -17,6 +17,7 @@ target_sources(taller_editor
     PaletteView.cpp
     PortalsView.cpp
     TilesetCache.cpp
+    MinimapGenerator.cpp
     WorldPainter.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los procesa)
@@ -33,6 +34,7 @@ target_sources(taller_editor
     PaletteView.h
     PortalsView.h
     TilesetCache.h
+    MinimapGenerator.h
     WorldPainter.h
     )
 

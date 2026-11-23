@@ -23,6 +23,7 @@
 #include "Constants.h"
 #include "MapCanvasView.h"
 #include "MapTreeWidget.h"
+#include "MinimapGenerator.h"
 #include "PaletteView.h"
 #include "PortalsView.h"
 #include "ScenarioLabel.h"
@@ -288,10 +289,23 @@ void WorkspaceView::saveNow() {
 	}
 	dirty_ = false;
 	updateHeading();
-	QMessageBox::information(
-		this, "Mundo guardado",
-		QString::fromStdString("Guardado en " +
-				       worlds_.filePathFor(world_.name)));
+	const QString savedPath =
+		QString::fromStdString(worlds_.filePathFor(world_.name));
+	QStringList failedMaps;
+	if (MinimapGenerator().generate(world_, tilesets_, worlds_,
+					failedMaps)) {
+		QMessageBox::information(this, "Mundo guardado",
+					 "Guardado en " + savedPath);
+	} else {
+		const QString detail =
+			failedMaps.isEmpty()
+				? "no se pudo preparar la carpeta de minimapas."
+				: "fallaron los minimapas: " +
+					  failedMaps.join(", ") + ".";
+		QMessageBox::warning(this, "Minimapa no generado",
+				     "El mundo se guardo en " + savedPath +
+					     ", pero " + detail);
+	}
 }
 
 void WorkspaceView::addExtraMap() {

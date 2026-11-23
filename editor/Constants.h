@@ -48,4 +48,7 @@ const std::string kAssetsDir = TALLER_ASSETS_DIR;
 // Catalogo de prefabs generados para la paleta del editor.
 const std::string kPrefabsTomlPath = TALLER_PREFABS_TOML;
 
+// MinimapGenerator.cpp
+constexpr int kMinimapPxPerCell = 4;
+
 }  // namespace editor

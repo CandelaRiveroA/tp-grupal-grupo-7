@@ -5,14 +5,15 @@
 #include "CloudRects.h"
 #include "TitleSpriteRects.h"
 
-TitleBackdrop::TitleBackdrop() {
+TitleBackdrop::TitleBackdrop(): wrapWidth_(TITLE_SCREEN_W) {
     QPixmap sky(":/ui/title/sky.png");
     if (sky.isNull()) {
         qWarning("TitleBackdrop: :/ui/title/sky.png no carga "
                  "(alias mal escrito en el .qrc o archivo ausente).");
     } else {
-        sky_ = sky.scaled(TITLE_SCREEN_W, TITLE_SCREEN_H, Qt::IgnoreAspectRatio,
-                          Qt::SmoothTransformation);
+        skySource_ = sky;
+        sky_ = skySource_.scaled(TITLE_SCREEN_W, TITLE_SCREEN_H, Qt::IgnoreAspectRatio,
+                                 Qt::SmoothTransformation);
     }
 
     const struct CloudPlacement {
@@ -71,13 +72,21 @@ TitleBackdrop::TitleBackdrop() {
     }
 }
 
+void TitleBackdrop::resize(const QSize& size) {
+    if (size.isEmpty() || skySource_.isNull()) {
+        return;
+    }
+    sky_ = skySource_.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    wrapWidth_ = size.width();
+}
+
 void TitleBackdrop::step(float seconds) {
     for (int i = 0; i < CLOUD_ZONE_COUNT; ++i) {
         cloudX_[i] -= seconds * cloudSpeed_[i];
         // Wrap por nube: al salir por la izquierda reingresa completa
         // por la derecha.
         if (cloudX_[i] < -float(clouds_[i].width())) {
-            cloudX_[i] = float(TITLE_SCREEN_W);
+            cloudX_[i] = float(wrapWidth_);
         }
     }
 }

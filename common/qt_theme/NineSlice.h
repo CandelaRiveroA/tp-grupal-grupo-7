@@ -9,7 +9,8 @@ class NineSlice {
 public:
     NineSlice(const QPixmap& frame, const QMargins& margins);
 
-    QPixmap build(int logicalW, int logicalH, int scale) const;
+    // originalWidth/originalHeight: tamaño en píxeles antes de multiplicar por scale.
+    QPixmap build(int originalWidth, int originalHeight, int scale) const;
 
 private:
     QPixmap frame_;

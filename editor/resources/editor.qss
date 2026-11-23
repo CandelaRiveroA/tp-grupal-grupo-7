@@ -1,0 +1,21 @@
+QListWidget#worldList {
+    background: transparent;
+    border: none;
+    color: #4a1808;
+    selection-background-color: transparent;
+    outline: none;
+}
+QListWidget#worldList::item {
+    background: transparent;
+    border-image: url(:/ui/character/recessed_box.png) 5 5 5 5 stretch;
+    border-width: 5px;
+    padding: 3px 8px;
+    margin: 1px 0;
+}
+QListWidget#worldList::item:selected, QListWidget#worldList::item:hover {
+    background: transparent;
+    border-image: url(:/editor/ui/editor_button_hover.png) 8 8 8 8 stretch;
+    border-width: 8px;
+    color: #56160c;
+}
+QLabel#welcomeEmpty { color: #7a5230; }

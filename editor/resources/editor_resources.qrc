@@ -1,0 +1,33 @@
+<RCC>
+    <qresource prefix="/editor">
+        <file>editor.qss</file>
+        <file>ui/titulo_editor.png</file>
+        <file>ui/editor_title_sign.png</file>
+        <file>ui/editor_welcome_emblem.png</file>
+        <file>ui/boton_abrir_mundo.png</file>
+        <file>ui/boton_abrir_mundo_hover.png</file>
+        <file>ui/boton_nuevo_mundo.png</file>
+        <file>ui/boton_nuevo_mundo_hover.png</file>
+        <file>ui/editor_button_normal.png</file>
+        <file>ui/editor_button_hover.png</file>
+        <file>ui/editor_tab_active.png</file>
+        <file>ui/editor_tab_inactive.png</file>
+        <file>ui/editor_canvas_bg.png</file>
+        <file>ui/tool_navigate.png</file>
+        <file>ui/tool_place.png</file>
+        <file>ui/tool_erase.png</file>
+        <file>ui/tool_move.png</file>
+        <file>ui/icon_collision.png</file>
+        <file>ui/icon_zoom_in.png</file>
+        <file>ui/icon_zoom_out.png</file>
+        <file>ui/icon_zoom_reset.png</file>
+        <file>ui/icon_save.png</file>
+        <file>ui/icon_validate.png</file>
+        <file>ui/tree_exteriors.png</file>
+        <file>ui/tree_interiors.png</file>
+        <file>ui/tree_dungeons.png</file>
+        <file>ui/tree_extras.png</file>
+        <file>ui/portal_rune.png</file>
+        <file>ui/spawn_marker.png</file>
+    </qresource>
+</RCC>

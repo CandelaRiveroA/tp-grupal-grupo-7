@@ -1,5 +1,6 @@
 #include "EditorWindow.h"
 
+#include <QIcon>
 #include <QMessageBox>
 
 #include <exception>
@@ -8,6 +9,7 @@
 #include "NewWorldDialog.h"
 #include "WelcomeView.h"
 #include "WorkspaceView.h"
+#include "qt_theme/GameCursor.h"
 #include "world_model/ScenarioLibraryLoader.h"
 #include "world_model/WorldFactory.h"
 
@@ -25,6 +27,8 @@ EditorWindow::EditorWindow(const std::string& scenariosDir,
 		}
 	}
 	setWindowTitle("Taller Editor");
+	setCursor(GameCursor().cursor());
+	setWindowIcon(QIcon(":/editor/ui/editor_welcome_emblem.png"));
 
 	pages_ = new QStackedWidget(this);
 	setMinimumSize(800, 560);

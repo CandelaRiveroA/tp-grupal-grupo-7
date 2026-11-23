@@ -51,4 +51,16 @@ const std::string kPrefabsTomlPath = TALLER_PREFABS_TOML;
 // MinimapGenerator.cpp
 constexpr int kMinimapPxPerCell = 8;
 
+// NineSliceFrame / WelcomeView
+const QMargins kWindowSlice{6, 6, 6, 6};   // join_input_box.png 18x18
+constexpr int kWindowScale = 2;            // igual que SAVE_WINDOW_SCALE del lobby
+constexpr int kBaseFontPx = 16;            // Pixel Operator para todo el editor
+constexpr int kWelcomePanelMinWidth = 460;
+constexpr int kWelcomePanelMaxWidth = 560;
+constexpr int kWelcomePanelMaxHeight = 280;
+const QMargins kWelcomePanelPadding{4, 4, 4, 4};
+const QMargins kWelcomeMargins{24, 12, 24, 14};
+constexpr int kWelcomeSpacing = 10;
+constexpr float kMsPerSecond = 1000.0f;
+
 }  // namespace editor

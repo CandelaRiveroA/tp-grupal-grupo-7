@@ -26,7 +26,7 @@ void PopupState::showSleepState(const int sleeping, const int total,
         showWaiting(sleeping, total);
         return;
     }
-    view_ = PopupView::Question;
+    showQuestion();
 }
 
 void PopupState::setWaitingCancelable(const bool cancelable) {

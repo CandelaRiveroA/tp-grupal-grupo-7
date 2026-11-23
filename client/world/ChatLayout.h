@@ -3,6 +3,7 @@
 #include <string>
 
 #include "world/Color.h"
+#include "world/WorldConstants.h"
 
 namespace world {
 
@@ -32,6 +33,8 @@ struct ChatLayout {
 
 	int textPad;
 	int fontSize;
+	// Cara de fuente (FontCatalog::faces); la default si el TOML no la dice.
+	std::string fontFace = kDefaultFontFace;
 	Color textColor;
 
 	// Preview del chat cerrado: alpha de su TEXTO y renglones que se ven.

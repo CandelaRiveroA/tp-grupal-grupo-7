@@ -20,6 +20,7 @@ constexpr const char* kMarginBottom = "margin_bottom";
 constexpr const char* kInputFraction = "input_fraction";
 constexpr const char* kTextPad = "text_pad";
 constexpr const char* kFontSize = "font_size";
+constexpr const char* kFont = "font";
 constexpr const char* kColor = "color";
 constexpr const char* kPreviewAlpha = "preview_alpha";
 constexpr const char* kPreviewRows = "preview_rows";
@@ -70,6 +71,10 @@ ChatLayout ChatTomlReader::read() const {
 
 	layout.textPad = chat.getInt(kTextPad);
 	layout.fontSize = chat.getInt(kFontSize);
+	// Cara de fuente opcional (ui/text.toml [[font.face]]).
+	if (chat.hasKey(kFont)) {
+		layout.fontFace = chat.getString(kFont);
+	}
 	if (layout.textPad < 0) {
 		throw ConfigError(Kind::InvalidValue, kTextPad);
 	}

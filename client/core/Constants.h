@@ -71,6 +71,10 @@ constexpr const char* kTextFile = "ui/text.toml";
 
 constexpr const char* kChatFile = "ui/chatbox.toml";
 
+constexpr const char* kNoticeFile = "ui/notice.toml";
+
+constexpr const char* kSettingsFile = "ui/settings.toml";
+
 constexpr const char* kHudOverlaysFile = "ui/hud.toml";
 
 constexpr const char* kLightingFile = "ui/lighting.toml";

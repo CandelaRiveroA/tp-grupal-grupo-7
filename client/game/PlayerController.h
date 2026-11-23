@@ -71,6 +71,10 @@ private:
     // "usar" (rebindeable). La fuente decide el resto.
     void useTool(world::Direction direction);
 
+    // ¿El casillero activo tiene algo? Sin nada equipado no hay acción de
+    // herramienta: no se manda el Pick.
+    bool hasActiveItem() const;
+
     // Dirección de caminata del tick: la manual si la hay; si no, la de
     // la auto-caminata hacia walkTarget_ (un paso por eje, priorizando
     // el que más falta; al llegar se termina). La manual manda siempre.

@@ -25,9 +25,17 @@ constexpr std::uint8_t kNeighborEast = 2;
 constexpr std::uint8_t kNeighborSouth = 4;
 constexpr std::uint8_t kNeighborWest = 8;
 
+// Cara de fuente por defecto (la de [font] file en ui/text.toml). Las demás
+// se declaran como [[font.face]] con nombre propio.
+constexpr const char* kDefaultFontFace = "default";
+
 // Nombres de los botones del popup ([prompt.<nombre>] en ui/text.toml).
 constexpr const char* kPromptCancelButton = "cancel";
 constexpr const char* kPromptOkButton = "ok";
+
+// Rango del volumen que elige el jugador (porcentaje entero).
+constexpr int kMinVolumePercent = 0;
+constexpr int kMaxVolumePercent = 100;
 
 // Tope de filas que se prueba al buscar cuántas necesita un popup
 // (InventoryLayout::rowsFitting): corta el cálculo ante datos absurdos.

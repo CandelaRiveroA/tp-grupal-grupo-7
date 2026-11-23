@@ -8,9 +8,7 @@
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QIcon>
-#include <QInputDialog>
 #include <QLabel>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSize>
 #include <QSplitter>
@@ -23,6 +21,7 @@
 
 #include "AddExtraMapDialog.h"
 #include "Constants.h"
+#include "EditorDialog.h"
 #include "MapCanvasView.h"
 #include "MapTreeWidget.h"
 #include "MinimapGenerator.h"
@@ -30,6 +29,7 @@
 #include "PortalsView.h"
 #include "ScenarioLabel.h"
 #include "ValidationPanel.h"
+#include "qt_theme/GameCursor.h"
 #include "world_model/FormatError.h"
 #include "world_model/PrefabCatalogLoader.h"
 #include "world_model/WorldFactory.h"
@@ -48,8 +48,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		catalog_ = worldmodel::PrefabCatalogLoader().loadFromFile(
 			editor::kPrefabsTomlPath);
 	} catch (const std::exception& error) {
-		QMessageBox::warning(this, "No se pudo cargar prefabs",
-				     QString::fromStdString(error.what()));
+		EditorDialog(this).info("No se pudo cargar prefabs",
+					QString::fromStdString(error.what()));
 	}
 	tilesets_.loadTilesets(catalog_.tilesets());
 
@@ -64,6 +64,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 
 	// La validacion vive en un dialogio
 	validationDialog_ = new QDialog(this);
+	validationDialog_->setObjectName("validationDialog");
+	validationDialog_->setCursor(GameCursor().cursor());
 	validationDialog_->setWindowTitle("Validacion del mundo");
 	validationPanel_ = new ValidationPanel(validationDialog_);
 	QVBoxLayout* dialogLayout = new QVBoxLayout(validationDialog_);
@@ -154,6 +156,8 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	heading_->setIndent(editor::kHeadingIndent);
 	const QSize iconSize(editor::kToolIconSize, editor::kToolIconSize);
 	QPushButton* backButton = new QPushButton("Volver al inicio", this);
+	backButton->setIcon(QIcon(":/editor/ui/icon_back.png"));
+	backButton->setIconSize(iconSize);
 	backButton->setObjectName("editorButton");
 	QPushButton* validateButton = new QPushButton("Validar", this);
 	validateButton->setIcon(QIcon(":/editor/ui/icon_validate.png"));
@@ -200,6 +204,7 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 		"Acercar", ":/editor/ui/icon_zoom_in.png", false);
 
 	QHBoxLayout* top = new QHBoxLayout;
+	top->setContentsMargins(editor::kTopBarMargins);
 	top->addWidget(mapsButton);
 	top->addWidget(heading_);
 	top->addStretch();
@@ -234,15 +239,11 @@ QHBoxLayout* WorkspaceView::buildTopBar() {
 	connect(zoomInButton, &QToolButton::clicked, canvas_,
 		&MapCanvasView::zoomIn);
 	connect(backButton, &QPushButton::clicked, this, [this] {
-		if (dirty_) {
-			const QMessageBox::StandardButton answer =
-				QMessageBox::question(
-					this, "Cambios sin guardar",
-					"Hay cambios sin guardar. Los "
-					"descarto y vuelvo al inicio?");
-			if (answer != QMessageBox::Yes) {
-				return;
-			}
+		if (dirty_ && !EditorDialog(this).confirm(
+				      "Cambios sin guardar",
+				      "Hay cambios sin guardar. Los "
+				      "descarto y vuelvo al inicio?")) {
+			return;
 		}
 		emit backRequested();
 	});
@@ -297,14 +298,14 @@ void WorkspaceView::saveNow() {
 	try {
 		issues = worlds_.saveIfValid(world_);
 	} catch (const std::exception& error) {
-		QMessageBox::critical(this, "No se pudo guardar",
-				      QString::fromStdString(error.what()));
+		EditorDialog(this).info("No se pudo guardar",
+					QString::fromStdString(error.what()));
 		return;
 	}
 	validationPanel_->showIssues(issues);
 	if (!issues.empty()) {
-		QMessageBox::warning(
-			this, "Guardar bloqueado",
+		EditorDialog(this).info(
+			"Guardar bloqueado",
 			"No se puede guardar: el validador reporto " +
 				QString::number(issues.size()) +
 				" problema(s). Corregilos antes de guardar.");
@@ -317,17 +318,17 @@ void WorkspaceView::saveNow() {
 	QStringList failedMaps;
 	if (MinimapGenerator().generate(world_, tilesets_, worlds_,
 					failedMaps)) {
-		QMessageBox::information(this, "Mundo guardado",
-					 "Guardado en " + savedPath);
+		EditorDialog(this).info("Mundo guardado",
+					"Guardado en " + savedPath);
 	} else {
 		const QString detail =
 			failedMaps.isEmpty()
 				? "no se pudo preparar la carpeta de minimapas."
 				: "fallaron los minimapas: " +
 					  failedMaps.join(", ") + ".";
-		QMessageBox::warning(this, "Minimapa no generado",
-				     "El mundo se guardo en " + savedPath +
-					     ", pero " + detail);
+		EditorDialog(this).info("Minimapa no generado",
+					"El mundo se guardo en " + savedPath +
+						", pero " + detail);
 	}
 }
 
@@ -340,8 +341,8 @@ void WorkspaceView::addExtraMap() {
 		worldmodel::WorldFactory().addExtraMap(world_, *dialog.scenario(),
 						       dialog.mapId());
 	} catch (const worldmodel::FormatError& error) {
-		QMessageBox::critical(
-			this, "No se pudo agregar el mapa",
+		EditorDialog(this).info(
+			"No se pudo agregar el mapa",
 			QString::fromStdString(error.what()));
 		return;
 	}
@@ -352,11 +353,10 @@ void WorkspaceView::addExtraMap() {
 }
 
 void WorkspaceView::removeExtraMap() {
-	const QMessageBox::StandardButton answer = QMessageBox::question(
-		this, "Eliminar mapa extra",
-		QString::fromStdString("Elimino el mapa " + activeMapId_ +
-				       "? No hay deshacer."));
-	if (answer != QMessageBox::Yes) {
+	if (!EditorDialog(this).confirm(
+		    "Eliminar mapa extra",
+		    QString::fromStdString("Elimino el mapa " + activeMapId_ +
+					   "? No hay deshacer."))) {
 		return;
 	}
 	canvas_->setMap(nullptr);
@@ -371,8 +371,8 @@ void WorkspaceView::replaceScenario() {
 	const std::vector<const worldmodel::Scenario*> options =
 		scenarioOptions();
 	if (options.empty()) {
-		QMessageBox::information(this, "Cambiar escenario base",
-					 "No hay escenarios disponibles.");
+		EditorDialog(this).info("Cambiar escenario base",
+					"No hay escenarios disponibles.");
 		return;
 	}
 
@@ -380,27 +380,24 @@ void WorkspaceView::replaceScenario() {
 	for (const worldmodel::Scenario* scenario : options) {
 		labels << scenarioLabel(*scenario);
 	}
-	bool ok = false;
-	const QString chosen =
-		QInputDialog::getItem(this, "Cambiar escenario base",
-				      "Nuevo escenario:", labels, 0, false, &ok);
-	if (!ok) {
+	const std::optional<QString> chosen = EditorDialog(this).pickItem(
+		"Cambiar escenario base", "Nuevo escenario:", labels);
+	if (!chosen.has_value()) {
 		return;
 	}
-	const worldmodel::Scenario& scenario = *options[labels.indexOf(chosen)];
+	const worldmodel::Scenario& scenario =
+		*options[labels.indexOf(*chosen)];
 
-	const QMessageBox::StandardButton answer = QMessageBox::question(
-		this, "Cambiar escenario base",
-		QString::fromStdString(
-			"Reemplazar el escenario base de " + activeMapId_ +
-			" por " + scenario.id +
-			"? Se reinicia el terreno y la colision del mapa" +
-			(mandatory
-			 ? " y se recolocan sus puntos por defecto"
-			 : "") +
-			"."),
-		QMessageBox::Yes | QMessageBox::No);
-	if (answer != QMessageBox::Yes) {
+	if (!EditorDialog(this).confirm(
+		    "Cambiar escenario base",
+		    QString::fromStdString(
+			    "Reemplazar el escenario base de " + activeMapId_ +
+			    " por " + scenario.id +
+			    "? Se reinicia el terreno y la colision del mapa" +
+			    (mandatory
+				     ? " y se recolocan sus puntos por defecto"
+				     : "") +
+			    "."))) {
 		return;
 	}
 	canvas_->setMap(nullptr);
@@ -412,8 +409,8 @@ void WorkspaceView::replaceScenario() {
 		if (world_.maps.contains(activeMapId_)) {
 			canvas_->setMap(&world_.maps.at(activeMapId_));
 		}
-		QMessageBox::critical(
-			this, "No se pudo reemplazar",
+		EditorDialog(this).info(
+			"No se pudo reemplazar",
 			QString::fromStdString(error.what()));
 		return;
 	}
@@ -443,8 +440,8 @@ void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
 		return;
 	}
 	if (hasTilesetConflict(prefab->tile.tileset)) {
-		QMessageBox::warning(
-			this, "Conflicto de tileset",
+		EditorDialog(this).info(
+			"Conflicto de tileset",
 			QString::fromStdString(
 				"El tileset '" + prefab->tile.tileset +
 				"' del mundo no coincide con "
@@ -484,14 +481,12 @@ void WorkspaceView::onPortalTargetRequested(std::size_t portalIndex) {
 		for (const auto& [id, map] : world_.maps) {
 			mapIds << QString::fromStdString(id);
 		}
-		bool ok = false;
-		const QString chosen = QInputDialog::getItem(
-			this, "Portal link", "Mapa destino:", mapIds, 0, false,
-			&ok);
-		if (!ok || chosen.isEmpty()) {
+		const std::optional<QString> chosen = EditorDialog(this).pickItem(
+			"Portal link", "Mapa destino:", mapIds);
+		if (!chosen.has_value() || chosen->isEmpty()) {
 			return;
 		}
-		targetMap = chosen.toStdString();
+		targetMap = chosen->toStdString();
 	} else {
 		targetMap =
 			rules_.expectedPortalTarget(activeMapId_, portal.kind);

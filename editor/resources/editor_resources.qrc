@@ -23,6 +23,7 @@
         <file>ui/icon_zoom_reset.png</file>
         <file>ui/icon_save.png</file>
         <file>ui/icon_validate.png</file>
+        <file>ui/icon_back.png</file>
         <file>ui/tree_exteriors.png</file>
         <file>ui/tree_interiors.png</file>
         <file>ui/tree_dungeons.png</file>

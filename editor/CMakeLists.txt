@@ -17,6 +17,7 @@ set(EDITOR_SOURCES
     MinimapGenerator.cpp
     WorldPainter.cpp
     NineSliceFrame.cpp
+    EditorDialog.cpp
     resources/editor_resources.qrc
     ${CMAKE_SOURCE_DIR}/common/qt_theme/resources/qt_theme.qrc
     Constants.h
@@ -35,6 +36,7 @@ set(EDITOR_SOURCES
     MinimapGenerator.h
     WorldPainter.h
     NineSliceFrame.h
+    EditorDialog.h
     )
 
 target_sources(taller_editor

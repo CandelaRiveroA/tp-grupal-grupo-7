@@ -33,7 +33,7 @@ std::vector<MarketSection> MarketOfferResolver::sectionsFrom(
 		}
 		MarketItem item;
 		item.contentId = entry.contentId;
-		item.label = *label;
+		item.label = entry.label.empty() ? *label : entry.label;
 		if (entry.price.has_value() && *entry.price >= 0) {
 			item.price = entry.price;
 		}

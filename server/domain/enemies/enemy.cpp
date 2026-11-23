@@ -122,6 +122,12 @@ const Player* Enemy::find_nearest_player(World& w, int range) const {
         if (player.get_health() == 0) {
             continue;
         }
+        // Los enemigos solo persiguen jugadores que estén en la misma
+        // escena que ellos: si no, un enemigo de la mazmorra dañaría a un
+        // jugador que esté en la granja solo por tener coordenadas cercanas.
+        if (player.get_scene() != w.get_active_scene()) {
+            continue;
+        }
         const int player_dx = static_cast<int>(player.get_x()) - static_cast<int>(this->pos_x);
         const int player_dy = static_cast<int>(player.get_y()) - static_cast<int>(this->pos_y);
         const int distance = std::max(std::abs(player_dx), std::abs(player_dy));

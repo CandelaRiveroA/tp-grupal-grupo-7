@@ -17,6 +17,7 @@ target_sources(taller_tests
     animals_test.cpp
     enemy_test.cpp
     furniture_test.cpp
+    test_helpers.cpp
     ../server/world_view.cpp
     ../server/matches_monitor.cpp
     ../server/match.cpp
@@ -26,6 +27,9 @@ target_sources(taller_tests
     ../server/commands/take_command.cpp
     ../server/commands/sleep_command.cpp
     ../server/commands/chat_command.cpp
+    ../server/commands/cmd/player_commands.cpp
+    ../server/commands/cmd/community_commands.cpp
+    ../server/commands/cmd/merchant_commands.cpp
     ../server/commands/gift_command.cpp
     ../server/domain/inventory/item.cpp
     ../server/domain/inventory/product.cpp
@@ -52,6 +56,11 @@ target_sources(taller_tests
     ../server/domain/furniture/bed.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
+    ../server/domain/map/scene.cpp
+    ../server/domain/map/farm.cpp
+    ../server/domain/map/town.cpp
+    ../server/domain/map/dungeon_floor.cpp
+    ../server/domain/map/portal.cpp
     ../server/domain/minerals/mineral.cpp
     ../server/domain/minerals/coal_rock.cpp
     ../server/domain/minerals/lapis_rock.cpp

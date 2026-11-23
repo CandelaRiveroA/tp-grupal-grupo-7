@@ -21,6 +21,7 @@ struct CatalogEntry {
 class Merchant: public IEntity {
 protected:
     std::string name;
+    std::string id;
     std::map<std::string, CatalogEntry> sell_catalog;
     std::map<std::string, ItemID> buy_catalog;
 
@@ -29,7 +30,11 @@ protected:
 
 public:
     Merchant(uint16_t x, uint16_t y, std::string name);
+    Merchant(uint16_t x, uint16_t y, std::string name, std::string id);
     Merchant(uint16_t x, uint16_t y, std::string name,
+         std::map<std::string, CatalogEntry> sell_catalog,
+         std::map<std::string, ItemID> buy_catalog);
+    Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
          std::map<std::string, CatalogEntry> sell_catalog,
          std::map<std::string, ItemID> buy_catalog);
     ~Merchant() override = default;
@@ -44,6 +49,10 @@ public:
     void update(World& w) override;
 
     std::string process_command(Player& p, const std::string& raw_command, World& w);
+    const std::string& get_id() const;
+    const std::string& get_name() const;
+    const std::map<std::string, CatalogEntry>& get_sell_catalog() const;
+    const std::map<std::string, ItemID>& get_buy_catalog() const;
 
     virtual void on_new_day() {}
 };

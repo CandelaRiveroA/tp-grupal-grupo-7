@@ -15,11 +15,18 @@ target_sources(taller_server
     commands/take_command.cpp
     commands/sleep_command.cpp
     commands/chat_command.cpp
+    commands/cmd/player_commands.cpp
+    commands/cmd/community_commands.cpp
+    commands/cmd/merchant_commands.cpp
     commands/gift_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
+    domain/map/scene.cpp
+    domain/map/farm.cpp
     domain/map/town.cpp
+    domain/map/dungeon_floor.cpp
+    domain/map/portal.cpp
     domain/entities/i_entity.cpp
     domain/entities/i_movable.cpp
     domain/entities/entity_controller.cpp

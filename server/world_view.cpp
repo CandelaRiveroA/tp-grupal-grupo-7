@@ -57,27 +57,38 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     // posiciones que el lote ya no vuelve a describir.
     out.push_back(ServerReset{});
 
-    for (const uint8_t id: world.get_player_ids()) {
+    const SceneId scene_id = world.get_player(player_id).get_scene();
+    const Scene& scene = world.get_scene(scene_id);
+
+    // Solo los jugadores que están en la misma escena que player_id.
+    for (const uint8_t id: world.get_player_ids_in_scene(scene_id)) {
         const Player& player = world.get_player(id);
         out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
                                    player.get_appearance(),
                                    player.get_health(), player.get_max_health(),
                                    player.get_energy(),
                                    player.get_max_energy(),
-                                    player.faintedByEnergy() ? 1u : 0u));
+                                   player.faintedByEnergy() ? 1u : 0u));
     }
 
-    for (uint16_t y = 0; y < world.get_height(); ++y) {
-        for (uint16_t x = 0; x < world.get_width(); ++x) {
-            // El suelo no es entidad: su estado es la celda misma (Cell::soil_state).
-            const SoilState soil = world.get_cell(x, y).soil_state;
+    for (const MerchantPlacement& placement: world.get_merchant_placements()) {
+        out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
+    }
+
+    for (const MerchantPlacement& placement: scene.get_merchant_placements()) {
+        out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
+    }
+
+    for (uint16_t y = 0; y < scene.get_height(); ++y) {
+        for (uint16_t x = 0; x < scene.get_width(); ++x) {
+            const SoilState soil = scene.get_soil_state(x, y);
             if (soil != SoilState::NORMAL) {
                 out.push_back(ServerGroundEffect{x, y, GroundEffect::Dug});
             }
             if (soil == SoilState::WATERED) {
                 out.push_back(ServerGroundEffect{x, y, GroundEffect::Watered});
             }
-            for (const IEntity* entity: world.get_entity_at(x, y)) {
+            for (const IEntity* entity: scene.get_entity_at(x, y)) {
                 if (const auto animal = entity->animal_snapshot()) {
                     out.push_back(ServerAnimal{animal->id, animal->kind, x, y, animal->facing,
                                                animal->ready_to_milk});
@@ -117,13 +128,13 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     // Charcos de sangre: estado persistente del dia (se secan al terminar
     // el dia o los consume una vampira). Van en el MISMO transporte que la
     // tierra tratada, asi el cliente los pinta bajo las entidades.
-    for (const auto& [blood_x, blood_y]: world.blood_puddle_list()) {
+    for (const auto& [blood_x, blood_y]: scene.blood_puddle_list()) {
         out.push_back(ServerGroundEffect{blood_x, blood_y, GroundEffect::Blood});
     }
 
     // Las llamas van después de las celdas (el fuego se dibuja encima), en
     // el mismo orden que EnemyBot::appendEntities.
-    for (const ProjectileSnapshot& projectile: world.projectile_snapshots()) {
+    for (const ProjectileSnapshot& projectile: scene.projectile_snapshots()) {
         out.push_back(ServerProjectile{projectile.id, projectile.kind, projectile.x, projectile.y,
                                        projectile.direction});
     }
@@ -140,6 +151,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                               item->can_be_traded()});
         }
     }
+    out.push_back(ServerGold{world.get_player(player_id).get_gold()});
+    out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
     out.push_back(ServerSyncEnd{});
     return out;

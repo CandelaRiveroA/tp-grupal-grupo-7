@@ -440,11 +440,7 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         if (command.kind == game::InputCommand::Kind::OpenCatalog) {
-            // DEMO (tecla B): el server pedirá el popup cuando el
-            // jugador escriba el comando; entonces se borra esta rama
-            // y la tecla, y el handler del mensaje llama a
-            // marketPopup_.open(oferta).
-            openMarketOfSpokenNpc();
+            // El catálogo real se pide por /consultar_catalogo en el chat.
             continue;
         }
         if (command.kind == game::InputCommand::Kind::ToggleMarket) {
@@ -725,8 +721,12 @@ void PlaySession::tick(int iteration) {
                 continue;
             }
             npcPopup_ = npc;
-            // Con quién hablé: B abre SU catálogo (hasta que el chat lo pida).
+            // Conserva el comerciante seleccionado para el flujo local del chat.
             lastNpcId_ = npc->id;
+            if (npc->id == "pierre" || npc->id == "marnie" ||
+                npc->id == "clint" || npc->id == "robin") {
+                player_.interact();
+            }
             continue;
         }
         // La cama. Caminar hasta ella lo decide EnterSelection; el popup
@@ -1018,11 +1018,18 @@ void PlaySession::openMarketOfSpokenNpc() {
 }
 
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
-    // El catálogo que pide la fuente de estado. Mientras haya un popup abierto
-    // (catálogo, NPC o sueño) no se toca nada: la oferta se ignora.
+    // El catálogo que pide la fuente de estado. Reemplaza una oferta abierta
+    // si llega la consulta de otro comerciante.
     if (!view.marketOffer.has_value() || sceneSwitcher_.id() != core::kMarketRoom ||
-        npcPopup_ != nullptr || marketPopup_.isOpen() || popupState_.modal()) {
+        popupState_.modal()) {
         return;
+    }
+    npcPopup_ = nullptr;
+    if (marketPopup_.isOpen()) {
+        if (marketPopup_.merchantId() == view.marketOffer->merchantId) {
+            return;
+        }
+        marketPopup_.close();
     }
     marketPopup_.open(*view.marketOffer);
 }

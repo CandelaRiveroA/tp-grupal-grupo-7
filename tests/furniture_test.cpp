@@ -13,6 +13,7 @@
 #include "../server/domain/map/world.h"
 
 #include "world_view.h"
+#include "test_helpers.h"
 
 namespace {
 
@@ -27,44 +28,6 @@ std::vector<T> only(const std::vector<ServerMessage>& messages) {
     return out;
 }
 
-bool has_item(const Player& player, ItemID id) {
-    const Inventory& inventory = player.get_inventory();
-    for (uint8_t slot = 0; slot < inventory.get_max_slots(); ++slot) {
-        const Item* item = inventory.peek_item(slot);
-        if (item != nullptr && item->get_id() == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool cell_has_item(const World& world, uint16_t x, uint16_t y, ItemID id) {
-    // cppcheck-suppress useStlAlgorithm;
-    for (const IEntity* entity: world.get_entity_at(x, y)) {
-        const auto snap = entity->snapshot();
-        if (snap && snap->item == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// La cama es caminable: no se distingue de una celda vacía por las
-// colisiones, hay que mirar su snapshot.
-bool cell_has_furniture(const World& world, uint16_t x, uint16_t y) {
-    // cppcheck-suppress useStlAlgorithm;
-    for (const IEntity* entity: world.get_entity_at(x, y)) {
-        const auto snap = entity->snapshot();
-        if (snap && snap->kind == CellSnapshot::Kind::Furniture) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// ---------------------------------------------------------
-// La cama se muestra como mueble, no como un ítem del piso.
-// ---------------------------------------------------------
 TEST(FurnitureTest, LaCamaSeMuestraComoMuebleEnElSync) {
     World world(5, 5);
     world.add_player(1, std::make_unique<Player>(1, 0, 0));

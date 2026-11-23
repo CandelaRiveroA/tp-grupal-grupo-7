@@ -14,7 +14,7 @@
 // ---------------------------------------------------------
 TEST(FarmingTest, CicloDeHumedadDelSuelo) {
     World world(5, 5); 
-    auto player = std::make_unique<Player>(1, 2, 2);
+    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
 
@@ -25,19 +25,19 @@ TEST(FarmingTest, CicloDeHumedadDelSuelo) {
     p_ref->select_slot(1);
     world.use_tool(1); 
     
-    EXPECT_TRUE(world.get_cell(3, 2).is_soil_tilled());
+    EXPECT_TRUE(world.get_farm().get_cell(3, 2).is_soil_tilled());
 
     // 2. Equipamos la Regadera y regamos (Slot 2)
     p_ref->select_slot(2);
     world.use_tool(1);
 
-    EXPECT_TRUE(world.get_cell(3, 2).is_soil_watered());
+    EXPECT_TRUE(world.get_farm().get_cell(3, 2).is_soil_watered());
 
     // 3. Simulamos el fin de un día
-    world.process_end_of_day_floor(); 
+    world.get_farm().on_new_day(world); 
     
-    EXPECT_TRUE(world.get_cell(3, 2).is_soil_tilled());
-    EXPECT_FALSE(world.get_cell(3, 2).is_soil_watered());
+    EXPECT_TRUE(world.get_farm().get_cell(3, 2).is_soil_tilled());
+    EXPECT_FALSE(world.get_farm().get_cell(3, 2).is_soil_watered());
 }
 
 // ---------------------------------------------------------
@@ -45,7 +45,7 @@ TEST(FarmingTest, CicloDeHumedadDelSuelo) {
 // ---------------------------------------------------------
 TEST(FarmingTest, CebollaDeVerdeoCreceCosechaYDesaparece) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2);
+    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
     
@@ -55,15 +55,19 @@ TEST(FarmingTest, CebollaDeVerdeoCreceCosechaYDesaparece) {
     p_ref->select_slot(1);
     world.use_tool(1);
     
-    // Plantamos la semilla artificialmente
-    world.set_entity_at(3, 2, std::make_unique<GreenOnion>(3, 2));
+    // Plantamos la semilla artificialmente. El test lleva su propia lista de
+    // cultivos: Farm solo actualiza los que se plantan con try_plant_seed.
+    auto planted = std::make_unique<GreenOnion>(3, 2);
+    Crop* crop_ref = planted.get();
+    world.get_farm().set_entity_at(3, 2, std::move(planted));
     
     for (int day = 0; day < 2; ++day) {
         p_ref->select_slot(2);
         world.use_tool(1);
         world.use_tool(1);
         world.use_tool(1);
-        world.process_end_of_day_floor(); 
+        crop_ref->update(world);
+        world.get_farm().on_new_day(world); 
     }
 
     // Cosechamos
@@ -92,7 +96,7 @@ TEST(FarmingTest, CebollaDeVerdeoCreceCosechaYDesaparece) {
 // ---------------------------------------------------------
 TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2);
+    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
     
@@ -100,13 +104,17 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
 
     p_ref->select_slot(1);
     world.use_tool(1);
-    world.set_entity_at(3, 2, std::make_unique<Strawberry>(3, 2));
+    // El test lleva su propia lista de cultivos (ver comentario arriba).
+    auto planted = std::make_unique<Strawberry>(3, 2);
+    Crop* crop_ref = planted.get();
+    world.get_farm().set_entity_at(3, 2, std::move(planted));
     
     for (int day = 0; day < 4; ++day) {
         p_ref->select_slot(2);
         world.use_tool(1);
         world.use_tool(1);
-        world.process_end_of_day_floor();
+        crop_ref->update(world);
+        world.get_farm().on_new_day(world);
     }
 
     // Primera Cosecha
@@ -125,7 +133,8 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
         p_ref->select_slot(2);
         world.use_tool(1);
         world.use_tool(1);
-        world.process_end_of_day_floor();
+        crop_ref->update(world);
+        world.get_farm().on_new_day(world);
     }
 
     // Liberamos el inventario (herramientas y semillas): la segunda frutilla
@@ -156,7 +165,7 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
 // ---------------------------------------------------------
 TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2);
+    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
 
@@ -165,7 +174,7 @@ TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
     // 1. Arar la tierra con la pala (Slot 1)
     p_ref->select_slot(1);
     world.use_tool(1);
-    EXPECT_TRUE(world.get_cell(3, 2).is_soil_tilled());
+    EXPECT_TRUE(world.get_farm().get_cell(3, 2).is_soil_tilled());
 
     // 2. La Semilla de Frutilla ya viene en el slot 4 del inventario inicial
     p_ref->select_slot(4); 

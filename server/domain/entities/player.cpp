@@ -4,6 +4,7 @@
 #include "i_movable.h"
 #include "../inventory/tool.h"
 #include "../inventory/product.h"
+#include "../map/world.h"
 
 // Vida máxima del jugador. La baja enemiga es 5-10 por golpe (kDamage de
 // esqueleto y orco), así que un esqueleto mata en 20 golpes y un orco en 10.
@@ -17,8 +18,8 @@
 #define kNormalSwordDamage 2
 #define kWoundedSwordDamage 1
 
-Player::Player(uint8_t id, uint16_t x, uint16_t y)
-        : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
+Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene)
+        : IEntity(x, y), player_id(id), current_scene(initial_scene), facing(Direction::DOWN), selected_slot(0), backpack(9),
           energy(10000), max_energy(10000), hp(kMaxHealth), max_hp(kMaxHealth),
           walking(false), died_in_combat(false), fainted_by_timeout(false),
           fainted_by_energy(false) {
@@ -37,6 +38,8 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y)
 }
 uint8_t Player::get_id() const { return this->player_id; }
 
+SceneId Player::get_scene() const { return this->current_scene; }
+
 Direction Player::get_facing() const { return this->facing; }
 
 const CharacterAppearance& Player::get_appearance() const { return this->appearance; }
@@ -54,6 +57,7 @@ uint16_t Player::get_max_energy() const { return this->max_energy; }
 void Player::set_max_health(uint16_t value) { this->max_hp = value; }
 void Player::set_max_energy(uint16_t value) { this->max_energy = value; }
 
+void Player::set_scene(SceneId scene) { this->current_scene = scene; }
 void Player::add_gold(uint16_t amount) { this->gold += amount; }
 bool Player::try_remove_gold(uint16_t amount) {
     if (this->gold >= amount) {

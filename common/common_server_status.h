@@ -37,6 +37,9 @@ enum class ServerMessageType : uint8_t {
     GiftAnswered = 25,
     SetCompleted = 26,
     Victory = 27,
+    Gold = 28,
+    NpcPlacement = 29,
+    MarketOffer = 30,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -255,11 +258,37 @@ struct ServerSetCompleted {
 
 struct ServerVictory {};
 
+struct ServerGold {
+    uint16_t gold;
+};
+
+struct ServerNpcPlacement {
+    std::string id;
+    uint16_t x;
+    uint16_t y;
+};
+
+enum class ServerMarketSide : uint8_t { Sells = 0, Buys = 1 };
+
+struct ServerMarketEntry {
+    std::string content_id;
+    std::string label;
+    ServerMarketSide side;
+    bool has_price;
+    uint16_t price;
+};
+
+struct ServerMarketOffer {
+    std::string merchant_id;
+    std::vector<ServerMarketEntry> entries;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory>;
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
+                     ServerGold, ServerNpcPlacement, ServerMarketOffer>;
 
 #endif

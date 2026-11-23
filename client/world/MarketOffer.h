@@ -19,6 +19,7 @@ enum class MarketSide {
 // muestra el nombre.
 struct MarketEntry {
 	std::string contentId;
+	std::string label;
 	MarketSide side = MarketSide::Sells;
 	std::optional<int> price;
 };

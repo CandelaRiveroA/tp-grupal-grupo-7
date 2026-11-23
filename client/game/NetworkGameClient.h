@@ -134,6 +134,7 @@ private:
     // Vocabulario kind del servidor -> CreatureKind (convención §4:
     // diccionario miembro, inicializado en el constructor).
     std::map<std::string, world::CreatureKind> creatureKinds_;
+    std::map<ServerMarketSide, world::MarketSide> marketSides_;
 
     std::map<uint8_t, RemotePlayer> players_;
     // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).

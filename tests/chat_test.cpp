@@ -8,6 +8,7 @@
 
 #include "domain/entities/player.h"
 #include "domain/map/world.h"
+#include "domain/npc/merchant.h"
 
 namespace {
 
@@ -112,6 +113,33 @@ TEST(ChatRouterTest, DonarMoneyNoEsUnComandoEspañol) {
 
     EXPECT_EQ(world.get_player(1).get_gold(), 10000u);
     EXPECT_FALSE(world.is_set_completed("dinero"));
+}
+
+TEST(ChatRouterTest, ConsultarCatalogoCambiaElComercianteSeleccionado) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::TOWN));
+    world.place_merchant(std::make_unique<Merchant>(1, 2, "Pierre", "pierre",
+                                                     std::map<std::string, CatalogEntry>{},
+                                                     std::map<std::string, ItemID>{}));
+    world.place_merchant(std::make_unique<Merchant>(3, 3, "Clint", "clint",
+                                                     std::map<std::string, CatalogEntry>{},
+                                                     std::map<std::string, ItemID>{}));
+
+    ChatRouter router;
+    world.take_item(1);
+    auto replies = router.route("/consultar_catalogo", 1, world, names_with(1, "Pandamos"));
+    ASSERT_EQ(replies.size(), 1u);
+    const auto* first_offer = std::get_if<ServerMarketOffer>(&replies[0].message);
+    ASSERT_NE(first_offer, nullptr);
+    EXPECT_EQ(first_offer->merchant_id, "pierre");
+
+    world.set_player_position(1, 3, 3);
+    world.take_item(1);
+    replies = router.route("/consultar_catalogo", 1, world, names_with(1, "Pandamos"));
+    ASSERT_EQ(replies.size(), 1u);
+    const auto* second_offer = std::get_if<ServerMarketOffer>(&replies[0].message);
+    ASSERT_NE(second_offer, nullptr);
+    EXPECT_EQ(second_offer->merchant_id, "clint");
 }
 
 TEST(ChatRouterTest, UnknownCommandExplains) {

@@ -34,6 +34,7 @@ size_t count_type(const World& world) {
 
 TEST(EnemyControllerTest, GeneraEnemigosSinPisarElSpawn) {
     World world(30, 20);
+    world.set_active_scene(SceneId::DUNGEON_1);
     EnemyController enemies(1, 42);
     enemies.populate(world, 15, 10);
 
@@ -44,6 +45,7 @@ TEST(EnemyControllerTest, GeneraEnemigosSinPisarElSpawn) {
 TEST(EnemyControllerTest, UnSoloSkullPorSala) {
     for (const uint8_t sala: {1, 5, 10}) {
         World world(30, 20);
+    world.set_active_scene(SceneId::DUNGEON_1);
         EnemyController enemies(sala, 42);
         enemies.populate(world, 15, 10);
 
@@ -53,8 +55,10 @@ TEST(EnemyControllerTest, UnSoloSkullPorSala) {
 
 TEST(EnemyControllerTest, DificultadIncremental) {
     World early(30, 20);
+    early.set_active_scene(SceneId::DUNGEON_1);
     EnemyController(1, 42).populate(early, 15, 10);
     World late(30, 20);
+    late.set_active_scene(SceneId::DUNGEON_1);
     EnemyController(10, 42).populate(late, 15, 10);
 
     // Sala 1: esqueletos. Sala 10: vampiros.
@@ -66,6 +70,7 @@ TEST(EnemyControllerTest, DificultadIncremental) {
 TEST(EnemyControllerTest, RegeneraSinAcumularNiBorrarLosMinerales) {
     // Contexto de la mazmorra: solo minerales y enemigos.
     World world(30, 20);
+    world.set_active_scene(SceneId::DUNGEON_1);
     world.set_entity_at(0, 0, std::make_unique<Rock>(0, 0));
     world.set_entity_at(1, 0, std::make_unique<Rock>(1, 0));
 

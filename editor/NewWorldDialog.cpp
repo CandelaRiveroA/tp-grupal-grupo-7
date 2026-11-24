@@ -4,33 +4,54 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
+#include "Constants.h"
+#include "NineSliceFrame.h"
+#include "qt_theme/GameCursor.h"
+
 NewWorldDialog::NewWorldDialog(const worldmodel::WorldRepository& worlds,
 			       QWidget* parent)
 	: QDialog(parent), worlds_(worlds) {
+	setObjectName("newWorldDialog");
 	setWindowTitle("Nuevo mundo");
+	setCursor(GameCursor().cursor());
 
-	nameEdit_ = new QLineEdit(this);
+	NineSliceFrame* frame = new NineSliceFrame(":/ui/join/input_box.png",
+						   editor::kWindowSlice,
+						   editor::kWindowScale, this);
+
+	nameEdit_ = new QLineEdit(frame);
+	nameEdit_->setObjectName("editorField");
 	nameEdit_->setPlaceholderText("Ej: Mi Granja 1");
-	validityLabel_ = new QLabel(this);
+	validityLabel_ = new QLabel(frame);
+	validityLabel_->setObjectName("validityHint");
 
 	connect(nameEdit_, &QLineEdit::textEdited, this,
 		[this] { refreshValid(); });
 
-	QPushButton* cancelButton = new QPushButton("Cancelar", this);
-	createButton_ = new QPushButton("Crear mundo", this);
+	QPushButton* cancelButton = new QPushButton("Cancelar", frame);
+	cancelButton->setObjectName("editorButton");
+	createButton_ = new QPushButton("Crear mundo", frame);
+	createButton_->setObjectName("editorButton");
 	connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
 	connect(createButton_, &QPushButton::clicked, this, &QDialog::accept);
 
 	QFormLayout* form = new QFormLayout;
 	form->addRow("Nombre:", nameEdit_);
-	QVBoxLayout* layout = new QVBoxLayout(this);
+	QVBoxLayout* layout = new QVBoxLayout(frame);
 	layout->addLayout(form);
 	layout->addWidget(validityLabel_);
 	QHBoxLayout* buttons = new QHBoxLayout;
 	buttons->addStretch();
-	buttons->addWidget(cancelButton);
 	buttons->addWidget(createButton_);
+	buttons->addWidget(cancelButton);
 	layout->addLayout(buttons);
+	
+	createButton_->setDefault(true);
+	cancelButton->setAutoDefault(false);
+
+	QVBoxLayout* root = new QVBoxLayout(this);
+	root->setContentsMargins(0, 0, 0, 0);
+	root->addWidget(frame);
 
 	createButton_->setEnabled(false);
 	// Dialogo compacto de un campo: fija el tamano al del contenido.

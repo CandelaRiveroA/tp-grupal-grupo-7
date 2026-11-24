@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "qt/theme/WorldSpriteRects.h"
@@ -49,7 +50,8 @@ void WorldSelectorWidget::setWorlds(const std::vector<WorldSummary>& worlds) {
             column = makeColumn();
             columnLayout = qobject_cast<QVBoxLayout*>(column->layout());
         }
-        auto* button = new WorldButton(worlds[static_cast<std::size_t>(i)], sprites_, column);
+        auto* button = new WorldButton(worlds[static_cast<std::size_t>(i)],
+                                       static_cast<std::uint32_t>(i + 1), sprites_, column);
         group_->addButton(button, i);
         columnLayout->addWidget(button, 0, Qt::AlignHCenter);
     }

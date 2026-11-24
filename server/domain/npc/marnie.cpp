@@ -1,15 +1,25 @@
 #include "marnie.h"
 
 #include "../entities/player.h"
+#include "../animals/animal_catalog.h"
 #include "../map/world.h"
 
-Marnie::Marnie(uint16_t x, uint16_t y): Merchant(x, y, "Marnie", "marnie") {
-    // make_item = nullptr porque los animales no van al inventario sino a la granja
-    sell_catalog["vacas"]    = {ItemID::COW, 80, nullptr};
-    sell_catalog["gallinas"] = {ItemID::CHICKEN, 20, nullptr};
-
-    buy_catalog["vacas"]     = ItemID::COW;
-    buy_catalog["gallinas"]  = ItemID::CHICKEN;
+Marnie::Marnie(uint16_t x, uint16_t y):
+        Merchant(x, y, "Marnie", "marnie"),
+        purchase_errors{
+                {AnimalPurchaseResult::InvalidQuantity, "La cantidad debe ser mayor que cero."},
+                {AnimalPurchaseResult::UnknownAnimal, "Solo vendo vacas y gallinas."},
+                {AnimalPurchaseResult::LimitReached,
+                 "El establo admite como máximo 5 vacas y 10 gallinas."},
+                {AnimalPurchaseResult::NoSpace, "No hay espacio libre para todos en el establo."},
+                {AnimalPurchaseResult::BarnUnavailable, "No hay un establo disponible."},
+        } {
+    // Los animales se crean en el establo, no van al inventario.
+    const AnimalCatalog animals;
+    for (const auto& [id, offer]: animals.offers()) {
+        sell_catalog[offer.command_name] = {id, offer.price, nullptr};
+        buy_catalog[offer.command_name] = id;
+    }
 }
 
 std::string Marnie::handle_buy(Player& p, const std::string& item_name, uint16_t qty,
@@ -23,17 +33,14 @@ std::string Marnie::handle_buy(Player& p, const std::string& item_name, uint16_t
     if (w.is_market_discount_active()) {
         total_cost = static_cast<uint16_t>(total_cost / 2);
     }
-    if (!p.try_remove_gold(total_cost)) {
+    const AnimalPurchaseResult result = w.buy_animals(p, it->second.id, qty, total_cost);
+    if (result == AnimalPurchaseResult::InsufficientGold) {
         return "Marnie: No te alcanza el oro (necesitás " + std::to_string(total_cost) + "g).";
     }
-
-    // TODO (al crear Farm): Tell, Don't Ask contra World -> Farm
-    // if (!w.try_spawn_animals(it->second.id, qty)) {
-    //     p.add_gold(total_cost);
-    //     return "Marnie: ¡La granja está llena! No entran más " + item_name + ".";
-    // }
-
-    return "Marnie: ¡Listo! Envié " + std::to_string(qty) + " " + item_name + " a tu granja.";
+    if (result != AnimalPurchaseResult::Success) {
+        return "Marnie: " + purchase_errors.at(result);
+    }
+    return "Marnie: ¡Listo! Envié " + std::to_string(qty) + " " + item_name + " a tu establo.";
 }
 
 std::string Marnie::handle_sell(Player& p, const std::string& item_name, uint16_t qty,

@@ -43,6 +43,9 @@ public:
 	// Nombre mostrado de un producto; nullptr si SDL no lo conoce.
 	const std::string* labelOf(const std::string& contentId) const;
 
+	// ¿El NPC tiene una oferta por defecto declarada en market.toml?
+	bool hasMerchant(const std::string& npcId) const;
+
 	// Presentación de una calidad; nullptr si market.toml no la declara.
 	const MarketQualityStyle* qualityOf(CropQuality quality) const;
 

@@ -18,7 +18,8 @@ public:
     // fadeTicks: los ticks de cada mitad del fade (los del arranque).
     explicit SceneTransition(int fadeTicks);
 
-    // Pide el cambio a la escena destino. Se ignora si ya hay una
+    // Pide el cambio a la escena destino. Durante la salida o la espera
+    // en negro, un nuevo mapa actualiza el destino. Se ignora si ya hay una
     // transición en curso (una a la vez), SALVO un pedido con holdAtBlack:
     // ese es el fin del día, que no puede perderse por un fundido
     // simultáneo (p. ej. el del cambio de mapa al desmayarse), así que

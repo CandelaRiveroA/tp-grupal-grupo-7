@@ -9,4 +9,12 @@ Bed::Bed(uint16_t x, uint16_t y): Furniture(x, y, ItemID::BED, 0) {}
 
 bool Bed::is_walkable() const { return true; }
 
+void Bed::interact(Player& p, ToolType tool, World& w) {
+    if (tool == ToolType::PICKAXE) {
+        // La cama no se rompe: es estructura fija del mundo.
+        return;
+    }
+    Furniture::interact(p, tool, w);
+}
+
 void Bed::on_use(Player& p, World& w) { w.record_sleep_request(p.get_id()); }

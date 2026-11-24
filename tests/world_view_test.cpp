@@ -192,7 +192,7 @@ TEST(WorldViewTest, HitsAdvanceTheDamageInTheSentState) {
 
 TEST(WorldViewTest, DroppedEggIsSentInteractive) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::FARM));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "barn"));
     world.add_animal(std::make_unique<Chicken>(3, 3));
     WorldView view;
 
@@ -209,7 +209,7 @@ TEST(WorldViewTest, DroppedEggIsSentInteractive) {
 
 TEST(WorldViewTest, TheEggWaitsForTakeInsteadOfPickingItselfUp) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::FARM));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "barn"));
     world.add_animal(std::make_unique<Chicken>(2, 1));
     WorldView view;
     world.tick_day();
@@ -232,7 +232,7 @@ TEST(WorldViewTest, TheEggWaitsForTakeInsteadOfPickingItselfUp) {
 
 TEST(WorldViewTest, TakeReachesAnEggInAnAdjacentCellButNotFartherOne) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::FARM));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "barn"));
     world.add_animal(std::make_unique<Chicken>(3, 1));
     WorldView view;
     world.tick_day();
@@ -250,7 +250,7 @@ TEST(WorldViewTest, TakeReachesAnEggInAnAdjacentCellButNotFartherOne) {
 
 // Jugador 1 en (1,1) mirando a la derecha con la semilla de frutilla en el slot 4.
 Player* populateWithStrawberrySeed(World& world) {
-    auto player = std::make_unique<Player>(1, 1, 1, SceneId::FARM);
+    auto player = std::make_unique<Player>(1, 1, 1, "farm");
     Player* ref = player.get();
     world.add_player(1, std::move(player));
     world.set_player_facing(1, Direction::RIGHT);
@@ -306,7 +306,7 @@ TEST(WorldViewTest, CropGrowsDayByDayAndIsReadyToHarvestAfterItsDays) {
 
 TEST(WorldViewTest, TakeHarvestsAReadyCropInAnAdjacentCell) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::FARM));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "farm"));
     // El test lleva su propia lista de cultivos: Farm solo hace update de los
     // que se plantan con try_plant_seed, así que el test actualiza el suyo.
     auto planted = std::make_unique<Potato>(2, 1);
@@ -330,7 +330,7 @@ TEST(WorldViewTest, TakeHarvestsAReadyCropInAnAdjacentCell) {
 
 TEST(WorldViewTest, WateredSoilIsSentAsDugThenWatered) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::FARM));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "farm"));
     world.get_farm().get_cell(3, 3).till_soil();
     world.get_farm().get_cell(3, 3).water_soil();
     WorldView view;
@@ -343,8 +343,8 @@ TEST(WorldViewTest, WateredSoilIsSentAsDugThenWatered) {
 
 TEST(WorldViewTest, LosCharcosDeSangreSeTransmitenEnCadaLote) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     world.damage_player(1, 85);  // 100 -> 15: por debajo del 20 %, deja sangre
     WorldView view;
 
@@ -366,8 +366,8 @@ TEST(WorldViewTest, CropsAndSeedsUseTheSharedContentIds) {
 
 TEST(WorldViewTest, UnEnemigoVivoSeEnviaConSuIdentidadVidaYPosicion) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     world.add_enemy(std::make_unique<Skeleton>(3, 3));
     WorldView view;
 
@@ -383,8 +383,8 @@ TEST(WorldViewTest, UnEnemigoVivoSeEnviaConSuIdentidadVidaYPosicion) {
 
 TEST(WorldViewTest, UnGolpeMandaDanoYLaMuerteSigueVisibleConVidaCero) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     auto skeleton = std::make_unique<Skeleton>(3, 3);
     Skeleton* ptr = skeleton.get();
     world.add_enemy(std::move(skeleton));
@@ -404,8 +404,8 @@ TEST(WorldViewTest, UnGolpeMandaDanoYLaMuerteSigueVisibleConVidaCero) {
 
 TEST(WorldViewTest, UnEnemigoQuePegaEnviaAtaque) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     world.add_enemy(std::make_unique<Skeleton>(2, 2));  // diagonal al jugador (1,1)
     WorldView view;
 
@@ -417,8 +417,8 @@ TEST(WorldViewTest, UnEnemigoQuePegaEnviaAtaque) {
 
 TEST(WorldViewTest, CadaEnemigoTieneSuPropioId) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     world.add_enemy(std::make_unique<Skeleton>(3, 3));
     world.add_enemy(std::make_unique<Orc>(4, 4));
     WorldView view;
@@ -450,8 +450,8 @@ TEST(WorldViewTest, StatusCarriesFaintedFlag) {
 
 TEST(WorldViewTest, LaLlamaSeEnviaComoProyectil) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.set_active_scene("dungeon_1");
     world.add_enemy(std::make_unique<Skull>(2, 2));  // a 1 de diagonal del jugador (1,1)
     WorldView view;
 

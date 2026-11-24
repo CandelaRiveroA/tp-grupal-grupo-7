@@ -5,7 +5,7 @@
 
 #include <utility>
 
-#include "qt/theme/CloudRects.h"
+#include "qt_theme/CloudRects.h"
 
 Screen::Screen(QWidget* parent) : QWidget(parent) {}
 

@@ -1,6 +1,7 @@
 #include "world_model/WorldRepository.h"
 
 #include <filesystem>
+#include <system_error>
 #include <utility>
 
 #include "world_model/FormatError.h"
@@ -48,6 +49,41 @@ World WorldRepository::load(const std::string& name) const {
 std::string WorldRepository::filePathFor(const std::string& name) const {
 	return (std::filesystem::path(directoryPath_) / (name + ".toml"))
 		.string();
+}
+
+std::string WorldRepository::minimapPathFor(const std::string& name,
+					    const std::string& mapId) const {
+	return (std::filesystem::path(directoryPath_) /
+		(name + "_minimaps") / (mapId + ".png"))
+		.string();
+}
+
+bool WorldRepository::prepareMinimapsDir(const World& world) const {
+	const std::filesystem::path dir =
+		std::filesystem::path(directoryPath_) /
+		(world.name + "_minimaps");
+	std::error_code error;
+	std::filesystem::create_directories(dir, error);
+	if (error) {
+		return false;
+	}
+	for (const auto& entry : std::filesystem::directory_iterator(dir, error)) {
+		if (error) {
+			return false;
+		}
+		if (!entry.is_regular_file() ||
+		    entry.path().extension() != ".png") {
+			continue;
+		}
+		const std::string mapId = entry.path().stem().string();
+		if (world.maps.find(mapId) == world.maps.end()) {
+			std::filesystem::remove(entry.path(), error);
+			if (error) {
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 std::vector<ValidationIssue> WorldRepository::saveIfValid(

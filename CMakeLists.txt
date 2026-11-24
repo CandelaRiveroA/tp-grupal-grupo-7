@@ -305,7 +305,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/AreaProximity.cpp
         client/game/StructureSelection.cpp
         client/game/PopupState.cpp
+        client/game/GiftThanks.cpp
         client/game/SceneTransition.cpp
+        client/game/SceneSnapshot.cpp
         client/game/DayPhase.cpp
         client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
@@ -339,6 +341,20 @@ endif()
 if(TALLER_CLIENT OR TALLER_EDITOR OR TALLER_QT_HARNESS)
     set(QT_NO_STANDARD_PROJECT_SETUP ON)
     find_package(Qt6 COMPONENTS Widgets REQUIRED)
+
+    # Piezas de Qt compartidas por cliente, editor y harness (cielo, 9-slice,
+    # cursor, boton de sprite). El .qrc NO va aca: se lista en cada ejecutable
+    # (un .qrc dentro de una .a se descarta en el link sin Q_INIT_RESOURCE).
+    add_library(taller_qt_theme STATIC
+        common/qt_theme/TitleBackdrop.cpp
+        common/qt_theme/NineSlice.cpp
+        common/qt_theme/GameCursor.cpp
+        common/qt_theme/TitleButton.cpp
+        common/qt_theme/TitleButton.h)   # Q_OBJECT: AUTOMOC lo necesita
+    set_target_properties(taller_qt_theme PROPERTIES AUTOMOC ON)
+    target_include_directories(taller_qt_theme PUBLIC ${CMAKE_SOURCE_DIR}/common)
+    target_link_libraries(taller_qt_theme PUBLIC Qt6::Widgets)
+    set_project_warnings(taller_qt_theme ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 endif()
 
 if(TALLER_CLIENT)
@@ -368,7 +384,7 @@ if(TALLER_CLIENT)
                 ${CMAKE_SOURCE_DIR}/client/sdl/assets
                 ${CMAKE_BINARY_DIR}/assets
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_SOURCE_DIR}/client/qt/resources/fonts
+                ${CMAKE_SOURCE_DIR}/common/qt_theme/resources/fonts
                 ${CMAKE_BINARY_DIR}/assets/fonts
         COMMENT "Copiando assets del cliente al directorio del build")
 
@@ -438,6 +454,9 @@ if(TALLER_TILE_INSPECTOR)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_SOURCE_DIR}/client/qt/resources
                 ${CMAKE_BINARY_DIR}/assets/qt/resources
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/common/qt_theme/resources
+                ${CMAKE_BINARY_DIR}/assets/qt/resources
         COMMENT "Copiando recursos Qt para el tile inspector")
 endif()
 
@@ -455,7 +474,7 @@ if(TALLER_SERVER)
     set_project_warnings(taller_server ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 
     # Link the taller_common lib target
-    target_link_libraries(taller_server taller_common)
+    target_link_libraries(taller_server taller_common taller_world_model)
 endif()
 
 if(TALLER_EDITOR)
@@ -535,5 +554,7 @@ if(TALLER_TESTS)
         TALLER_CROPS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/crops.toml\"
         TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
         TALLER_SCENARIO_FIXTURES_DIR=\"${CMAKE_SOURCE_DIR}/tests/fixtures/scenarios\"
-        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
+        TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
+        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\"
+        TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
 endif()

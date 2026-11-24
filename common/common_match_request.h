@@ -7,7 +7,7 @@
 #include "common/model/draft/CharacterAppearance.h"
 
 // Primer mensaje de cada conexion del lobby: crear o unirse a un match.
-enum class MatchRequestType : uint8_t { Create = 1, Join = 2 };
+enum class MatchRequestType : uint8_t { Create = 1, Join = 2, ListWorlds = 3 };
 
 #define kMaxUsernameLength 32
 #define kMaxCharacterNameLength 24
@@ -16,6 +16,7 @@ struct MatchRequest {
     MatchRequestType type;
     std::string codeMatch;
     std::string nameMatch;
+    std::string worldName;
     std::string username;
     std::string characterName;
     // Personalizacion del personaje: indices de capa tal cual los eligio el

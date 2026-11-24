@@ -3,6 +3,8 @@
 
 #include "../server/domain/map/world.h"
 #include "../server/domain/entities/player.h"
+#include "world_model/WorldRepository.h"
+#include "world_model/WorldValidator.h"
 #include "../server/domain/entities/i_entity.h"
 #include "../server/domain/inventory/product.h"
 #include "../server/domain/inventory/item_types.h"
@@ -20,6 +22,14 @@ public:
     bool is_walkable() const override { return false; }
     void interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) override {}
     void update(World& /*w*/) override {}};
+
+    TEST(WorldTest, JugadorSinHogarExplicitoUsaEscenaYPosicionInicial) {
+        const Player player(1, 9, 7, "farm");
+
+        EXPECT_EQ(player.get_home_scene(), "farm");
+        EXPECT_EQ(player.get_home_x(), 9);
+        EXPECT_EQ(player.get_home_y(), 7);
+    }
 
 TEST(WorldTest, JugadorSeMueveHaciaCeldaVacia) {
     World world(5, 5);
@@ -280,3 +290,54 @@ TEST(WorldTest, ContestarElRegaloAvisaAlEmisor) {
     ASSERT_EQ(answers.size(), 1u);
     EXPECT_EQ(answers[0], 1);
 }
+
+TEST(WorldTest, MundoAdCargaEscenasYTransfierePorPortal) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    const worldmodel::World wm = repo.load("ad");
+    ASSERT_TRUE(worldmodel::WorldValidator().validate(wm).empty());
+
+    World world(wm);
+    // El mundo real tiene 18 mapas; la granja y el pueblo son obligatorios.
+    EXPECT_TRUE(world.get_scene("farm").get_width() > 0);
+    EXPECT_TRUE(world.get_scene("town").get_height() > 0);
+
+    // La colision viene del TOML (una celda caminable donde hay portal).
+    // Portal farm->town en (13,4) (size 2x1): pisarlo transfiere.
+    auto player = std::make_unique<Player>(1, 13, 4, "farm");
+    Player* p = player.get();
+    world.add_player(1, std::move(player));
+    world.set_active_scene("farm");
+
+    // Disparar la interaccion de portal pisando la celda.
+    world.move_player(1, Direction::RIGHT);
+    // El jugador queda en town (o al menos cambio de escena).
+    EXPECT_EQ(p->get_scene(), std::string("town"));
+}
+TEST(WorldTest, CabinCountYBedEnMundoAd) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    const worldmodel::World wm = repo.load("ad");
+    World world(wm);
+    EXPECT_EQ(world.cabin_count(), 1u);
+    auto bed = world.cabin_bed(1);
+    EXPECT_EQ(bed.first, std::string("cabin_1"));
+    // cabaña 0 cae al spawn
+    auto fallback = world.cabin_bed(0);
+    EXPECT_EQ(fallback.first, world.spawn_map());
+}
+
+TEST(WorldTest, TodosLosMundosDelRepoSonValidos) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    for (const std::string& name : repo.listWorlds()) {
+        const worldmodel::World wm = repo.load(name);
+        const std::vector<worldmodel::ValidationIssue> issues =
+                worldmodel::WorldValidator().validate(wm);
+        EXPECT_TRUE(issues.empty()) << name;
+    }
+}
+
+
+
+
+
+
+

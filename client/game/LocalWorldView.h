@@ -63,6 +63,8 @@ struct ViewEntity {
     // server). El render los acota contra characters.toml y cae al 0 si
     // están fuera de rango. Va al final por los aggregate-init posicionales.
     CharacterAppearance appearance{};
+    // Selección pública del hotbar, distinta del contenido de una recogida.
+    std::optional<std::string> carriedContent = std::nullopt;
 
     // Nombre que se muestra bajo los pies (el nombre de PERSONAJE elegido
     // al entrar, no el usuario del login). Lo llena la fuente de estado;
@@ -263,6 +265,8 @@ struct LocalWorldView {
     // servidor (ServerFurniture), por ejemplo al cargar una partida
     // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
     std::vector<ViewFurniture> placedFurniture;
+    // Eventos de regalo aceptado: IDs de receptores; se vacían en cada update.
+    std::vector<uint8_t> giftAcceptedPlayers;
     // Mapa en el que está el jugador (id del mapa del editor: "farm",
     // "town", "market"...). Lo manda la fuente de estado cuando hay
     // servidor. Vacío = el cliente elige la escena (teclas de prueba,

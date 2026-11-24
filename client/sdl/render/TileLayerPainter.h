@@ -17,7 +17,8 @@ public:
 
 	void draw(const world::SceneDescription& scene,
 		  const world::ScenePixelMapper& mapper,
-		  const Viewport& viewport);
+		  const Viewport& viewport,
+		  world::LayerPass pass = world::LayerPass::Background);
 
 private:
 	void drawLayer(const world::TileLayer& layer,

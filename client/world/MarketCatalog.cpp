@@ -36,6 +36,10 @@ const std::string* MarketCatalog::labelOf(
 	return found != labels_.end() ? &found->second : nullptr;
 }
 
+bool MarketCatalog::hasMerchant(const std::string& npcId) const {
+	return defaults_.find(npcId) != defaults_.end();
+}
+
 const MarketQualityStyle* MarketCatalog::qualityOf(
 	const CropQuality quality) const {
 	const auto found = qualities_.find(quality);

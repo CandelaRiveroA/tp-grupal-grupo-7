@@ -42,12 +42,20 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override;
 
+    // Mundo de la partida informado por el servidor en el welcome.
+    const std::string& worldName() const;
+
+    // Mapa del primer lote completo, antes de crear la presentación.
+    const std::string& initialMapId() const;
+
     
     void sendChat(const std::string& text) override;
     void receiveChat(std::uint8_t playerId, const std::string& characterName,
                      const std::string& text) override;
 
 private:
+    void receiveInitialState();
+
     // ¿El mensaje es de otro jugador? (ni del local ni de sistema)
     bool isIncomingChat(const ServerChat& chat) const;
 
@@ -60,6 +68,7 @@ private:
         // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
         std::optional<world::ItemKind> activeTool;
         CharacterAppearance appearance;
+        std::optional<std::string> carriedContent;
         int health = 0;
         int maxHealth = 0;
         int energy = 0;      // x100
@@ -118,6 +127,9 @@ private:
     ClientReceiver clientReceiver_;
 
     uint8_t localPlayerId_;
+    std::string worldName_;
+    std::string initialMapId_;
+    bool pendingDayChanged_ = false;
     // Nombre de personaje por player_id (ViewEntity::displayName). Hoy solo
     // tiene el del jugador local. ESCALABILIDAD: cuando el server mande los
     // nombres, su handler en apply() es `names_[id] = nombre;` y el dibujo

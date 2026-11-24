@@ -37,10 +37,11 @@ constexpr const char* kAssetsDir = TALLER_ASSET_DIR;
 #endif
 constexpr const char* kSoundsDir = TALLER_SOUNDS_DIR;
 
-constexpr const char* kScenesFile = "scenes.toml";
-// Mundo que guarda el editor (common/world_model). Si el archivo no
-// existe, el cliente funciona solo con scenes.toml.
-constexpr const char* kWorldFile = "world.toml";
+#ifndef TALLER_WORLDS_DIR
+#define TALLER_WORLDS_DIR "worlds"
+#endif
+constexpr const char* kWorldsDir = TALLER_WORLDS_DIR;
+
 // Datos propios del cliente que completan el mundo del editor (escala,
 // variantes de noche, decoraciones iniciales). Opcional.
 constexpr const char* kOverlayFile = "overlay.toml";

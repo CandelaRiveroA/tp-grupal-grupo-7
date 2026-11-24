@@ -181,6 +181,8 @@ void PlayerController::handleSelectSlot(const game::InputCommand& command) {
     inventorySelector_.select(command.slot, slotCount_);
     if (inventorySelector_.active() != previous) {
         events_.toolSwitched = true;
+        client_.sendCommand(protocol::SelectSlotMessage{
+                static_cast<uint8_t>(inventorySelector_.active())});
     }
 }
 

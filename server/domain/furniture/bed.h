@@ -15,6 +15,7 @@ public:
     Bed& operator=(Bed&&) = default;
 
     bool is_walkable() const override;
+    void interact(Player& p, ToolType tool, World& w) override;
 
 protected:
     void on_use(Player& p, World& w) override;

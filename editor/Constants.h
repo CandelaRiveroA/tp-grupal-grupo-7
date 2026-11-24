@@ -10,7 +10,7 @@
 // con su propia copia (linkage interno). Hoy cada una la usa un solo archivo.
 namespace editor {
 
-// WorkspaceView.cpp
+// WorkspaceView.cpp / MapTreeWidget.cpp
 // Mapa que se muestra al abrir un mundo.
 const std::string kHomeMapId = "farm";
 // Ancho inicial de los paneles del cuerpo: arbol, lienzo y paleta.
@@ -18,6 +18,8 @@ const QList<int> kBodySplitterSizes{220, 600, 240};
 const QSize kValidationDialogSize{480, 320};
 constexpr int kHeadingIndent = 4;
 constexpr int kTopBarSpacing = 8;
+const QMargins kTopBarMargins{8, 4, 8, 4};
+constexpr int kToolIconSize = 32;   // iconos de editor/resources/ui a tamano nativo
 
 // MapTreeWidget.cpp
 // Ancho minimo del boton de alta, para que no se corte su texto.
@@ -35,6 +37,8 @@ constexpr double kMinZoom = 0.25;
 constexpr double kMaxZoom = 8.0;
 constexpr double kZoomStep = 1.25;
 constexpr double kGhostOpacity = 0.65;
+constexpr int kPortalClickThresholdPx = 3;
+constexpr int kPortalPreviewCellPx = 32;
 
 // TilesetCache.cpp
 constexpr int kDefaultCellSize = 16;
@@ -45,5 +49,20 @@ const std::string kAssetsDir = TALLER_ASSETS_DIR;
 
 // Catalogo de prefabs generados para la paleta del editor.
 const std::string kPrefabsTomlPath = TALLER_PREFABS_TOML;
+
+// MinimapGenerator.cpp
+constexpr int kMinimapPxPerCell = 8;
+
+// NineSliceFrame / WelcomeView
+const QMargins kWindowSlice{6, 6, 6, 6};   // join_input_box.png 18x18
+constexpr int kWindowScale = 2;            // igual que SAVE_WINDOW_SCALE del lobby
+constexpr int kBaseFontPx = 16;            // Pixel Operator para todo el editor
+constexpr int kWelcomePanelMinWidth = 460;
+constexpr int kWelcomePanelMaxWidth = 560;
+constexpr int kWelcomePanelMaxHeight = 280;
+const QMargins kWelcomePanelPadding{4, 4, 4, 4};
+const QMargins kWelcomeMargins{24, 12, 24, 14};
+constexpr int kWelcomeSpacing = 10;
+constexpr float kMsPerSecond = 1000.0f;
 
 }  // namespace editor

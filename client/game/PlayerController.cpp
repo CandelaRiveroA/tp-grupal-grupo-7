@@ -148,7 +148,17 @@ std::optional<world::Direction> PlayerController::walkingDirection(
     return dy > 0 ? world::Direction::Front : world::Direction::Back;
 }
 
+bool PlayerController::hasActiveItem() const {
+    const int slot = activeSlot();
+    const std::vector<ViewInventorySlot>& inventory = client_.worldState().inventory;
+    return std::any_of(inventory.begin(), inventory.end(),
+                       [slot](const ViewInventorySlot& entry) { return entry.slotIndex == slot; });
+}
+
 void PlayerController::useTool(const world::Direction direction) {
+    if (!hasActiveItem()) {
+        return;
+    }
     // El slot activo viaja con el Pick: el servidor usa esa herramienta
     // (y decide si se puede).
     client_.sendCommand(moveCommand_.use(direction, activeSlot()));

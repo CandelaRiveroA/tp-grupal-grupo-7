@@ -29,8 +29,12 @@ public:
     // toolUseDurationTicks: cuánto dura la animación de golpe en el cliente.
     // Es presentación: el servidor avisa cuándo se usó la herramienta.
     // characters: duración de la animación de ordeñe (presentación).
+    // localCharacterName: el nombre de PERSONAJE elegido al entrar (no el
+    // usuario del login). Hoy el server no manda nombres, así que el del
+    // jugador local lo pone el cliente; los demás quedan vacíos.
     NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
-                      const world::CharacterCatalog& characters);
+                      const world::CharacterCatalog& characters,
+                      const std::string& localCharacterName);
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
@@ -44,6 +48,9 @@ public:
                      const std::string& text) override;
 
 private:
+    // ¿El mensaje es de otro jugador? (ni del local ni de sistema)
+    bool isIncomingChat(const ServerChat& chat) const;
+
     struct RemotePlayer {
         int cellX = 0;
         int cellY = 0;
@@ -111,6 +118,11 @@ private:
     ClientReceiver clientReceiver_;
 
     uint8_t localPlayerId_;
+    // Nombre de personaje por player_id (ViewEntity::displayName). Hoy solo
+    // tiene el del jugador local. ESCALABILIDAD: cuando el server mande los
+    // nombres, su handler en apply() es `names_[id] = nombre;` y el dibujo
+    // no cambia (solo cambia quién llena la vista, convención §6).
+    std::map<uint8_t, std::string> names_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
     // Tabla de traducción protocolo -> vista (convención §4: diccionario

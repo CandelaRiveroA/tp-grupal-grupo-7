@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "game/PopupState.h"
-#include "sdl/render/SpriteSheet.h"
+#include "sdl/render/ButtonPainter.h"
 #include "world/InventoryLayout.h"
 #include "world/PromptLayout.h"
 
@@ -25,8 +25,8 @@ namespace sdl {
 // dibuja TextRenderer.
 class PromptPainter {
 public:
-	PromptPainter(SdlContext& context, TextRenderer& text,
-		      const world::PromptLayout& layout);
+	PromptPainter(TextRenderer& text, const world::PromptLayout& layout,
+		      ButtonPainter& buttons);
 
 	void draw(const game::PopupState& state, int hoveredOption,
 		  const world::PixelBox& panel);
@@ -47,8 +47,7 @@ private:
 	void drawHidden(const game::PopupState& state, int hoveredOption,
 			const world::PixelBox& panel);
 
-	// Un botón del popup (por nombre) en su lugar del panel: las piezas
-	// de su 9-slice estiradas a su caja.
+	// Un botón del popup (por nombre) en su lugar del panel.
 	void drawButton(const std::string& name, const world::PixelBox& panel);
 
 	// Reemplaza los tokens ({0}, {1}, ...) por los valores del estado.
@@ -61,7 +60,7 @@ private:
 	std::map<game::PopupView, DrawMethod> drawMethods_;
 	TextRenderer& text_;
 	const world::PromptLayout& layout_;
-	std::map<std::string, SpriteSheet> buttonSheets_;
+	ButtonPainter& buttons_;
 };
 
 }  // namespace sdl

@@ -34,13 +34,15 @@ world::ActionKind actionKindFor(const EnemyAction action) {
 }  // namespace
 
 NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
-                                     const world::CharacterCatalog& characters):
+                                     const world::CharacterCatalog& characters,
+                                     const std::string& localCharacterName):
         socket_(std::move(socket)),
         sender_(socket_),
         receiver_(socket_),
         clientSender_(sender_, commands_),
         clientReceiver_(receiver_, messages_),
         localPlayerId_(receiver_.receive_welcome().player_id),
+        names_{{localPlayerId_, localCharacterName}},
         toolUseDurationTicks_(toolUseDurationTicks > 0 ? toolUseDurationTicks : 1),
         characters_(&characters),
         resourceStates_{{ResourceDamage::Intact, world::ResourceState::Intact},
@@ -180,12 +182,19 @@ void NetworkGameClient::startPickup() {
     }
 }
 
+bool NetworkGameClient::isIncomingChat(const ServerChat& chat) const {
+    return !chat.system && chat.player_id != localPlayerId_;
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
     // El chat es un evento, no estado: se aplica ya (fuera del lote).
     if (const auto* chat = std::get_if<ServerChat>(&message)) {
         receiveChat(chat->player_id,
                     chat->system ? std::string("Servidor") : chat->characterName,
                     chat->text);
+        if (isIncomingChat(*chat)) {
+            ++view_.incomingChatVersion;
+        }
         return;
     }
     if (const auto* set = std::get_if<ServerSetCompleted>(&message)) {
@@ -356,6 +365,10 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
+        // El nombre se va con el jugador (el local nunca recibe su Leave).
+        if (leave->player_id != localPlayerId_) {
+            names_.erase(leave->player_id);
+        }
         return;
     }
     if (const auto* status = std::get_if<ServerStatus>(&message)) {
@@ -540,6 +553,9 @@ void NetworkGameClient::update(int) {
                           std::nullopt};
         entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
         entity.appearance = player.appearance;
+        if (const auto name = names_.find(id); name != names_.end()) {
+            entity.displayName = name->second;
+        }
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;

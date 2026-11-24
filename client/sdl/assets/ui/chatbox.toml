@@ -10,8 +10,8 @@ width_fraction  = 0.42
 margin_x        = 12
 margin_bottom   = 12
 # Altura de la línea de tipeo, fracción de la ventana desde arriba
-# (0.633 de 700 px = y 443: más abajo, fuera del centro de la pantalla).
-input_fraction  = 0.633
+# (0.7758 de 700 px = y 543: más abajo, fuera del centro de la pantalla).
+input_fraction  = 0.7758
 text_pad        = 6
 # Cara de fuente (ui/text.toml [[font.face]]); sin la clave, la default.
 font            = "pixel_operator"

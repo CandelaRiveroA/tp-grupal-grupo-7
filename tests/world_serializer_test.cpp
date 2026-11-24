@@ -111,4 +111,16 @@ TEST(WorldSerializerTest, SaveToFileReportsUnwritableOutput) {
 	}
 }
 
+TEST(WorldSerializerTest, EmptyTilesetsAndMapsRoundTrip) {
+	World empty;
+	empty.formatVersion = 1;
+	empty.name = "empty";
+	const WorldSerializer serializer;
+	const World loaded =
+		serializer.loadFromString(serializer.saveToString(empty));
+	EXPECT_EQ(loaded.name, "empty");
+	EXPECT_TRUE(loaded.tilesets.empty());
+	EXPECT_TRUE(loaded.maps.empty());
+}
+
 }

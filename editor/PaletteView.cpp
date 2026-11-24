@@ -5,7 +5,6 @@
 #include <QListView>
 #include <QListWidget>
 #include <QListWidgetItem>
-#include <QPainter>
 #include <QPixmap>
 #include <QSignalBlocker>
 #include <QSize>
@@ -69,6 +68,15 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 				emit bedSelected();
 				return;
 			}
+			if (const auto portalKind =
+				    portalPrefabs_.kindForPrefabId(id)) {
+				const worldmodel::PrefabDef* prefab =
+					catalog_.find(id);
+				const int w = prefab != nullptr ? prefab->width : 1;
+				const int h = prefab != nullptr ? prefab->height : 1;
+				emit portalPicked(*portalKind, w, h);
+				return;
+			}
 			if (const worldmodel::PrefabDef* prefab =
 				    catalog_.find(id)) {
 				emit prefabSelected(prefab);
@@ -88,20 +96,6 @@ void PaletteView::clearSelection() {
 	list_->setCurrentItem(nullptr);
 }
 
-QPixmap PaletteView::centeredPreview(const QPixmap& sprite) const {
-	const QPixmap scaled = sprite.scaled(editor::kPaletteIconSize,
-					     editor::kPaletteIconSize,
-					     Qt::KeepAspectRatio,
-					     Qt::FastTransformation);
-	QPixmap canvas(editor::kPaletteIconSize, editor::kPaletteIconSize);
-	canvas.fill(Qt::transparent);
-	QPainter painter(&canvas);
-	const int x = (editor::kPaletteIconSize - scaled.width()) / 2;
-	const int y = (editor::kPaletteIconSize - scaled.height()) / 2;
-	painter.drawPixmap(x, y, scaled);
-	return canvas;
-}
-
 void PaletteView::populateCategory(const std::string& category) {
 	const QSignalBlocker blocker(list_);
 	list_->clear();
@@ -119,14 +113,16 @@ void PaletteView::populateCategory(const std::string& category) {
 					      .arg(prefab->width)
 					      .arg(prefab->height);
 		auto* item = new QListWidgetItem(
-			QIcon(centeredPreview(sprite)), label, list_);
+			tilesets_.centeredIcon(sprite, editor::kPaletteIconSize),
+			label, list_);
 		item->setToolTip(label);
 		item->setData(Qt::UserRole, QString::fromStdString(prefab->id));
 	}
 	if (category == "estructuras_granja") {
 		auto* bedItem = new QListWidgetItem(
-			QIcon(centeredPreview(
-				QPixmap(":/editor/ui/bed_marker.png"))),
+			tilesets_.centeredIcon(
+				QPixmap(":/editor/ui/bed_marker.png"),
+				editor::kPaletteIconSize),
 			"Cama (marcador)", list_);
 		bedItem->setToolTip("Cama (marcador)");
 		bedItem->setData(Qt::UserRole, QString("__bed__"));

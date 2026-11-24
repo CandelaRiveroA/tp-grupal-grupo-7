@@ -6,8 +6,10 @@
 #include <map>
 #include <optional>
 
+#include "PortalPrefabs.h"
 #include "common/world_model/Geometry.h"
 #include "common/world_model/Marker.h"
+#include "common/world_model/Portal.h"
 #include "common/world_model/Tile.h"
 
 class QPainter;
@@ -18,6 +20,7 @@ class TilesetCache;
 namespace worldmodel {
 struct Map;
 struct MapObject;
+class PrefabCatalog;
 struct PrefabDef;
 }
 
@@ -33,7 +36,8 @@ struct MoveTarget {
 // Item unico que dibuja todas las capas visibles del mapa en orden Z.
 class MapLayerItem : public QGraphicsItem {
 public:
-	explicit MapLayerItem(const TilesetCache& tilesets);
+	MapLayerItem(const worldmodel::PrefabCatalog& catalog,
+		     const TilesetCache& tilesets);
 
 	void setMap(const worldmodel::Map* map);
 	void setShowCollision(bool show);
@@ -41,7 +45,8 @@ public:
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
 	void setPlacingBed(bool placing);
 	void setMoveTarget(std::optional<MoveTarget> target);
-	void setPortalPreviewSize(int width, int height);
+	void setPortalPreview(worldmodel::PortalKind kind, int width,
+			      int height);
 	void setHoverCell(std::optional<worldmodel::TilePos> cell);
 
 	QRectF boundingRect() const override;
@@ -49,7 +54,9 @@ public:
 		   QWidget* widget) override;
 
 private:
+	const worldmodel::PrefabCatalog& catalog_;
 	const TilesetCache& tilesets_;
+	PortalPrefabs portalPrefabs_;
 	QPixmap defaultMarkerSprite_;
 	std::map<worldmodel::MarkerKind, QPixmap> markerSprites_;
 	QPixmap portalSprite_;
@@ -64,6 +71,7 @@ private:
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
 	bool placingBed_ = false;
 	std::optional<MoveTarget> moveTarget_;
+	worldmodel::PortalKind portalPreviewKind_ = worldmodel::PortalKind::Link;
 	int portalPreviewW_ = 1;
 	int portalPreviewH_ = 1;
 	std::optional<worldmodel::TilePos> hoverCell_;
@@ -80,6 +88,9 @@ private:
 	void drawMoveMarkerPreview(QPainter* painter, int ts) const;
 	void drawMovePortalPreview(QPainter* painter, int ts) const;
 	void drawPlacePortalPreview(QPainter* painter, int ts) const;
+	void drawPortalPreviewBox(QPainter* painter, int ts,
+				  worldmodel::PortalKind kind, int width,
+				  int height) const;
 	void drawPickTargetPreview(QPainter* painter, int ts) const;
 	void drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 				   int maxCol, int minRow, int maxRow) const;

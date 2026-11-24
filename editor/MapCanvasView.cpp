@@ -19,8 +19,10 @@
 #include "common/world_model/MapObject.h"
 #include "common/world_model/PrefabCatalog.h"
 
-MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
+MapCanvasView::MapCanvasView(const worldmodel::PrefabCatalog& catalog,
+			     const TilesetCache& tilesets, QWidget* parent)
 	: QGraphicsView(parent),
+	  catalog_(catalog),
 	  clickHandlers_{
 		  {EditorTool::Place, &MapCanvasView::placePrefabAt},
 		  {EditorTool::Erase, &MapCanvasView::eraseAt},
@@ -46,7 +48,7 @@ MapCanvasView::MapCanvasView(const TilesetCache& tilesets, QWidget* parent)
 	setScene(scene_);
 	setBackgroundBrush(QPixmap(":/editor/ui/editor_canvas_bg.png"));
 
-	layerItem_ = new MapLayerItem(tilesets);
+	layerItem_ = new MapLayerItem(catalog_, tilesets);
 	scene_->addItem(layerItem_);
 }
 
@@ -86,12 +88,13 @@ void MapCanvasView::setActivePortal(worldmodel::PortalKind kind, int width,
 	activePortalKind_ = kind;
 	activePortalWidth_ = width;
 	activePortalHeight_ = height;
-	layerItem_->setPortalPreviewSize(width, height);
+	layerItem_->setPortalPreview(kind, width, height);
 	setTool(EditorTool::PlacePortal);
 }
 
 void MapCanvasView::setPickTargetSize(int width, int height) {
-	layerItem_->setPortalPreviewSize(width, height);
+	layerItem_->setPortalPreview(worldmodel::PortalKind::Link, width,
+				     height);
 	setTool(EditorTool::PickTarget);
 }
 
@@ -351,9 +354,6 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 	    !canPlacePrefab(*activePrefab_)) {
 		return;
 	}
-	const bool anyBlocked = std::any_of(
-		activePrefab_->collisionGrid.begin(),
-		activePrefab_->collisionGrid.end(), [](bool b) { return b; });
 	const worldmodel::ObjectRole role =
 		activePrefab_->role.value_or(worldmodel::ObjectRole::Decoration);
 	const std::optional<worldmodel::TilePos> door =
@@ -363,17 +363,8 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 			: std::nullopt;
 	const int doorWidth =
 		door.has_value() ? activePrefab_->doorWidth : 1;
-	map_->objects.push_back(worldmodel::MapObject{
-		role,
-		activePrefab_->tile,
-		cell,
-		activePrefab_->width,
-		activePrefab_->height,
-		anyBlocked,
-		door,
-		activePrefab_->collisionGrid,
-		doorWidth,
-	});
+	map_->objects.push_back(
+		makeObjectFromPrefab(*activePrefab_, cell, door, doorWidth));
 	notifyMapEdited();
 }
 
@@ -385,7 +376,13 @@ void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 	     ++it) {
 		if (it->kind != worldmodel::PortalKind::InteriorExit &&
 		    containsCell(it->cell, it->width, it->height, cell)) {
+			const auto linkedIdx = linkedPortalObjectIndex(*it);
 			map_->portals.erase(std::next(it).base());
+			if (linkedIdx.has_value()) {
+				map_->objects.erase(map_->objects.begin() +
+						    static_cast<std::ptrdiff_t>(
+							    *linkedIdx));
+			}
 			notifyMapEdited();
 			return;
 		}
@@ -484,8 +481,13 @@ void MapCanvasView::moveMarker(std::size_t index, worldmodel::TilePos cell) {
 }
 
 void MapCanvasView::movePortal(std::size_t index, worldmodel::TilePos cell) {
-	if (index < map_->portals.size()) {
-		map_->portals[index].cell = cell;
+	if (index >= map_->portals.size()) {
+		return;
+	}
+	const auto linkedIdx = linkedPortalObjectIndex(map_->portals[index]);
+	map_->portals[index].cell = cell;
+	if (linkedIdx.has_value()) {
+		map_->objects[*linkedIdx].cell = cell;
 	}
 }
 
@@ -497,6 +499,10 @@ void MapCanvasView::clearMoveTarget() {
 void MapCanvasView::placePortalAt(worldmodel::TilePos cell) {
 	if (!map_) {
 		return;
+	}
+	if (const worldmodel::PrefabDef* prefab =
+		    portalPrefabs_.prefabFor(activePortalKind_, catalog_)) {
+		map_->objects.push_back(makeObjectFromPrefab(*prefab, cell));
 	}
 	map_->portals.push_back(worldmodel::Portal{activePortalKind_, cell, "",
 						   {}, activePortalWidth_,
@@ -545,6 +551,42 @@ std::optional<worldmodel::TilePos> MapCanvasView::prefabDoorAt(
 	return worldmodel::TilePos{
 		cell.column + activePrefab_->door->column,
 		cell.row + activePrefab_->door->row};
+}
+
+std::optional<std::size_t> MapCanvasView::linkedPortalObjectIndex(
+	const worldmodel::Portal& portal) const {
+	const worldmodel::PrefabDef* prefab =
+		portalPrefabs_.prefabFor(portal.kind, catalog_);
+	if (prefab == nullptr) {
+		return std::nullopt;
+	}
+	for (std::size_t i = map_->objects.size(); i-- > 0;) {
+		const auto& obj = map_->objects[i];
+		if (obj.role == worldmodel::ObjectRole::Decoration &&
+		    obj.cell == portal.cell && obj.tile == prefab->tile) {
+			return i;
+		}
+	}
+	return std::nullopt;
+}
+
+worldmodel::MapObject MapCanvasView::makeObjectFromPrefab(
+	const worldmodel::PrefabDef& prefab, worldmodel::TilePos cell,
+	std::optional<worldmodel::TilePos> door, int doorWidth) const {
+	const bool anyBlocked = std::any_of(prefab.collisionGrid.begin(),
+					    prefab.collisionGrid.end(),
+					    [](bool b) { return b; });
+	return worldmodel::MapObject{
+		prefab.role.value_or(worldmodel::ObjectRole::Decoration),
+		prefab.tile,
+		cell,
+		prefab.width,
+		prefab.height,
+		anyBlocked,
+		door,
+		prefab.collisionGrid,
+		doorWidth,
+	};
 }
 
 void MapCanvasView::resetToNavigate() {

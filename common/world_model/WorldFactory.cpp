@@ -15,9 +15,7 @@ namespace worldmodel {
 
 World WorldFactory::makeDefault(const std::string& name,
 				const ScenarioLibrary& library,
-				const PrefabCatalog& catalog,
 				const ScenarioChoice& choice) const {
-	(void)catalog;
 	const auto require = [&](const std::string& id) -> const Scenario& {
 		const Scenario* scenario = library.find(id);
 		if (!scenario) {
@@ -77,9 +75,7 @@ void WorldFactory::addExtraMap(World& world, const Scenario& scenario,
 }
 
 void WorldFactory::replaceMapScenario(World& world, const std::string& mapId,
-				      const Scenario& scenario,
-				      const PrefabCatalog& catalog) const {
-	(void)catalog;
+				      const Scenario& scenario) const {
 	if (!world.maps.contains(mapId)) {
 		throw FormatError(FormatErrorKind::InvalidValue, "maps");
 	}

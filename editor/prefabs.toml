@@ -1591,7 +1591,18 @@ category_label = "Mazmorra"
 tile = "prefab_mazmorra:22,0"
 size = [1, 1]
 collision_grid = [
-  true,
+  false,
+]
+
+[[prefabs]]
+id = "salida_mazmorra"
+name = "Salida de Mazmorra (Runa)"
+category = "mazmorra"
+category_label = "Mazmorra"
+tile = "prefab_mazmorra:27,0"
+size = [1, 1]
+collision_grid = [
+  false,
 ]
 
 [[prefabs]]

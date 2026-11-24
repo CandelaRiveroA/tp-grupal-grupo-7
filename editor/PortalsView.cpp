@@ -9,9 +9,36 @@
 #include <QVBoxLayout>
 
 #include "Constants.h"
+#include "TilesetCache.h"
+#include "world_model/PrefabCatalog.h"
 
-PortalsView::PortalsView(QWidget* parent)
-	: QWidget(parent), rune_(":/editor/ui/portal_rune.png") {
+PortalsView::PortalsView(const worldmodel::PrefabCatalog& catalog,
+			 const TilesetCache& tilesets, QWidget* parent)
+	: QWidget(parent),
+	  catalog_(catalog),
+	  tilesets_(tilesets),
+	  rune_(":/editor/ui/portal_rune.png"),
+	  sizeOptions_{
+		  {"1x1 (1 celda)", 1, 1},
+		  {"2x1 (horizontal)", 2, 1},
+		  {"1x2 (vertical)", 1, 2},
+		  {"2x2 (bloque)", 2, 2},
+	  },
+	  portalEntries_{
+		  {worldmodel::PortalKind::Link, "Portal link (libre)"},
+		  {worldmodel::PortalKind::TownEntrance,
+		   "Entrada al pueblo (farm -> town)"},
+		  {worldmodel::PortalKind::FarmEntrance,
+		   "Entrada a la granja (town -> farm)"},
+		  {worldmodel::PortalKind::DungeonEntrance,
+		   "Entrada a mazmorra (farm -> dungeon_1)"},
+		  {worldmodel::PortalKind::StairsDown,
+		   "Escaleras abajo (dungeon_n -> n+1)"},
+		  {worldmodel::PortalKind::DungeonExit,
+		   "Salida de mazmorra (dungeon -> farm)"},
+		  {worldmodel::PortalKind::InteriorExit,
+		   "Salida de interior (interior -> puerta)"},
+	  } {
 	sizeCombo_ = new QComboBox(this);
 	sizeCombo_->setObjectName("editorCombo");
 	for (const SizeOption& opt : sizeOptions_) {
@@ -44,9 +71,15 @@ PortalsView::PortalsView(QWidget* parent)
 			if (!item) {
 				return;
 			}
-			const SizeOption opt = currentSizeOption();
 			const auto kind = static_cast<worldmodel::PortalKind>(
 				item->data(Qt::UserRole).toInt());
+			if (const worldmodel::PrefabDef* prefab =
+				    portalPrefabs_.prefabFor(kind, catalog_)) {
+				emit portalPicked(kind, prefab->width,
+						  prefab->height);
+				return;
+			}
+			const SizeOption opt = currentSizeOption();
 			emit portalPicked(kind, opt.width, opt.height);
 		});
 }
@@ -62,57 +95,43 @@ PortalsView::SizeOption PortalsView::currentSizeOption() const {
 }
 
 QIcon PortalsView::portalPreviewIcon(int width, int height) const {
-	QPixmap pix(editor::kPaletteIconSize, editor::kPaletteIconSize);
-	pix.fill(Qt::transparent);
-	QPainter p(&pix);
 	const int blockW = width * editor::kPortalPreviewCellPx;
 	const int blockH = height * editor::kPortalPreviewCellPx;
-	const int x0 = (pix.width() - blockW) / 2;
-	const int y0 = (pix.height() - blockH) / 2;
+	QPixmap pix(blockW, blockH);
+	pix.fill(Qt::transparent);
+	QPainter p(&pix);
 	for (int r = 0; r < height; ++r) {
 		for (int c = 0; c < width; ++c) {
-			p.drawPixmap(x0 + c * editor::kPortalPreviewCellPx,
-				     y0 + r * editor::kPortalPreviewCellPx,
-				     rune_);
+			p.drawPixmap(c * editor::kPortalPreviewCellPx,
+				     r * editor::kPortalPreviewCellPx, rune_);
 		}
 	}
 	p.setBrush(Qt::NoBrush);
-	p.drawRect(x0, y0, blockW, blockH);
-	return QIcon(pix);
+	p.drawRect(0, 0, blockW - 1, blockH - 1);
+	return tilesets_.centeredIcon(pix, editor::kPaletteIconSize);
 }
 
 void PortalsView::populatePortals() {
-	struct PortalEntry {
-		worldmodel::PortalKind kind;
-		const char* label;
-	};
-	constexpr std::array<PortalEntry, 7> kPortalEntries = {{
-		{worldmodel::PortalKind::Link, "Portal link (libre)"},
-		{worldmodel::PortalKind::TownEntrance,
-		 "Entrada al pueblo (farm -> town)"},
-		{worldmodel::PortalKind::FarmEntrance,
-		 "Entrada a la granja (town -> farm)"},
-		{worldmodel::PortalKind::DungeonEntrance,
-		 "Entrada a mazmorra (farm -> dungeon_1)"},
-		{worldmodel::PortalKind::StairsDown,
-		 "Escaleras abajo (dungeon_n -> n+1)"},
-		{worldmodel::PortalKind::DungeonExit,
-		 "Salida de mazmorra (dungeon -> farm)"},
-		{worldmodel::PortalKind::InteriorExit,
-		 "Salida de interior (interior -> puerta)"},
-	}};
-
 	const SizeOption opt = currentSizeOption();
-	const QIcon icon = portalPreviewIcon(opt.width, opt.height);
+	const QIcon defaultIcon = portalPreviewIcon(opt.width, opt.height);
 
 	list_->clear();
-	for (const PortalEntry& entry : kPortalEntries) {
+	for (const PortalEntry& entry : portalEntries_) {
+		const worldmodel::PrefabDef* prefab =
+			portalPrefabs_.prefabFor(entry.kind, catalog_);
+		const QIcon icon =
+			prefab != nullptr
+				? tilesets_.centeredIcon(
+					  tilesets_.tilePixmap(prefab->tile,
+							       prefab->width,
+							       prefab->height),
+					  editor::kPaletteIconSize)
+				: defaultIcon;
+		const int w = prefab != nullptr ? prefab->width : opt.width;
+		const int h = prefab != nullptr ? prefab->height : opt.height;
 		QListWidgetItem* item = new QListWidgetItem(
 			icon,
-			QString("%1\n%2x%3")
-				.arg(entry.label)
-				.arg(opt.width)
-				.arg(opt.height),
+			QString("%1\n%2x%3").arg(entry.label).arg(w).arg(h),
 			list_);
 		item->setData(Qt::UserRole, static_cast<int>(entry.kind));
 	}

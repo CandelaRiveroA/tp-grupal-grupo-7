@@ -16,8 +16,10 @@
 #include "common/world_model/Portal.h"
 #include "common/world_model/PrefabCatalog.h"
 
-MapLayerItem::MapLayerItem(const TilesetCache& tilesets)
-	: tilesets_(tilesets),
+MapLayerItem::MapLayerItem(const worldmodel::PrefabCatalog& catalog,
+			   const TilesetCache& tilesets)
+	: catalog_(catalog),
+	  tilesets_(tilesets),
 	  defaultMarkerSprite_(":/editor/ui/spawn_marker.png"),
 	  markerSprites_{
 		  {worldmodel::MarkerKind::Bed,
@@ -99,7 +101,9 @@ void MapLayerItem::setMoveTarget(std::optional<MoveTarget> target) {
 	}
 }
 
-void MapLayerItem::setPortalPreviewSize(int width, int height) {
+void MapLayerItem::setPortalPreview(worldmodel::PortalKind kind, int width,
+				    int height) {
+	portalPreviewKind_ = kind;
 	portalPreviewW_ = std::max(1, width);
 	portalPreviewH_ = std::max(1, height);
 	if (hasPreview()) {
@@ -271,19 +275,34 @@ void MapLayerItem::drawMoveMarkerPreview(QPainter* painter, int ts) const {
 			  height * ts);
 }
 
-void MapLayerItem::drawMovePortalPreview(QPainter* painter, int ts) const {
-	const auto& portal = map_->portals[moveTarget_->index];
+void MapLayerItem::drawPortalPreviewBox(QPainter* painter, int ts,
+					  worldmodel::PortalKind kind,
+					  int width, int height) const {
+	const int x = hoverCell_->column * ts;
+	const int y = hoverCell_->row * ts;
+	if (const worldmodel::PrefabDef* prefab =
+		    portalPrefabs_.prefabFor(kind, catalog_)) {
+		painter->setOpacity(editor::kGhostOpacity);
+		painter->drawPixmap(
+			x, y,
+			tilesets_.tilePixmap(prefab->tile, prefab->width,
+					     prefab->height));
+		painter->setOpacity(1.0);
+	}
 	painter->setPen(QPen(QColor(190, 100, 255), 0));
 	painter->setBrush(QColor(170, 70, 230, 140));
-	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
-			  portal.width * ts, portal.height * ts);
+	painter->drawRect(x, y, width * ts, height * ts);
+}
+
+void MapLayerItem::drawMovePortalPreview(QPainter* painter, int ts) const {
+	const auto& portal = map_->portals[moveTarget_->index];
+	drawPortalPreviewBox(painter, ts, portal.kind, portal.width,
+			     portal.height);
 }
 
 void MapLayerItem::drawPlacePortalPreview(QPainter* painter, int ts) const {
-	painter->setPen(QPen(QColor(190, 100, 255), 0));
-	painter->setBrush(QColor(170, 70, 230, 140));
-	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts,
-			  portalPreviewW_ * ts, portalPreviewH_ * ts);
+	drawPortalPreviewBox(painter, ts, portalPreviewKind_, portalPreviewW_,
+			     portalPreviewH_);
 }
 
 void MapLayerItem::drawPickTargetPreview(QPainter* painter, int ts) const {

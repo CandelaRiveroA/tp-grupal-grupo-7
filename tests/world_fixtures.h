@@ -245,7 +245,7 @@ inline worldmodel::World defaultWorld() {
 	const worldmodel::ScenarioLibrary lib = fullLibrary();
 	const worldmodel::PrefabCatalog cat = defaultCatalog();
 	worldmodel::World world = worldmodel::WorldFactory().makeDefault(
-		"Primavera", lib, cat, validChoice());
+		"Primavera", lib, validChoice());
 	const auto placeFromPrefab = [&](worldmodel::Map& target,
 					 const worldmodel::PrefabDef* prefab,
 					 worldmodel::TilePos origin) {

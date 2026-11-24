@@ -26,7 +26,7 @@ worldmodel::World editorWorldRoundTrip() {
 			TALLER_PREFABS_TOML);
 	const worldmodel::WorldFactory factory;
 	worldmodel::World made = factory.makeDefault(
-		"real", library, catalog, factory.firstOfEachKind(library));
+		"real", library, factory.firstOfEachKind(library));
 
 	const auto place = [&](worldmodel::Map& target,
 			       worldmodel::ObjectRole role,
@@ -133,6 +133,20 @@ TEST(RealEditorWorldTest, ShopMerchantsGetTheirCellFromTheEditorMarkers) {
 			world::MapSceneAdapter(overlay).adapt(editorWorld,
 							      mapId);
 		EXPECT_EQ(shop.npcCells.count(npc), 1u) << mapId << ":" << npc;
+	}
+}
+
+TEST(RealEditorWorldTest, DungeonPortalPrefabsAre1x1AndWalkable) {
+	const worldmodel::PrefabCatalog catalog =
+		worldmodel::PrefabCatalogLoader().loadFromFile(
+			TALLER_PREFABS_TOML);
+	for (const char* id : {"escalera_bajada", "salida_mazmorra"}) {
+		const worldmodel::PrefabDef* prefab = catalog.find(id);
+		ASSERT_NE(prefab, nullptr) << id;
+		EXPECT_EQ(prefab->width, 1) << id;
+		EXPECT_EQ(prefab->height, 1) << id;
+		EXPECT_EQ(prefab->collisionGrid, (std::vector<bool>{false}))
+			<< id;
 	}
 }
 

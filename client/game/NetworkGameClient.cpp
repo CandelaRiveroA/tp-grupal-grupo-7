@@ -35,7 +35,8 @@ world::ActionKind actionKindFor(const EnemyAction action) {
 }  // namespace
 
 NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
-                                     const world::CharacterCatalog& characters):
+                                     const world::CharacterCatalog& characters,
+                                     const std::string& localCharacterName):
         socket_(std::move(socket)),
         sender_(socket_),
         receiver_(socket_),
@@ -62,6 +63,7 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
     const auto welcome = receiver_.receive_welcome();
     localPlayerId_ = welcome.player_id;
     worldName_ = welcome.worldName;
+    names_[localPlayerId_] = localCharacterName;
     receiveInitialState();
     clientSender_.start();
     clientReceiver_.start();
@@ -211,12 +213,19 @@ void NetworkGameClient::startPickup() {
     }
 }
 
+bool NetworkGameClient::isIncomingChat(const ServerChat& chat) const {
+    return !chat.system && chat.player_id != localPlayerId_;
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
     // El chat es un evento, no estado: se aplica ya (fuera del lote).
     if (const auto* chat = std::get_if<ServerChat>(&message)) {
         receiveChat(chat->player_id,
                     chat->system ? std::string("Servidor") : chat->characterName,
                     chat->text);
+        if (isIncomingChat(*chat)) {
+            ++view_.incomingChatVersion;
+        }
         return;
     }
     if (const auto* set = std::get_if<ServerSetCompleted>(&message)) {
@@ -404,6 +413,10 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
+        // El nombre se va con el jugador (el local nunca recibe su Leave).
+        if (leave->player_id != localPlayerId_) {
+            names_.erase(leave->player_id);
+        }
         return;
     }
     if (const auto* status = std::get_if<ServerStatus>(&message)) {
@@ -598,6 +611,9 @@ void NetworkGameClient::update(int) {
         entity.id = id;
         entity.appearance = player.appearance;
         entity.carriedContent = player.carriedContent;
+        if (const auto name = names_.find(id); name != names_.end()) {
+            entity.displayName = name->second;
+        }
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;

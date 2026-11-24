@@ -46,6 +46,7 @@
 #include "world/ResourceConfigLoader.h"
 #include "world/Scenario.h"
 #include "world/SceneDescription.h"
+#include "world/SettingsLayout.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
 #include "world/WorldMapLoader.h"
@@ -87,19 +88,24 @@ void Application::loadStyleSheet() {
 }
 
 int Application::run() {
-    std::optional<SessionConfig> session;
-    try {
-        session = runLobby();
-    } catch (const world::ConfigError& error) {
-        const sdl::Logger logger;
-        logger.error(error.what());
-        return EXIT_FAILURE;
-    }
+    // Lobby y partida se alternan: abandonar la partida vuelve al lobby.
+    while (true) {
+        std::optional<SessionConfig> session;
+        try {
+            session = runLobby();
+        } catch (const world::ConfigError& error) {
+            const sdl::Logger logger;
+            logger.error(error.what());
+            return EXIT_FAILURE;
+        }
 
-    if (!session.has_value()) {
-        return 0;
+        if (!session.has_value()) {
+            return 0;
+        }
+        if (const std::optional<int> exitCode = runGame(std::move(*session))) {
+            return *exitCode;
+        }
     }
-    return runGame(std::move(*session));
 }
 
 std::optional<SessionConfig> Application::runLobby() {
@@ -115,7 +121,7 @@ std::optional<SessionConfig> Application::runLobby() {
     return lobby.result();
 }
 
-int Application::runGame(SessionConfig session) {
+std::optional<int> Application::runGame(SessionConfig session) {
     const sdl::Logger logger;
     if (!session.connection.has_value()) {
         logger.error("No hay conexion con el servidor.");
@@ -159,10 +165,14 @@ int Application::runGame(SessionConfig session) {
         const world::PromptLayout prompt(core::assetPath(core::kTextFile));
         const world::ChatLayout chat =
                 world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
+        const world::NoticeLayout notice(core::assetPath(core::kNoticeFile));
+        const world::NameplateLayout nameplate(core::assetPath(core::kTextFile));
+        const world::SettingsLayout settings(core::assetPath(core::kSettingsFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::NetworkGameClient> gameClient =
-                createGameClient(std::move(*session.connection), characters, toolUseDuration);
+                createGameClient(std::move(*session.connection), characters, toolUseDuration,
+                                 session.personaje);
         const std::string worldName = gameClient->worldName().empty()
                                              ? session.worldName
                                              : gameClient->worldName();
@@ -196,13 +206,15 @@ int Application::runGame(SessionConfig session) {
         world::Scenario scenario(config_, std::move(scene));
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
-                                prompt, chat,
+                                prompt, chat, notice, nameplate, settings,
                                 // Sin envoltura MockWorldClient: los enemigos
                                 // ahora los manda el server por red, y este
                                 // puntero apagado deja los disparadores de
                                 // prueba (teclas de test) inertes.
                                 hudOverlays, lighting, palettes, nullptr, worldPath, initialMap);
-        playSession.run();
+        if (playSession.run()) {
+            return std::nullopt;
+        }
         return 0;
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
@@ -231,9 +243,9 @@ QString Application::configErrorMessage(const world::ConfigError& error) const {
 
 std::unique_ptr<game::NetworkGameClient> Application::createGameClient(
         Socket&& socket, const world::CharacterCatalog& characters,
-        int toolUseDurationTicks) const {
+        int toolUseDurationTicks, const std::string& characterName) const {
     return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks,
-                                                     characters);
+                                                     characters, characterName);
 }
 
 }  // namespace core

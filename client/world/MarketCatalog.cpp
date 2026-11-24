@@ -16,6 +16,7 @@ MarketCatalog::MarketCatalog(const std::string& path) {
 			path, tomlcfg::TomlDocument::Source::File);
 		readStyle(doc);
 		readSides(doc);
+		readQualities(doc);
 		readProducts(doc);
 		readMerchants(doc);
 	} catch (const tomlcfg::TomlError& error) {
@@ -37,6 +38,12 @@ const std::string* MarketCatalog::labelOf(
 
 bool MarketCatalog::hasMerchant(const std::string& npcId) const {
 	return defaults_.find(npcId) != defaults_.end();
+}
+
+const MarketQualityStyle* MarketCatalog::qualityOf(
+	const CropQuality quality) const {
+	const auto found = qualities_.find(quality);
+	return found != qualities_.end() ? &found->second : nullptr;
 }
 
 std::vector<MarketEntry> MarketCatalog::defaultEntries(
@@ -91,6 +98,11 @@ void MarketCatalog::readStyle(const tomlcfg::TomlDocument& doc) {
 	style_.labelOffsetY = doc.getInt(base + "label_offset_y");
 	style_.coinGap = doc.getInt(base + "coin_gap");
 	style_.coin = SpriteVisual(doc, "popup.coin", "at");
+	style_.headerHeight = doc.getInt(base + "header_height");
+	style_.tierHeight = doc.getInt(base + "tier_height");
+	style_.tierPriceLeft = doc.getInt(base + "tier_price_left");
+	style_.starGap = doc.getInt(base + "star_gap");
+	style_.star = SpriteVisual(doc, "popup.star");
 	style_.titleSize = doc.getInt(base + "title_size");
 	style_.textSize = doc.getInt(base + "text_size");
 	style_.titleColor = Color{title[0], title[1], title[2], title[3]};
@@ -117,6 +129,15 @@ void MarketCatalog::readStyle(const tomlcfg::TomlDocument& doc) {
 	if (style_.rowHeight <= 0) {
 		invalid("row_height");
 	}
+	if (style_.headerHeight <= 0) {
+		invalid("header_height");
+	}
+	if (style_.tierHeight <= 0) {
+		invalid("tier_height");
+	}
+	if (style_.tierPriceLeft < 0 || style_.starGap < 0) {
+		invalid("tier_price_left");
+	}
 	if (style_.iconSize <= 0) {
 		invalid("icon_size");
 	}
@@ -133,6 +154,28 @@ void MarketCatalog::readSides(const tomlcfg::TomlDocument& doc) {
 			throw ConfigError(ConfigErrorKind::InvalidValue, path);
 		}
 		sideTitles_.emplace(side, title);
+	}
+}
+
+void MarketCatalog::readQualities(const tomlcfg::TomlDocument& doc) {
+	for (const auto& [name, quality] : qualityNames_.entries()) {
+		const std::string base = "qualities." + name;
+		MarketQualityStyle style;
+		style.label = doc.getString(base + ".label");
+		if (style.label.empty()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  base + ".label");
+		}
+		style.multiplier = doc.getDouble(base + ".multiplier");
+		if (style.multiplier <= 0.0) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  base + ".multiplier");
+		}
+		// La estrella es opcional: la calidad base no lleva.
+		if (doc.hasKey(base + ".star")) {
+			style.star = SheetCell(doc, base + ".star");
+		}
+		qualities_.emplace(quality, std::move(style));
 	}
 }
 
@@ -181,11 +224,34 @@ void MarketCatalog::readMerchants(const tomlcfg::TomlDocument& doc) {
 		}
 		std::vector<DefaultEntry>& target = defaults_[npc];
 		for (std::size_t i = 0; i < offer.size(); ++i) {
-			target.push_back(readEntry(
-				offer[i], base + ".offer[" + std::to_string(i) +
-						  "]"));
+			for (DefaultEntry& entry : readEntries(
+				     offer[i], base + ".offer[" +
+						       std::to_string(i) + "]")) {
+				target.push_back(std::move(entry));
+			}
 		}
 	}
+}
+
+std::vector<MarketCatalog::DefaultEntry> MarketCatalog::readEntries(
+	const tomlcfg::TomlDocument& doc, const std::string& base) const {
+	DefaultEntry plain = readEntry(doc, base);
+	if (!doc.hasKey("qualities") || !doc.getBool("qualities")) {
+		return {plain};
+	}
+	// Una entrada por calidad declarada, con el monto base escalado por
+	// su multiplicador (truncado, como el servidor).
+	std::vector<DefaultEntry> expanded;
+	for (const auto& [quality, style] : qualities_) {
+		DefaultEntry variant = plain;
+		variant.entry.quality = quality;
+		if (plain.entry.price.has_value()) {
+			variant.entry.price = static_cast<int>(
+				*plain.entry.price * style.multiplier);
+		}
+		expanded.push_back(std::move(variant));
+	}
+	return expanded;
 }
 
 MarketCatalog::DefaultEntry MarketCatalog::readEntry(

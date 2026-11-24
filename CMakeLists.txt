@@ -219,6 +219,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/MarketCatalog.cpp
         client/world/MarketPopupStyle.cpp
         client/world/MarketSideNames.cpp
+        client/world/CropQualityNames.cpp
         client/world/MarketOfferResolver.cpp
         client/world/ContentCatalog.cpp
         client/world/CursorCatalog.cpp
@@ -263,6 +264,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewSpatialIndex.cpp
         client/game/FootstepCue.cpp
         client/game/ResourceAudioCue.cpp
+        client/game/ChatCue.cpp
         client/game/ObtainedBannerQueue.cpp
         client/game/LocalWorldView.cpp
         client/game/FloorItems.cpp
@@ -309,7 +311,13 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/DayPhase.cpp
         client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
+        client/world/NoticeLayout.cpp
+        client/world/NameplateLayout.cpp
+        client/game/NoticeQueue.cpp
         client/world/PromptLayout.cpp
+        client/world/SettingsLayout.cpp
+        client/world/SliderLayout.cpp
+        client/game/SettingsState.cpp
         client/game/ToolUseCue.cpp
         client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp

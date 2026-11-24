@@ -74,17 +74,23 @@ target_sources(taller_client
     sdl/render/BuildPlacePainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
+    sdl/render/NoticePainter.cpp
+    sdl/render/NameplatePainter.cpp
     sdl/render/HudOverlayPainter.cpp
     sdl/render/CursorPainter.cpp
     sdl/render/DialogPainter.cpp
     sdl/render/TextRenderer.cpp
     sdl/render/PromptPainter.cpp
+    sdl/render/ButtonPainter.cpp
+    sdl/render/DigitPainter.cpp
+    sdl/render/SettingsPainter.cpp
     sdl/render/NpcRenderer.cpp
     sdl/render/NpcPopupPainter.cpp
     sdl/render/MarketPopupPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
+    sdl/audio/AudioMixer.cpp
     sdl/audio/MusicPlayer.cpp
     PUBLIC
     # .h files (los headers con Q_OBJECT van acá: AUTOMOC los necesita)
@@ -149,7 +155,13 @@ target_sources(taller_client
     client_receiver.h
     game/FootstepCue.h
     game/ResourceAudioCue.h
+    game/ChatCue.h
     game/ObtainedBannerQueue.h
+    game/NoticeQueue.h
+    world/NoticeLayout.h
+    world/SettingsLayout.h
+    world/SliderLayout.h
+    world/SoundCategory.h
     game/GameClient.h
     game/GameConstants.h
     game/InputCommand.h
@@ -170,6 +182,7 @@ target_sources(taller_client
     game/ActionResolver.h
     game/NpcPlacementResolver.h
     game/MarketPopupState.h
+    game/SettingsState.h
     game/MarketSetCycle.h
     game/PropAnimator.h
     game/InventorySelector.h
@@ -250,16 +263,23 @@ target_sources(taller_client
     sdl/render/BuildPlacePainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
+    sdl/render/NoticePainter.h
+    sdl/render/NameplatePainter.h
+    world/NameplateLayout.h
     sdl/render/HudOverlayPainter.h
     sdl/render/CursorPainter.h
     sdl/render/DialogPainter.h
     sdl/render/TextRenderer.h
     sdl/render/PromptPainter.h
+    sdl/render/ButtonPainter.h
+    sdl/render/DigitPainter.h
+    sdl/render/SettingsPainter.h
     sdl/render/ChatPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h
     sdl/audio/AudioConfig.h
     sdl/audio/AudioPlayer.h
+    sdl/audio/AudioMixer.h
     sdl/audio/MusicPlayer.h
     sdl/log/Logger.h
     )

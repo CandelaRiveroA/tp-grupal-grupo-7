@@ -49,7 +49,7 @@ const std::vector<std::unique_ptr<SDL2pp::Texture>>& ChatPainter::
 			history_.push_back(std::make_unique<SDL2pp::Texture>(
 				text_.renderWrapped(text, layout_.fontSize,
 						    layout_.textColor,
-						    contentWidth())));
+						    contentWidth(), layout_.fontFace)));
 		}
 	}
 	return history_;
@@ -67,7 +67,8 @@ SDL2pp::Texture& ChatPainter::inputTexture(const std::string& inputText,
 		inputKey_ = shown;
 		input_ = std::make_unique<SDL2pp::Texture>(
 			text_.renderWrapped(shown, layout_.fontSize,
-					    layout_.textColor, contentWidth()));
+					    layout_.textColor, contentWidth(),
+					    layout_.fontFace));
 	}
 	return *input_;
 }

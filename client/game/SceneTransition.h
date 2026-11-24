@@ -19,9 +19,13 @@ public:
     explicit SceneTransition(int fadeTicks);
 
     // Pide el cambio a la escena destino. Durante la salida o la espera
-    // en negro, un nuevo mapa actualiza el destino. Con holdAtBlack se
-    // convierte la transición activa en una espera. Al llegar al
-    // negro se queda ahí (sin cambiar los datos) hasta release().
+    // en negro, un nuevo mapa actualiza el destino. Se ignora si ya hay una
+    // transición en curso (una a la vez), SALVO un pedido con holdAtBlack:
+    // ese es el fin del día, que no puede perderse por un fundido
+    // simultáneo (p. ej. el del cambio de mapa al desmayarse), así que
+    // convierte el fundido en curso en uno que se queda en negro. Con
+    // holdAtBlack, al llegar al negro se queda ahí (sin cambiar los datos)
+    // hasta release().
     void changeTo(const std::string& scene, bool holdAtBlack = false);
 
     // Avanza el reloj de la transición (una vez por tick).
@@ -56,11 +60,17 @@ private:
         FadingIn,
     };
 
+    // Convierte la transición en curso en una sostenida en negro.
+    void upgradeToHold(const std::string& scene);
+
     int fadeTicks_;
     bool holdAtBlack_ = false;
     Phase phase_ = Phase::Idle;
     std::string scene_;
     int startIteration_ = -1;
+    // Ticks ya "transcurridos" del fundido de salida cuando se retoma desde
+    // un fundido de entrada (el negro sigue desde donde estaba, sin salto).
+    int resumeElapsed_ = 0;
     int alpha_ = 0;
     bool swapPending_ = false;
 };

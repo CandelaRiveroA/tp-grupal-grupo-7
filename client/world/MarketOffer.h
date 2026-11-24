@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "world/CropQuality.h"
+
 namespace world {
 
 // De qué lado del mostrador está un producto (vocabulario compartido con
@@ -16,12 +18,15 @@ enum class MarketSide {
 
 // Un producto de una oferta: qué es (contentId, el mismo del inventario),
 // de qué lado va y, si la fuente lo manda, su monto. Sin monto solo se
-// muestra el nombre.
+// muestra el nombre. `quality` es opcional: varias entradas del mismo
+// producto con distinta calidad se muestran juntas, una línea por calidad,
+// cada una con su monto. Sin calidad = el producto sin variantes.
 struct MarketEntry {
 	std::string contentId;
 	std::string label;
 	MarketSide side = MarketSide::Sells;
 	std::optional<int> price;
+	std::optional<CropQuality> quality;
 };
 
 // Lo que un comerciante muestra. `merchantId` es el id de npcs.toml.

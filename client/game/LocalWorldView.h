@@ -65,6 +65,11 @@ struct ViewEntity {
     CharacterAppearance appearance{};
     // Selección pública del hotbar, distinta del contenido de una recogida.
     std::optional<std::string> carriedContent = std::nullopt;
+
+    // Nombre que se muestra bajo los pies (el nombre de PERSONAJE elegido
+    // al entrar, no el usuario del login). Lo llena la fuente de estado;
+    // vacío = no se dibuja. Va al final por los aggregate-init posicionales.
+    std::string displayName{};
 };
 
 // Recurso picable. La fuente decide contentId, celda y estado; al
@@ -224,10 +229,19 @@ struct ViewFurniture {
     int cellY;
 };
 
+// Aviso puntual para el jugador (evento, no estado): "qué pasó" por id
+// ("inventory_full"). El texto y el aspecto viven en ui/notice.toml.
+struct ViewNotice {
+    std::string id;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Avisos del tick (p. ej. inventario lleno). Los llena la fuente de
+    // estado; mientras el server no los mande queda vacío.
+    std::vector<ViewNotice> notices;
     // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
     std::optional<ViewGiftRequest> giftRequest;
     // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
@@ -298,6 +312,11 @@ struct LocalWorldView {
     // Sube con cada mensaje: el tope del historial impide usar su tamaño
     // para detectar uno nuevo.
     int chatVersion = 0;
+
+    // Sube solo con los mensajes que llegan de OTRO jugador: no cuenta lo
+    // que mandó el local (el servidor se lo devuelve) ni los avisos de
+    // sistema. Lo lee ChatCue para avisar con un sonido.
+    int incomingChatVersion = 0;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve

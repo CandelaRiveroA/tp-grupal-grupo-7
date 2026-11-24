@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "world/MarketCatalog.h"
@@ -17,6 +18,9 @@ namespace world {
 //  - Los productos que SDL no conoce se omiten.
 //  - Un monto negativo no se muestra (queda solo el nombre).
 //  - Si un producto viene repetido en el mismo lado, vale el primero.
+//  - Las entradas del mismo producto con distinta calidad se juntan en
+//    UN ítem con una línea por calidad (de menor a mayor); una calidad
+//    que SDL no conoce se omite.
 //  - Las secciones salen en el orden de world::MarketSide.
 class MarketOfferResolver {
 public:
@@ -26,6 +30,10 @@ public:
 	std::vector<MarketSection> sectionsFrom(const MarketOffer& offer) const;
 
 private:
+	// La línea de calidad de una entrada con calidad; nullopt si SDL no
+	// conoce esa calidad.
+	std::optional<MarketTier> tierOf(const MarketEntry& entry) const;
+
 	const MarketCatalog& catalog_;
 };
 

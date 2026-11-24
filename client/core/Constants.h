@@ -46,6 +46,9 @@ constexpr const char* kWorldFile = "world.toml";
 constexpr const char* kOverlayFile = "overlay.toml";
 constexpr const char* kInitialRoom = "bedroom";
 constexpr const char* kMarketRoom = "market";
+// DEMO (tecla B): comerciante cuyo catálogo abre la tecla, en cualquier
+// escena. Se borra junto con la tecla cuando el server mande la oferta.
+constexpr const char* kDemoCatalogMerchant = "pierre";
 constexpr const char* kNpcsFile = "npcs.toml";
 constexpr const char* kMarketFile = "market.toml";
 

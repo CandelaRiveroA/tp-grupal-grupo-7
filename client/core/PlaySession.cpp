@@ -424,6 +424,11 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
+        if (command.kind == game::InputCommand::Kind::OpenCatalog) {
+            // DEMO (tecla B): catálogo de prueba, sin pasar por el NPC.
+            toggleDemoCatalog();
+            continue;
+        }
         if (command.kind == game::InputCommand::Kind::ToggleSettings) {
             toggleSettings();
             continue;
@@ -437,10 +442,6 @@ void PlaySession::tick(int iteration) {
         if (popupState_.modal()) {
             // El popup manda: el resto de las intenciones se descartan
             // (no se encolan para cuando cierre).
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::OpenCatalog) {
-            // El catálogo real se pide por /consultar_catalogo en el chat.
             continue;
         }
         if (command.kind == game::InputCommand::Kind::ToggleMarket) {
@@ -1015,6 +1016,19 @@ void PlaySession::openMarketOfSpokenNpc() {
     marketPopup_.open(world::MarketOffer{
             lastNpcId_,
             marketCatalog_.defaultEntries(lastNpcId_, marketCycle_.current() % setCount)});
+}
+
+void PlaySession::toggleDemoCatalog() {
+    if (marketPopup_.isOpen()) {
+        marketPopup_.close();
+        return;
+    }
+    if (npcPopup_ != nullptr || popupState_.modal()) {
+        return;
+    }
+    marketPopup_.open(world::MarketOffer{
+            core::kDemoCatalogMerchant,
+            marketCatalog_.defaultEntries(core::kDemoCatalogMerchant, 0)});
 }
 
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {

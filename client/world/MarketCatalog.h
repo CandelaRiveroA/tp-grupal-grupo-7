@@ -1,18 +1,29 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "world/MarketOffer.h"
 #include "world/MarketPopupStyle.h"
 #include "world/MarketSideNames.h"
+#include "world/CropQualityNames.h"
 
 namespace tomlcfg {
 class TomlDocument;
 }
 
 namespace world {
+
+// Cómo se presenta una calidad ([qualities.*] en market.toml): su
+// nombre, su estrella (sin estrella = ninguna) y el multiplicador con el
+// que la oferta por defecto (mock) deriva su monto del monto base.
+struct MarketQualityStyle {
+	std::string label;
+	std::optional<SheetCell> star;
+	double multiplier = 1.0;
+};
 
 // Catálogo del mercado: se carga de market.toml en el constructor
 // (mismo patrón que NpcCatalog). Es el diccionario de PRESENTACIÓN de lo
@@ -31,6 +42,9 @@ public:
 
 	// Nombre mostrado de un producto; nullptr si SDL no lo conoce.
 	const std::string* labelOf(const std::string& contentId) const;
+
+	// Presentación de una calidad; nullptr si market.toml no la declara.
+	const MarketQualityStyle* qualityOf(CropQuality quality) const;
 
 	// Oferta por defecto (mock) del comerciante `npcId` en el estilo
 	// `set`: las entradas sin `sets` más las que lo contienen. Vacía si
@@ -52,14 +66,21 @@ private:
 
 	void readStyle(const tomlcfg::TomlDocument& doc);
 	void readSides(const tomlcfg::TomlDocument& doc);
+	void readQualities(const tomlcfg::TomlDocument& doc);
 	void readProducts(const tomlcfg::TomlDocument& doc);
 	void readMerchants(const tomlcfg::TomlDocument& doc);
+	// Una entrada del TOML; con `qualities = true` se expande a una por
+	// calidad declarada (el mismo dato que mandará el servidor).
+	std::vector<DefaultEntry> readEntries(const tomlcfg::TomlDocument& doc,
+					      const std::string& base) const;
 	DefaultEntry readEntry(const tomlcfg::TomlDocument& doc,
 			      const std::string& base) const;
 
 	MarketSideNames sideNames_;
+	CropQualityNames qualityNames_;
 	MarketPopupStyle style_;
 	std::map<MarketSide, std::string> sideTitles_;
+	std::map<CropQuality, MarketQualityStyle> qualities_;
 	std::map<std::string, std::string> labels_;
 	std::map<std::string, std::vector<DefaultEntry>> defaults_;
 };

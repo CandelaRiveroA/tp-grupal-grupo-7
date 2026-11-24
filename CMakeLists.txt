@@ -219,6 +219,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/MarketCatalog.cpp
         client/world/MarketPopupStyle.cpp
         client/world/MarketSideNames.cpp
+        client/world/CropQualityNames.cpp
         client/world/MarketOfferResolver.cpp
         client/world/ContentCatalog.cpp
         client/world/CursorCatalog.cpp

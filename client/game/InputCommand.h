@@ -23,9 +23,9 @@ struct InputCommand {
         // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
         // GameClient. Se borra cuando el server mande el mapa.
         CycleMap,
-        // DEMO (tecla B): abre el catálogo del mercado. Lo reemplaza el
-        // mensaje del server; borrar junto con su tecla. Lo consume
-        // PlaySession; NO viaja al GameClient.
+        // DEMO (tecla B): abre/cierra el catálogo de Pierre en cualquier
+        // escena (provisorio). Lo consume PlaySession; NO viaja al
+        // GameClient. El catálogo real lo manda el server.
         OpenCatalog,
         // DEMO (tecla I): muestra el aviso "Inventario lleno". Lo consume
         // PlaySession; NO viaja al GameClient. Se borra cuando el server

@@ -153,6 +153,9 @@ private:
     // mañana el mensaje del server) solo llama a open/close; el dibujo
     // y los datos no cambian.
     void openMarketOfSpokenNpc();
+    // DEMO (tecla B): abre el catálogo del comerciante de prueba, o lo
+    // cierra si ya está abierto. No depende de la escena.
+    void toggleDemoCatalog();
     void openMarketFromView(const game::LocalWorldView& view);
     void drawMarketCatalog();
 

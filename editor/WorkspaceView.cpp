@@ -54,9 +54,9 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	tilesets_.loadTilesets(catalog_.tilesets());
 
 	tree_ = new MapTreeWidget(this);
-	canvas_ = new MapCanvasView(tilesets_, this);
+	canvas_ = new MapCanvasView(catalog_, tilesets_, this);
 	palette_ = new PaletteView(catalog_, tilesets_, this);
-	portals_ = new PortalsView(this);
+	portals_ = new PortalsView(catalog_, tilesets_, this);
 	rightTabs_ = new QTabWidget(this);
 	rightTabs_->setObjectName("rightTabs");
 	rightTabs_->addTab(palette_, "Prefabs");
@@ -105,6 +105,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		&WorkspaceView::onPrefabSelected);
 	connect(palette_, &PaletteView::bedSelected, this,
 		&WorkspaceView::onBedSelected);
+	connect(palette_, &PaletteView::portalPicked, this,
+		&WorkspaceView::onPortalPicked);
 	connect(canvas_, &MapCanvasView::placementRejected, this,
 		[this](const QString& title, const QString& message) {
 			EditorDialog(this).info(title, message);
@@ -114,14 +116,10 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	connect(canvas_, &MapCanvasView::cabinErased, this,
 		[this](int cabinIndex) { pendingErasedCabin_ = cabinIndex; });
 	connect(canvas_, &MapCanvasView::mapEdited, this, [this] {
-		if (placeButton_->isChecked() && activePrefab_ != nullptr) {
-			const std::string& tilesetId =
-				activePrefab_->tile.tileset;
-			const auto catIt = catalog_.tilesets().find(tilesetId);
-			if (catIt != catalog_.tilesets().end() &&
-			    !world_.tilesets.contains(tilesetId)) {
-				world_.tilesets.emplace(tilesetId,
-							catIt->second);
+		if (world_.maps.contains(activeMapId_)) {
+			for (const auto& obj :
+			     world_.maps.at(activeMapId_).objects) {
+				ensureWorldTileset(obj.tile.tileset);
 			}
 		}
 		if (activeMapId_ == editor::kHomeMapId) {
@@ -272,8 +270,8 @@ void WorkspaceView::setWorld(const worldmodel::World& world) {
 	setActivePrefab(nullptr);
 	navigateButton_->setChecked(true);
 	canvas_->setTool(EditorTool::Navigate);
-	tilesets_.loadTilesets(catalog_.tilesets());
 	tilesets_.loadTilesets(world_.tilesets);
+	tilesets_.loadTilesets(catalog_.tilesets());
 	validationPanel_->showIssues({});
 	updateHeading();
 	tree_->setExtraMaps(world_);
@@ -416,8 +414,8 @@ void WorkspaceView::replaceScenario() {
 			QString::fromStdString(error.what()));
 		return;
 	}
-	tilesets_.loadTilesets(catalog_.tilesets());
 	tilesets_.loadTilesets(world_.tilesets);
+	tilesets_.loadTilesets(catalog_.tilesets());
 	setDirty();
 	worldmodel::Map* mapPtr = &world_.maps.at(activeMapId_);
 	canvas_->setMap(mapPtr);
@@ -438,24 +436,11 @@ std::vector<const worldmodel::Scenario*> WorkspaceView::scenarioOptions()
 
 void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
 	canvas_->setPlacingBed(false);
-	if (prefab == nullptr) {
-		setActivePrefab(nullptr);
-		return;
-	}
-	if (hasTilesetConflict(prefab->tile.tileset)) {
-		EditorDialog(this).info(
-			"Conflicto de tileset",
-			QString::fromStdString(
-				"El tileset '" + prefab->tile.tileset +
-				"' del mundo no coincide con "
-				"el catalogo de prefabs."));
-		palette_->clearSelection();
-		setActivePrefab(nullptr);
-		return;
-	}
 	setActivePrefab(prefab);
-	placeButton_->setChecked(true);
-	canvas_->setTool(EditorTool::Place);
+	if (prefab != nullptr) {
+		placeButton_->setChecked(true);
+		canvas_->setTool(EditorTool::Place);
+	}
 }
 
 void WorkspaceView::onBedSelected() {
@@ -613,12 +598,9 @@ void WorkspaceView::updateHeading() {
 						 (dirty_ ? " *" : "")));
 }
 
-bool WorkspaceView::hasTilesetConflict(const std::string& tilesetId) const {
-	const auto worldIt = world_.tilesets.find(tilesetId);
-	if (worldIt == world_.tilesets.end()) {
-		return false;
-	}
+void WorkspaceView::ensureWorldTileset(const std::string& tilesetId) {
 	const auto catIt = catalog_.tilesets().find(tilesetId);
-	return catIt == catalog_.tilesets().end() ||
-	       !(worldIt->second == catIt->second);
+	if (catIt != catalog_.tilesets().end()) {
+		world_.tilesets.insert_or_assign(tilesetId, catIt->second);
+	}
 }

@@ -136,6 +136,20 @@ TEST(RealEditorWorldTest, ShopMerchantsGetTheirCellFromTheEditorMarkers) {
 	}
 }
 
+TEST(RealEditorWorldTest, DungeonPortalPrefabsAre1x1AndWalkable) {
+	const worldmodel::PrefabCatalog catalog =
+		worldmodel::PrefabCatalogLoader().loadFromFile(
+			TALLER_PREFABS_TOML);
+	for (const char* id : {"escalera_bajada", "salida_mazmorra"}) {
+		const worldmodel::PrefabDef* prefab = catalog.find(id);
+		ASSERT_NE(prefab, nullptr) << id;
+		EXPECT_EQ(prefab->width, 1) << id;
+		EXPECT_EQ(prefab->height, 1) << id;
+		EXPECT_EQ(prefab->collisionGrid, (std::vector<bool>{false}))
+			<< id;
+	}
+}
+
 #endif
 
 }  // namespace

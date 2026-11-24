@@ -95,5 +95,5 @@ private:
 	void setPickTargetUiLocked(bool locked);
 	void setDirty();
 	void updateHeading();
-	bool hasTilesetConflict(const std::string& tilesetId) const;
+	void ensureWorldTileset(const std::string& tilesetId);
 };

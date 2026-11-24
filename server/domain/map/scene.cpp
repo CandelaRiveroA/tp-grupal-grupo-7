@@ -1,5 +1,8 @@
 #include "scene.h"
 
+#include "../npc/merchant.h"
+
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -10,7 +13,9 @@ Scene::Scene(uint16_t width, uint16_t height):
     }
 }
 
-void Scene::on_entity_removed(IEntity* /*entity*/) {}
+void Scene::on_entity_removed(IEntity* entity) {
+    merchants.erase(std::remove(merchants.begin(), merchants.end(), entity), merchants.end());
+}
 
 uint16_t Scene::get_width() const { return this->width; }
 
@@ -156,8 +161,53 @@ void Scene::move_entity(IEntity* entity, uint16_t x, uint16_t y) {
     this->grid[y][x].entities.push_back(std::move(moved));
 }
 
+Merchant* Scene::get_merchant_at(uint16_t x, uint16_t y) {
+    if (!in_bounds(x, y)) {
+        return nullptr;
+    }
+    for (const auto& ent: this->grid[y][x].entities) {
+        Merchant* merchant = dynamic_cast<Merchant*>(ent.get());
+        if (merchant != nullptr) {
+            return merchant;
+        }
+    }
+    return nullptr;
+}
+
+Merchant* Scene::get_nearest_merchant(uint16_t x, uint16_t y) const {
+    Merchant* nearest = nullptr;
+    int nearest_distance = 2;
+    for (Merchant* merchant: merchants) {
+        const int dx = std::abs(static_cast<int>(merchant->get_x()) - static_cast<int>(x));
+        const int dy = std::abs(static_cast<int>(merchant->get_y()) - static_cast<int>(y));
+        if (dx <= 1 && dy <= 1) {
+            const int distance = dx + dy;
+            if (distance < nearest_distance ||
+                (distance == nearest_distance && nearest == nullptr)) {
+                nearest = merchant;
+                nearest_distance = distance;
+            }
+        }
+    }
+    return nearest;
+}
+
+void Scene::place_merchant(std::unique_ptr<Merchant> merchant) {
+    if (!merchant || !in_bounds(merchant->get_x(), merchant->get_y())) {
+        return;
+    }
+    const uint16_t x = merchant->get_x();
+    const uint16_t y = merchant->get_y();
+    merchants.push_back(merchant.get());
+    set_entity_at(x, y, std::move(merchant));
+}
+
 std::vector<MerchantPlacement> Scene::get_merchant_placements() const {
-    return std::vector<MerchantPlacement>();
+    std::vector<MerchantPlacement> out;
+    for (Merchant* m: merchants) {
+        out.push_back(MerchantPlacement{m->get_id(), m->get_x(), m->get_y()});
+    }
+    return out;
 }
 
 bool Scene::try_till_soil(uint16_t /*x*/, uint16_t /*y*/) {

@@ -2,6 +2,10 @@
 
 namespace commands {
 
+void apply(World& world, uint8_t player_id, const protocol::SelectSlotMessage& message) {
+    world.select_slot(player_id, message.slot);
+}
+
 void apply(World& world, uint8_t player_id, const protocol::TakeMessage& message) {
     world.set_player_facing(player_id, message.direction);
     // La selección del hotbar es local: sin esto el server tendría el

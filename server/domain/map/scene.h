@@ -10,23 +10,11 @@
 #include "cell.h"
 #include "flame.h"
 
+class Merchant;
+
 class World;
 
-enum class SceneId : uint8_t {
-    FARMHOUSE,
-    FARM,
-    TOWN,
-    DUNGEON_1,
-    DUNGEON_2,
-    DUNGEON_3,
-    DUNGEON_4,
-    DUNGEON_5,
-    DUNGEON_6,
-    DUNGEON_7,
-    DUNGEON_8,
-    DUNGEON_9,
-    DUNGEON_10
-};
+using SceneId = std::string;
 
 struct MerchantPlacement {
     std::string id;
@@ -39,6 +27,7 @@ protected:
     uint16_t width;
     uint16_t height;
     std::vector<std::vector<Cell>> grid;
+    std::vector<Merchant*> merchants;
 
     // Hook para que las subclases limpien sus listas de punteros no-dueños
     // (crops, animals, enemies, merchants) justo antes de destruir la entidad.
@@ -71,6 +60,9 @@ public:
     void remove_entity(IEntity* target_entity);
     void remove_entity_at(uint16_t x, uint16_t y);
     void move_entity(IEntity* entity, uint16_t x, uint16_t y);
+    Merchant* get_merchant_at(uint16_t x, uint16_t y);
+    Merchant* get_nearest_merchant(uint16_t x, uint16_t y) const;
+    void place_merchant(std::unique_ptr<Merchant> merchant);
     virtual std::vector<MerchantPlacement> get_merchant_placements() const;
 
     // --- Gestion de acciones sobre el suelo ---

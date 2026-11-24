@@ -18,18 +18,22 @@ void EntityController::populate(World& world, uint16_t reserved_x, uint16_t rese
             if (x == reserved_x && y == reserved_y) {
                 continue;
             }
-            if (world.get_entity_at(x, y).empty()) {
+            if (world.can_walk_to(x, y) && world.get_entity_at(x, y).empty()) {
                 free_cells.emplace_back(x, y);
             }
         }
     }
 
     std::shuffle(free_cells.begin(), free_cells.end(), rng);
-    const size_t count = free_cells.size() * this->density_percent / 100;
+    const size_t requested = free_cells.size() * this->density_percent / 100;
+    // Una sala pequeña también tiene generación si hay al menos una
+    // celda válida y la densidad no está desactivada.
+    const size_t count = this->density_percent == 0 ? 0 :
+            std::min(free_cells.size(), std::max(size_t{1}, requested));
     for (size_t i = 0; i < count; ++i) {
         const auto [x, y] = free_cells[i];
         // Una manada o pareja puede haber ocupado la celda mientras se generaba.
-        if (!world.get_entity_at(x, y).empty()) {
+        if (!world.can_walk_to(x, y) || !world.get_entity_at(x, y).empty()) {
             continue;
         }
         spawn_at(world, x, y);

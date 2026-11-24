@@ -18,6 +18,9 @@ class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
     SceneId current_scene;
+    SceneId home_scene;
+    uint16_t home_x;
+    uint16_t home_y;
     Direction facing;
     // Personalizacion del personaje (indices de capa, sin validar): la manda
     // el cliente en el MatchRequest y vuelve en cada ServerStatus.
@@ -37,7 +40,9 @@ private:
     bool fainted_by_energy;
 
 public:
-    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene = SceneId::FARMHOUSE);
+    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene = "farmhouse");
+    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene,
+           SceneId home_scene, uint16_t home_x, uint16_t home_y);
     ~Player() override = default;
 
     Player(const Player&) = delete;
@@ -49,6 +54,10 @@ public:
     // Necesario para el DTO
     uint8_t get_id() const;
     SceneId get_scene() const;
+    SceneId get_home_scene() const;
+    uint16_t get_home_x() const;
+    uint16_t get_home_y() const;
+    void set_home(SceneId scene, uint16_t x, uint16_t y);
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;

@@ -20,6 +20,14 @@ public:
                         const std::vector<std::string>& args);
     std::string oro(World& world, uint8_t sender,
                     const std::vector<std::string>& args);
+    std::string terminar_dia(World& world, uint8_t sender,
+                             const std::vector<std::string>& args);
+    std::string tiempo(World& world, uint8_t sender,
+                       const std::vector<std::string>& args);
+    std::string tp(World& world, uint8_t sender,
+                   const std::vector<std::string>& args);
+    std::string tp_info(World& world, uint8_t sender,
+                        const std::vector<std::string>& args);
 };
 
 }  // namespace commands

@@ -9,6 +9,9 @@
 #include <vector>
 
 #include "domain/map/world.h"
+#include "world_model/World.h"
+
+#include <set>
 
 #include "commands/chat_command.h"
 
@@ -67,11 +70,12 @@ private:
     Queue<MatchEvent>& events;
     std::atomic<bool> restart_requested;
     std::atomic<uint32_t> day_generation;
+    std::atomic<uint16_t> start_minutes_;
 
 public:
     explicit DayClock(Queue<MatchEvent>& events);
 
-    void restart();
+    void restart(uint16_t start_minutes = 0);
     uint32_t generation() const;
 
 protected:
@@ -83,6 +87,8 @@ private:
     Queue<MatchEvent>& events;
     ServerOutputMonitor& output;
     World world;
+    std::set<uint8_t> free_cabins_;
+    std::map<uint8_t, uint8_t> player_cabin_;
     DayClock clock;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
     // Nombre de personaje por jugador (para mostrar en el chat y resolver '@').
@@ -106,7 +112,6 @@ private:
     void handle(const ClockStep& step);
     void sync_all();
     void place_minerals();
-    void place_animals();
     void place_enemies();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
@@ -117,7 +122,8 @@ private:
     void flush_community_events();
 
 public:
-    Match(Queue<MatchEvent>& events, ServerOutputMonitor& output);
+    Match(Queue<MatchEvent>& events, ServerOutputMonitor& output,
+          worldmodel::World&& world_model);
 
 protected:
     void execute() override;

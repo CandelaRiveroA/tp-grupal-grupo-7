@@ -222,6 +222,26 @@ struct ViewFurniture {
     int cellY;
 };
 
+// Progreso de una meta (ítem) de un set del Centro Comunitario. `goalId`
+// es el de community.toml. Es estado PERSISTENTE: lo manda la fuente de
+// estado (el servidor) con la cantidad real, la total y si la dio por
+// cumplida; el cliente solo lo dibuja.
+struct ViewCommunityGoal {
+    std::string goalId;
+    int current = 0;
+    int total = 0;
+    bool completed = false;
+};
+
+// Progreso de un set (`setId` = el del protocolo, 1 a 5). `completed` =
+// el servidor dio por completo todo el set. Un set o una meta que la
+// fuente no menciona se muestra en 0 / 0 y en curso.
+struct ViewCommunitySet {
+    int setId = 0;
+    bool completed = false;
+    std::vector<ViewCommunityGoal> goals;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -249,6 +269,9 @@ struct LocalWorldView {
     // servidor (ServerFurniture), por ejemplo al cargar una partida
     // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
     std::vector<ViewFurniture> placedFurniture;
+    // Progreso del Centro Comunitario (persistente; ver ViewCommunitySet).
+    // Lo manda el servidor. Vacío = todo en 0 / 0 y en curso.
+    std::vector<ViewCommunitySet> communitySets;
     // Mapa en el que está el jugador (id del mapa del editor: "farm",
     // "town", "market"...). Lo manda la fuente de estado cuando hay
     // servidor. Vacío = el cliente elige la escena (teclas de prueba,

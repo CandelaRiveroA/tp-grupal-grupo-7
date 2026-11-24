@@ -86,6 +86,7 @@ target_sources(taller_client
     sdl/render/NpcRenderer.cpp
     sdl/render/NpcPopupPainter.cpp
     sdl/render/MarketPopupPainter.cpp
+    sdl/render/CommunityPopupPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp

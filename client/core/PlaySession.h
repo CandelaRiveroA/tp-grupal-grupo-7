@@ -10,6 +10,8 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/CommunityBoardResolver.h"
+#include "game/CommunityPopupState.h"
 #include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
@@ -33,6 +35,7 @@
 #include "sdl/render/BuildPlacePainter.h"
 #include "sdl/render/Camera.h"
 #include "sdl/render/ChatPainter.h"
+#include "sdl/render/CommunityPopupPainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/HudOverlayPainter.h"
@@ -43,6 +46,7 @@
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
 #include "sdl/render/TextRenderer.h"
+#include "world/CommunityCatalog.h"
 #include "world/CursorCatalog.h"
 #include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
@@ -87,6 +91,7 @@ public:
     PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                 game::GameClient& gameClient, const world::CharacterCatalog& characters,
                 const world::NpcCatalog& npcs, const world::MarketCatalog& market,
+                const world::CommunityCatalog& community,
                 const world::InventoryLayout& inventory,
                 const world::ToolOverlayCatalog& toolOverlay,
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
@@ -136,6 +141,14 @@ private:
     void openMarketOfSpokenNpc();
     void openMarketFromView(const game::LocalWorldView& view);
     void drawMarketCatalog();
+
+    // Popup "Centro Comunitario: Metas" (tecla C, se cierra con ESC): las
+    // secciones se resuelven de la vista cada frame; el dibujo no cambia
+    // cuando el servidor empiece a llenarla.
+    void drawCommunityPopup(const game::LocalWorldView& view);
+
+    // ¿Hay un popup que bloquea el mundo (NPC, catálogo o metas)?
+    bool isWorldBlocked() const;
 
     // Cierra el chat (ESC): descarta lo tipeado y suelta el teclado.
     void closeChat();
@@ -200,6 +213,7 @@ private:
     const world::NpcCatalog& npcCatalog_;
     game::NpcPlacementResolver npcPlacements_;
     const world::MarketCatalog& marketCatalog_;
+    const world::CommunityCatalog& communityCatalog_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario
     // con los sacos y la cosecha ya registrados. Van ANTES de todo lo
@@ -290,6 +304,11 @@ private:
     // Popup del catálogo del comerciante: se declara después de
     // marketCatalog_ y de inventory_ (guarda referencias a ambos).
     game::MarketPopupState marketPopup_;
+    // Popup de las metas del Centro Comunitario: se declara después de
+    // communityCatalog_ y de inventory_ (guarda referencias a ambos).
+    game::CommunityBoardResolver communityResolver_;
+    sdl::CommunityPopupPainter communityPopupPainter_;
+    game::CommunityPopupState communityPopup_;
     // PROVISORIO: estilo de catálogo elegido con N (el servidor lo rotará).
     game::MarketSetCycle marketCycle_;
     // Objetos animados clickeables (cofre): abierto/cerrado por id.

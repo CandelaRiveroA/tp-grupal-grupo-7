@@ -1,0 +1,134 @@
+# Popup "Centro Comunitario: Metas", descrito como DATOS.
+#
+# Este archivo es el DICCIONARIO DE PRESENTACION de las metas: el estilo
+# del popup, los textos, y qué sets e ítems SDL sabe mostrar. Los números
+# (real / total) y los estados (ítem hecho, set completo) los manda la
+# fuente de estado (el servidor, vía LocalWorldView::communitySets); sin
+# dato un ítem se muestra en 0 / 0 y el set "en curso".
+# Agregar un set o un ítem = un bloque más acá, sin tocar código.
+#
+# `id` de un set = el del protocolo (1 a 5, CommunitySet del server).
+# `id` de una meta = el que mande el server para ese ítem.
+# `label` es opcional: sin él la fila muestra solo la cantidad.
+# `amount_prefix` es opcional: va antes de cada número ("$" en el dinero).
+
+[text]
+title  = "Centro Comunitario: Metas"
+status = "- En curso"
+
+[popup]
+# Columnas de slots del panel; el alto sale del contenido y el espacio que
+# sobre se reparte arriba y abajo.
+panel_columns = 8
+inset         = 24
+title_height  = 34
+header_height = 26
+row_height    = 22
+set_gap       = 8
+checkbox_gap  = 8
+status_gap    = 8
+amount_width  = 120
+title_size    = 24
+header_size   = 19
+text_size     = 16
+title_color   = [62, 39, 17, 255]
+header_color  = [62, 39, 17, 255]
+text_color    = [62, 39, 17, 255]
+amount_color  = [120, 70, 10, 255]
+
+# Hoja de checkboxes: vacío, tildado y la insignia de set completo
+# (ocupa dos celdas de ancho).
+[popup.checkbox_empty]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [0, 0]
+drawn = [20, 20]
+
+[popup.checkbox_done]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [1, 0]
+drawn = [20, 20]
+
+[popup.set_done]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [2, 0]
+span  = [2, 1]
+drawn = [40, 20]
+
+[[sets]]
+id    = 1
+title = "Set de Cultivos"
+
+[[sets.goals]]
+id    = "strawberry"
+label = "Frutillas"
+
+[[sets.goals]]
+id    = "onion"
+label = "Cebollas de Verdeo"
+
+[[sets.goals]]
+id    = "potato"
+label = "Papas"
+
+[[sets.goals]]
+id    = "pumpkin"
+label = "Calabazas"
+
+[[sets]]
+id    = 2
+title = "Set de Metales"
+
+[[sets.goals]]
+id    = "coal_orb"
+label = "Carbon"
+
+[[sets.goals]]
+id    = "lapis_orb"
+label = "Lapislazuli"
+
+[[sets.goals]]
+id    = "silver_orb"
+label = "Plata"
+
+[[sets.goals]]
+id    = "gold_orb"
+label = "Oro"
+
+[[sets]]
+id    = 3
+title = "Set de Productos Animales"
+
+[[sets.goals]]
+id    = "milk"
+label = "Tarros de leche"
+
+[[sets.goals]]
+id    = "egg"
+label = "Huevos"
+
+[[sets]]
+id    = 4
+title = "Set de Pelea"
+
+[[sets.goals]]
+id    = "skeleton"
+label = "Esqueletos"
+
+[[sets.goals]]
+id    = "vampire"
+label = "Vampiros"
+
+[[sets.goals]]
+id    = "orc"
+label = "Orcos"
+
+[[sets]]
+id            = 5
+title         = "Set de Dinero"
+amount_prefix = "$"
+
+[[sets.goals]]
+id = "money"

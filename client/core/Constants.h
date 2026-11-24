@@ -48,6 +48,7 @@ constexpr const char* kInitialRoom = "bedroom";
 constexpr const char* kMarketRoom = "market";
 constexpr const char* kNpcsFile = "npcs.toml";
 constexpr const char* kMarketFile = "market.toml";
+constexpr const char* kCommunityFile = "community.toml";
 
 constexpr const char* kCharactersFile = "characters.toml";
 constexpr const char* kEnemiesFile = "enemies.toml";

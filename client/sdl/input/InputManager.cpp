@@ -110,6 +110,9 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
+    // Popup del Centro Comunitario: C lo abre/cierra y ESC lo cierra.
+    bindings.insert({SDLK_c, game::InputCommand{Kind::ToggleCommunityGoals, 0}});
+    bindings.insert({SDLK_ESCAPE, game::InputCommand{Kind::CloseCommunityGoals, 0}});
     bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));

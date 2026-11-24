@@ -217,6 +217,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/NpcCatalog.cpp
         client/world/NpcVisuals.cpp
         client/world/MarketCatalog.cpp
+        client/world/CommunityCatalog.cpp
+        client/world/CommunityPopupStyle.cpp
         client/world/MarketPopupStyle.cpp
         client/world/MarketSideNames.cpp
         client/world/MarketOfferResolver.cpp
@@ -278,6 +280,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ActionResolver.cpp
         client/game/NpcPlacementResolver.cpp
         client/game/MarketPopupState.cpp
+        client/game/CommunityBoardResolver.cpp
+        client/game/CommunityPopupState.cpp
         client/game/MarketSetCycle.cpp
         client/game/PropAnimator.cpp
         client/game/InventorySelector.cpp

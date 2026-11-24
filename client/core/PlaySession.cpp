@@ -30,6 +30,7 @@ namespace core {
 PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                          game::GameClient& gameClient, const world::CharacterCatalog& characters,
                          const world::NpcCatalog& npcs, const world::MarketCatalog& market,
+                         const world::CommunityCatalog& community,
                          const world::InventoryLayout& inventory,
                          const world::ToolOverlayCatalog& toolOverlay,
                          const world::ResourceCatalog& resources,
@@ -62,6 +63,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         characters_(characters),
         npcCatalog_(npcs),
         marketCatalog_(market),
+        communityCatalog_(community),
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
         inventory_(farm_.withCropContents(inventory)),
@@ -107,6 +109,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         npcPopupPainter_(sdlContext_, textRenderer_),
         marketPopupPainter_(sdlContext_, textRenderer_),
         marketPopup_(market, inventory_),
+        communityResolver_(community),
+        communityPopupPainter_(sdlContext_, textRenderer_),
+        communityPopup_(community, inventory_),
         chatPainter_(sdlContext_, textRenderer_, chat),
         resourceSounds_{
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
@@ -170,6 +175,7 @@ void PlaySession::tick(int iteration) {
         npcPopup_ = nullptr;
         lastNpcId_.clear();
         marketPopup_.close();
+        communityPopup_.close();
         popupState_.hide();
         sceneTransition_.changeTo(core::kInitialRoom, true);
     }
@@ -273,6 +279,7 @@ void PlaySession::tick(int iteration) {
         npcPopup_ = nullptr;
         lastNpcId_.clear();
         marketPopup_.close();
+        communityPopup_.close();
         if (lastSleeping_ == 0) {
             voted_ = false;
         }
@@ -378,9 +385,22 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
+        // ESC cierra el popup del Centro Comunitario y C lo alterna; abrirlo
+        // sobre otro popup no tiene sentido, cerrarlo siempre se puede.
+        // Van antes del bloqueo para que lleguen con el popup abierto.
+        if (command.kind == game::InputCommand::Kind::CloseCommunityGoals) {
+            communityPopup_.close();
+            continue;
+        }
+        if (command.kind == game::InputCommand::Kind::ToggleCommunityGoals) {
+            if (communityPopup_.isOpen() || (!isWorldBlocked() && !popupState_.modal())) {
+                communityPopup_.toggle();
+            }
+            continue;
+        }
         // Con el popup de un NPC abierto el mundo está bloqueado: el
         // click lo cierra y el resto de las intenciones se descartan.
-        if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
+        if (isWorldBlocked()) {
             continue;
         }
         if (popupState_.modal()) {
@@ -410,7 +430,7 @@ void PlaySession::tick(int iteration) {
     // queda quieto hasta que se responda.
     const game::PlayerEvents events =
             player_.tick(iteration,
-                         popupState_.modal() || npcPopup_ != nullptr || marketPopup_.isOpen() ? std::nullopt : pressed,
+                         popupState_.modal() || isWorldBlocked() ? std::nullopt : pressed,
                          playerCommands);
     if (events.toolSwitched) {
         audio_.play(sdl::SoundId::ToolSwitch);
@@ -549,6 +569,7 @@ void PlaySession::tick(int iteration) {
     drawPopup(popupBox);
     drawNpcPopup();
     drawMarketCatalog();
+    drawCommunityPopup(state);
 
     // El puntero: la variante la decide el estado de juego (si hay algo
     // interactivo bajo el cursor); el painter solo dibuja.
@@ -563,6 +584,11 @@ void PlaySession::tick(int iteration) {
     for (const game::PointerClick& click: input_.takeClicks()) {
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
+        // El popup del Centro Comunitario solo se cierra con ESC o C: el
+        // click se descarta para que no actúe sobre el mundo de atrás.
+        if (communityPopup_.isOpen()) {
+            continue;
+        }
         // El popup de un NPC o el del catálogo se cierra con cualquier click.
         if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
             npcPopup_ = nullptr;
@@ -699,7 +725,7 @@ void PlaySession::tick(int iteration) {
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
     world::CursorKind cursorKind = world::CursorKind::Normal;
     // Con el popup de un NPC o del catálogo abierto el mundo está bloqueado.
-    const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen();
+    const bool worldBlocked = isWorldBlocked();
     if (popupState_.modal()) {
         const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
         bool overPopup = false;
@@ -791,6 +817,7 @@ void PlaySession::changeScene(const std::string& room) {
     npcPopup_ = nullptr;
     lastNpcId_.clear();
     marketPopup_.close();
+    communityPopup_.close();
     renderer_.prepareScene(current);
     renderer_.setNpcs(npcCatalog_.forRoom(room));
     enterSelection_.reindex(current, current.cellPixelSize);
@@ -872,6 +899,25 @@ void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
         marketPopup_.close();
     }
     marketPopup_.open(*view.marketOffer);
+}
+
+bool PlaySession::isWorldBlocked() const {
+    return npcPopup_ != nullptr || marketPopup_.isOpen() || communityPopup_.isOpen();
+}
+
+void PlaySession::drawCommunityPopup(const game::LocalWorldView& view) {
+    if (!communityPopup_.isOpen()) {
+        return;
+    }
+    // Los números los manda la fuente de estado y pueden cambiar con el
+    // popup abierto: las secciones se resuelven en cada frame.
+    const std::vector<world::CommunitySection> sections = communityResolver_.sectionsFrom(view);
+    const world::GridSpan grid = communityPopup_.panelGrid(sections);
+    const world::PixelBox panel =
+            communityPopup_.panel(sections, sdlContext_.width(), sdlContext_.height());
+    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
+    communityPopupPainter_.draw(communityCatalog_.style(), communityCatalog_.title(), sections,
+                                panel);
 }
 
 void PlaySession::drawMarketCatalog() {

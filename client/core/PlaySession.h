@@ -23,8 +23,10 @@
 #include "game/PlayerController.h"
 #include "game/PropAnimator.h"
 #include "game/PopupState.h"
+#include "game/GiftThanks.h"
 #include "game/ResourceAudioCue.h"
 #include "game/SceneTransition.h"
+#include "game/SceneSnapshot.h"
 #include "game/ViewMotion.h"
 #include "sdl/audio/AudioCatalog.h"
 #include "sdl/audio/AudioPlayer.h"
@@ -97,7 +99,8 @@ public:
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes,
                 game::EnemyTestTrigger* enemyTestTrigger = nullptr,
-                const std::string& worldPath = "");
+                const std::string& worldPath = "",
+                std::string initialSceneId = "farm");
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -149,11 +152,6 @@ private:
 
     // Abre el popup de un NPC de npcs.toml (su contenido) por id.
     void openStructurePopup(const std::string& npcId);
-
-    // Pasa a otro mapa. PROVISORIO: hoy el cambio es local (como la
-    // tecla M); cuando el server mande el mapa, esto solo manda la
-    // intención. Un destino que ninguna fuente conoce se ignora.
-    void enterStructureMap(const std::string& mapId);
 
     // Cambia la escena actual (en el negro de la transición): pide la
     // escena al switcher y reconstruye el índice del renderer, las
@@ -226,6 +224,7 @@ private:
     sdl::AudioPlayer audio_;
 
     StartupScreens screens_;
+    game::SceneSnapshot sceneSnapshot_;
     game::ViewMotion motion_;
     game::FootstepCue footstepCue_;
     ToolUseSounds toolUseSounds_;
@@ -269,8 +268,7 @@ private:
     // Regalo aceptado: el diálogo de agradecimiento es presentación
     // local hasta que el server mande la indicación. El reloj dura lo
     // que la animación (dato del catálogo), así se puede repetir.
-    bool giftThanksActive_ = false;
-    int giftThanksTicks_ = 0;
+    game::GiftThanks giftThanks_;
     // Pedido de regalo pendiente de respuesta: el emisor (senderId del
     // ServerGiftRequest que abrió el popup), que viaja en el
     // protocol::GiftResponseMessage. Sin pedido = nullopt.

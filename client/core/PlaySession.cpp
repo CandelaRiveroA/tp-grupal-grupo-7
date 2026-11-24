@@ -11,6 +11,7 @@
 #include "core/Constants.h"
 #include "core/FarmConstants.h"
 #include "core/StartupSequence.h"
+#include "game/AreaProximity.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
 #include "game/EnemyTestTrigger.h"
@@ -41,11 +42,10 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger,
-                         const std::string& worldPath):
-        sources_(core::assetPath(core::kScenesFile),
-                 worldPath.empty() ? core::assetPath(core::kWorldFile) : worldPath,
-                 core::assetPath(core::kOverlayFile)),
-        sceneSwitcher_(sources_.byPriority(), core::kInitialRoom, scenario.scene()),
+                         const std::string& worldPath,
+                         std::string initialSceneId):
+        sources_(std::string(), worldPath, core::assetPath(core::kOverlayFile)),
+        sceneSwitcher_(sources_.byPriority(), std::move(initialSceneId), scenario.scene()),
         gameClient_(gameClient),
         enemyTestTrigger_(enemyTestTrigger),
         testActions_{{game::InputCommand::Kind::TestMove, world::ActionKind::Walk},
@@ -86,8 +86,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         structureSelection_(scenario.scene(), scenario.scene().cellPixelSize),
-        structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup},
-                          {world::StructureAction::EnterMap, &PlaySession::enterStructureMap}},
+        structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup}},
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
@@ -139,21 +138,13 @@ void PlaySession::run() {
 void PlaySession::tick(int iteration) {
     gameClient_.update(iteration);
     const game::LocalWorldView& state = gameClient_.worldState();
-    // El diálogo de agradecimiento dura lo que digan sus datos. Al
-    // terminar se limpia el flag local para que un regalo nuevo lo
-    // vuelva a disparar desde cero.
-    if (giftThanksActive_) {
-        const world::DialogData* thanks =
-                dialogCatalog_.find(world::Indication::GiftThanks);
-        if (thanks == nullptr || giftThanksTicks_ >= thanks->animation.durationTicks()) {
-            giftThanksActive_ = false;
-        } else {
-            ++giftThanksTicks_;
-        }
-    }
+    const world::DialogData* thanks = dialogCatalog_.find(world::Indication::GiftThanks);
+    giftThanks_.update(state.giftAcceptedPlayers,
+                       thanks ? thanks->animation.durationTicks() : 0);
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
-    const game::LocalWorldView presentation = presentationView(state);
+    game::LocalWorldView presentation =
+            presentationView(sceneSnapshot_.observe(state, sceneSwitcher_.id()));
     motion_.observe(presentation, iteration);
     renderer_.setNpcFrames(props_.frames(iteration));
     updateCamera(presentation, motion_, iteration);
@@ -173,10 +164,11 @@ void PlaySession::tick(int iteration) {
         lastNpcId_.clear();
         marketPopup_.close();
         popupState_.hide();
-        sceneTransition_.changeTo(core::kInitialRoom, true);
+        sceneTransition_.changeTo(sceneSwitcher_.id(), true);
+        // El cambio de escena lo decide el server (ServerMapChange) al
+        // despertar; no se fuerza un mapa local acá.
     }
     if (state.dayChanged) {
-        sceneTransition_.release();
         audio_.play(sdl::SoundId::RoosterCrow);
         // Día nuevo: los stats simulados arrancan llenos (lo dirá el server).
         for (auto& entry : stats_) {
@@ -185,7 +177,7 @@ void PlaySession::tick(int iteration) {
     }
 
     const GamePhase phase = phaseForIteration(iteration);
-    if (screens_.draw(phase, iteration, state, motion_, actionResolver_, dayPhase_.phase())) {
+    if (screens_.draw(phase, iteration, presentation, motion_, actionResolver_, dayPhase_.phase())) {
         return;
     }
 
@@ -198,10 +190,21 @@ void PlaySession::tick(int iteration) {
     if (const std::optional<std::string> requested = sceneSwitcher_.changeFor(state.mapId)) {
         sceneTransition_.changeTo(*requested);
     }
+    if (state.dayChanged) {
+        // Primero actualizar el destino recibido del servidor; después
+        // levantar el negro, para no volver a dibujar el mapa anterior.
+        sceneTransition_.release();
+    }
     sceneTransition_.tick(iteration);
     if (sceneTransition_.swapDue()) {
         changeScene(sceneTransition_.scene());
         sceneTransition_.consumeSwap();
+        presentation = presentationView(sceneSnapshot_.observe(state, sceneSwitcher_.id()));
+        // Un traslado no interpola el recorrido desde las coordenadas
+        // del mapa anterior hasta la cama del mapa nuevo.
+        motion_.observe(game::LocalWorldView{}, iteration);
+        motion_.observe(presentation, iteration);
+        updateCamera(presentation, motion_, iteration);
     }
     // La caja del popup (figura del inventario centrada, en la grilla
     // que digan sus datos): donde se dibuja y donde se tocan sus cosas.
@@ -394,17 +397,7 @@ void PlaySession::tick(int iteration) {
             // El catálogo real se pide por /consultar_catalogo en el chat.
             continue;
         }
-        if (command.kind == game::InputCommand::Kind::ToggleMarket) {
-            // Cambio de escenario local: mercado ↔ dormitorio.
-            sceneTransition_.changeTo(sceneSwitcher_.id() == core::kMarketRoom ? core::kInitialRoom
-                                                                        : core::kMarketRoom);
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::CycleMap) {
-            // DEMO: escena siguiente (mapas del editor y salas).
-            sceneTransition_.changeTo(sceneSwitcher_.nextId());
-            continue;
-        }
+
         playerCommands.push_back(command);
     }
     // Mientras el popup es modal no hay input manual: la auto-caminata
@@ -624,10 +617,6 @@ void PlaySession::tick(int iteration) {
                         gameClient_.sendCommand(protocol::GiftResponseMessage{
                                 *pendingGiftSenderId_, option == 0});
                         pendingGiftSenderId_.reset();
-                        if (option == 0) {
-                            giftThanksActive_ = true;
-                            giftThanksTicks_ = 0;
-                        }
                     }
                 }
                 continue;
@@ -682,6 +671,18 @@ void PlaySession::tick(int iteration) {
         }
         const game::PickTarget clicked =
                 picker_.pick(worldClick, state, motion_, iteration, scene().cellPixelSize);
+        if (clicked.kind == game::PickTarget::Kind::Furniture) {
+            if (isInteractive(clicked, state)) {
+                const game::ViewFurniture& furniture = state.placedFurniture[clicked.index];
+                const game::ViewEntity& local = state.entities[game::kLocalPlayerIndex];
+                if (local.cellX == furniture.cellX && local.cellY == furniture.cellY) {
+                    player_.interact();
+                } else {
+                    player_.walkTo(world::GridCell{furniture.cellX, furniture.cellY});
+                }
+            }
+            continue;
+        }
         // Otro jugador: ofrecer un regalo. El click no dispara la
         // herramienta ni la interacción.
         if (isGiftTarget(clicked, state)) {
@@ -729,17 +730,9 @@ void PlaySession::tick(int iteration) {
 
 game::LocalWorldView PlaySession::presentationView(const game::LocalWorldView& view) const {
     // Primero la pose de "meterse" (EnterSelection) y encima el
-    // agradecimiento local del regalo.
+    // agradecimiento del regalo recibido por red.
     game::LocalWorldView display = enterSelection_.displayView(view);
-    if (display.entities.empty()) {
-        return display;
-    }
-    game::ViewEntity& local = display.entities[game::kLocalPlayerIndex];
-    // El agradecimiento del regalo es presentación local mientras el
-    // server no mande la indicación.
-    if (giftThanksActive_) {
-        local.indication = world::Indication::GiftThanks;
-    }
+    giftThanks_.apply(display);
     return display;
 }
 
@@ -766,6 +759,10 @@ void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
 }
 
 void PlaySession::runStructureAction(const world::SceneStructure& structure) {
+    if (structure.action == world::StructureAction::EnterMap && structure.door.has_value()) {
+        player_.walkTo(*structure.door);
+        return;
+    }
     const auto action = structureActions_.find(structure.action);
     if (action != structureActions_.end()) {
         (this->*(action->second))(structure.target);
@@ -776,11 +773,6 @@ void PlaySession::openStructurePopup(const std::string& npcId) {
     npcPopup_ = npcCatalog_.find(npcId);
 }
 
-void PlaySession::enterStructureMap(const std::string& mapId) {
-    if (sceneSwitcher_.knows(mapId)) {
-        sceneTransition_.changeTo(mapId);
-    }
-}
 
 void PlaySession::changeScene(const std::string& room) {
     // El cambio en el negro de la transición: cambia QUÉ escena se
@@ -900,6 +892,20 @@ void PlaySession::updateCamera(const game::LocalWorldView& view, const game::Vie
 bool PlaySession::isInteractive(const game::PickTarget& target,
                                 const game::LocalWorldView& view) const {
     // El estado dice qué es interactivo; esto solo lo lee.
+    if (target.kind == game::PickTarget::Kind::Furniture) {
+        if (view.entities.empty()) {
+            return false;
+        }
+        const game::ViewFurniture& furniture = view.placedFurniture[target.index];
+        const world::SpriteVisual* visual = inventory_.content.find(furniture.contentId);
+        if (furniture.contentId != "bed" || visual == nullptr) {
+            return false;
+        }
+        const game::ViewEntity& local = view.entities[game::kLocalPlayerIndex];
+        return game::AreaProximity(game::kInteractRing).around(
+                world::GridCell{furniture.cellX, furniture.cellY - visual->rows + 1},
+                world::GridSpan{visual->cols, visual->rows}, local.cellX, local.cellY);
+    }
     if (target.kind == game::PickTarget::Kind::Entity) {
         return view.entities[target.index].interactive;
     }

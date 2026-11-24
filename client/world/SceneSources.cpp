@@ -11,7 +11,8 @@ namespace world {
 SceneSources::SceneSources(const std::string& scenesPath,
 			   const std::string& worldPath,
 			   const std::string& overlayPath)
-	: rooms_(scenesPath) {
+	: rooms_(scenesPath)
+	, roomsEnabled_(!scenesPath.empty()) {
 	if (worldPath.empty() || !std::filesystem::exists(worldPath)) {
 		return;
 	}
@@ -35,7 +36,9 @@ std::vector<const SceneSource*> SceneSources::byPriority() const {
 	if (editor_.has_value()) {
 		sources.push_back(&*editor_);
 	}
-	sources.push_back(&rooms_);
+	if (roomsEnabled_) {
+		sources.push_back(&rooms_);
+	}
 	return sources;
 }
 

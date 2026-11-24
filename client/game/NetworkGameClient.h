@@ -38,12 +38,20 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override;
 
+    // Mundo de la partida informado por el servidor en el welcome.
+    const std::string& worldName() const;
+
+    // Mapa del primer lote completo, antes de crear la presentación.
+    const std::string& initialMapId() const;
+
     
     void sendChat(const std::string& text) override;
     void receiveChat(std::uint8_t playerId, const std::string& characterName,
                      const std::string& text) override;
 
 private:
+    void receiveInitialState();
+
     struct RemotePlayer {
         int cellX = 0;
         int cellY = 0;
@@ -53,6 +61,7 @@ private:
         // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
         std::optional<world::ItemKind> activeTool;
         CharacterAppearance appearance;
+        std::optional<std::string> carriedContent;
         int health = 0;
         int maxHealth = 0;
         int energy = 0;      // x100
@@ -111,6 +120,9 @@ private:
     ClientReceiver clientReceiver_;
 
     uint8_t localPlayerId_;
+    std::string worldName_;
+    std::string initialMapId_;
+    bool pendingDayChanged_ = false;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
     // Tabla de traducción protocolo -> vista (convención §4: diccionario

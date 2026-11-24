@@ -2,10 +2,12 @@
 
 #include <QFile>
 #include <QFontDatabase>
+#include <QMessageBox>
 #include <QString>
 #include <QtGlobal>
 #include <cstdlib>
 #include <exception>
+#include <map>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -33,18 +35,20 @@
 #include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
+#include "world/MapSceneAdapter.h"
 #include "world/MarketCatalog.h"
 #include "world/NpcCatalog.h"
+#include "world/OverlayLoader.h"
 #include "world/ObtainedBannerCatalog.h"
 #include "world/ObtainedBannerConfigLoader.h"
 #include "world/PromptLayout.h"
 #include "world/ResourceCatalog.h"
 #include "world/ResourceConfigLoader.h"
 #include "world/Scenario.h"
-#include "world/SceneConfigLoader.h"
 #include "world/SceneDescription.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
+#include "world/WorldMapLoader.h"
 #include "world_model/MapRules.h"
 #include "world_model/WorldRepository.h"
 
@@ -118,9 +122,6 @@ int Application::runGame(SessionConfig session) {
         return EXIT_FAILURE;
     }
     try {
-        world::SceneDescription scene = world::SceneConfigLoader().loadFromFile(
-                core::assetPath(core::kScenesFile), core::kInitialRoom);
-        world::Scenario scenario(config_, std::move(scene));
         world::CharacterCatalog characters = world::CharacterCatalogLoader().loadFromFile(
                 core::assetPath(core::kCharactersFile));
         const world::NpcCatalog npcs(core::assetPath(core::kNpcsFile));
@@ -160,21 +161,39 @@ int Application::runGame(SessionConfig session) {
                 world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
-        std::unique_ptr<game::GameClient> gameClient =
+        std::unique_ptr<game::NetworkGameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
+        const std::string worldName = gameClient->worldName().empty()
+                                             ? session.worldName
+                                             : gameClient->worldName();
         std::string worldPath;
-        if (!session.worldName.empty()) {
-            if (!worldmodel::MapRules().isValidWorldName(session.worldName)) {
+        if (!worldName.empty()) {
+            if (!worldmodel::MapRules().isValidWorldName(worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::InvalidValue,
-                                         session.worldName);
+                                         worldName);
             }
             const worldmodel::WorldRepository worlds(core::kWorldsDir);
-            worldPath = worlds.filePathFor(session.worldName);
-            if (!worlds.exists(session.worldName)) {
+            worldPath = worlds.filePathFor(worldName);
+            if (!worlds.exists(worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::UnreadableInput,
                                          worldPath);
             }
         }
+        if (worldPath.empty()) {
+            throw world::ConfigError(world::ConfigErrorKind::MissingStructure, "worldName");
+        }
+        const worldmodel::World world = world::WorldMapLoader().loadFromFile(worldPath);
+        world::WorldOverlay overlay;
+        const std::string overlayPath = core::assetPath(core::kOverlayFile);
+        if (QFile::exists(QString::fromStdString(overlayPath))) {
+            overlay = world::OverlayLoader().loadFromFile(overlayPath);
+        }
+        if (world.maps.empty()) {
+            throw world::ConfigError(world::ConfigErrorKind::MissingStructure, "maps");
+        }
+        const std::string initialMap = gameClient->initialMapId();
+        world::SceneDescription scene = world::MapSceneAdapter(overlay).adapt(world, initialMap);
+        world::Scenario scenario(config_, std::move(scene));
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
                                 prompt, chat,
@@ -182,19 +201,35 @@ int Application::runGame(SessionConfig session) {
                                 // ahora los manda el server por red, y este
                                 // puntero apagado deja los disparadores de
                                 // prueba (teclas de test) inertes.
-                                hudOverlays, lighting, palettes, nullptr, worldPath);
+                                hudOverlays, lighting, palettes, nullptr, worldPath, initialMap);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {
         logger.error(error.what());
+        QMessageBox::critical(nullptr, "No se pudo cargar el mundo",
+                              configErrorMessage(error));
         return EXIT_FAILURE;
     } catch (const std::exception& error) {
         logger.error(error.what());
+        QMessageBox::critical(nullptr, "No se pudo iniciar la partida",
+                              QString::fromUtf8(error.what()));
         return EXIT_FAILURE;
     }
 }
 
-std::unique_ptr<game::GameClient> Application::createGameClient(
+QString Application::configErrorMessage(const world::ConfigError& error) const {
+    const std::map<world::ConfigErrorKind, QString> messages = {
+            {world::ConfigErrorKind::UnreadableInput, "No se pudo leer el mundo indicado"},
+            {world::ConfigErrorKind::MissingStructure, "Falta una estructura requerida en el mundo"},
+            {world::ConfigErrorKind::WrongType, "Un valor del mundo tiene un tipo incorrecto"},
+            {world::ConfigErrorKind::InvalidValue, "El mundo contiene un valor invalido"},
+            {world::ConfigErrorKind::UnmatchedEntry, "Hay una entrada de presentacion sin coincidencia"}};
+    return QString("%1: %2")
+            .arg(messages.at(error.kind()))
+            .arg(QString::fromStdString(error.path()));
+}
+
+std::unique_ptr<game::NetworkGameClient> Application::createGameClient(
         Socket&& socket, const world::CharacterCatalog& characters,
         int toolUseDurationTicks) const {
     return std::make_unique<game::NetworkGameClient>(std::move(socket), toolUseDurationTicks,

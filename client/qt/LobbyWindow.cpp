@@ -1,20 +1,21 @@
 #include "LobbyWindow.h"
 
 #include <QApplication>
+#include <QMessageBox>
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 #include <utility>
+#include <vector>
 
-#include "core/Constants.h"
 #include "core/WindowConfig.h"
 #include "qt/screens/CharacterScreen.h"
 #include "qt/screens/JoinCodeScreen.h"
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/SaveListScreen.h"
 #include "qt/screens/UsernameScreen.h"
-#include "qt/services/LocalWorldService.h"
 #include "qt/services/NetworkSessionService.h"
+#include "qt/services/NetworkWorldService.h"
 #include "qt/services/WorldService.h"
 #include "qt/services/fakes/FakeSaveService.h"
 #include "qt/services/CharacterSpriteComposer.h"
@@ -30,6 +31,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	, current_(nullptr)
 	, character_(nullptr)
 	, worldService_(nullptr)
+	, worldRequestPending_(false)
 	, selection_(std::nullopt) {
 	setWindowTitle(QString::fromStdString(config.title()));
 	setFixedSize(1280, 720);
@@ -51,7 +53,30 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	connect(menu, &MainMenuScreen::newGameRequested, this,
 		&LobbyWindow::onNewGameRequested);
 
-    worldService_ = new LocalWorldService(core::kWorldsDir, this);
+	worldService_ = new NetworkWorldService(this);
+	connect(worldService_, &WorldService::worldsReady, this,
+		[this](std::vector<WorldSummary> worlds) {
+			if (!worldRequestPending_) {
+				return;
+			}
+			worldRequestPending_ = false;
+			if (worlds.empty()) {
+				QMessageBox::information(this, "Mundos no disponibles",
+							 "El servidor no ofrece mundos válidos.");
+				return;
+			}
+			character_->startNewGame(worlds);
+			navigateTo(ScreenId::Character);
+		});
+	connect(worldService_, &WorldService::worldsFailed, this,
+		[this](ServiceError) {
+			if (!worldRequestPending_) {
+				return;
+			}
+			worldRequestPending_ = false;
+			QMessageBox::warning(this, "Error de conexión",
+					     "No se pudo obtener la lista de mundos del servidor.");
+		});
 
 	sessions_ = new NetworkSessionService(this);
 	auto* sessionService = sessions_;
@@ -111,6 +136,7 @@ void LobbyWindow::goBack() {
         return;
     }
     sessions_->discardConnection();
+	worldRequestPending_ = false;
     navigateTo(ScreenId::MainMenu);
 }
 
@@ -127,8 +153,11 @@ void LobbyWindow::acceptSelection(core::SessionConfig session) {
 }
 
 void LobbyWindow::onNewGameRequested() {
-    character_->startNewGame(worldService_->worlds());
-    navigateTo(ScreenId::Character);
+	if (worldRequestPending_) {
+		return;
+	}
+	worldRequestPending_ = true;
+	worldService_->requestWorlds();
 }
 
 void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
@@ -136,14 +165,6 @@ void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
     session.partida = selection.gameName;
     session.personaje = selection.characterName;
     session.worldName = selection.worldName;
-    if (session.worldName.empty()) {
-        // shortcut: mientras el servidor no devuelva worldName al unirse,
-        // usar el primer mundo válido disponible en worlds/.
-        const std::vector<WorldSummary> available = worldService_->worlds();
-        if (!available.empty()) {
-            session.worldName = available.front().name;
-        }
-    }
     acceptSelection(std::move(session));
 }
 

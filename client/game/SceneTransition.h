@@ -18,8 +18,9 @@ public:
     // fadeTicks: los ticks de cada mitad del fade (los del arranque).
     explicit SceneTransition(int fadeTicks);
 
-    // Pide el cambio a la escena destino. Se ignora si ya hay una
-    // transición en curso (una a la vez). Con holdAtBlack, al llegar al
+    // Pide el cambio a la escena destino. Durante la salida o la espera
+    // en negro, un nuevo mapa actualiza el destino. Con holdAtBlack se
+    // convierte la transición activa en una espera. Al llegar al
     // negro se queda ahí (sin cambiar los datos) hasta release().
     void changeTo(const std::string& scene, bool holdAtBlack = false);
 

@@ -151,6 +151,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 		if (!frames.empty()) {
 			int frame = 0;
 			if (action == world::ActionKind::Walk ||
+			    action == world::ActionKind::Run ||
 			    action == world::ActionKind::CarryWalk) {
 				frame = std::min(frameIndex + 1,
 						 static_cast<int>(frames.size()) - 1);

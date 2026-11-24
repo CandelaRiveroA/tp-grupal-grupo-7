@@ -27,10 +27,16 @@ void HeldItemPainter::draw(const std::string& contentId,
 	// escalado por la presentación `hold` de la criatura (el cuerpo se
 	// dibuja a su escala; el ítem acompaña).
 	const world::CreatureData& creature = characters_.dataFor(kind);
-	const int itemWidth = static_cast<int>(visual->displayWidth() *
-					       creature.hold.scale);
-	const int itemHeight = static_cast<int>(visual->displayHeight() *
-						creature.hold.scale);
+	const std::map<std::string, double>::const_iterator extra =
+		creature.hold.contentScale.find(contentId);
+	const double scale =
+		creature.hold.scale *
+		(extra == creature.hold.contentScale.end() ? 1.0
+							    : extra->second);
+	const int itemWidth =
+		static_cast<int>(visual->displayWidth() * scale);
+	const int itemHeight =
+		static_cast<int>(visual->displayHeight() * scale);
 
 	const world::HeldItemLayout layout(
 		world::PixelRect{drawBox.x, drawBox.y, drawBox.w, drawBox.h},

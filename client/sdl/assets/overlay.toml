@@ -1,0 +1,71 @@
+# Datos del CLIENTE que completan el mundo del editor (world.toml). El
+# editor dice DÓNDE está cada cosa; esto dice cómo se escala, cómo cambia
+# de noche y qué hace cada cosa al tocarla. Todo es opcional: sin este
+# archivo (o sin world.toml) el cliente funciona solo con scenes.toml.
+# Formato completo: client/world/scenes-format.md (sección overlay).
+
+[world]
+# Px de pantalla por px de arte (uno solo para todo el mapa: la celda del
+# editor = la celda del server = tile_size * scale px).
+scale = 2
+
+# Qué NPC de npcs.toml se ubica en cada marker del editor (su celda por
+# defecto; la que mande el server la pisa).
+[markers.merchant_pierre]
+npc = "pierre"
+
+[markers.merchant_marnie]
+npc = "marnie"
+
+[markers.merchant_clint]
+npc = "clint"
+
+[markers.merchant_robin]
+npc = "robin"
+
+# Qué hace el click sobre un edificio según su rol:
+#   popup     -> abre el popup del NPC `target` (npcs.toml)
+#   enter_map -> pide pasar al mapa `target`
+[roles.community_center]
+action = "popup"
+target = "community_center"
+
+[roles.carpentry]
+action = "enter_map"
+target = "carpentry"
+
+[roles.blacksmith]
+action = "enter_map"
+target = "blacksmith"
+
+[roles.general_store]
+action = "enter_map"
+target = "general_store"
+
+[roles.ranch]
+action = "enter_map"
+target = "ranch"
+
+[roles.cabin]
+action = "enter_map"
+target = "cabin_1"
+
+[roles.barn]
+action = "enter_map"
+target = "barn"
+
+# Variantes de noche y decoraciones iniciales: se declaran por el tile de
+# origen que guarda el editor ("tileset:col,row"). Ejemplos:
+#
+#   [decorations."tileset:1,7"]
+#   night_tile = "tileset:6,38"
+#
+#   [decorations."tileset:4,10"]            # la cama: la celda sale del
+#   enter = { rows = [2, 3], facing = "right" }   # marker `bed` del mapa
+#
+#   [[maps.cabin.elements]]                 # misma sintaxis que scenes.toml
+#   tileset = "decoration"
+#   region  = [26, 20, 2, 5]
+#   draw    = { mode = "single", scale = 3 }
+#   at      = [18, 1]
+#   span    = [3, 8]

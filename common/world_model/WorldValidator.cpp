@@ -4,9 +4,61 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace worldmodel {
+
+namespace {
+
+template <typename Enum>
+std::string lookupLabel(Enum value, const std::pair<Enum, const char*>* table,
+			std::size_t count) {
+	for (std::size_t i = 0; i < count; ++i) {
+		if (table[i].first == value) {
+			return table[i].second;
+		}
+	}
+	return "";
+}
+
+std::string roleLabel(ObjectRole role) {
+	const std::pair<ObjectRole, const char*> kRoles[] = {
+		{ObjectRole::Cabin, "cabana"},
+		{ObjectRole::Barn, "granero"},
+		{ObjectRole::Carpentry, "carpinteria de Robin"},
+		{ObjectRole::Blacksmith, "herreria de Clint"},
+		{ObjectRole::GeneralStore, "tienda de Pierre"},
+		{ObjectRole::Ranch, "rancho de Marnie"},
+		{ObjectRole::CommunityCenter, "centro comunitario"},
+	};
+	return lookupLabel(role, kRoles, std::size(kRoles));
+}
+
+std::string markerLabel(MarkerKind kind) {
+	const std::pair<MarkerKind, const char*> kMarkers[] = {
+		{MarkerKind::Bed, "cama"},
+		{MarkerKind::MerchantMarnie, "comerciante Marnie"},
+		{MarkerKind::MerchantClint, "comerciante Clint"},
+		{MarkerKind::MerchantPierre, "comerciante Pierre"},
+		{MarkerKind::MerchantRobin, "comerciante Robin"},
+	};
+	return lookupLabel(kind, kMarkers, std::size(kMarkers));
+}
+
+std::string portalLabel(PortalKind kind) {
+	const std::pair<PortalKind, const char*> kPortals[] = {
+		{PortalKind::TownEntrance, "al pueblo (town)"},
+		{PortalKind::FarmEntrance, "a la granja (farm)"},
+		{PortalKind::DungeonEntrance, "a la mazmorra (dungeon_1)"},
+		{PortalKind::StairsDown, "escaleras al siguiente nivel"},
+		{PortalKind::DungeonExit, "salida de mazmorra (farm)"},
+		{PortalKind::InteriorExit, "salida al exterior"},
+	};
+	return lookupLabel(kind, kPortals, std::size(kPortals));
+}
+
+}  // namespace
 
 bool WorldValidator::markerAllowedIn(const std::string& mapId, MarkerKind kind) const {
     const MapRule* rule = rules_.find(mapId);
@@ -27,36 +79,22 @@ bool WorldValidator::portalAllowedIn(const std::string& mapId, PortalKind kind) 
                    rule->requiredPortals.end();
 }
 
-std::optional<std::string> WorldValidator::expectedPortalTarget(const std::string& mapId,
-                                                                PortalKind kind) const {
-    if (kind == PortalKind::TownEntrance) {
-        return "town";
+const MapObject* WorldValidator::findBuilding(const Map& map, const MapRule& interiorRule) const {
+    if (!interiorRule.interiorObject.has_value()) {
+        return nullptr;
     }
-    if (kind == PortalKind::FarmEntrance) {
-        return "farm";
-    }
-    if (kind == PortalKind::DungeonEntrance) {
-        return "dungeon_1";
-    }
-    if (kind == PortalKind::DungeonExit) {
-        return "farm";
-    }
-    if (kind == PortalKind::InteriorExit) {
-        const MapRule* rule = rules_.find(mapId);
-        return rule != nullptr ? rule->interiorExitTarget : std::nullopt;
-    }
-    if (kind == PortalKind::StairsDown) {
-        const std::optional<int> level = rules_.dungeonLevel(mapId);
-        if (level.has_value() && *level < 10) {
-            return rules_.dungeonId(*level + 1);
-        }
-    }
-    return std::nullopt;
-}
-
-const MapObject* WorldValidator::findObject(const Map& map, ObjectRole role) const {
+    const ObjectRole role = *interiorRule.interiorObject;
+    const std::optional<int> cabinIdx = rules_.cabinIndex(interiorRule.id);
+    int currentCabin = 0;
     for (const MapObject& object: map.objects) {
-        if (object.role == role) {
+        if (object.role != role) {
+            continue;
+        }
+        if (role != ObjectRole::Cabin) {
+            return &object;
+        }
+        ++currentCabin;
+        if (cabinIdx.has_value() && currentCabin == *cabinIdx) {
             return &object;
         }
     }
@@ -94,36 +132,39 @@ int WorldValidator::countPortal(const Map& map, PortalKind kind) const {
 }
 
 void WorldValidator::addIssue(std::vector<ValidationIssue>& issues, IssueCode code,
-                              const std::string& mapId, TilePos cell) const {
-    issues.push_back(ValidationIssue{code, mapId, cell});
+                              const std::string& mapId, TilePos cell,
+                              const std::string& detail) const {
+    issues.push_back(ValidationIssue{code, mapId, cell, detail});
 }
 
 void WorldValidator::requireUniqueRole(const Map& map, ObjectRole role,
                                        std::vector<ValidationIssue>& issues) const {
     const int count = countRole(map, role);
+    const std::string label = roleLabel(role);
     if (count == 0) {
-        addIssue(issues, IssueCode::MissingObject, map.id);
+        addIssue(issues, IssueCode::MissingObject, map.id, {-1, -1}, label);
         return;
     }
     if (count > 1) {
-        addIssue(issues, IssueCode::DuplicateObject, map.id);
+        addIssue(issues, IssueCode::DuplicateObject, map.id, {-1, -1}, label);
     }
 }
 
 void WorldValidator::requireMarker(const Map& map, MarkerKind kind,
                                    std::vector<ValidationIssue>& issues) const {
     if (countMarker(map, kind) == 0) {
-        addIssue(issues, IssueCode::MissingMarker, map.id);
+        addIssue(issues, IssueCode::MissingMarker, map.id, {-1, -1}, markerLabel(kind));
     }
 }
 
 void WorldValidator::requireUniqueMarker(const Map& map, MarkerKind kind,
                                          std::vector<ValidationIssue>& issues) const {
     const int count = countMarker(map, kind);
+    const std::string label = markerLabel(kind);
     if (count == 0) {
-        addIssue(issues, IssueCode::MissingMarker, map.id);
+        addIssue(issues, IssueCode::MissingMarker, map.id, {-1, -1}, label);
     } else if (count > 1) {
-        addIssue(issues, IssueCode::DuplicateMarker, map.id);
+        addIssue(issues, IssueCode::DuplicateMarker, map.id, {-1, -1}, label);
     }
 }
 
@@ -151,8 +192,15 @@ void WorldValidator::checkWorld(const World& world, std::vector<ValidationIssue>
 
 void WorldValidator::checkRequiredMaps(const World& world,
                                        std::vector<ValidationIssue>& issues) const {
+    const auto farmIt = world.maps.find("farm");
+    const int rawCabins =
+            farmIt != world.maps.end() ? countRole(farmIt->second, ObjectRole::Cabin) : 0;
+    const int expectedCabins = std::min(rawCabins, kMaxPlayers);
+
     for (const auto& [key, map]: world.maps) {
-        if (!rules_.isValidMapId(key) || key != map.id) {
+        const std::optional<int> cabinIdx = rules_.cabinIndex(key);
+        if (!rules_.isValidMapId(key) || key != map.id ||
+            (cabinIdx.has_value() && *cabinIdx > expectedCabins)) {
             addIssue(issues, IssueCode::InvalidMapId, key);
         }
         const MapRule* rule = rules_.find(key);
@@ -171,9 +219,9 @@ void WorldValidator::checkRequiredMaps(const World& world,
         }
     }
 
-    for (const MapRule& rule: rules_.all()) {
-        if (world.maps.find(rule.id) == world.maps.end()) {
-            addIssue(issues, IssueCode::MissingRequiredMap, rule.id);
+    for (const std::string& id: rules_.requiredMapIds(expectedCabins)) {
+        if (world.maps.find(id) == world.maps.end()) {
+            addIssue(issues, IssueCode::MissingRequiredMap, id);
         }
     }
 }
@@ -201,6 +249,9 @@ void WorldValidator::checkMap(const World& world, const Map& map,
     if (map.paths.size() != cells) {
         addIssue(issues, IssueCode::GridSizeMismatch, map.id);
     }
+    if (!map.front.empty() && map.front.size() != cells) {
+        addIssue(issues, IssueCode::GridSizeMismatch, map.id);
+    }
     if (collisionSizesMatch && map.collision != map.composeCollision()) {
         addIssue(issues, IssueCode::CollisionOutOfSync, map.id);
     }
@@ -218,6 +269,7 @@ void WorldValidator::checkMap(const World& world, const Map& map,
     };
     checkGridTiles(map.ground);
     checkGridTiles(map.paths);
+    checkGridTiles(map.front);
 
     checkObjects(world, map, issues);
     checkMarkers(map, issues);
@@ -232,18 +284,33 @@ void WorldValidator::checkObjects(const World& world, const Map& map,
             requireUniqueRole(map, role, issues);
         }
     }
+    if (map.id == "farm") {
+        const int cabins = countRole(map, ObjectRole::Cabin);
+        if (cabins == 0) {
+            addIssue(issues, IssueCode::MissingObject, map.id, {-1, -1}, "cabana");
+        } else if (cabins > kMaxPlayers) {
+            addIssue(issues, IssueCode::DuplicateObject, map.id, {-1, -1}, "cabana (max 4)");
+        }
+    }
 
     for (const MapObject& object: map.objects) {
-        const bool needsDoor = object.role == ObjectRole::Cabin ||
-                               object.role == ObjectRole::Market ||
-                               object.role == ObjectRole::CommunityCenter;
+        const bool needsDoor = object.role != ObjectRole::CommunityCenter &&
+                               object.role != ObjectRole::Decoration &&
+                               object.role != ObjectRole::Building;
         if (needsDoor) {
             if (!object.door.has_value()) {
                 addIssue(issues, IssueCode::ObjectDoorMissing, map.id, object.cell);
-            } else if (!map.contains(*object.door)) {
+            } else if (object.doorWidth <= 0 ||
+                       !map.fits(*object.door, object.doorWidth, 1)) {
                 addIssue(issues, IssueCode::ObjectDoorOutOfBounds, map.id, object.cell);
-            } else if (!map.isWalkable(*object.door)) {
-                addIssue(issues, IssueCode::ObjectDoorNotWalkable, map.id, object.cell);
+            } else {
+                for (int offset = 0; offset < object.doorWidth; ++offset) {
+                    const TilePos cell{object.door->column + offset, object.door->row};
+                    if (!map.isWalkable(cell)) {
+                        addIssue(issues, IssueCode::ObjectDoorNotWalkable, map.id, object.cell);
+                        break;
+                    }
+                }
             }
         }
 
@@ -284,6 +351,25 @@ void WorldValidator::checkMarkers(const Map& map, std::vector<ValidationIssue>& 
     }
 }
 
+void WorldValidator::checkPortalArea(const Map& areaMap, TilePos origin, int width, int height,
+                                     const std::string& reportMapId, TilePos reportCell,
+                                     IssueCode outOfBoundsCode, IssueCode notWalkableCode,
+                                     std::vector<ValidationIssue>& issues) const {
+    if (width <= 0 || height <= 0 || !areaMap.fits(origin, width, height)) {
+        addIssue(issues, outOfBoundsCode, reportMapId, reportCell);
+        return;
+    }
+    for (int rowOffset = 0; rowOffset < height; ++rowOffset) {
+        for (int colOffset = 0; colOffset < width; ++colOffset) {
+            const TilePos cell{origin.column + colOffset, origin.row + rowOffset};
+            if (!areaMap.isWalkable(cell)) {
+                addIssue(issues, notWalkableCode, reportMapId, reportCell);
+                return;
+            }
+        }
+    }
+}
+
 void WorldValidator::checkPortals(const World& world, const Map& map,
                                   std::vector<ValidationIssue>& issues) const {
     const MapRule* rule = rules_.find(map.id);
@@ -293,11 +379,8 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
             addIssue(issues, IssueCode::UnexpectedPortal, map.id, portal.cell);
         }
 
-        if (!map.contains(portal.cell)) {
-            addIssue(issues, IssueCode::PortalOutOfBounds, map.id, portal.cell);
-        } else if (!map.isWalkable(portal.cell)) {
-            addIssue(issues, IssueCode::PortalNotWalkable, map.id, portal.cell);
-        }
+        checkPortalArea(map, portal.cell, portal.width, portal.height, map.id, portal.cell,
+                        IssueCode::PortalOutOfBounds, IssueCode::PortalNotWalkable, issues);
 
         const auto target = world.maps.find(portal.targetMap);
         if (target == world.maps.end()) {
@@ -307,37 +390,36 @@ void WorldValidator::checkPortals(const World& world, const Map& map,
 
         const std::optional<std::string> expected =
                 allowed && portal.kind != PortalKind::Link ?
-                        expectedPortalTarget(map.id, portal.kind) :
+                        rules_.expectedPortalTarget(map.id, portal.kind) :
                         std::nullopt;
         if (expected.has_value() && portal.targetMap != *expected) {
-            addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell);
+            addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell,
+                     portalLabel(portal.kind));
         }
         if (portal.kind == PortalKind::InteriorExit && expected.has_value() &&
             portal.targetMap == *expected) {
             const MapObject* building =
-                    rule != nullptr && rule->interiorObject.has_value()
-                            ? findObject(target->second, *rule->interiorObject)
-                            : nullptr;
+                    rule != nullptr ? findBuilding(target->second, *rule) : nullptr;
             if (building != nullptr && building->door.has_value() &&
-                !(*building->door == portal.targetCell)) {
-                addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell);
+                !building->hitsDoor(portal.targetCell)) {
+                addIssue(issues, IssueCode::WrongPortalTarget, map.id, portal.cell,
+                         "puerta de " + roleLabel(*rule->interiorObject));
             }
         }
 
-        if (!target->second.contains(portal.targetCell)) {
-            addIssue(issues, IssueCode::PortalTargetOutOfBounds, map.id, portal.cell);
-        } else if (!target->second.isWalkable(portal.targetCell)) {
-            addIssue(issues, IssueCode::PortalTargetNotWalkable, map.id, portal.cell);
-        }
+        checkPortalArea(target->second, portal.targetCell, portal.width, portal.height, map.id,
+                        portal.cell, IssueCode::PortalTargetOutOfBounds,
+                        IssueCode::PortalTargetNotWalkable, issues);
     }
 
     if (rule != nullptr) {
         for (const PortalKind kind: rule->requiredPortals) {
             const int count = countPortal(map, kind);
+            const std::string label = portalLabel(kind);
             if (count == 0) {
-                addIssue(issues, IssueCode::MissingPortal, map.id);
+                addIssue(issues, IssueCode::MissingPortal, map.id, {-1, -1}, label);
             } else if (count > 1) {
-                addIssue(issues, IssueCode::DuplicatePortal, map.id);
+                addIssue(issues, IssueCode::DuplicatePortal, map.id, {-1, -1}, label);
             }
         }
     }

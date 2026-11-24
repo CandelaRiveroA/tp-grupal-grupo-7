@@ -15,10 +15,19 @@ target_sources(taller_server
     commands/take_command.cpp
     commands/sleep_command.cpp
     commands/chat_command.cpp
+    commands/cmd/player_commands.cpp
+    commands/cmd/community_commands.cpp
+    commands/cmd/merchant_commands.cpp
     commands/gift_command.cpp
     server_output_monitor.cpp
     domain/map/cell.cpp
     domain/map/world.cpp
+    domain/map/scene.cpp
+    domain/map/farm.cpp
+    domain/map/barn.cpp
+    domain/map/town.cpp
+    domain/map/dungeon_floor.cpp
+    domain/map/portal.cpp
     domain/entities/i_entity.cpp
     domain/entities/i_movable.cpp
     domain/entities/entity_controller.cpp
@@ -32,6 +41,7 @@ target_sources(taller_server
     domain/enemies/skull.cpp
     domain/enemies/enemy_controller.cpp
     domain/animals/animal.cpp
+    domain/animals/animal_catalog.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp
     domain/furniture/furniture.cpp
@@ -54,6 +64,12 @@ target_sources(taller_server
     domain/crops/green_onion.cpp
     domain/crops/potato.cpp
     domain/crops/pumpkin.cpp
+    domain/community/community_center.cpp
+    domain/community/community_set_catalog.cpp
+    domain/community/community_set_rewards.cpp
+    domain/npc/merchant.cpp
+    domain/npc/robin.cpp
+    domain/npc/marnie.cpp
     PUBLIC
     # .h files
     server.h
@@ -69,3 +85,6 @@ target_sources(taller_server
     )
 
 target_include_directories(taller_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_definitions(taller_server PRIVATE
+    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")

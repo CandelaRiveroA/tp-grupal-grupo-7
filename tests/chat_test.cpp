@@ -8,6 +8,7 @@
 
 #include "domain/entities/player.h"
 #include "domain/map/world.h"
+#include "domain/npc/merchant.h"
 
 namespace {
 
@@ -88,6 +89,59 @@ TEST(ChatRouterTest, OroCheatFloorsAtZero) {
     EXPECT_EQ(world.get_player(1).get_gold(), 0u);
 }
 
+TEST(ChatRouterTest, DonarDineroDescuentaOroYCompletaSet) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.get_player(1).set_gold(10000);
+    ChatRouter router;
+
+    auto replies =
+            router.route("/donar dinero 10000", 1, world, names_with(1, "Pandamos"));
+
+    ASSERT_EQ(replies.size(), 1u);
+    EXPECT_EQ(world.get_player(1).get_gold(), 0u);
+    EXPECT_TRUE(world.is_set_completed("dinero"));
+}
+
+TEST(ChatRouterTest, DonarMoneyNoEsUnComandoEspañol) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    world.get_player(1).set_gold(10000);
+    ChatRouter router;
+
+    router.route("/donar money 10000", 1, world, names_with(1, "Pandamos"));
+
+    EXPECT_EQ(world.get_player(1).get_gold(), 10000u);
+    EXPECT_FALSE(world.is_set_completed("dinero"));
+}
+
+TEST(ChatRouterTest, ConsultarCatalogoCambiaElComercianteSeleccionado) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "town"));
+    world.place_merchant(std::make_unique<Merchant>(1, 2, "Pierre", "pierre",
+                                                     std::map<std::string, CatalogEntry>{},
+                                                     std::map<std::string, ItemID>{}));
+    world.place_merchant(std::make_unique<Merchant>(3, 3, "Clint", "clint",
+                                                     std::map<std::string, CatalogEntry>{},
+                                                     std::map<std::string, ItemID>{}));
+
+    ChatRouter router;
+    world.take_item(1);
+    auto replies = router.route("/consultar_catalogo", 1, world, names_with(1, "Pandamos"));
+    ASSERT_EQ(replies.size(), 1u);
+    const auto* first_offer = std::get_if<ServerMarketOffer>(&replies[0].message);
+    ASSERT_NE(first_offer, nullptr);
+    EXPECT_EQ(first_offer->merchant_id, "pierre");
+
+    world.set_player_position(1, 3, 3);
+    world.take_item(1);
+    replies = router.route("/consultar_catalogo", 1, world, names_with(1, "Pandamos"));
+    ASSERT_EQ(replies.size(), 1u);
+    const auto* second_offer = std::get_if<ServerMarketOffer>(&replies[0].message);
+    ASSERT_NE(second_offer, nullptr);
+    EXPECT_EQ(second_offer->merchant_id, "clint");
+}
+
 TEST(ChatRouterTest, UnknownCommandExplains) {
     World world(5, 5);
     world.add_player(1, std::make_unique<Player>(1, 1, 1));
@@ -137,7 +191,7 @@ TEST(ChatRouterTest, EnergiaPositiveClearsFaint) {
     ChatRouter router;
     router.route("/energia 50", 1, world, names_with(1, "Pandamos"));
     EXPECT_FALSE(world.get_player(1).faintedByEnergy());
-    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+    EXPECT_EQ(world.get_player(1).get_energy(), 5000u);
 }
 
 TEST(ChatRouterTest, EnergiaFaintBlocksCancelBed) {
@@ -160,7 +214,7 @@ TEST(ChatRouterTest, EnergiaFaintPenalizedAtDawn) {
     router.route("/energia 0", 1, world, names_with(1, "Pandamos"));
     world.reset_player_for_day(1);
     EXPECT_EQ(world.get_player(1).get_health(), 50u);
-    EXPECT_EQ(world.get_player(1).get_energy(), 50.0f);
+    EXPECT_EQ(world.get_player(1).get_energy(), 5000u);
     EXPECT_FALSE(world.get_player(1).faintedByEnergy());
 }
 

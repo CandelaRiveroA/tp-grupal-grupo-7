@@ -31,6 +31,7 @@ struct Cell {
     bool is_soil_normal() const;
     bool is_soil_tilled() const;
     bool is_soil_watered() const;
+    SoilState get_soil_state() const;
 
     void reset_soil();
     void till_soil();

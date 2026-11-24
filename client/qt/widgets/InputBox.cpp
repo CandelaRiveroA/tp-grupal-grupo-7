@@ -3,7 +3,7 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 
-#include "qt/theme/GameCursor.h"
+#include "qt_theme/GameCursor.h"
 
 InputBox::InputBox(const QPixmap& box, const QMargins& padding, QWidget* parent):
         QLabel(parent), edit_(new QLineEdit(this)) {

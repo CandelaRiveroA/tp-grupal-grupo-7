@@ -87,6 +87,10 @@ void ProtocolSender::send_message(const protocol::ChatMessage& message) {
     send_string(message.text);
 }
 
+void ProtocolSender::send_message(const protocol::ToggleWalkingMessage& /*message*/) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::ToggleWalking));
+}
+
 void ProtocolSender::send_client_message(const protocol::ClientMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -258,6 +262,36 @@ void ProtocolSender::send_message(const ServerChat& chat) {
     send_uint8(chat.system ? 1 : 0);
 }
 
+void ProtocolSender::send_message(const ServerGold& gold) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Gold));
+    send_uint16(gold.gold);
+}
+
+void ProtocolSender::send_message(const ServerNpcPlacement& placement) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::NpcPlacement));
+    send_string(placement.id);
+    send_uint16(placement.x);
+    send_uint16(placement.y);
+}
+
+void ProtocolSender::send_message(const ServerMapChange& change) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::MapChange));
+    send_string(change.mapId);
+}
+
+void ProtocolSender::send_message(const ServerMarketOffer& offer) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::MarketOffer));
+    send_string(offer.merchant_id);
+    send_uint16(static_cast<uint16_t>(offer.entries.size()));
+    for (const ServerMarketEntry& entry: offer.entries) {
+        send_string(entry.content_id);
+        send_string(entry.label);
+        send_uint8(static_cast<uint8_t>(entry.side));
+        send_uint8(entry.has_price ? 1 : 0);
+        send_uint16(entry.price);
+    }
+}
+
 void ProtocolSender::send_server_message(const ServerMessage& message) {
     std::visit([this](const auto& alternative) { send_message(alternative); }, message);
 }
@@ -265,12 +299,14 @@ void ProtocolSender::send_server_message(const ServerMessage& message) {
 void ProtocolSender::send_welcome(const ServerWelcome& welcome) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::Welcome));
     send_uint8(welcome.player_id);
+    send_string(welcome.worldName);
 }
 
 void ProtocolSender::send_match_request(const MatchRequest& request) {
     send_uint8(static_cast<uint8_t>(request.type));
     send_string(request.codeMatch);
     send_string(request.nameMatch);
+    send_string(request.worldName);
     send_string(request.username);
     send_string(request.characterName);
     send_appearance(request.appearance);
@@ -278,6 +314,20 @@ void ProtocolSender::send_match_request(const MatchRequest& request) {
 
 void ProtocolSender::send_lobby_status(LobbyStatus status) {
     send_uint8(static_cast<uint8_t>(status));
+}
+
+void ProtocolSender::send_world_list_request() {
+    send_uint8(static_cast<uint8_t>(MatchRequestType::ListWorlds));
+}
+
+void ProtocolSender::send_world_list(const std::vector<std::string>& worlds) {
+    if (worlds.size() > std::numeric_limits<uint16_t>::max()) {
+        throw std::length_error("La lista de mundos del protocolo es demasiado larga.");
+    }
+    send_uint16(static_cast<uint16_t>(worlds.size()));
+    for (const std::string& world : worlds) {
+        send_string(world);
+    }
 }
 
 void ProtocolSender::send_message(const protocol::GiftResponseMessage& message) {
@@ -295,4 +345,29 @@ void ProtocolSender::send_message(const ServerGiftRequest& request) {
 
 void ProtocolSender::send_message(const ServerGiftAnswered& /*answered*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::GiftAnswered));
+}
+
+void ProtocolSender::send_message(const ServerSetCompleted& completed) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::SetCompleted));
+    send_uint8(completed.set_id);
+}
+
+void ProtocolSender::send_message(const ServerVictory& /*victory*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::Victory));
+}
+
+void ProtocolSender::send_message(const protocol::SelectSlotMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::SelectSlot));
+    send_uint8(message.slot);
+}
+
+void ProtocolSender::send_message(const ServerPlayerHeld& message) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::PlayerHeld));
+    send_uint8(message.player_id);
+    send_string(message.content_id);
+}
+
+void ProtocolSender::send_message(const ServerGiftAccepted& message) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::GiftAccepted));
+    send_uint8(message.receiver_id);
 }

@@ -13,6 +13,7 @@ namespace core {
 struct SessionConfig {
     std::string partida;
     std::string personaje;
+    std::string worldName;
     int volumen = 50;
     // Conexión ya unida a la partida en el servidor.
     std::optional<Socket> connection;

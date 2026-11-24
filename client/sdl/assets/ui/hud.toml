@@ -28,6 +28,7 @@
 #   margin    = [x, y] desde el borde del anchor (default [0, 0]).
 #   box       = [ancho, alto] de la caja donde se centra el texto.
 #   font_size = tamaño de letra en px.
+#   bold      = true para negrita (opcional; default false).
 #   color     = [r, g, b, a].
 # Formato opcional de cada token, en [label.token.<nombre>]:
 #   source  = clave del valor crudo (default: el nombre del token).
@@ -140,3 +141,14 @@ source  = "hora"
 divisor = 12
 modulo  = 2
 names   = ["am", "pm"]
+
+[[label]]
+# Plata del jugador, debajo del reloj, en negrita y color bordó. Valor
+# crudo: plata (la manda el servidor; mientras no la mande, la inicial).
+text      = "{plata}"
+anchor    = "top_right"
+margin    = [8, 99]
+box       = [104, 28]
+font_size = 22
+bold      = true
+color     = [128, 0, 32, 255]

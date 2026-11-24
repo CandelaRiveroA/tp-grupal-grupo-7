@@ -17,7 +17,7 @@ struct SaveSummary {
 	std::uint32_t id = 0;
 	// Mundo en el que vive la partida. Tampoco se muestra: lo necesita SDL
 	// para armar el GameSelection al retomar.
-	std::uint32_t worldId = 0;
+	std::string worldName;
 	std::string gameName;
 	// En multiplayer hay más de un jugador. El primero es el jugador local.
 	std::vector<SavePlayer> players;

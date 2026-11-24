@@ -41,6 +41,8 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 		}
 		track.id = entity.id;
 		track.cadence = catalog_.dataFor(entity.kind).cadence;
+		track.canRun = catalog_.dataFor(entity.kind)
+				       .actionCycleTicks(world::ActionKind::Run) > 0;
 
 		// Flanco de acción: la fuente acaba de encender una acción
 		// (golpe, ordeñe, recogida...). Guarda el tick de inicio
@@ -89,6 +91,7 @@ std::vector<ViewMotion::Track> ViewMotion::relinkTracks(
 		track.cellX = entity.cellX;
 		track.cellY = entity.cellY;
 		track.stepIteration = iteration;
+		track.stepCells = std::abs(deltaX) + std::abs(deltaY);
 		relinked.push_back(std::move(track));
 	}
 	return relinked;
@@ -183,6 +186,16 @@ bool ViewMotion::isWalking(const std::size_t index, const int iteration,
 		return serverMoving;
 	}
 	return serverMoving || inTransit(tracks_[index], iteration);
+}
+
+bool ViewMotion::isRunning(const std::size_t index, const int iteration,
+			   const bool serverMoving) const {
+	if (index >= tracks_.size()) {
+		return false;
+	}
+	const Track& track = tracks_[index];
+	return track.canRun && track.stepCells >= 2 &&
+	       (serverMoving || inTransit(track, iteration));
 }
 
 }  // namespace game

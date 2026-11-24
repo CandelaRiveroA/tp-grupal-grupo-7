@@ -38,6 +38,9 @@ protected:
     Direction wander_dir;
     uint8_t ticks_to_turn;
     uint8_t ticks_to_pause;
+    uint16_t group_id;
+    uint16_t pair_id;
+    uint16_t room;
 
 public:
     Enemy(uint16_t x, uint16_t y, uint8_t health, uint8_t damage, uint8_t gold_drop_percent);
@@ -49,6 +52,9 @@ public:
 
     uint8_t get_health() const;
     void set_id(uint16_t new_id);
+    void set_group_id(uint16_t group_id);
+    void set_pair_id(uint16_t pair_id);
+    void set_room(uint16_t room);
 
     // Nombre de la especie en enemies.toml (vocabulario compartido con el cliente).
     virtual std::string kind_name() const = 0;

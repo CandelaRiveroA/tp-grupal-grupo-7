@@ -4,6 +4,7 @@
 #include "i_movable.h"
 #include "../inventory/tool.h"
 #include "../inventory/product.h"
+#include "../map/world.h"
 
 // Vida máxima del jugador. La baja enemiga es 5-10 por golpe (kDamage de
 // esqueleto y orco), así que un esqueleto mata en 20 golpes y un orco en 10.
@@ -12,11 +13,21 @@
 #define kPercentMax 100
 // Por debajo de este porcentaje de la vida máxima el jugador queda gravemente herido.
 #define kGravelyWoundedPercent 20
+#define kNormalMovementSteps 2
+#define kWoundedMovementSteps 1
+#define kNormalSwordDamage 2
+#define kWoundedSwordDamage 1
 
-Player::Player(uint8_t id, uint16_t x, uint16_t y)
-        : IEntity(x, y), player_id(id), facing(Direction::DOWN), selected_slot(0), backpack(9),
-          energy(100.0f), max_energy(100.0f), hp(kMaxHealth), max_hp(kMaxHealth),
-          died_in_combat(false), fainted_by_timeout(false), fainted_by_energy(false) {
+Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene):
+        Player(id, x, y, initial_scene, initial_scene, x, y) {}
+
+Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene,
+               SceneId home_scene, uint16_t home_x, uint16_t home_y)
+        : IEntity(x, y), player_id(id), current_scene(initial_scene), home_scene(home_scene),
+          home_x(home_x), home_y(home_y), facing(Direction::DOWN), selected_slot(0), backpack(9),
+          energy(10000), max_energy(10000), hp(kMaxHealth), max_hp(kMaxHealth),
+          walking(false), died_in_combat(false), fainted_by_timeout(false),
+          fainted_by_energy(false) {
     // Cargamos el inventario inicial del jugador con las herramientas básicas
     this->backpack.add_item(std::make_unique<Tool>(ItemID::PICKAXE));
     this->backpack.add_item(std::make_unique<Tool>(ItemID::SHOVEL));
@@ -32,6 +43,16 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y)
 }
 uint8_t Player::get_id() const { return this->player_id; }
 
+SceneId Player::get_scene() const { return this->current_scene; }
+SceneId Player::get_home_scene() const { return this->home_scene; }
+uint16_t Player::get_home_x() const { return this->home_x; }
+uint16_t Player::get_home_y() const { return this->home_y; }
+void Player::set_home(SceneId scene, uint16_t x, uint16_t y) {
+    this->home_scene = scene;
+    this->home_x = x;
+    this->home_y = y;
+}
+
 Direction Player::get_facing() const { return this->facing; }
 
 const CharacterAppearance& Player::get_appearance() const { return this->appearance; }
@@ -43,10 +64,13 @@ void Player::set_health(uint16_t hp) { this->hp = hp; }
 uint16_t Player::get_gold() const { return this->gold; }
 void Player::set_gold(uint16_t g) { this->gold = g; }
 uint16_t Player::get_max_health() const { return this->max_hp; }
-float Player::get_energy() const { return this->energy; }
-void Player::set_energy(float e) { this->energy = e; }
-float Player::get_max_energy() const { return this->max_energy; }
+uint16_t Player::get_energy() const { return this->energy; }
+void Player::set_energy(uint16_t e) { this->energy = e; }
+uint16_t Player::get_max_energy() const { return this->max_energy; }
+void Player::set_max_health(uint16_t value) { this->max_hp = value; }
+void Player::set_max_energy(uint16_t value) { this->max_energy = value; }
 
+void Player::set_scene(SceneId scene) { this->current_scene = scene; }
 void Player::add_gold(uint16_t amount) { this->gold += amount; }
 bool Player::try_remove_gold(uint16_t amount) {
     if (this->gold >= amount) {
@@ -64,6 +88,23 @@ void Player::setFaintedByEnergy(bool v) { this->fainted_by_energy = v; }
 
 bool Player::is_gravely_wounded() const {
     return this->hp * kPercentMax < this->max_hp * kGravelyWoundedPercent;
+}
+
+uint8_t Player::get_movement_steps() const {
+    if (this->is_gravely_wounded() || this->walking) {
+        return kWoundedMovementSteps;
+    }
+    return kNormalMovementSteps;
+}
+
+void Player::toggle_walking() { this->walking = !this->walking; }
+
+void Player::set_walking(bool active) { this->walking = active; }
+
+bool Player::is_walking() const { return this->walking; }
+
+uint8_t Player::get_sword_damage() const {
+    return this->is_gravely_wounded() ? kWoundedSwordDamage : kNormalSwordDamage;
 }
 
 bool Player::take_damage(uint8_t incoming) {
@@ -135,21 +176,41 @@ bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
 }
 
-void Player::consume_energy(float amount) {
+std::vector<std::unique_ptr<Item>> Player::extract_items(ItemID id, uint16_t qty) {
+    return this->backpack.extract_items(id, qty);
+}
+
+std::vector<std::unique_ptr<Item>> Player::extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) {
+    return this->backpack.extract_items_with_min_quality(id, minimum_quality, qty);
+}
+
+bool Player::can_extract_items(ItemID id, uint16_t qty) const {
+    return this->backpack.can_extract_items(id, qty);
+}
+
+bool Player::can_extract_items_with_min_quality(
+        ItemID id, Quality minimum_quality, uint16_t qty) const {
+    return this->backpack.can_extract_items_with_min_quality(id, minimum_quality, qty);
+}
+
+void Player::consume_energy(uint16_t amount) {
     if (this->energy >= amount) {
         this->energy -= amount;
     } else {
-        this->energy = 0.0f;
+        this->energy = 0;
         // TODO: Disparar evento de desmayo automático[cite: 1]
     }
 }
 
 bool Player::is_exhausted() const {
-    return (this->energy / this->max_energy) <= 0.10f;
+    return this->max_energy == 0 ||
+           static_cast<uint32_t>(this->energy) * 100u <=
+                   static_cast<uint32_t>(this->max_energy) * 10u;
 }
 
 bool Player::is_energy_depleted() const {
-    return this->energy <= 0.0f;
+    return this->energy == 0;
 }
 
 bool Player::is_walkable() const { return true; }

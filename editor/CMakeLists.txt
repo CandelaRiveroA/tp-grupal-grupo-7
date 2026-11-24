@@ -1,10 +1,7 @@
 # El editor solo depende de Qt6 y del modelo de mundos (sin SDL2).
 # Qt6::Widgets ya fue resuelto en el CMakeLists.txt de la raíz.
 
-target_sources(taller_editor
-    PRIVATE
-    # .cpp files
-    main.cpp
+set(EDITOR_SOURCES
     EditorWindow.cpp
     WelcomeView.cpp
     WorkspaceView.cpp
@@ -15,9 +12,15 @@ target_sources(taller_editor
     ValidationPanel.cpp
     AddExtraMapDialog.cpp
     PaletteView.cpp
+    PortalPrefabs.cpp
+    PortalsView.cpp
     TilesetCache.cpp
-    PUBLIC
-    # .h files (los headers con Q_OBJECT van acá: AUTOMOC los procesa)
+    MinimapGenerator.cpp
+    WorldPainter.cpp
+    NineSliceFrame.cpp
+    EditorDialog.cpp
+    resources/editor_resources.qrc
+    ${CMAKE_SOURCE_DIR}/common/qt_theme/resources/qt_theme.qrc
     Constants.h
     EditorWindow.h
     WelcomeView.h
@@ -29,17 +32,60 @@ target_sources(taller_editor
     ValidationPanel.h
     AddExtraMapDialog.h
     PaletteView.h
+    PortalPrefabs.h
+    PortalsView.h
     TilesetCache.h
+    MinimapGenerator.h
+    WorldPainter.h
+    NineSliceFrame.h
+    EditorDialog.h
+    )
+
+target_sources(taller_editor
+    PRIVATE
+    main.cpp
+    ${EDITOR_SOURCES}
     )
 
 target_link_libraries(taller_editor PRIVATE taller_common taller_world_model
-                      Qt6::Widgets)
+                      taller_qt_theme Qt6::Widgets)
 
-# Carpeta fija de presets de escenario, mundos guardados y assets.
+# Carpetas de presets de escenario, mundos guardados y assets. Se pueden
+# sobreescribir al configurar (p. ej. para una instalacion en /opt/taller)
+# pasando -DTALLER_INSTALL_*.
+if(NOT DEFINED TALLER_INSTALL_SCENARIOS_DIR)
+    set(TALLER_INSTALL_SCENARIOS_DIR "${CMAKE_SOURCE_DIR}/editor/scenarios")
+endif()
+if(NOT DEFINED TALLER_INSTALL_WORLDS_DIR)
+    set(TALLER_INSTALL_WORLDS_DIR "${CMAKE_SOURCE_DIR}/worlds")
+endif()
+if(NOT DEFINED TALLER_INSTALL_PREFABS_TOML)
+    set(TALLER_INSTALL_PREFABS_TOML "${CMAKE_SOURCE_DIR}/editor/prefabs.toml")
+endif()
+if(NOT DEFINED TALLER_INSTALL_ASSETS_DIR)
+    set(TALLER_INSTALL_ASSETS_DIR "${TALLER_ASSETS_DIR}")
+endif()
 target_compile_definitions(taller_editor PRIVATE
-    TALLER_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
-    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\"
-    TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
-    TALLER_ASSETS_DIR=\"${TALLER_ASSETS_DIR}\")
+    TALLER_SCENARIOS_DIR=\"${TALLER_INSTALL_SCENARIOS_DIR}\"
+    TALLER_WORLDS_DIR=\"${TALLER_INSTALL_WORLDS_DIR}\"
+    TALLER_PREFABS_TOML=\"${TALLER_INSTALL_PREFABS_TOML}\"
+    TALLER_ASSETS_DIR=\"${TALLER_INSTALL_ASSETS_DIR}\")
 
-set_target_properties(taller_editor PROPERTIES AUTOMOC ON)
+set_target_properties(taller_editor PROPERTIES AUTOMOC ON AUTORCC ON)
+
+if(TALLER_QT_HARNESS)
+    add_executable(qt_harness_editor
+        harness/editor_capture_check.cpp
+        ${EDITOR_SOURCES})
+    target_include_directories(qt_harness_editor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(qt_harness_editor PRIVATE taller_common taller_world_model
+                          taller_qt_theme Qt6::Widgets)
+    target_compile_definitions(qt_harness_editor PRIVATE
+        TALLER_SCENARIOS_DIR=\"${CMAKE_SOURCE_DIR}/editor/scenarios\"
+        TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\"
+        TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
+        TALLER_ASSETS_DIR=\"${TALLER_ASSETS_DIR}\"
+        TALLER_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\")
+    set_target_properties(qt_harness_editor PROPERTIES AUTOMOC ON AUTORCC ON)
+    set_project_warnings(qt_harness_editor ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
+endif()

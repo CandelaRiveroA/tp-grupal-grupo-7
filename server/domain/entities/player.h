@@ -9,7 +9,7 @@
 #include "../../../common/model/draft/CharacterAppearance.h"
 #include "../inventory/inventory.h"
 #include "../inventory/item.h"
-#include "../map/world.h"
+#include "../map/scene.h"
 
 #include "i_attackable.h"
 #include "i_entity.h"
@@ -17,6 +17,10 @@
 class Player: public IEntity, public IAttackable {
 private:
     uint8_t player_id;
+    SceneId current_scene;
+    SceneId home_scene;
+    uint16_t home_x;
+    uint16_t home_y;
     Direction facing;
     // Personalizacion del personaje (indices de capa, sin validar): la manda
     // el cliente en el MatchRequest y vuelve en cada ServerStatus.
@@ -25,17 +29,20 @@ private:
     Inventory backpack;
 
     uint16_t gold;
-    float energy;
-    float max_energy;
+    uint16_t energy;
+    uint16_t max_energy;
     // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
+    bool walking;
     bool died_in_combat;
     bool fainted_by_timeout;
     bool fainted_by_energy;
 
 public:
-    Player(uint8_t id, uint16_t x, uint16_t y);
+    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene = "farmhouse");
+    Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene,
+           SceneId home_scene, uint16_t home_x, uint16_t home_y);
     ~Player() override = default;
 
     Player(const Player&) = delete;
@@ -46,6 +53,11 @@ public:
     // Observadores espaciales y de estado
     // Necesario para el DTO
     uint8_t get_id() const;
+    SceneId get_scene() const;
+    SceneId get_home_scene() const;
+    uint16_t get_home_x() const;
+    uint16_t get_home_y() const;
+    void set_home(SceneId scene, uint16_t x, uint16_t y);
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
     const Inventory& get_inventory() const;
@@ -54,10 +66,13 @@ public:
     void set_health(uint16_t hp);
     uint16_t get_gold() const;
     void set_gold(uint16_t g);
-    void set_energy(float e);
-    float get_energy() const;
-    float get_max_energy() const;
+    void set_energy(uint16_t e);
+    uint16_t get_energy() const;
+    uint16_t get_max_energy() const;
+    void set_max_health(uint16_t value);
+    void set_max_energy(uint16_t value);
 
+    void set_scene(SceneId scene);
     void add_gold(uint16_t amount);
     bool try_remove_gold(uint16_t amount);
     bool diedInCombat() const;
@@ -71,6 +86,14 @@ public:
     // muerto): con eso World decide si queda un charco de sangre.
     bool is_gravely_wounded() const;
 
+    // Una orden de movimiento avanza dos celdas o una si está gravemente herido.
+    uint8_t get_movement_steps() const;
+    void toggle_walking();
+    void set_walking(bool active);
+    bool is_walking() const;
+    // Daño de la espada: 2 por golpe normal y 1 gravemente herido.
+    uint8_t get_sword_damage() const;
+
     // IAttackable: true = quedó sin vida (sin consecuencias por ahora).
     bool take_damage(uint8_t incoming) override;
 
@@ -82,7 +105,7 @@ public:
     const Item* peek_equipped_item() const;
 
     //Energia y salud
-    void consume_energy(float amount);
+    void consume_energy(uint16_t amount);
     bool is_exhausted() const; //Caso debajo 10% energia
     bool is_energy_depleted() const; //Caso debajo 0% energia
 
@@ -90,12 +113,20 @@ public:
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
     bool pick_up_item(std::unique_ptr<Item> item);
+    std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
+    std::vector<std::unique_ptr<Item>> extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty);
+    bool can_extract_items(ItemID id, uint16_t qty) const;
+    bool can_extract_items_with_min_quality(
+            ItemID id, Quality minimum_quality, uint16_t qty) const;
     bool finalize_gift_reception(Player& receiver);
 
     // Contrato IEntity
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     void update(World& w) override;
+
+
 };
 
 #endif  // PLAYER_H

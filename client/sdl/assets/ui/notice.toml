@@ -1,0 +1,32 @@
+# Avisos cortos en pantalla ("Inventario lleno"). La FUENTE de estado dice
+# CUÁNDO (LocalWorldView::notices, por id); este archivo dice CÓMO se ve y
+# qué texto lleva cada id. Sumar un aviso = una entrada [[notice]], sin
+# tocar el dibujo.
+#
+# Lo carga world::NoticeLayout; la cuenta del tiempo vive en
+# game::NoticeQueue y el dibujo en sdl::NoticePainter (9-slice de la hoja
+# + texto con la fuente de ui/text.toml).
+[notice]
+sheet          = "ui/textBox.png"
+cell           = [192, 48]
+# Esquinas fijas del marco (px de la hoja); bordes y centro se estiran.
+border         = 4
+# Dónde cae la caja: anchor + margen (px). A la izquierda, como los carteles
+# de contenido obtenido (obtained_banner.toml: center_left, x = 12). Esa pila
+# arranca en el centro vertical y crece hacia abajo, así que el aviso va
+# arriba suyo (y negativo = sube desde el centro) para no taparla.
+anchor         = "center_left"
+margin         = [12, -30]
+# Aire entre el texto y el marco (px), por lado.
+padding        = [24, 10]
+# Cara de fuente opcional: `font = "<nombre>"` (ui/text.toml [[font.face]]).
+# Sin la clave usa la default (StardewValley).
+font_size      = 26
+color          = [62, 39, 17, 255]
+# Cuánto dura en pantalla (ticks; 120 = 2 s a 60 FPS). Un aviso repetido
+# reinicia el contador, no apila carteles.
+duration_ticks = 120
+
+[[notice.entry]]
+id   = "inventory_full"
+text = "Inventario lleno"

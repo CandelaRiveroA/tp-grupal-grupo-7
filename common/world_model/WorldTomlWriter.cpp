@@ -1,133 +1,121 @@
 #include "world_model/WorldTomlWriter.h"
 
-#include <algorithm>
-#include <optional>
 #include <sstream>
 #include <utility>
 
 #include <toml++/toml.hpp>
 
 #include "world_model/TileCodec.h"
-#include "world_model/FieldWriter.h"
 
 namespace worldmodel {
 
 std::string WorldTomlWriter::write(const World& world) const {
-	toml::table table;
-	table.insert("format_version", world.formatVersion);
-	table.insert("world", writeWorld(world));
-	table.insert("tilesets", FieldWriter::writeTilesets(world.tilesets));
+	toml::table worldTable;
+	worldTable.insert("name", world.name);
 
-	toml::table maps;
-	for (const auto& [id, map] : world.maps) {
-		maps.insert(id, writeMap(map));
-	}
-	table.insert("maps", std::move(maps));
+	toml::table header;
+	header.insert("format_version", world.formatVersion);
+	header.insert("world", std::move(worldTable));
+	header.insert("tilesets", fields_.writeTilesets(world.tilesets));
 
 	std::ostringstream stream;
-	stream << table;
+	stream << header << '\n';
+	if (world.maps.empty()) {
+		stream << "\n[maps]\n";
+		return stream.str();
+	}
+	for (const auto& [id, map] : world.maps) {
+		writeMap(stream, id, map);
+	}
 	return stream.str();
 }
 
-toml::table WorldTomlWriter::writeWorld(const World& world) const {
-	toml::table table;
-	table.insert("name", world.name);
-	return table;
-}
+void WorldTomlWriter::writeMap(std::ostream& out, const std::string& id,
+			       const Map& map) const {
+	const std::string mapKey = fields_.formatKey(id);
+	out << "\n[maps." << mapKey << "]\n";
 
-toml::table WorldTomlWriter::writeMap(const Map& map) const {
-	toml::table table;
-	table.insert("kind", vocabulary_.toText(map.kind));
+	toml::table scalars;
+	scalars.insert("kind", vocabulary_.toText(map.kind));
 	if (map.kind == MapKind::Dungeon) {
-		table.insert("level", map.level);
+		scalars.insert("level", map.level);
 	}
-	table.insert("width", map.width);
-	table.insert("height", map.height);
-	table.insert("tile_size", map.tileSize);
-	table.insert("base_collision",
-		     FieldWriter::writeBooleans(map.baseCollision));
-	table.insert("collision",
-		     FieldWriter::writeBooleans(map.collision));
-	table.insert("ground", FieldWriter::writeGrid(map.ground));
+	scalars.insert("width", map.width);
+	scalars.insert("height", map.height);
+	scalars.insert("tile_size", map.tileSize);
+	out << scalars << '\n';
 
-	const bool hasPaths =
-		std::any_of(map.paths.begin(), map.paths.end(),
-			    [](const std::optional<TileRef>& tile) {
-				    return tile.has_value();
-			    });
-	if (hasPaths) {
-		table.insert("paths", FieldWriter::writeGrid(map.paths));
-	}
-	if (!map.objects.empty()) {
-		table.insert("objects", writeObjects(map));
-	}
-	if (!map.markers.empty()) {
-		table.insert("markers", writeMarkers(map));
-	}
-	if (!map.portals.empty()) {
-		table.insert("portals", writePortals(map));
-	}
-	return table;
+	fields_.appendBoolGrid(out, "base_collision", map.baseCollision,
+			       map.width);
+	fields_.appendBoolGrid(out, "collision", map.collision, map.width);
+	fields_.appendTileGrid(out, "ground", map.ground, map.width);
+	fields_.appendOptionalTileGrid(out, "paths", map.paths, map.width);
+	fields_.appendOptionalTileGrid(out, "front", map.front, map.width);
+
+	writeObjects(out, mapKey, map);
+	writeMarkers(out, mapKey, map);
+	writePortals(out, mapKey, map);
 }
 
-toml::array WorldTomlWriter::writeObjects(const Map& map) const {
-	toml::array array;
+void WorldTomlWriter::writeObjects(std::ostream& out, const std::string& mapKey,
+				   const Map& map) const {
 	for (const MapObject& object : map.objects) {
+		out << "\n[[maps." << mapKey << ".objects]]\n";
 		toml::table entry;
 		entry.insert("role", vocabulary_.toText(object.role));
 		entry.insert("tile", TileCodec::encode(object.tile));
-		entry.insert("cell",
-			     FieldWriter::writePair(object.cell.column,
-							object.cell.row));
+		entry.insert("cell", fields_.writePair(object.cell.column,
+						       object.cell.row));
 		entry.insert("size",
-			     FieldWriter::writePair(object.width,
-							object.height));
+			     fields_.writePair(object.width, object.height));
 		entry.insert("blocked", object.blocked);
 		if (object.door.has_value()) {
 			entry.insert("door",
-				     FieldWriter::writePair(
-					     object.door->column,
-					     object.door->row));
+				     fields_.writePair(object.door->column,
+						       object.door->row));
+			if (object.doorWidth > 1) {
+				entry.insert("door_width", object.doorWidth);
+			}
 		}
+		out << entry << '\n';
 		if (!object.collisionGrid.empty()) {
-			entry.insert("collision_grid",
-				     FieldWriter::writeBooleans(
-					     object.collisionGrid));
+			fields_.appendBoolGrid(out, "collision_grid",
+					       object.collisionGrid,
+					       object.width);
 		}
-		array.push_back(std::move(entry));
 	}
-	return array;
 }
 
-toml::array WorldTomlWriter::writeMarkers(const Map& map) const {
-	toml::array array;
+void WorldTomlWriter::writeMarkers(std::ostream& out, const std::string& mapKey,
+				   const Map& map) const {
 	for (const Marker& marker : map.markers) {
+		out << "\n[[maps." << mapKey << ".markers]]\n";
 		toml::table entry;
 		entry.insert("kind", vocabulary_.toText(marker.kind));
-		entry.insert("cell",
-			     FieldWriter::writePair(marker.cell.column,
-							marker.cell.row));
-		array.push_back(std::move(entry));
+		entry.insert("cell", fields_.writePair(marker.cell.column,
+						       marker.cell.row));
+		out << entry << '\n';
 	}
-	return array;
 }
 
-toml::array WorldTomlWriter::writePortals(const Map& map) const {
-	toml::array array;
+void WorldTomlWriter::writePortals(std::ostream& out, const std::string& mapKey,
+				   const Map& map) const {
 	for (const Portal& portal : map.portals) {
+		out << "\n[[maps." << mapKey << ".portals]]\n";
 		toml::table entry;
 		entry.insert("kind", vocabulary_.toText(portal.kind));
-		entry.insert("cell",
-			     FieldWriter::writePair(portal.cell.column,
-							portal.cell.row));
+		entry.insert("cell", fields_.writePair(portal.cell.column,
+						       portal.cell.row));
 		entry.insert("target_map", portal.targetMap);
 		entry.insert("target_cell",
-			     FieldWriter::writePair(
-				     portal.targetCell.column,
-				     portal.targetCell.row));
-		array.push_back(std::move(entry));
+			     fields_.writePair(portal.targetCell.column,
+					       portal.targetCell.row));
+		if (portal.width != 1 || portal.height != 1) {
+			entry.insert("size", fields_.writePair(portal.width,
+							       portal.height));
+		}
+		out << entry << '\n';
 	}
-	return array;
 }
 
 }

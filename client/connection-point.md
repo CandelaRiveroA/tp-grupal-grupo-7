@@ -25,7 +25,7 @@ Archivo: `common/common_command.h`. El cliente envía **intenciones** por
 dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 
 ```cpp
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7, ToggleWalking = 8 };
 
 struct MoveMessage { Direction direction; };  // caminar; fija el facing
 struct PickMessage { Direction direction; uint8_t slot; };  // usar el casillero `slot` sobre la celda enfrentada
@@ -34,11 +34,18 @@ struct SleepMessage { bool accept; };         // voto del aviso de la cama
 struct WakeMessage {};                       // OK del popup del nuevo día
 struct ChatMessage { std::string text; };    // texto libre: broadcast, @nombre privado o /comando
 struct GiftResponseMessage { uint8_t sender_id; bool accept; };  // responde el pedido de regalo de `sender_id`
+struct ToggleWalkingMessage {}; // alterna el modo de 1 o 2 celdas por movimiento
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage>;
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage, ToggleWalkingMessage>;
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
+- El Centro Comunitario usa chat:
+  `/donar [cultivos|minerales|animales] [item] [cantidad]`,
+  `/donar dinero [cantidad]`, `/completar_set [nombre]` y
+  `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
+  3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
+  `set_id u8`; `ServerVictory` no lleva payload.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la
@@ -46,6 +53,9 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
   `type (u8) | accept (u8)`
   (1 = confirma dormir, 0 = cancela y sale de la cama). `GiftResponse`:
   `type (u8) | sender_id (u8) | accept (u8)` (1 = acepta el regalo).
+  `ToggleWalking`: `type (u8)` sin payload. La tecla `X` produce este
+  mensaje one-shot y alterna el modo server-side. La tecla es `Shift`
+  (izquierdo o derecho).
 
 ---
 

@@ -64,6 +64,39 @@ PrefabDef PrefabCatalogReader::readPrefab(
 	prefab.width = size[0];
 	prefab.height = size[1];
 
+	const std::string rolePath = fields_.join(path, "role");
+	if (doc_.hasKey(rolePath)) {
+		const std::optional<ObjectRole> role =
+			vocabulary_.objectRoleFrom(doc_.getString(rolePath));
+		if (!role.has_value() || *role == ObjectRole::Decoration) {
+			throw FormatError(FormatErrorKind::InvalidValue,
+					  rolePath);
+		}
+		prefab.role = *role;
+	}
+
+	const std::string doorPath = fields_.join(path, "door");
+	if (doc_.hasKey(doorPath)) {
+		const TilePos door = fields_.readTilePos(doorPath);
+		if (door.column < 0 || door.column >= prefab.width ||
+		    door.row < 0 || door.row > prefab.height) {
+			throw FormatError(FormatErrorKind::InvalidValue,
+					  doorPath);
+		}
+		prefab.door = door;
+		const std::string doorWidthPath =
+			fields_.join(path, "door_width");
+		if (doc_.hasKey(doorWidthPath)) {
+			const int width = doc_.getInt(doorWidthPath);
+			if (width <= 0 ||
+			    door.column + width > prefab.width) {
+				throw FormatError(FormatErrorKind::InvalidValue,
+						  doorWidthPath);
+			}
+			prefab.doorWidth = width;
+		}
+	}
+
 	const std::string gridPath = fields_.join(path, "collision_grid");
 	prefab.collisionGrid = doc_.getBoolArray(gridPath);
 	const std::size_t expected =

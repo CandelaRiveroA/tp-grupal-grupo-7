@@ -1,0 +1,559 @@
+# Catálogo del mercado, descrito como DATOS.
+#
+# Este archivo es el DICCIONARIO DE PRESENTACIÓN de lo que SDL sabe
+# mostrar: el estilo del popup, el título de cada lado, el nombre de cada
+# producto y la oferta POR DEFECTO (mock) de cada comerciante. Qué se
+# muestra de verdad y a qué monto lo manda la fuente de estado (el
+# servidor, vía LocalWorldView::marketOffer); hasta entonces valen los
+# `price` de acá. Agregar un producto = su ícono en inventory.toml + un
+# bloque [[products]]. Agregar un comerciante = un bloque [[merchants]].
+# `price` es opcional: sin él solo se muestra el nombre. `qualities = true`
+# (opcional) expande la entrada a una línea por calidad de [qualities.*].
+# `sets` es
+# opcional (enteros >= 0): estilos rotativos en los que aparece la
+# entrada; sin `sets` aparece en todos.
+
+[popup]
+# Columnas de slots del popup; el alto sale del contenido de cada oferta
+# y el espacio que sobre se reparte arriba y abajo.
+panel_columns = 7
+inset        = 22
+columns      = 2
+title_height = 30
+section_gap  = 6
+row_height   = 58
+price_height = 18
+icon_size    = 32
+icon_gap     = 6
+label_offset_y = 4
+coin_gap     = 3
+title_size   = 20
+text_size    = 15
+title_color  = [62, 39, 17, 255]
+text_color   = [62, 39, 17, 255]
+price_color  = [120, 70, 10, 255]
+
+# Ítems con calidades (los cultivos que compra Pierre): arriba el ícono y
+# el nombre del producto (`header_height`) y debajo una línea por calidad
+# (`tier_height` de alto): estrella + nombre y, a la misma altura, la
+# moneda y el monto desde `tier_price_left` px del borde izquierdo.
+header_height   = 40
+tier_height     = 20
+tier_price_left = 100
+star_gap        = 4
+
+# Hoja de estrellas de las calidades (cada celda de 16x16; la celda de
+# cada calidad se declara en [qualities.*]).
+[popup.star]
+sheet = "ui/estrellas.png"
+cell  = [16, 16]
+drawn = [16, 16]
+
+# Moneda dibujada junto al precio (hoja de una sola celda de 9x9).
+[popup.coin]
+sheet = "Ambience/Market/save_coin.png"
+cell  = [9, 9]
+at    = [0, 0]
+drawn = [12, 12]
+
+# Título de cada lado (las claves son el vocabulario world::MarketSide).
+[sides]
+sells = "Productos en venta"
+buys  = "Productos que compro"
+
+# Calidades del producto (las claves son el vocabulario
+# world::CropQuality). `label` = nombre mostrado; `star` = celda [col, row]
+# en la hoja de estrellas (sin `star` = sin estrella, la base);
+# `multiplier` = cuánto multiplica el monto base en la oferta por defecto
+# (mock; los mismos valores que el servidor). Una oferta con
+# `qualities = true` se expande a una línea por calidad.
+[qualities.base]
+label      = "Base"
+multiplier = 1.0
+
+[qualities.good]
+label      = "Bueno"
+multiplier = 1.25
+star       = [0, 0]
+
+[qualities.excellent]
+label      = "Excelente"
+multiplier = 2.0
+star       = [1, 0]
+
+[qualities.incredible]
+label      = "Increíble"
+multiplier = 4.0
+star       = [2, 0]
+
+[qualities.perfect]
+label      = "Perfecta"
+multiplier = 8.0
+star       = [3, 0]
+
+# Cómo se llama cada producto (content_id = el del inventario).
+[[products]]
+content_id = "strawberry_seeds"
+label      = "Semillas de Frutilla"
+
+[[products]]
+content_id = "onion_seeds"
+label      = "Semillas de Verdeo"
+
+[[products]]
+content_id = "potato_seeds"
+label      = "Semillas de Papa"
+
+[[products]]
+content_id = "pumpkin_seeds"
+label      = "Semillas de Calabaza"
+
+[[products]]
+content_id = "strawberry"
+label      = "Frutilla"
+
+[[products]]
+content_id = "onion"
+label      = "Verdeo"
+
+[[products]]
+content_id = "potato"
+label      = "Papa"
+
+[[products]]
+content_id = "pumpkin"
+label      = "Calabaza"
+
+[[products]]
+content_id = "chicken"
+label      = "Gallina"
+
+[[products]]
+content_id = "cow"
+label      = "Vaca"
+
+[[products]]
+content_id = "milk"
+label      = "Leche"
+
+[[products]]
+content_id = "egg"
+label      = "Huevos"
+
+[[products]]
+content_id = "silver"
+label      = "Plata"
+
+[[products]]
+content_id = "coal"
+label      = "Carbón"
+
+[[products]]
+content_id = "lapis"
+label      = "Lapislázuli"
+
+[[products]]
+content_id = "gold"
+label      = "Oro"
+
+[[products]]
+content_id = "mesa_1"
+label      = "Mesa 1"
+
+[[products]]
+content_id = "mesa_2"
+label      = "Mesa 2"
+
+[[products]]
+content_id = "mesa_3"
+label      = "Mesa 3"
+
+[[products]]
+content_id = "mesa_4"
+label      = "Mesa 4"
+
+[[products]]
+content_id = "mesa_5"
+label      = "Mesa 5"
+
+[[products]]
+content_id = "mesa_6"
+label      = "Mesa 6"
+
+[[products]]
+content_id = "mesa_7"
+label      = "Mesa 7"
+
+[[products]]
+content_id = "mesa_8"
+label      = "Mesa 8"
+
+[[products]]
+content_id = "silla_1"
+label      = "Silla 1"
+
+[[products]]
+content_id = "silla_2"
+label      = "Silla 2"
+
+[[products]]
+content_id = "silla_3"
+label      = "Silla 3"
+
+[[products]]
+content_id = "silla_4"
+label      = "Silla 4"
+
+[[products]]
+content_id = "cofre"
+label      = "Cofre"
+
+[[products]]
+content_id = "comoda_1"
+label      = "Cómoda 1"
+
+[[products]]
+content_id = "comoda_2"
+label      = "Cómoda 2"
+
+[[products]]
+content_id = "comoda_3"
+label      = "Cómoda 3"
+
+[[products]]
+content_id = "comoda_4"
+label      = "Cómoda 4"
+
+[[products]]
+content_id = "sillon_1"
+label      = "Sillón 1"
+
+[[products]]
+content_id = "sillon_2"
+label      = "Sillón 2"
+
+[[products]]
+content_id = "sillon_3"
+label      = "Sillón 3"
+
+[[products]]
+content_id = "biblioteca_1"
+label      = "Biblioteca 1"
+
+[[products]]
+content_id = "biblioteca_2"
+label      = "Biblioteca 2"
+
+[[products]]
+content_id = "biblioteca_3"
+label      = "Biblioteca 3"
+
+[[products]]
+content_id = "biblioteca_4"
+label      = "Biblioteca 4"
+
+[[products]]
+content_id = "planta_1"
+label      = "Planta 1"
+
+[[products]]
+content_id = "planta_2"
+label      = "Planta 2"
+
+[[products]]
+content_id = "planta_3"
+label      = "Planta 3"
+
+[[products]]
+content_id = "planta_4"
+label      = "Planta 4"
+
+[[products]]
+content_id = "planta_5"
+label      = "Planta 5"
+
+[[products]]
+content_id = "planta_6"
+label      = "Planta 6"
+
+# Pierre: semillas y cultivos.
+[[merchants]]
+npc = "pierre"
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "strawberry_seeds"
+  price = 20
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "onion_seeds"
+  price = 15
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "potato_seeds"
+  price = 10
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "pumpkin_seeds"
+  price = 25
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "strawberry"
+  price = 30
+  qualities = true
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "onion"
+  price = 22
+  qualities = true
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "potato"
+  price = 15
+  qualities = true
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "pumpkin"
+  price = 35
+  qualities = true
+
+# Marnie: animales y sus productos. Precios MOCK.
+[[merchants]]
+npc = "marnie"
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "chicken"
+  price = 400
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "cow"
+  price = 1000
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "milk"
+  price = 50
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "egg"
+  price = 25
+
+# Clint: solo compra minerales (el producto ya extraído, el mismo que se
+# guarda en el inventario). Precios MOCK.
+[[merchants]]
+npc = "clint"
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "silver"
+  price = 60
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "coal"
+  price = 30
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "lapis"
+  price = 80
+
+  [[merchants.offer]]
+  side = "buys"
+  content_id = "gold"
+  price = 120
+
+# Robin: muebles de la carpintería. Cada entrada con `sets = [...]` solo
+# aparece en esos estilos rotativos (mock); una entrada sin `sets` (el
+# cofre) aparece en todos. Cada set muestra 7 productos.
+[[merchants]]
+npc = "robin"
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_1"
+  price = 200
+  sets = [0]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_2"
+  price = 200
+  sets = [1]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_3"
+  price = 200
+  sets = [2]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_4"
+  price = 200
+  sets = [3]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_5"
+  price = 200
+  sets = [4]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_6"
+  price = 200
+  sets = [5]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_7"
+  price = 200
+  sets = [6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "mesa_8"
+  price = 200
+  sets = [7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "silla_1"
+  price = 90
+  sets = [0, 4]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "silla_2"
+  price = 90
+  sets = [1, 5]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "silla_3"
+  price = 90
+  sets = [2, 6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "silla_4"
+  price = 90
+  sets = [3, 7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "cofre"
+  price = 300
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "comoda_1"
+  price = 250
+  sets = [0, 4]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "comoda_2"
+  price = 250
+  sets = [1, 5]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "comoda_3"
+  price = 250
+  sets = [2, 6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "comoda_4"
+  price = 250
+  sets = [3, 7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "sillon_1"
+  price = 400
+  sets = [0, 3, 6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "sillon_2"
+  price = 400
+  sets = [1, 4, 7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "sillon_3"
+  price = 400
+  sets = [2, 5]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "biblioteca_1"
+  price = 350
+  sets = [0, 4]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "biblioteca_2"
+  price = 350
+  sets = [1, 5]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "biblioteca_3"
+  price = 350
+  sets = [2, 6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "biblioteca_4"
+  price = 350
+  sets = [3, 7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_1"
+  price = 60
+  sets = [0, 6]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_2"
+  price = 60
+  sets = [1, 7]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_3"
+  price = 60
+  sets = [2]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_4"
+  price = 60
+  sets = [3]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_5"
+  price = 60
+  sets = [4]
+
+  [[merchants.offer]]
+  side = "sells"
+  content_id = "planta_6"
+  price = 60
+  sets = [5]

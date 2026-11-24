@@ -35,12 +35,16 @@ void ClientHandler::run() {
 
 void ClientHandler::serve() {
     std::string codeMatch;
-    MatchSeat seat{LobbyStatus::Invalid, 0, nullptr};
+    MatchSeat seat{LobbyStatus::Invalid, 0, nullptr, {}};
     try {
         const MatchRequest request = protocol_receiver.receive_match_request();
+        if (request.type == MatchRequestType::ListWorlds) {
+            protocol_sender.send_world_list(matches.validWorldNames());
+            return;
+        }
         codeMatch = request.codeMatch;
         seat = request.type == MatchRequestType::Create ?
-                       matches.create(codeMatch, request.username, request.characterName,
+                       matches.create(codeMatch, request.worldName, request.username, request.characterName,
                                       statuses, request.appearance) :
                        matches.join(codeMatch, request.username, request.characterName, statuses,
                                     request.appearance);
@@ -48,7 +52,7 @@ void ClientHandler::serve() {
         if (seat.status != LobbyStatus::Ok) {
             return;
         }
-        protocol_sender.send_welcome(ServerWelcome{seat.player_id});
+        protocol_sender.send_welcome(ServerWelcome{seat.player_id, seat.worldName});
     } catch (const std::exception& error) {
         if (seat.status == LobbyStatus::Ok) {
             matches.leave(codeMatch, seat.player_id);

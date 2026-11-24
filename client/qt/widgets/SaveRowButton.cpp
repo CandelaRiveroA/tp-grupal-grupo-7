@@ -13,7 +13,7 @@
 #include "qt/theme/SaveListRects.h"
 #include "qt/theme/SaveListSprites.h"
 #include "qt/widgets/CharacterPreview.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 SaveRowButton::SaveRowButton(const SaveSummary& save, int rowNumber,
                              const CharacterLayerSource* source, const SaveListSprites& sprites,

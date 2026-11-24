@@ -9,6 +9,8 @@
 ProtocolReceiver::ProtocolReceiver(Socket& socket):
         socket(socket),
         handlers{
+                {protocol::ClientMessageType::SelectSlot,
+                 &ProtocolReceiver::receive_select_slot_message},
                 {protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message},
                 {protocol::ClientMessageType::Pick, &ProtocolReceiver::receive_pick_message},
                 {protocol::ClientMessageType::Take, &ProtocolReceiver::receive_take_message},
@@ -17,8 +19,12 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {protocol::ClientMessageType::Chat, &ProtocolReceiver::receive_chat_message},
                 {protocol::ClientMessageType::GiftResponse,
                  &ProtocolReceiver::receive_gift_response_message},
+                {protocol::ClientMessageType::ToggleWalking,
+                 &ProtocolReceiver::receive_toggle_walking_message},
         },
         server_handlers{
+                {ServerMessageType::PlayerHeld, &ProtocolReceiver::receive_player_held_message},
+                {ServerMessageType::GiftAccepted, &ProtocolReceiver::receive_gift_accepted_message},
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
                 {ServerMessageType::Leave, &ProtocolReceiver::receive_leave_message},
                 {ServerMessageType::Resource, &ProtocolReceiver::receive_resource_message},
@@ -45,6 +51,15 @@ ProtocolReceiver::ProtocolReceiver(Socket& socket):
                 {ServerMessageType::Chat, &ProtocolReceiver::receive_server_chat_message},
                 {ServerMessageType::GiftRequest, &ProtocolReceiver::receive_gift_request_message},
                 {ServerMessageType::GiftAnswered, &ProtocolReceiver::receive_gift_answered_message},
+                {ServerMessageType::SetCompleted, &ProtocolReceiver::receive_set_completed_message},
+                {ServerMessageType::Victory, &ProtocolReceiver::receive_victory_message},
+                {ServerMessageType::Gold, &ProtocolReceiver::receive_gold_message},
+                {ServerMessageType::NpcPlacement,
+                 &ProtocolReceiver::receive_npc_placement_message},
+                {ServerMessageType::MapChange,
+                 &ProtocolReceiver::receive_map_change_message},
+                {ServerMessageType::MarketOffer,
+                 &ProtocolReceiver::receive_market_offer_message},
         } {}
 
 std::optional<uint8_t> ProtocolReceiver::receive_uint8_or_end() {
@@ -137,6 +152,10 @@ protocol::ClientMessage ProtocolReceiver::receive_wake_message() { return protoc
 
 protocol::ClientMessage ProtocolReceiver::receive_chat_message() {
     return protocol::ChatMessage{receive_string()};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_toggle_walking_message() {
+    return protocol::ToggleWalkingMessage{};
 }
 
 std::optional<protocol::ClientMessage> ProtocolReceiver::receive_command() {
@@ -327,6 +346,54 @@ ServerMessage ProtocolReceiver::receive_server_chat_message() {
     return ServerChat{player_id, characterName, text, system == 1};
 }
 
+ServerMessage ProtocolReceiver::receive_set_completed_message() {
+    return ServerSetCompleted{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_gold_message() {
+    return ServerGold{receive_uint16()};
+}
+
+ServerMessage ProtocolReceiver::receive_npc_placement_message() {
+    std::string id = receive_string();
+    const uint16_t x = receive_uint16();
+    const uint16_t y = receive_uint16();
+    return ServerNpcPlacement{std::move(id), x, y};
+}
+
+ServerMessage ProtocolReceiver::receive_map_change_message() {
+    return ServerMapChange{receive_string()};
+}
+
+ServerMessage ProtocolReceiver::receive_market_offer_message() {
+    std::string merchant_id = receive_string();
+    const uint16_t count = receive_uint16();
+    std::vector<ServerMarketEntry> entries;
+    entries.reserve(count);
+    for (uint16_t i = 0; i < count; ++i) {
+        std::string content_id = receive_string();
+        std::string label = receive_string();
+        const uint8_t side = receive_uint8();
+        if (side > static_cast<uint8_t>(ServerMarketSide::Buys)) {
+            throw std::invalid_argument("El lado de la oferta de mercado no es valido.");
+        }
+        const uint8_t has_price = receive_uint8();
+        if (has_price > 1) {
+            throw std::invalid_argument("El indicador de precio del mercado no es valido.");
+        }
+        const uint16_t price = receive_uint16();
+        entries.push_back(ServerMarketEntry{std::move(content_id),
+                                            std::move(label),
+                                            static_cast<ServerMarketSide>(side),
+                                            has_price == 1, price});
+    }
+    return ServerMarketOffer{std::move(merchant_id), std::move(entries)};
+}
+
+ServerMessage ProtocolReceiver::receive_victory_message() {
+    return ServerVictory{};
+}
+
 ServerMessage ProtocolReceiver::receive_server_message() {
     const ServerMessageType type = static_cast<ServerMessageType>(receive_uint8());
     const auto handler = server_handlers.find(type);
@@ -343,23 +410,28 @@ ServerWelcome ProtocolReceiver::receive_welcome() {
         throw std::invalid_argument("Se esperaba un mensaje de bienvenida.");
     }
 
-    return ServerWelcome{receive_uint8()};
+    return ServerWelcome{receive_uint8(), receive_string()};
 }
 
 MatchRequest ProtocolReceiver::receive_match_request() {
     const uint8_t type = receive_uint8();
+    if (type == static_cast<uint8_t>(MatchRequestType::ListWorlds)) {
+        return MatchRequest{MatchRequestType::ListWorlds, {}, {}, {}, {}, {},
+                            CharacterAppearance{}};
+    }
     if (type != static_cast<uint8_t>(MatchRequestType::Create) &&
         type != static_cast<uint8_t>(MatchRequestType::Join)) {
         throw std::invalid_argument("El tipo de pedido del lobby no es valido.");
     }
     std::string codeMatch = receive_string();
     std::string nameMatch = receive_string();
+    std::string worldName = receive_string();
     std::string username = receive_string();
     std::string characterName = receive_string();
     const CharacterAppearance appearance = receive_appearance();
     return MatchRequest{static_cast<MatchRequestType>(type), std::move(codeMatch),
-                        std::move(nameMatch), std::move(username), std::move(characterName),
-                        appearance};
+                        std::move(nameMatch), std::move(worldName), std::move(username),
+                        std::move(characterName), appearance};
 }
 
 LobbyStatus ProtocolReceiver::receive_lobby_status() {
@@ -368,6 +440,16 @@ LobbyStatus ProtocolReceiver::receive_lobby_status() {
         throw std::invalid_argument("El estado del lobby no es valido.");
     }
     return static_cast<LobbyStatus>(status);
+}
+
+std::vector<std::string> ProtocolReceiver::receive_world_list() {
+    const uint16_t count = receive_uint16();
+    std::vector<std::string> worlds;
+    worlds.reserve(count);
+    for (uint16_t i = 0; i < count; ++i) {
+        worlds.push_back(receive_string());
+    }
+    return worlds;
 }
 
 protocol::ClientMessage ProtocolReceiver::receive_gift_response_message() {
@@ -388,3 +470,16 @@ ServerMessage ProtocolReceiver::receive_gift_request_message() {
 
 ServerMessage ProtocolReceiver::receive_gift_answered_message() { return ServerGiftAnswered{}; }
 
+
+protocol::ClientMessage ProtocolReceiver::receive_select_slot_message() {
+    return protocol::SelectSlotMessage{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_player_held_message() {
+    const uint8_t player = receive_uint8();
+    return ServerPlayerHeld{player, receive_string()};
+}
+
+ServerMessage ProtocolReceiver::receive_gift_accepted_message() {
+    return ServerGiftAccepted{receive_uint8()};
+}

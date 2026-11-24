@@ -12,6 +12,14 @@
 file = "fonts/StardewValley.ttf"
 size = 26
 
+# Otras caras (fuentes) disponibles por nombre. Cualquier texto puede pedir
+# una (p. ej. `font = "pixel_operator"` en notice.toml); sin nombre usa la
+# de arriba ("default"). Sumar una fuente = una entrada acá (y el .ttf en
+# fonts/, que sale de client/qt/resources/fonts).
+[[font.face]]
+name = "pixel_operator"
+file = "fonts/PixelOperator.ttf"
+
 # --- El prompt del popup -------------------------------------------------
 # text_color/hover_color: RGBA. hover es el marrón de las opciones bajo
 # el mouse.
@@ -113,3 +121,26 @@ border = 8
 size   = [32, 32]
 margin = [0, 20]
 anchor = "bottom_center"
+
+# --- Nombre bajo los pies del jugador ------------------------------------
+# El nombre de PERSONAJE (ViewEntity::displayName, lo llena la fuente de
+# estado) centrado debajo de los pies. Lo carga world::NameplateLayout y lo
+# dibuja sdl::NameplatePainter, sobre el mundo (sigue a la cámara) pero
+# después de la luz nocturna (no se oscurece).
+#   font            = cara de [[font.face]] (sin la clave, la default).
+#   font_size       = tamaño de letra en px.
+#   bold            = true para negrita (opcional; default false).
+#   gap             = px entre los pies y la caja del texto.
+#   box_height      = alto de la caja donde se centra el texto.
+#   day_color       = RGBA antes de night_from_hour.
+#   night_color     = RGBA desde night_from_hour (hora del reloj del juego,
+#                     que sigue después de medianoche: 24, 25, 26).
+[nameplate]
+font            = "pixel_operator"
+font_size       = 16
+bold            = true
+gap             = 0
+box_height      = 18
+day_color       = [0, 0, 0, 255]
+night_color     = [255, 255, 255, 255]
+night_from_hour = 18

@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "common/common_constants.h"
+#include "domain/npc/merchant.h"
 
 namespace commands {
 void apply(World& /*world*/, uint8_t /*player_id*/, const protocol::ChatMessage& /*message*/) {
@@ -16,9 +17,58 @@ void apply(World& /*world*/, uint8_t /*player_id*/, const protocol::ChatMessage&
 }  // namespace commands
 
 ChatRouter::ChatRouter() {
-    handlers_["/vida"] = &ChatRouter::cmd_vida;
-    handlers_["/energia"] = &ChatRouter::cmd_energia;
-    handlers_["/oro"] = &ChatRouter::cmd_oro;
+    handlers_["/vida"] = [this](World& world, uint8_t sender,
+                                const std::vector<std::string>& args) {
+        return player_commands_.vida(world, sender, args);
+    };
+    handlers_["/energia"] = [this](World& world, uint8_t sender,
+                                   const std::vector<std::string>& args) {
+        return player_commands_.energia(world, sender, args);
+    };
+    handlers_["/oro"] = [this](World& world, uint8_t sender,
+                               const std::vector<std::string>& args) {
+        return player_commands_.oro(world, sender, args);
+    };
+    handlers_["/terminar_dia"] = [this](World& world, uint8_t sender,
+                                       const std::vector<std::string>& args) {
+        return player_commands_.terminar_dia(world, sender, args);
+    };
+    handlers_["/tiempo"] = [this](World& world, uint8_t sender,
+                                  const std::vector<std::string>& args) {
+        return player_commands_.tiempo(world, sender, args);
+    };
+    handlers_["/tp"] = [this](World& world, uint8_t sender,
+                              const std::vector<std::string>& args) {
+        return player_commands_.tp(world, sender, args);
+    };
+    handlers_["/tp_info"] = [this](World& world, uint8_t sender,
+                                   const std::vector<std::string>& args) {
+        return player_commands_.tp_info(world, sender, args);
+    };
+    handlers_["/donar"] = [this](World& world, uint8_t sender,
+                                 const std::vector<std::string>& args) {
+        return community_commands_.donar(world, sender, args);
+    };
+    handlers_["/completar_set"] = [this](World& world, uint8_t sender,
+                                         const std::vector<std::string>& args) {
+        return community_commands_.completar_set(world, sender, args);
+    };
+    handlers_["/completar_todo"] = [this](World& world, uint8_t sender,
+                                          const std::vector<std::string>& args) {
+        return community_commands_.completar_todo(world, sender, args);
+    };
+    handlers_["/consultar_catalogo"] = [this](World& world, uint8_t sender,
+                                              const std::vector<std::string>& args) {
+        return merchant_commands_.consultar_catalogo(world, sender, args);
+    };
+    handlers_["/comprar"] = [this](World& world, uint8_t sender,
+                                   const std::vector<std::string>& args) {
+        return merchant_commands_.comprar(world, sender, args);
+    };
+    handlers_["/vender"] = [this](World& world, uint8_t sender,
+                                  const std::vector<std::string>& args) {
+        return merchant_commands_.vender(world, sender, args);
+    };
 }
 
 std::vector<std::string> ChatRouter::split(const std::string& s) {
@@ -36,140 +86,99 @@ std::string ChatRouter::trim(const std::string& s) {
     return s.substr(first, last - first + 1);
 }
 
-bool ChatRouter::parse_int(const std::string& s, int& out) {
-    try {
-        std::size_t pos = 0;
-        const int value = std::stoi(s, &pos);
-        if (pos != s.size()) return false;
-        out = value;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool ChatRouter::parse_float(const std::string& s, float& out) {
-    try {
-        std::size_t pos = 0;
-        const float value = std::stof(s, &pos);
-        if (pos != s.size() || !std::isfinite(value)) return false;
-        out = value;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
 std::vector<ChatReply> ChatRouter::route(const std::string& text, uint8_t sender,
                                          World& world,
                                          const std::map<uint8_t, std::string>& names) {
-    std::vector<ChatReply> replies;
     const std::string t = trim(text);
-    if (t.empty()) return replies;
+    if (t.empty()) return {};
     if (static_cast<int>(t.size()) > kMaxChatLength) {
-        replies.push_back({false, sender, ServerChat{0, "", "mensaje demasiado largo", true}});
-        return replies;
+        return {{false, sender, ServerChat{0, "", "mensaje demasiado largo", true}}};
     }
 
     const auto sender_it = names.find(sender);
     const std::string sender_name = (sender_it != names.end()) ? sender_it->second : "";
 
     if (t[0] == '/') {
-        const auto toks = split(t);
-        const std::string cmd = toks.empty() ? std::string() : toks[0];
-        std::vector<std::string> args(toks.begin() + (toks.empty() ? 0 : 1), toks.end());
-
-        const auto it = handlers_.find(cmd);
-        if (it == handlers_.end()) {
-            replies.push_back({false, sender,
-                               ServerChat{0, "", "comando no reconocido: " + cmd, true}});
-            return replies;
-        }
-        std::string response = (this->*(it->second))(world, sender, args);
-        if (!response.empty()) {
-            replies.push_back({false, sender, ServerChat{0, "", response, true}});
-        }
-        return replies;
+        return route_slash(t, sender, world);
     }
 
     if (t[0] == '@') {
-        const auto space = t.find(' ');
-        if (space == std::string::npos) {
-            replies.push_back({false, sender,
-                               ServerChat{0, "", "uso: @nombre mensaje", true}});
-            return replies;
-        }
-        const std::string name = t.substr(1, space - 1);
-        const std::string msg = trim(t.substr(space + 1));
-        if (msg.empty()) {
-            replies.push_back({false, sender,
-                               ServerChat{0, "", "mensaje vacio", true}});
-            return replies;
-        }
-        uint8_t target = 0;
-        bool found = false;
-        for (const auto& [id, n] : names) {
-            if (n == name) { target = id; found = true; break; }
-        }
-        if (!found) {
-            replies.push_back({false, sender,
-                               ServerChat{0, "", "el jugador " + name + " no esta conectado", true}});
-            return replies;
-        }
-        const ServerChat chat{sender, sender_name, t, false};
-        replies.push_back({false, target, chat});
-        if (target != sender) {
-            replies.push_back({false, sender, chat});
-        }
+        return route_private(t, sender, sender_name, names);
+    }
+
+    return {{true, 0, ServerChat{sender, sender_name, t, false}}};
+}
+
+std::vector<ChatReply> ChatRouter::route_slash(const std::string& text, uint8_t sender,
+                                               World& world) {
+    std::vector<ChatReply> replies;
+    const auto toks = split(text);
+    const std::string cmd = toks.empty() ? std::string() : toks[0];
+    std::vector<std::string> args(toks.begin() + (toks.empty() ? 0 : 1), toks.end());
+
+    const auto it = handlers_.find(cmd);
+    if (it == handlers_.end()) {
+        replies.push_back({false, sender,
+                           ServerChat{0, "", "comando no reconocido: " + cmd, true}});
         return replies;
     }
 
-    // Mensaje público: broadcast.
-    replies.push_back({true, 0, ServerChat{sender, sender_name, t, false}});
+    const std::string response = it->second(world, sender, args);
+    if (!response.empty()) {
+        replies.push_back({false, sender, ServerChat{0, "", response, true}});
+    }
+    if (cmd == "/consultar_catalogo") {
+        add_merchant_offer(world, sender, replies);
+    }
     return replies;
 }
 
-std::string ChatRouter::cmd_vida(World& world, uint8_t sender,
-                                 const std::vector<std::string>& args) {
-    if (args.size() != 1) return "uso: /vida [cantidad]";
-    int value = 0;
-    if (!parse_int(args[0], value)) return "cantidad invalida";
-    Player& p = world.get_player(sender);
-    value = std::clamp(value, 0, static_cast<int>(p.get_max_health()));
-    if (value == 0) {
-        world.kill_player(sender);   // hp 0 + died_in_combat + agenda death_to_bed
-    } else {
-        p.set_health(static_cast<uint16_t>(value));
-        p.setDiedInCombat(false);    // revive: limpia el estado de muerte
+std::vector<ChatReply> ChatRouter::route_private(
+        const std::string& text, uint8_t sender, const std::string& sender_name,
+        const std::map<uint8_t, std::string>& names) {
+    const auto space = text.find(' ');
+    if (space == std::string::npos) {
+        return {{false, sender,
+                 ServerChat{0, "", "uso: @nombre mensaje", true}}};
     }
-    return "vida: " + std::to_string(value);
+
+    const std::string name = text.substr(1, space - 1);
+    const std::string message = trim(text.substr(space + 1));
+    if (message.empty()) {
+        return {{false, sender,
+                 ServerChat{0, "", "mensaje vacio", true}}};
+    }
+
+    uint8_t target = 0;
+    bool found = false;
+    for (const auto& [id, name_in_map] : names) {
+        if (name_in_map == name) {
+            target = id;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        return {{false, sender,
+                 ServerChat{0, "", "el jugador " + name + " no esta conectado", true}}};
+    }
+
+    std::vector<ChatReply> replies;
+    const ServerChat chat{sender, sender_name, text, false};
+    replies.push_back({false, target, chat});
+    if (target != sender) {
+        replies.push_back({false, sender, chat});
+    }
+    return replies;
 }
 
-std::string ChatRouter::cmd_energia(World& world, uint8_t sender,
-                                    const std::vector<std::string>& args) {
-    if (args.size() != 1) return "uso: /energia [cantidad]";
-    float value = 0.0f;
-    if (!parse_float(args[0], value)) return "cantidad invalida";
-    Player& p = world.get_player(sender);
-    value = std::clamp(value, 0.0f, p.get_max_energy());
-    p.set_energy(value);
-    if (value == 0.0f) {
-        world.faint_player(sender);  // igual que apply_consume_energy al agotarse
-    } else {
-        p.setFaintedByEnergy(false);
+void ChatRouter::add_merchant_offer(World& world, uint8_t sender,
+                                    std::vector<ChatReply>& replies) const {
+    const std::optional<ServerMarketOffer> offer =
+            merchant_commands_.offer_for(world, sender);
+    if (!offer.has_value()) {
+        return;
     }
-    return "energia: " + std::to_string(static_cast<int>(value));
+    replies.push_back({false, sender, *offer});
 }
 
-std::string ChatRouter::cmd_oro(World& world, uint8_t sender,
-                                const std::vector<std::string>& args) {
-    if (args.size() != 1) return "uso: /oro [cantidad]";
-    int delta = 0;
-    if (!parse_int(args[0], delta)) return "cantidad invalida";
-    Player& p = world.get_player(sender);
-    // Acota el delta antes de sumar: sin esto la suma puede desbordar un int.
-    delta = std::clamp(delta, -65535, 65535);
-    int nuevo = std::clamp(static_cast<int>(p.get_gold()) + delta, 0, 65535);
-    p.set_gold(static_cast<uint16_t>(nuevo));
-    return "oro: " + std::to_string(nuevo);
-}

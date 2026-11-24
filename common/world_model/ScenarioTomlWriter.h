@@ -2,8 +2,7 @@
 
 #include <string>
 
-#include <toml++/toml.hpp>
-
+#include "world_model/FieldWriter.h"
 #include "world_model/Scenario.h"
 #include "world_model/WorldVocabulary.h"
 
@@ -14,7 +13,7 @@ public:
 	std::string write(const Scenario& scenario) const;
 
 private:
-	toml::table writeScenario(const Scenario& scenario) const;
+	FieldWriter fields_;
 	WorldVocabulary vocabulary_;
 };
 

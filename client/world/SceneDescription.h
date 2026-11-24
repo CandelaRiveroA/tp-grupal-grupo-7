@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <map>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -80,6 +82,12 @@ struct ElementPlacement {
 	// de día y la de noche ocupan la misma celda). El filtro lo
 	// aplica el render con visibleAt; el índice espacial no cambia.
 	std::optional<TimeOfDay> when = std::nullopt;
+	// ¿Se ordena en profundidad con las entidades (el jugador pasa por
+	// detrás si está más arriba que su base)? Es para lo que se ve "de
+	// pie" sobre el piso: árboles, edificios, muebles. Por defecto no:
+	// el fondo y los pisos van siempre debajo de todo (el caso de
+	// scenes.toml).
+	bool depthSorted = false;
 
 	// ¿Se dibuja en el momento dado? Sin `when`, siempre: el
 	// elemento es decoración de cualquier momento del día.
@@ -95,14 +103,87 @@ struct SceneSpawns {
 	bool minerals = false;
 };
 
+// Punto de colocación que dice el mapa (marker del editor): qué es
+// (el texto del vocabulario: "player_spawn", "bed", "merchant_pierre")
+// y en qué celda. DATOS: qué hacer con cada kind lo decide quien lo usa.
+struct SceneMarker {
+	std::string kind;
+	GridCell cell;
+};
+
+// Paso a otro mapa (portal del editor): kind del vocabulario, celda
+// donde está y a qué mapa y celda lleva.
+struct ScenePortal {
+	std::string kind;
+	GridCell cell;
+	std::string targetMap;
+	GridCell targetCell;
+};
+
+// Qué pasa al tocar una estructura (edificio del editor). Es vocabulario
+// del cliente; el destino lo dice el overlay.
+enum class StructureAction {
+	None,
+	// Abre el popup de un NPC de npcs.toml (el contenido del popup).
+	Popup,
+	// Pide pasar a otro mapa (`target` = id del mapa).
+	EnterMap,
+};
+
+// Edificio que colocó el editor (cabaña, mercado, centro comunitario):
+// su rol del vocabulario, el rectángulo de celdas que ocupa, la puerta y
+// qué elemento de la escena lo dibuja (su caja de click es la del dibujo).
+struct SceneStructure {
+	std::string role;
+	GridCell at;
+	GridSpan span;
+	std::optional<GridCell> door;
+	std::size_t elementIndex = 0;
+	StructureAction action = StructureAction::None;
+	std::string target;
+};
+
+// Una celda de una capa de piso: qué hoja (índice en `TileLayer::
+// tilesets`, -1 = vacía) y qué celda de esa hoja se dibuja en ella.
+struct LayerCell {
+	int tilesetIndex = -1;
+	GridCell sheetCell{0, 0};
+};
+
+// Pasada de dibujo de una capa de tiles respecto a las entidades y objetos.
+enum class LayerPass {
+	Background,
+	Foreground,
+};
+
+// Capa de tiles en grilla: UNA celda de arte por celda lógica del mapa
+// (el piso y los caminos del editor). `cells` es row-major, de tamaño
+// size.columns * size.rows. A diferencia de los elementos, no se indexa
+// por chunk: el dibujo recorre solo el rango visible (TileLayerLayout).
+struct TileLayer {
+	GridSpan size{0, 0};
+	std::vector<std::string> tilesets;
+	std::vector<LayerCell> cells;
+	LayerPass pass = LayerPass::Background;
+};
+
 struct SceneDescription {
 	Color floorColor;
 	GridSpan grid;
 	int cellPixelSize;
 	std::unordered_map<std::string, TileSetDef> tilesets;
+	// Capas de piso, de abajo hacia arriba: se dibujan antes que los
+	// elementos. Vacío = la escena no usa piso en grilla (scenes.toml).
+	std::vector<TileLayer> layers;
 	std::vector<ElementPlacement> elements;
 	std::vector<std::string> soundCues;
 	SceneSpawns spawns;
+	std::vector<SceneMarker> markers;
+	std::vector<ScenePortal> portals;
+	std::vector<SceneStructure> structures;
+	// Celda por defecto de cada NPC (por id de npcs.toml) que sale de
+	// los markers del mapa. La fuente de estado la pisa con la suya.
+	std::map<std::string, GridCell> npcCells;
 };
 
 }

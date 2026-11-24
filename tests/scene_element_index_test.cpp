@@ -32,8 +32,10 @@ ElementPlacement tileElement(int column, int row) {
 }
 
 TEST(SceneElementIndexTest, QueryReturnsOnlyVisibleElementsInSceneOrder) {
-	SceneDescription scene{Color{0, 0, 0, 255}, GridSpan{100, 100}, 32,
-			       {}, {}, {}, {}};
+	SceneDescription scene;
+	scene.floorColor = Color{0, 0, 0, 255};
+	scene.grid = GridSpan{100, 100};
+	scene.cellPixelSize = 32;
 	scene.tilesets["tiles"] = TileSetDef{"sheet.png", 16, 16};
 	scene.elements.push_back(tileElement(0, 0));
 	scene.elements.push_back(tileElement(50, 50));
@@ -49,8 +51,10 @@ TEST(SceneElementIndexTest, QueryReturnsOnlyVisibleElementsInSceneOrder) {
 }
 
 TEST(SceneElementIndexTest, RebuildReplacesThePreviousIndex) {
-	SceneDescription scene{Color{0, 0, 0, 255}, GridSpan{100, 100}, 32,
-			       {}, {}, {}, {}};
+	SceneDescription scene;
+	scene.floorColor = Color{0, 0, 0, 255};
+	scene.grid = GridSpan{100, 100};
+	scene.cellPixelSize = 32;
 	scene.tilesets["tiles"] = TileSetDef{"sheet.png", 16, 16};
 	scene.elements.push_back(tileElement(50, 50));
 

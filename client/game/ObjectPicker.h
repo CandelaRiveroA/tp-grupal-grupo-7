@@ -17,12 +17,13 @@ struct PickTarget {
 		Entity,
 		DroppedItem,
 		Crop,
+		Furniture,
 	};
 
 	Kind kind = Kind::None;
 
 	// Índice en la lista de la vista (entities / droppedItems /
-	// plantedCrops).
+	// plantedCrops / placedFurniture).
 	std::size_t index = 0;
 };
 

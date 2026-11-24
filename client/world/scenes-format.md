@@ -208,3 +208,43 @@ sounds      = ["chicken_cluck"]
 
 Recordá: el orden en el archivo es el orden de pintado. Si la pared debe
 quedar por encima del piso, ponela **después** en la lista.
+
+---
+
+## 6. Mapas del editor y `overlay.toml`
+
+Además de las salas de este archivo, el cliente puede dibujar los **mapas
+que guarda el editor** (`world.toml`, formato de `common/world_model/`).
+Si `world.toml` no existe, el cliente funciona solo con `scenes.toml`,
+como siempre. Si existe, sus mapas (`farm`, `town`, `market`, `cabin`,
+...) ganan sobre las salas de `scenes.toml` con el mismo id.
+
+El editor decide **dónde** está cada cosa. `overlay.toml` (opcional, mismo
+directorio de assets) dice lo que el editor no puede decir:
+
+| Sección | Qué hace |
+|---|---|
+| `[world] scale` | px de pantalla por px de arte (un solo valor para todo el mapa; default 2). La celda lógica es `tile_size * scale`. |
+| `[tilesets.<n>]` | hojas propias del cliente (misma sintaxis que arriba) para decoraciones iniciales y variantes. No pueden redefinir una hoja del editor con otra imagen. |
+| `[decorations."<tileset:col,row>"] night_tile` | la decoración que el editor puso con ese tile de origen se dibuja de día con su tile y de noche con `night_tile` (misma pieza y tamaño). |
+| `[decorations."..."] enter = { rows, facing, marker }` | la decoración es "entrable" (la cama): `rows` son las filas que tapan al jugador y la celda donde queda acostado sale del marker `marker` (default `bed`) del mapa, no se copia a mano. No se combina con `night_tile`. |
+| `[markers.<kind>] npc` | el NPC de `npcs.toml` que se ubica en ese marker (`merchant_pierre` -> `pierre`). Es su celda por defecto: la que mande el server la pisa. |
+| `[roles.<role>] action, target` | qué hace el click sobre un edificio de ese rol: `popup` (abre el popup del NPC `target` de `npcs.toml`) o `enter_map` (pide pasar al mapa `target`). |
+| `[[maps.<id>.elements]]` | decoraciones **iniciales** de un mapa (lo que el cliente pone en el primer arranque). Misma sintaxis que los elementos de una sala; solo pueden usar hojas de `[tilesets.*]` de este archivo. |
+
+Reglas que se respetan al armar la escena (si no, `ConfigError` con la
+categoría y el path de la clave que falló):
+
+- **Coherencia en celdas.** Una celda del editor es una celda del server y
+  de la escena. Un objeto de `size = [w, h]` ocupa exactamente `w x h`
+  celdas. La celda de arte de cada hoja debe dividir exacto a la celda
+  lógica (si no, no se deforma: es un error).
+- **Orden.** Piso (`ground`), caminos (`paths`), objetos del editor en el
+  orden del archivo y, al final, las decoraciones iniciales del overlay.
+- **Profundidad.** Los objetos del editor se ordenan con las entidades por
+  la fila de su base: el jugador pasa por detrás de un árbol y por delante
+  si está más abajo. Las decoraciones iniciales del overlay van debajo de
+  todo, como cualquier elemento de este archivo.
+- **Avisos.** Una entrada del overlay que no coincide con nada (un tile mal
+  escrito, un mapa o rol que no existen) no frena el juego: se avisa por el
+  log con su path.

@@ -2,6 +2,7 @@
 #define SERVER_COMMANDS_CHAT_COMMAND_H
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -9,6 +10,9 @@
 #include "common/common_server_status.h"
 #include "common/common_command.h"
 #include "domain/map/world.h"
+#include "commands/cmd/player_commands.h"
+#include "commands/cmd/community_commands.h"
+#include "commands/cmd/merchant_commands.h"
 
 // Entrega a realizar sobre la cola de un jugador (o broadcast a todos).
 struct ChatReply {
@@ -29,23 +33,22 @@ public:
                                  const std::map<uint8_t, std::string>& names);
 
 private:
-    using Handler = std::string (ChatRouter::*)(World&, uint8_t,
-                                               const std::vector<std::string>&);
+    using Handler = std::function<std::string(World&, uint8_t,
+                                              const std::vector<std::string>&)>;
     std::map<std::string, Handler> handlers_;
-
-    std::string cmd_vida(World& world, uint8_t sender,
-                         const std::vector<std::string>& args);
-    std::string cmd_energia(World& world, uint8_t sender,
-                            const std::vector<std::string>& args);
-    std::string cmd_oro(World& world, uint8_t sender,
-                        const std::vector<std::string>& args);
+    commands::PlayerCommands player_commands_;
+    commands::CommunityCommands community_commands_;
+    commands::MerchantCommands merchant_commands_;
+    std::vector<ChatReply> route_slash(const std::string& text, uint8_t sender,
+                                       World& world);
+    std::vector<ChatReply> route_private(const std::string& text, uint8_t sender,
+                                         const std::string& sender_name,
+                                         const std::map<uint8_t, std::string>& names);
+    void add_merchant_offer(World& world, uint8_t sender,
+                            std::vector<ChatReply>& replies) const;
 
     static std::vector<std::string> split(const std::string& s);
     static std::string trim(const std::string& s);
-    // Parseo de un argumento numérico único: false si no es un número válido
-    // o si dejó basura después (p. ej. "12abc"). El float descarta nan/inf.
-    static bool parse_int(const std::string& s, int& out);
-    static bool parse_float(const std::string& s, float& out);
 };
 
 #endif  // SERVER_COMMANDS_CHAT_COMMAND_H

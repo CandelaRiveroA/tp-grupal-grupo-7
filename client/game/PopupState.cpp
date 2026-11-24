@@ -10,6 +10,13 @@ void PopupState::showQuestion() {
 
 void PopupState::showWaiting(const int ready, const int total) {
     giftSenderName_.clear();
+    // Solo, no hay a quién esperar: el server ya cierra el día y lo que
+    // sigue es la pantalla negra con el OK. Mostrar "(1/1)" en el medio
+    // sería un cartel sin sentido.
+    if (total <= 1) {
+        view_ = PopupView::Hidden;
+        return;
+    }
     waitingReady_ = ready;
     waitingTotal_ = total;
     view_ = PopupView::Waiting;
@@ -26,7 +33,10 @@ void PopupState::showSleepState(const int sleeping, const int total,
         showWaiting(sleeping, total);
         return;
     }
-    view_ = PopupView::Question;
+    // showQuestion fija también la COPIA de la pregunta: sin eso quedaba
+    // la del popup anterior (p. ej. "¿Avanzamos al siguiente día?", que no
+    // tiene opciones) y la pregunta salía sin Sí/No ni forma de contestar.
+    showQuestion();
 }
 
 void PopupState::setWaitingCancelable(const bool cancelable) {

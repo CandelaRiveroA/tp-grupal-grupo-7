@@ -35,6 +35,14 @@ enum class ServerMessageType : uint8_t {
     Chat = 23,
     GiftRequest = 24,
     GiftAnswered = 25,
+    SetCompleted = 26,
+    Victory = 27,
+    Gold = 28,
+    NpcPlacement = 29,
+    MarketOffer = 30,
+    MapChange = 31,
+    PlayerHeld = 32,
+    GiftAccepted = 33,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -72,6 +80,9 @@ struct ServerStatus {
 
 struct ServerWelcome {
     uint8_t player_id;
+    std::string worldName;
+    ServerWelcome(uint8_t player_id, const std::string& worldName = {}):
+            player_id(player_id), worldName(worldName) {}
 };
 
 struct ServerLeave {
@@ -247,11 +258,60 @@ struct ServerGiftRequest {
 // Evento sin payload, igual que ServerDayEnd.
 struct ServerGiftAnswered {};
 
+struct ServerSetCompleted {
+    uint8_t set_id;
+};
+
+struct ServerVictory {};
+
+struct ServerGold {
+    uint16_t gold;
+};
+
+struct ServerNpcPlacement {
+    std::string id;
+    uint16_t x;
+    uint16_t y;
+};
+
+// Id del mapa actual del jugador: el cliente cambia de escena por él.
+struct ServerMapChange {
+    std::string mapId;
+};
+
+enum class ServerMarketSide : uint8_t { Sells = 0, Buys = 1 };
+
+struct ServerMarketEntry {
+    std::string content_id;
+    std::string label;
+    ServerMarketSide side;
+    bool has_price;
+    uint16_t price;
+};
+
+struct ServerMarketOffer {
+    std::string merchant_id;
+    std::vector<ServerMarketEntry> entries;
+};
+
+// Estado público del objeto seleccionado; content_id vacío = manos libres.
+struct ServerPlayerHeld {
+    uint8_t player_id;
+    std::string content_id;
+};
+
+// Evento emitido solo después de transferir el regalo correctamente.
+struct ServerGiftAccepted {
+    uint8_t receiver_id;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat, ServerGiftRequest, ServerGiftAnswered>;
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
+                     ServerGold, ServerNpcPlacement, ServerMarketOffer, ServerMapChange,
+                     ServerPlayerHeld, ServerGiftAccepted>;
 
 #endif

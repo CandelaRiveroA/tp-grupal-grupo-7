@@ -20,12 +20,14 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 			 const TilesetCache& tilesets, QWidget* parent)
 	: QWidget(parent), catalog_(catalog), tilesets_(tilesets) {
 	categoryCombo_ = new QComboBox(this);
+	categoryCombo_->setObjectName("editorCombo");
 	for (const auto& [category, label] : catalog_.categories()) {
 		categoryCombo_->addItem(QString::fromStdString(label),
 					QString::fromStdString(category));
 	}
 
 	list_ = new QListWidget(this);
+	list_->setObjectName("paletteList");
 	list_->setViewMode(QListView::IconMode);
 	list_->setMovement(QListView::Static);
 	list_->setResizeMode(QListView::Adjust);
@@ -63,6 +65,10 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 			}
 			const std::string id =
 				item->data(Qt::UserRole).toString().toStdString();
+			if (id == "__bed__") {
+				emit bedSelected();
+				return;
+			}
 			if (const worldmodel::PrefabDef* prefab =
 				    catalog_.find(id)) {
 				emit prefabSelected(prefab);
@@ -116,5 +122,13 @@ void PaletteView::populateCategory(const std::string& category) {
 			QIcon(centeredPreview(sprite)), label, list_);
 		item->setToolTip(label);
 		item->setData(Qt::UserRole, QString::fromStdString(prefab->id));
+	}
+	if (category == "estructuras_granja") {
+		auto* bedItem = new QListWidgetItem(
+			QIcon(centeredPreview(
+				QPixmap(":/editor/ui/bed_marker.png"))),
+			"Cama (marcador)", list_);
+		bedItem->setToolTip("Cama (marcador)");
+		bedItem->setData(Qt::UserRole, QString("__bed__"));
 	}
 }

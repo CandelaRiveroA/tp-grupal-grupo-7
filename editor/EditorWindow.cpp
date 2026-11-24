@@ -1,13 +1,15 @@
 #include "EditorWindow.h"
 
-#include <QMessageBox>
+#include <QIcon>
 
 #include <exception>
 #include <filesystem>
 
+#include "EditorDialog.h"
 #include "NewWorldDialog.h"
 #include "WelcomeView.h"
 #include "WorkspaceView.h"
+#include "qt_theme/GameCursor.h"
 #include "world_model/ScenarioLibraryLoader.h"
 #include "world_model/WorldFactory.h"
 
@@ -19,12 +21,14 @@ EditorWindow::EditorWindow(const std::string& scenariosDir,
 			scenarios_ = worldmodel::ScenarioLibraryLoader()
 					     .loadFromDirectory(scenariosDir);
 		} catch (const std::exception& error) {
-			QMessageBox::critical(
-				this, "Error al cargar escenarios",
+			EditorDialog(this).info(
+				"Error al cargar escenarios",
 				QString::fromStdString(error.what()));
 		}
 	}
 	setWindowTitle("Taller Editor");
+	setCursor(GameCursor().cursor());
+	setWindowIcon(QIcon(":/editor/ui/editor_welcome_emblem.png"));
 
 	pages_ = new QStackedWidget(this);
 	setMinimumSize(800, 560);
@@ -50,8 +54,8 @@ void EditorWindow::openWorld(const std::string& name) {
 		workspace_->setWorld(worlds_.load(name));
 		pages_->setCurrentWidget(workspace_);
 	} catch (const std::exception& error) {
-		QMessageBox::critical(this, "Error al abrir el mundo",
-				      QString::fromStdString(error.what()));
+		EditorDialog(this).info("Error al abrir el mundo",
+					QString::fromStdString(error.what()));
 	}
 }
 
@@ -64,11 +68,12 @@ void EditorWindow::newWorld() {
 		const worldmodel::WorldFactory factory;
 		workspace_->setWorld(factory.makeDefault(
 			dialog.worldName(), scenarios_,
+			workspace_->catalog(),
 			factory.firstOfEachKind(scenarios_)));
 		pages_->setCurrentWidget(workspace_);
 	} catch (const std::exception& error) {
-		QMessageBox::critical(
-			this, "No se pudo crear el mundo",
+		EditorDialog(this).info(
+			"No se pudo crear el mundo",
 			QString::fromStdString(error.what()));
 	}
 }

@@ -59,6 +59,9 @@ std::string descriptionOf(IssueCode code) {
 
 std::string IssueFormatter::format(const ValidationIssue& issue) const {
 	std::string message = descriptionOf(issue.code);
+	if (!issue.detail.empty()) {
+		message += ": " + issue.detail;
+	}
 	if (!issue.mapId.empty()) {
 		message += " (mapa: " + issue.mapId + ")";
 	}

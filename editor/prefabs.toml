@@ -636,7 +636,72 @@ id = "casa_granja_1"
 name = "Casa de Granja (Nivel 1)"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
 tile = "prefab_estructuras_granja:0,0"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_2"
+name = "Casa de Granja (Azul)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:0,9"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_3"
+name = "Casa de Granja (Verde)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:9,9"
+size = [9, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, true , true , true,
+  true , true , true , true , false, false, false, true , true,
+]
+
+[[prefabs]]
+id = "casa_granja_4"
+name = "Casa de Granja (Violeta)"
+category = "estructuras_granja"
+category_label = "Estructuras de granja"
+role = "cabin"
+door = [5, 7]
+tile = "prefab_estructuras_granja:18,9"
 size = [9, 9]
 collision_grid = [
   false, false, false, false, false, false, false, false, false,
@@ -655,6 +720,8 @@ id = "gallinero"
 name = "Gallinero (Coop)"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
+role = "barn"
+door = [1, 6]
 tile = "prefab_estructuras_granja:9,0"
 size = [6, 7]
 collision_grid = [
@@ -664,7 +731,7 @@ collision_grid = [
   false, false, false, false, false, false,
   true , true , true , true , true , true,
   true , true , true , true , true , true,
-  true , true , true , true , true , true,
+  true , false, true , true , true , true,
 ]
 
 [[prefabs]]
@@ -876,6 +943,7 @@ id = "casa_naranja_emily"
 name = "Casa Naranja (estilo Emily)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
+role = "building"
 tile = "prefab_casas_y_comercios:0,0"
 size = [8, 9]
 collision_grid = [
@@ -895,6 +963,7 @@ id = "casa_azul_jodi"
 name = "Casa Azul Náutica (estilo Sam/Jodi)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
+role = "building"
 tile = "prefab_casas_y_comercios:8,0"
 size = [8, 11]
 collision_grid = [
@@ -916,6 +985,7 @@ id = "casa_gris_alex"
 name = "Casa Gris de Piedra (estilo Evelyn/Alex)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
+role = "building"
 tile = "prefab_casas_y_comercios:16,0"
 size = [9, 10]
 collision_grid = [
@@ -936,6 +1006,7 @@ id = "cabana_verde"
 name = "Cabaña Verde (techo musgo)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
+role = "building"
 tile = "prefab_casas_y_comercios:0,11"
 size = [8, 9]
 collision_grid = [
@@ -951,29 +1022,12 @@ collision_grid = [
 ]
 
 [[prefabs]]
-id = "herreria"
-name = "Herrería (Blacksmith)"
-category = "casas_y_comercios"
-category_label = "Casas y comercios"
-tile = "prefab_casas_y_comercios:8,11"
-size = [5, 8]
-collision_grid = [
-  false, false, false, false, false,
-  false, false, false, false, false,
-  false, false, false, false, false,
-  false, false, false, false, false,
-  true , true , true , true , true,
-  true , true , true , true , true,
-  true , true , true , true , true,
-  true , true , true , true , true,
-]
-
-[[prefabs]]
 id = "saloon"
 name = "Taberna (Stardrop Saloon)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
-tile = "prefab_casas_y_comercios:13,11"
+role = "building"
+tile = "prefab_casas_y_comercios:8,11"
 size = [7, 9]
 collision_grid = [
   false, false, false, false, false, false, false,
@@ -992,7 +1046,8 @@ id = "museo_biblioteca"
 name = "Museo y Biblioteca"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
-tile = "prefab_casas_y_comercios:20,11"
+role = "building"
+tile = "prefab_casas_y_comercios:15,11"
 size = [9, 8]
 collision_grid = [
   false, false, false, false, false, false, false, false, false,
@@ -1010,7 +1065,8 @@ id = "trailer"
 name = "Casa Rodante (Tráiler)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
-tile = "prefab_casas_y_comercios:0,20"
+role = "building"
+tile = "prefab_casas_y_comercios:24,11"
 size = [8, 4]
 collision_grid = [
   false, false, false, false, false, false, false, false,
@@ -1024,7 +1080,8 @@ id = "centro_comunitario"
 name = "Centro Comunitario (Restaurado)"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
-tile = "prefab_casas_y_comercios:8,20"
+role = "community_center"
+tile = "prefab_casas_y_comercios:0,20"
 size = [12, 10]
 collision_grid = [
   false, false, false, false, false, false, false, false, false, false, false, false,
@@ -1037,6 +1094,97 @@ collision_grid = [
   true , true , true , true , true , true , true , true , true , true , true , true,
   true , true , true , true , true , true , true , true , true , true , true , true,
   true , true , true , true , true , false, false, true , true , true , true , true,
+]
+
+[[prefabs]]
+id = "carpinteria_de_robin"
+name = "Carpintería de Robin"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+role = "carpentry"
+door = [6, 12]
+tile = "prefab_casas_y_comercios:12,20"
+size = [15, 13]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  false, false, false, false, false, false, false, false, false, false, true , false, false, false, false,
+]
+
+[[prefabs]]
+id = "herreria_de_clint"
+name = "Herrería de Clint"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+role = "blacksmith"
+door = [3, 8]
+tile = "prefab_casas_y_comercios:0,33"
+size = [12, 9]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true , true , true , false,
+  true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , false, true , true , true , true,
+  true , true , true , true , true , true , true , false, true , true , true , true,
+  true , true , true , false, true , false, false, false, false, false, false, false,
+]
+
+[[prefabs]]
+id = "tienda_de_pierre"
+name = "Tienda de Pierre"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+role = "general_store"
+door = [5, 9]
+door_width = 2
+tile = "prefab_casas_y_comercios:12,33"
+size = [10, 10]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , false, false, true , true , true,
+]
+
+[[prefabs]]
+id = "rancho_de_marnie"
+name = "Rancho de Marnie"
+category = "casas_y_comercios"
+category_label = "Casas y comercios"
+role = "ranch"
+door = [5, 9]
+tile = "prefab_casas_y_comercios:0,43"
+size = [18, 10]
+collision_grid = [
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true , true,
+  true , true , true , true , false, false, true , true , true , true , true , true , true , true , true , true , true , true,
 ]
 
 [[prefabs]]

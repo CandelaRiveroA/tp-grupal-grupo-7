@@ -6,17 +6,19 @@
 #include <QVBoxLayout>
 #include <utility>
 
+#include "core/Constants.h"
 #include "core/WindowConfig.h"
 #include "qt/screens/CharacterScreen.h"
 #include "qt/screens/JoinCodeScreen.h"
 #include "qt/screens/MainMenuScreen.h"
 #include "qt/screens/SaveListScreen.h"
 #include "qt/screens/UsernameScreen.h"
+#include "qt/services/LocalWorldService.h"
 #include "qt/services/NetworkSessionService.h"
+#include "qt/services/WorldService.h"
 #include "qt/services/fakes/FakeSaveService.h"
-#include "qt/services/fakes/FakeWorldService.h"
 #include "qt/services/CharacterSpriteComposer.h"
-#include "qt/theme/GameCursor.h"
+#include "qt_theme/GameCursor.h"
 
 LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 			 const world::CharacterCatalog& characters,
@@ -49,7 +51,7 @@ LobbyWindow::LobbyWindow(const core::WindowConfig& config,
 	connect(menu, &MainMenuScreen::newGameRequested, this,
 		&LobbyWindow::onNewGameRequested);
 
-    worldService_ = new FakeWorldService(std::nullopt, this);
+    worldService_ = new LocalWorldService(core::kWorldsDir, this);
 
 	sessions_ = new NetworkSessionService(this);
 	auto* sessionService = sessions_;
@@ -133,6 +135,15 @@ void LobbyWindow::onCharacterConfirmed(CharacterSelection selection) {
     core::SessionConfig session;
     session.partida = selection.gameName;
     session.personaje = selection.characterName;
+    session.worldName = selection.worldName;
+    if (session.worldName.empty()) {
+        // shortcut: mientras el servidor no devuelva worldName al unirse,
+        // usar el primer mundo válido disponible en worlds/.
+        const std::vector<WorldSummary> available = worldService_->worlds();
+        if (!available.empty()) {
+            session.worldName = available.front().name;
+        }
+    }
     acceptSelection(std::move(session));
 }
 
@@ -144,6 +155,7 @@ void LobbyWindow::onSaveLoaded(SaveSummary save) {
     core::SessionConfig session;
     session.partida = save.gameName;
     session.personaje = character;
+    session.worldName = save.worldName;
     acceptSelection(std::move(session));
 }
 

@@ -13,7 +13,7 @@
 #include "qt/theme/JoinCodeRects.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/widgets/PromptForm.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 JoinCodeScreen::JoinCodeScreen(QWidget* parent, core::MusicControl* music)
 	: Screen(parent)

@@ -8,6 +8,7 @@
 #include "toml/TomlDocument.h"
 #include "world_model/FieldReader.h"
 #include "world_model/PrefabCatalog.h"
+#include "world_model/WorldVocabulary.h"
 
 namespace worldmodel {
 
@@ -26,6 +27,7 @@ private:
 
 	const tomlcfg::TomlDocument& doc_;
 	FieldReader fields_;
+	WorldVocabulary vocabulary_;
 };
 
 }

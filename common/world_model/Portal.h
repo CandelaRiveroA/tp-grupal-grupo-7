@@ -21,6 +21,8 @@ struct Portal {
 	TilePos cell;
 	std::string targetMap;
 	TilePos targetCell;
+	int width = 1;
+	int height = 1;
 };
 
 }

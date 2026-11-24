@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "qt/theme/TitleBackdrop.h"
+#include "qt_theme/TitleBackdrop.h"
 
 enum class ScreenId {
 	Username,

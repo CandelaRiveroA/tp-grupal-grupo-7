@@ -114,16 +114,20 @@ paths = [
 `true` significa **bloqueado** y `false` **caminable**. `paths` no abre ni
 cierra paso; es solo presentación dentro del editor.
 
-### Los 15 mapas obligatorios
+### Mapas obligatorios
+
+Según la cantidad `N` (`1..4`) de cabañas (`cabin`) colocadas en `farm`, el mundo exige `14 + N` mapas:
 
 | Id | `kind` | Contenido mínimo |
 |---|---|---|
-| `farm` | `farm` | Una cabaña, al menos un `player_spawn`, `town_entrance` y `dungeon_entrance`. |
+| `farm` | `farm` | Entre `1` y `4` cabañas (`cabin`) asociadas por orden a `cabin_1` … `cabin_N`, `town_entrance` y `dungeon_entrance`. |
 | `town` | `town` | Un mercado, un centro comunitario y `farm_entrance`. |
-| `cabin` | `cabin` | Al menos un `bed` y un `interior_exit`. |
+| `cabin_1` … `cabin_N` | `cabin` | Exactamente un `bed` (punto de spawn del jugador de esa cabaña) y un `interior_exit`. |
 | `market` | `market` | Marnie, Clint, Pierre y Robin (un marcador de cada uno) y un `interior_exit`. |
 | `community_center` | `community_center` | Un `interior_exit`. |
 | `dungeon_1` … `dungeon_10` | `dungeon` | Nivel correcto y los portales de la topología. |
+
+Los ids `cabin_1` … `cabin_4` están reservados: un `cabin_k` con `k > N` no se admite como mapa extra (`InvalidMapId`).
 
 ### Topología de la mazmorra
 
@@ -173,17 +177,17 @@ door = [0, 1]
 | `tile` | string | sí | Encoding no vacío `"tileset:col,row"`; el tileset debe existir. |
 | `cell` | `[int, int]` | sí | Celda superior izquierda `[columna, fila]`. |
 | `size` | `[int, int]` | no | `[ancho, alto]` en celdas. Default `[1, 1]`. |
-| `blocked` | bool | no | Si es `true`, todo el footprint bloquea. Default `false`. |
+| `blocked` | bool | no | Si es `true`, todo el footprint bloquea (si no tiene `collision_grid`). Default `false`. |
 | `door` | `[int, int]` | no | Celda absoluta de la puerta dentro de este mapa. |
+| `collision_grid` | `[bool]` | no | Máscara de colisión de `width * height` elementos por celda del objeto. |
 
 Reglas semánticas:
 
-- `farm` exige exactamente una `cabin`; `town` exige exactamente un
-  `market` y un `community_center`.
+- `farm` exige entre `1` y `4` objetos `cabin` (la k-ésima cabaña en `farm.objects` corresponde al interior `cabin_k`); `town` exige exactamente un `market` y un `community_center`.
 - Las cabañas, mercados y centros comunitarios deben tener `door`, y esa
   celda debe estar dentro del mapa y ser caminable.
 - El footprint completo debe quedar dentro del mapa.
-- Un objeto `blocked` aporta `true` a su footprint en `collision`.
+- Un objeto aporta su `collision_grid` (o todo su footprint si `blocked = true` y no tiene `collision_grid`) a `collision`.
 
 ---
 
@@ -193,8 +197,8 @@ Los marcadores son puntos de juego, no tiles. Se escriben como array de
 tablas:
 
 ```toml
-[[maps.farm.markers]]
-kind = "player_spawn"
+[[maps.cabin_1.markers]]
+kind = "bed"
 cell = [2, 1]
 ```
 
@@ -205,17 +209,15 @@ cell = [2, 1]
 
 | `kind` | Dónde se exige |
 |---|---|
-| `player_spawn` | `farm`, al menos uno. |
-| `bed` | `cabin`, al menos uno. |
+| `bed` | `cabin_1` … `cabin_N`, exactamente uno por cabaña (es el spawn de ese jugador). |
 | `merchant_marnie` | `market`, exactamente uno. |
 | `merchant_clint` | `market`, exactamente uno. |
 | `merchant_pierre` | `market`, exactamente uno. |
 | `merchant_robin` | `market`, exactamente uno. |
 
-En los 15 mapas obligatorios, un marcador de otro tipo es
-`UnexpectedMarker`. Los mapas extra aceptan cualquier marcador. Todo
-marcador debe estar dentro del mapa y en una celda caminable. Spawn y
-camas pueden repetirse; los comerciantes de `market`, no.
+En los mapas obligatorios, un marcador de otro tipo es
+`UnexpectedMarker` (`farm` no admite marcadores). Los mapas extra aceptan cualquier marcador. Todo
+marcador debe estar dentro del mapa y en una celda caminable.
 
 ---
 
@@ -245,20 +247,20 @@ target_cell = [0, 1]
 | `dungeon_entrance` | `farm` | `dungeon_1` |
 | `dungeon_exit` | `dungeon_1` … `dungeon_10` | `farm` |
 | `stairs_down` | `dungeon_1` … `dungeon_9` | `dungeon_{n+1}` |
-| `interior_exit` | `cabin`, `market`, `community_center` | `farm` desde cabaña; `town` desde mercado y centro |
+| `interior_exit` | `cabin_1` … `cabin_N`, `market`, `community_center` | `farm` desde cabaña; `town` desde mercado y centro |
 | `link` | cualquier mapa | cualquier mapa existente |
 
 Reglas semánticas:
 
 - `farm` exige un `town_entrance` y un `dungeon_entrance`.
 - `town` exige un `farm_entrance`.
-- `cabin`, `market` y `community_center` exigen un `interior_exit`.
+- `cabin_1` … `cabin_N`, `market` y `community_center` exigen un `interior_exit`.
 - Cada `dungeon_n` exige un `dungeon_exit`; los niveles 1..9 exigen
   además un `stairs_down`.
 - Los portales fijos son únicos en su mapa. Puede haber cualquier
   cantidad de `link`.
 - `interior_exit` debe apuntar exactamente a la celda `door` del objeto
-  correspondiente en el mapa destino.
+  correspondiente en el mapa destino (para `cabin_k`, la k-ésima cabaña de `farm.objects`).
 - Origen y destino deben estar dentro de sus mapas y ser caminables.
 - Los portales son dirigidos: para ida y vuelta se colocan dos `link`.
 
@@ -355,10 +357,6 @@ cell = [0, 0]
 size = [2, 1]
 blocked = true
 door = [0, 1]
-
-[[maps.farm.markers]]
-kind = "player_spawn"
-cell = [2, 1]
 
 [[maps.farm.portals]]
 kind = "town_entrance"
@@ -491,8 +489,8 @@ target_cell = [1, 0]
 
 1. Agregar `[[maps.<id>.markers]]` con `kind` y `cell`.
 2. Usar una celda dentro del mapa y caminable.
-3. Respetar las reglas de la sección 6: spawn en `farm`, cama en
-   `cabin`, comerciantes únicos en `market`.
+3. Respetar las reglas de la sección 6: cama única (`bed`) en cada
+   `cabin_k`, comerciantes únicos en `market`.
 
 ### Agregar un portal
 

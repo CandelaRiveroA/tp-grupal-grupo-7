@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CharacterSheetRects.h"
-#include "TitleSpriteRects.h"
+#include "qt_theme/TitleSpriteRects.h"
 
 // Ventana exterior de madera (join_input_box.png a x2). Aloja exactamente
 // 4 ranuras de partida sin separacion extra.

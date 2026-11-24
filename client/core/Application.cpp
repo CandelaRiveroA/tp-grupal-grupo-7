@@ -45,6 +45,8 @@
 #include "world/SceneDescription.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
+#include "world_model/MapRules.h"
+#include "world_model/WorldRepository.h"
 
 namespace core {
 
@@ -160,6 +162,19 @@ int Application::runGame(SessionConfig session) {
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
+        std::string worldPath;
+        if (!session.worldName.empty()) {
+            if (!worldmodel::MapRules().isValidWorldName(session.worldName)) {
+                throw world::ConfigError(world::ConfigErrorKind::InvalidValue,
+                                         session.worldName);
+            }
+            const worldmodel::WorldRepository worlds(core::kWorldsDir);
+            worldPath = worlds.filePathFor(session.worldName);
+            if (!worlds.exists(session.worldName)) {
+                throw world::ConfigError(world::ConfigErrorKind::UnreadableInput,
+                                         worldPath);
+            }
+        }
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
                                 prompt, chat,
@@ -167,7 +182,7 @@ int Application::runGame(SessionConfig session) {
                                 // ahora los manda el server por red, y este
                                 // puntero apagado deja los disparadores de
                                 // prueba (teclas de test) inertes.
-                                hudOverlays, lighting, palettes, nullptr);
+                                hudOverlays, lighting, palettes, nullptr, worldPath);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

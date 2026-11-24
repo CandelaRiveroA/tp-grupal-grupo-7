@@ -7,11 +7,11 @@
 
 #include "core/MusicControl.h"
 #include "core/MusicTrack.h"
-#include "qt/theme/TitleSpriteRects.h"
+#include "qt_theme/TitleSpriteRects.h"
 #include "qt/theme/TitleSprites.h"
 #include "qt/theme/UsernameRects.h"
 #include "qt/widgets/PromptForm.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 UsernameScreen::UsernameScreen(QWidget* parent, core::MusicControl* music)
 	: Screen(parent)

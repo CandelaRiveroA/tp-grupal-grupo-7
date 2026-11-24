@@ -79,7 +79,8 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
 
 	// El piso en grilla (mapas del editor) va debajo de todo elemento.
-	layerPainter_.draw(scene, mapper, viewport);
+	layerPainter_.draw(scene, mapper, viewport,
+			   world::LayerPass::Background);
 
 	depth_.clear();
 	for (const std::uint32_t index : visibleElements_) {
@@ -149,6 +150,10 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 				    motion, actionResolver, animationTick,
 				    viewport);
 	}
+
+	// Capa frontal de los escenarios (mostradores, techos, copas): encima de entidades.
+	layerPainter_.draw(scene, mapper, viewport,
+			   world::LayerPass::Foreground);
 }
 
 void Renderer::drawElement(const world::SceneDescription& scene,

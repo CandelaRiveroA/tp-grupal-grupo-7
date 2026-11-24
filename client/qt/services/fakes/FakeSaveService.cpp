@@ -18,7 +18,7 @@ std::vector<SaveSummary> FakeSaveService::buildInitialSaves() const {
 	// el harness (hair 0..31, shirt 0..47, pants 0..6, accessory 0..19).
 	SaveSummary iris;
 	iris.id = 1;
-	iris.worldId = 1;
+	iris.worldName = "Valle Verde";
 	iris.gameName = "Granja Yesi Farm";
 	CharacterAppearance irisLook;
 	irisLook.hair = 5;
@@ -35,7 +35,7 @@ std::vector<SaveSummary> FakeSaveService::buildInitialSaves() const {
 
 	SaveSummary coop;
 	coop.id = 2;
-	coop.worldId = 1;
+	coop.worldName = "Valle Verde";
 	coop.gameName = "Granja prueba";
 	CharacterAppearance pruebaLook;
 	pruebaLook.hair = 17;
@@ -54,7 +54,7 @@ std::vector<SaveSummary> FakeSaveService::buildInitialSaves() const {
 
 	SaveSummary wake;
 	wake.id = 3;
-	wake.worldId = 2;
+	wake.worldName = "Mundo del editor";
 	wake.gameName = "Granja Bugisoft";
 	CharacterAppearance wakeLook;
 	wakeLook.hair = 12;

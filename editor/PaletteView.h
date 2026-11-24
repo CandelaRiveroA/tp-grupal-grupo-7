@@ -20,6 +20,7 @@ public:
 
 signals:
 	void prefabSelected(const worldmodel::PrefabDef* prefab);
+	void bedSelected();
 
 private:
 	void populateCategory(const std::string& category);

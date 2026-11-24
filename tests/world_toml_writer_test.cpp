@@ -50,4 +50,26 @@ TEST(WorldTomlWriterTest, OutputParses) {
 	EXPECT_NO_THROW(written(worldfixtures::loadMinimalWorld()));
 }
 
+TEST(WorldTomlWriterTest, WrapsGridArraysByMapWidth) {
+	const World world = worldfixtures::loadMinimalWorld();
+	const std::string text = WorldTomlWriter().write(world);
+	const auto farmPos = text.find("[maps.farm]");
+	ASSERT_NE(farmPos, std::string::npos);
+	const auto groundPos = text.find("ground = [", farmPos);
+	ASSERT_NE(groundPos, std::string::npos);
+	const auto groundEnd = text.find(']', groundPos);
+	ASSERT_NE(groundEnd, std::string::npos);
+	const std::string groundBlock =
+		text.substr(groundPos, groundEnd - groundPos + 1);
+	int newlines = 0;
+	for (const char ch : groundBlock) {
+		if (ch == '\n') {
+			++newlines;
+		}
+	}
+	const int height = world.maps.at("farm").height;
+	// 1 newline after '[' + height lines for rows.
+	EXPECT_EQ(newlines, height + 1);
+}
+
 }

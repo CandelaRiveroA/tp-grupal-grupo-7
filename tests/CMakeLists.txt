@@ -93,6 +93,7 @@ target_sources(taller_tests
     world_factory_test.cpp
     world_repository_test.cpp
     world_validator_test.cpp
+    prefab_catalog_test.cpp
     character_palette_loader_test.cpp
     enter_selection_test.cpp
     farming_test.cpp

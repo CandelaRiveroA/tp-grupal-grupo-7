@@ -9,6 +9,7 @@ namespace worldmodel {
 class PrefabCatalogLoader {
 public:
 	PrefabCatalog loadFromFile(const std::string& path) const;
+	PrefabCatalog loadFromString(const std::string& tomlText) const;
 };
 
 }

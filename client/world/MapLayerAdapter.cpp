@@ -11,14 +11,44 @@ namespace world {
 void MapLayerAdapter::add(const worldmodel::Map& map,
 			  const std::string& mapPath,
 			  SceneDescription& scene) const {
-	addLayer(map.ground, mapPath + ".ground", map, scene);
-	addLayer(map.paths, mapPath + ".paths", map, scene);
+	addLayer(map.ground, mapPath + ".ground", map, scene,
+		 LayerPass::Background);
+	addLayer(map.paths, mapPath + ".paths", map, scene,
+		 LayerPass::Background);
+	if (!map.front.empty()) {
+		addLayer(frontWithoutBuildings(map), mapPath + ".front", map,
+			 scene, LayerPass::Foreground);
+	}
+}
+
+worldmodel::TileGrid MapLayerAdapter::frontWithoutBuildings(
+	const worldmodel::Map& map) const {
+	worldmodel::TileGrid visible = map.front;
+	for (const auto& obj : map.objects) {
+		if (obj.role == worldmodel::ObjectRole::Decoration) {
+			continue;
+		}
+		for (int r = obj.cell.row; r < obj.cell.row + obj.height; ++r) {
+			for (int c = obj.cell.column;
+			     c < obj.cell.column + obj.width; ++c) {
+				if (!map.contains({c, r})) {
+					continue;
+				}
+				const std::size_t idx = map.cellIndex({c, r});
+				if (idx < visible.size()) {
+					visible[idx].reset();
+				}
+			}
+		}
+	}
+	return visible;
 }
 
 void MapLayerAdapter::addLayer(const worldmodel::TileGrid& grid,
 			       const std::string& path,
 			       const worldmodel::Map& map,
-			       SceneDescription& scene) const {
+			       SceneDescription& scene,
+			       const LayerPass pass) const {
 	const std::size_t cellCount =
 		static_cast<std::size_t>(map.width) *
 		static_cast<std::size_t>(map.height);
@@ -29,6 +59,7 @@ void MapLayerAdapter::addLayer(const worldmodel::TileGrid& grid,
 	TileLayer layer;
 	layer.size = {map.width, map.height};
 	layer.cells.assign(cellCount, LayerCell{});
+	layer.pass = pass;
 	bool hasTiles = false;
 	for (std::size_t i = 0; i < cellCount; ++i) {
 		if (!grid[i].has_value()) {

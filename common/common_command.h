@@ -17,7 +17,8 @@ enum class ClientMessageType : uint8_t {
     Wake = 5,
     Chat = 6,
     GiftResponse = 7,
-    ToggleWalking = 8
+    ToggleWalking = 8,
+    SelectSlot = 9
 };
 
 // Move: camina en la dirección dada (y la fija como facing).
@@ -67,9 +68,14 @@ struct GiftResponseMessage {
 // El servidor puede ignorar el estado manual si el jugador está gravemente herido.
 struct ToggleWalkingMessage {};
 
+// Selección del hotbar, incluso cuando todavía no se usa el objeto.
+struct SelectSlotMessage {
+    uint8_t slot;
+};
+
 using ClientMessage =
         std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage,
-                     GiftResponseMessage, ToggleWalkingMessage>;
+                     GiftResponseMessage, ToggleWalkingMessage, SelectSlotMessage>;
 
 }  // namespace protocol
 

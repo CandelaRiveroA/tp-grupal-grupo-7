@@ -40,6 +40,9 @@ enum class ServerMessageType : uint8_t {
     Gold = 28,
     NpcPlacement = 29,
     MarketOffer = 30,
+    MapChange = 31,
+    PlayerHeld = 32,
+    GiftAccepted = 33,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -77,6 +80,9 @@ struct ServerStatus {
 
 struct ServerWelcome {
     uint8_t player_id;
+    std::string worldName;
+    ServerWelcome(uint8_t player_id, const std::string& worldName = {}):
+            player_id(player_id), worldName(worldName) {}
 };
 
 struct ServerLeave {
@@ -268,6 +274,11 @@ struct ServerNpcPlacement {
     uint16_t y;
 };
 
+// Id del mapa actual del jugador: el cliente cambia de escena por él.
+struct ServerMapChange {
+    std::string mapId;
+};
+
 enum class ServerMarketSide : uint8_t { Sells = 0, Buys = 1 };
 
 struct ServerMarketEntry {
@@ -283,12 +294,24 @@ struct ServerMarketOffer {
     std::vector<ServerMarketEntry> entries;
 };
 
+// Estado público del objeto seleccionado; content_id vacío = manos libres.
+struct ServerPlayerHeld {
+    uint8_t player_id;
+    std::string content_id;
+};
+
+// Evento emitido solo después de transferir el regalo correctamente.
+struct ServerGiftAccepted {
+    uint8_t receiver_id;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
                      ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
-                     ServerGold, ServerNpcPlacement, ServerMarketOffer>;
+                     ServerGold, ServerNpcPlacement, ServerMarketOffer, ServerMapChange,
+                     ServerPlayerHeld, ServerGiftAccepted>;
 
 #endif

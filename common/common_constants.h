@@ -5,6 +5,10 @@
 
 #define kMaxChatLength 256
 
+// Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
+// Compartida entre el reloj del Match y el cheat /tiempo.
+#define kDayClockMinutes 1200
+
 // Nuevos enumeradores para el Tablero
 enum class Direction : uint8_t { 
     UP = 0, 

@@ -14,9 +14,12 @@ TileLayerPainter::TileLayerPainter(SheetCache& sheets) : sheets_(sheets) {}
 
 void TileLayerPainter::draw(const world::SceneDescription& scene,
 			    const world::ScenePixelMapper& mapper,
-			    const Viewport& viewport) {
+			    const Viewport& viewport,
+			    const world::LayerPass pass) {
 	for (const world::TileLayer& layer : scene.layers) {
-		drawLayer(layer, scene, mapper, viewport);
+		if (layer.pass == pass) {
+			drawLayer(layer, scene, mapper, viewport);
+		}
 	}
 }
 

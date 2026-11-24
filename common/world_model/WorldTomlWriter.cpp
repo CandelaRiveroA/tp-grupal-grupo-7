@@ -58,6 +58,14 @@ toml::table WorldTomlWriter::writeMap(const Map& map) const {
 	if (hasPaths) {
 		table.insert("paths", FieldWriter::writeGrid(map.paths));
 	}
+	const bool hasFront =
+		std::any_of(map.front.begin(), map.front.end(),
+			    [](const std::optional<TileRef>& tile) {
+				    return tile.has_value();
+			    });
+	if (hasFront) {
+		table.insert("front", FieldWriter::writeGrid(map.front));
+	}
 	if (!map.objects.empty()) {
 		table.insert("objects", writeObjects(map));
 	}
@@ -88,6 +96,9 @@ toml::array WorldTomlWriter::writeObjects(const Map& map) const {
 				     FieldWriter::writePair(
 					     object.door->column,
 					     object.door->row));
+			if (object.doorWidth > 1) {
+				entry.insert("door_width", object.doorWidth);
+			}
 		}
 		if (!object.collisionGrid.empty()) {
 			entry.insert("collision_grid",
@@ -125,6 +136,11 @@ toml::array WorldTomlWriter::writePortals(const Map& map) const {
 			     FieldWriter::writePair(
 				     portal.targetCell.column,
 				     portal.targetCell.row));
+		if (portal.width != 1 || portal.height != 1) {
+			entry.insert("size",
+				     FieldWriter::writePair(portal.width,
+							    portal.height));
+		}
 		array.push_back(std::move(entry));
 	}
 	return array;

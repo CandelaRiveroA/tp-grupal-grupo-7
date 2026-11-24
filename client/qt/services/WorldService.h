@@ -17,6 +17,7 @@ public:
 	~WorldService() override;
 
 	virtual void requestWorlds() = 0;
+	virtual std::vector<WorldSummary> worlds() const = 0;
 
 signals:
 	void worldsReady(std::vector<WorldSummary> worlds);

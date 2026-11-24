@@ -5,7 +5,7 @@
 #include <QVBoxLayout>
 
 #include "qt/theme/CharacterRects.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 namespace {
 constexpr int kLineSpacing = 8;

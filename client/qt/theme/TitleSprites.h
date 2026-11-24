@@ -2,7 +2,7 @@
 
 #include <QPixmap>
 
-#include "TitleSpriteRects.h"
+#include "qt_theme/TitleSpriteRects.h"
 
 // Recorta el atlas de botones (:ui/title/atlas.png) y entrega los sprites
 // de la pantalla de inicio ya escalados x2 con filtro nearest

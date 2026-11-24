@@ -7,7 +7,7 @@
 #include <QtGlobal>
 #include <map>
 
-#include "NineSlice.h"
+#include "qt_theme/NineSlice.h"
 #include "WorldSpriteRects.h"
 
 using namespace WorldSpriteRects;

@@ -40,8 +40,10 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::HudOverlayCatalog& hudOverlays,
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
-                         game::EnemyTestTrigger* enemyTestTrigger):
-        sources_(core::assetPath(core::kScenesFile), core::assetPath(core::kWorldFile),
+                         game::EnemyTestTrigger* enemyTestTrigger,
+                         const std::string& worldPath):
+        sources_(core::assetPath(core::kScenesFile),
+                 worldPath.empty() ? core::assetPath(core::kWorldFile) : worldPath,
                  core::assetPath(core::kOverlayFile)),
         sceneSwitcher_(sources_.byPriority(), core::kInitialRoom, scenario.scene()),
         gameClient_(gameClient),
@@ -369,7 +371,7 @@ void PlaySession::tick(int iteration) {
         if (command.kind == game::InputCommand::Kind::NextMarketSet) {
             // DEMO (tecla N): rota el estilo del último comerciante y, si
             // su catálogo está abierto, lo reabre con el estilo nuevo.
-            if (!lastNpcId_.empty() && sceneSwitcher_.id() == core::kMarketRoom) {
+            if (!lastNpcId_.empty() && marketCatalog_.hasMerchant(lastNpcId_)) {
                 marketCycle_.next(marketCatalog_.defaultSetCount(lastNpcId_));
                 if (marketPopup_.isOpen()) {
                     marketPopup_.close();
@@ -846,9 +848,9 @@ void PlaySession::drawNpcPopup() {
 }
 
 void PlaySession::openMarketOfSpokenNpc() {
-    // El catálogo solo existe en el mercado y es el del último comerciante
-    // con el que se habló; sin comerciante (o sin catálogo) no abre nada.
-    if (sceneSwitcher_.id() != core::kMarketRoom || lastNpcId_.empty()) {
+    // El catálogo es el del último comerciante con el que se habló; sin
+    // comerciante (o si el NPC no tiene catálogo) no abre nada.
+    if (lastNpcId_.empty() || !marketCatalog_.hasMerchant(lastNpcId_)) {
         return;
     }
     const int setCount = marketCatalog_.defaultSetCount(lastNpcId_);
@@ -858,10 +860,10 @@ void PlaySession::openMarketOfSpokenNpc() {
 }
 
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
-    // El catálogo que pide la fuente de estado. Reemplaza una oferta abierta
-    // si llega la consulta de otro comerciante.
-    if (!view.marketOffer.has_value() || sceneSwitcher_.id() != core::kMarketRoom ||
-        popupState_.modal()) {
+    // El catálogo que pide la fuente de estado. Abre el popup (cerrando el de
+    // un NPC si lo hubiera) y reemplaza la oferta abierta si es de otro
+    // comerciante. Se ignora con un popup modal.
+    if (!view.marketOffer.has_value() || popupState_.modal()) {
         return;
     }
     npcPopup_ = nullptr;
@@ -873,6 +875,7 @@ void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
     }
     marketPopup_.open(*view.marketOffer);
 }
+
 
 void PlaySession::drawMarketCatalog() {
     if (!marketPopup_.isOpen()) {

@@ -8,7 +8,7 @@
 #include "qt/theme/JoinCodeRects.h"
 #include "qt/widgets/InputBox.h"
 #include "qt/widgets/ParchmentBanner.h"
-#include "qt/widgets/TitleButton.h"
+#include "qt_theme/TitleButton.h"
 
 PromptForm::PromptForm(const QString& prompt, QWidget* parent)
 	: QWidget(parent)

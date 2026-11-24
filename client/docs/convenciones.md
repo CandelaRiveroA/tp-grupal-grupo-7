@@ -25,13 +25,14 @@
 - **Headers chicos y enfocados.** Si un header crece mucho (orientativo:
   >300 líneas) suele ser señal de que mezcla datos con lógica: separar.
 
-## 2. Nada global, nada static, nada de funciones libres
+## 2. Nada global, nada static, nada de funciones libres ni namespaces anónimos
 
 - **Prohibido el estado global** y las variables `static` (de archivo o de
   función) que guarden estado.
-- **Prohibidas las funciones libres** sueltas en el namespace para lógica.
-- **Prohibidos los métodos `static`** como "helpers". Si algo es un helper
-  de una clase, va como **método de instancia** (privado si es interno).
+- **Prohibidos los `namespace {` anónimos** y las **funciones libres** sueltas
+  para helpers internos.
+- **Prohibidos los métodos o funciones `static`** como "helpers". Todo helper
+  interno de una clase va como **método de instancia privado** de esa clase.
 - Regla general: **siempre preferir lo que vive dentro de una clase.** Si
   una traducción/cálculo se comparte, se expone como método (o constructor)
   de la clase dueña del concepto, no como función libre ni static.
@@ -58,10 +59,11 @@
 
 ## 4. Preferencias de estilo de implementación
 
-- **Diccionario sobre switch.** Para mapear un valor a otro, preferir un
-  `std::map`/tabla sobre un `switch`. (Nota: el `switch` sobre `enum class`
-  da chequeo de exhaustividad con `-Wswitch`; el mapa no. Aun así, la
-  preferencia del proyecto es el diccionario.)
+- **Prohibido `switch / case` y cadenas `if / else if` sobre enums/tipos.**
+  Para despachar o mapear por `enum class` / tipo, usar un **`std::map` como
+  variable miembro privada de la clase** (inicializado en el constructor, por
+  ejemplo mapeando la clave a un valor o a un puntero a método miembro). No
+  usar `switch` ni `if / else if` encadenados.
 - **enum class** para vocabulario (no números sueltos): `CreatureKind`,
   `ItemKind`, `ActionKind`, `Layer`, etc.
 - **Prohibido `dynamic_cast` (RTTI) en código nuevo de producción** (los

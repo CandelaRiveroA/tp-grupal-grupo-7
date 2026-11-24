@@ -1,16 +1,37 @@
 #include "ValidationPanel.h"
 
+#include <QHBoxLayout>
+#include <QPixmap>
 #include <QVBoxLayout>
 
+#include "Constants.h"
+#include "NineSliceFrame.h"
 #include "world_model/IssueFormatter.h"
 
 ValidationPanel::ValidationPanel(QWidget* parent) : QWidget(parent) {
-	status_ = new QLabel(this);
-	issues_ = new QListWidget(this);
+	NineSliceFrame* frame = new NineSliceFrame(":/ui/join/input_box.png",
+						   editor::kWindowSlice,
+						   editor::kWindowScale, this);
 
-	QVBoxLayout* layout = new QVBoxLayout(this);
-	layout->addWidget(status_);
+	QLabel* icon = new QLabel(frame);
+	icon->setPixmap(QPixmap(":/editor/ui/icon_validate.png"));
+	status_ = new QLabel(frame);
+	status_->setObjectName("validationStatus");
+	issues_ = new QListWidget(frame);
+	issues_->setObjectName("issueList");
+	issues_->setWordWrap(true);
+
+	QHBoxLayout* header = new QHBoxLayout;
+	header->addWidget(icon);
+	header->addWidget(status_, 1);
+
+	QVBoxLayout* layout = new QVBoxLayout(frame);
+	layout->addLayout(header);
 	layout->addWidget(issues_);
+
+	QVBoxLayout* root = new QVBoxLayout(this);
+	root->setContentsMargins(0, 0, 0, 0);
+	root->addWidget(frame);
 
 	connect(issues_, &QListWidget::itemClicked, this,
 		[this](QListWidgetItem* item) {
@@ -25,12 +46,12 @@ void ValidationPanel::showIssues(
 	issues_->clear();
 	if (issues.empty()) {
 		status_->setText("Mundo valido (0 errores)");
-		status_->setStyleSheet("color: #27ae60;");
+		status_->setStyleSheet("color: #2f6b1f;");
 		return;
 	}
 	status_->setText(QString::number(issues.size()) +
 			 " problemas encontrados");
-	status_->setStyleSheet("color: #c0392b;");
+	status_->setStyleSheet("color: #8b1e1e;");
 	const worldmodel::IssueFormatter formatter;
 	for (const worldmodel::ValidationIssue& issue : issues) {
 		QListWidgetItem* item = new QListWidgetItem(

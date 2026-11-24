@@ -24,6 +24,7 @@ target_sources(taller_server
     domain/map/world.cpp
     domain/map/scene.cpp
     domain/map/farm.cpp
+    domain/map/barn.cpp
     domain/map/town.cpp
     domain/map/dungeon_floor.cpp
     domain/map/portal.cpp
@@ -40,6 +41,7 @@ target_sources(taller_server
     domain/enemies/skull.cpp
     domain/enemies/enemy_controller.cpp
     domain/animals/animal.cpp
+    domain/animals/animal_catalog.cpp
     domain/animals/chicken.cpp
     domain/animals/cow.cpp
     domain/furniture/furniture.cpp
@@ -83,3 +85,6 @@ target_sources(taller_server
     )
 
 target_include_directories(taller_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_definitions(taller_server PRIVATE
+    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")

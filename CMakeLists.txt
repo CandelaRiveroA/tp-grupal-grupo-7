@@ -303,7 +303,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/AreaProximity.cpp
         client/game/StructureSelection.cpp
         client/game/PopupState.cpp
+        client/game/GiftThanks.cpp
         client/game/SceneTransition.cpp
+        client/game/SceneSnapshot.cpp
         client/game/DayPhase.cpp
         client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
@@ -464,7 +466,7 @@ if(TALLER_SERVER)
     set_project_warnings(taller_server ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 
     # Link the taller_common lib target
-    target_link_libraries(taller_server taller_common)
+    target_link_libraries(taller_server taller_common taller_world_model)
 endif()
 
 if(TALLER_EDITOR)
@@ -545,5 +547,6 @@ if(TALLER_TESTS)
         TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
         TALLER_SCENARIO_FIXTURES_DIR=\"${CMAKE_SOURCE_DIR}/tests/fixtures/scenarios\"
         TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
-        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
+        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\"
+        TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
 endif()

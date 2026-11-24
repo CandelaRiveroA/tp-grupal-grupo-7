@@ -31,7 +31,7 @@ target_sources(taller_client
     qt/services/SessionService.cpp
     qt/services/CharacterSpriteComposer.cpp
     qt/services/NetworkSessionService.cpp
-    qt/services/LocalWorldService.cpp
+    qt/services/NetworkWorldService.cpp
     qt/services/WorldService.cpp
     qt/services/fakes/FakeSaveService.cpp
     qt/theme/CharacterSheets.cpp
@@ -113,7 +113,7 @@ target_sources(taller_client
     qt/services/ServiceError.h
     qt/services/SessionService.h
     qt/services/NetworkSessionService.h
-    qt/services/LocalWorldService.h
+    qt/services/NetworkWorldService.h
     qt/services/WorldService.h
     qt/services/fakes/FakeLatency.h
     qt/services/fakes/FakeSaveService.h
@@ -218,7 +218,6 @@ target_sources(taller_client
     world/HudOverlayTomlReader.h
     world/HudFillLayout.h
     world/HudOverlayConfigLoader.h
-    world/SceneConfigLoader.h
     world/SceneDescription.h
     world/SceneKeys.h
     world/ScenePixelMapper.h

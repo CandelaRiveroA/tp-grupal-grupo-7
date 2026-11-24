@@ -117,7 +117,7 @@ TEST(ChatRouterTest, DonarMoneyNoEsUnComandoEspañol) {
 
 TEST(ChatRouterTest, ConsultarCatalogoCambiaElComercianteSeleccionado) {
     World world(5, 5);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::TOWN));
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "town"));
     world.place_merchant(std::make_unique<Merchant>(1, 2, "Pierre", "pierre",
                                                      std::map<std::string, CatalogEntry>{},
                                                      std::map<std::string, ItemID>{}));

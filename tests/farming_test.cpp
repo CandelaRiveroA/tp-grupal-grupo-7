@@ -14,7 +14,7 @@
 // ---------------------------------------------------------
 TEST(FarmingTest, CicloDeHumedadDelSuelo) {
     World world(5, 5); 
-    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
+    auto player = std::make_unique<Player>(1, 2, 2, "farm");
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
 
@@ -45,7 +45,7 @@ TEST(FarmingTest, CicloDeHumedadDelSuelo) {
 // ---------------------------------------------------------
 TEST(FarmingTest, CebollaDeVerdeoCreceCosechaYDesaparece) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
+    auto player = std::make_unique<Player>(1, 2, 2, "farm");
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
     
@@ -96,7 +96,7 @@ TEST(FarmingTest, CebollaDeVerdeoCreceCosechaYDesaparece) {
 // ---------------------------------------------------------
 TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
+    auto player = std::make_unique<Player>(1, 2, 2, "farm");
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
     
@@ -165,7 +165,7 @@ TEST(FarmingTest, FrutillaRebrotaDespuesDeCosechar) {
 // ---------------------------------------------------------
 TEST(FarmingTest, PlantarSemillaConsumeItemYCreaCultivo) {
     World world(5, 5);
-    auto player = std::make_unique<Player>(1, 2, 2, SceneId::FARM);
+    auto player = std::make_unique<Player>(1, 2, 2, "farm");
     Player* p_ref = player.get();
     world.add_player(1, std::move(player));
 

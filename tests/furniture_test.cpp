@@ -8,6 +8,7 @@
 #include "../server/domain/animals/chicken.h"
 #include "../server/domain/entities/player.h"
 #include "../server/domain/furniture/bed.h"
+#include "../server/domain/furniture/furniture.h"
 #include "../server/domain/inventory/decoration_item.h"
 #include "../server/domain/inventory/item.h"
 #include "../server/domain/map/world.h"
@@ -54,7 +55,7 @@ TEST(FurnitureTest, UnGolpeDePicoLaDestruyeYDejaElDecorationItem) {
     auto player = std::make_unique<Player>(1, 1, 2);
     Player* p = player.get();
     world.add_player(1, std::move(player));
-    world.set_entity_at(1, 3, std::make_unique<Bed>(1, 3));
+    world.set_entity_at(1, 3, std::make_unique<Furniture>(1, 3, ItemID::BED, 0));
     world.set_player_facing(1, Direction::DOWN);
 
     // La pala (slot 1) no la rompe.
@@ -153,7 +154,14 @@ TEST(FurnitureTest, TodosLosJugadoresDebenAceptarParaDormir) {
     world.answer_wake(2);
     EXPECT_TRUE(world.take_day_started());
     EXPECT_FALSE(world.take_day_started());
-    EXPECT_TRUE(cell_has_item(world, 0, 0, ItemID::EGG));
+    bool has_egg = false;
+    for (const IEntity* entity: world.get_scene("barn").get_entity_at(0, 0)) {
+        const auto item = entity->snapshot();
+        if (item && item->item == ItemID::EGG) {
+            has_egg = true;
+        }
+    }
+    EXPECT_TRUE(has_egg);
 }
 
 // ---------------------------------------------------------

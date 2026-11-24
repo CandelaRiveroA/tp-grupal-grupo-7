@@ -149,7 +149,7 @@ TEST(BroadcastNetworkTest, ClienteAplicaElObjetoRemotoYElEventoDeRegaloUnaSolaVe
     packets.snapshot("strawberry_seeds");
     BroadcastPeer peer(packets.bytes);
     const world::CharacterCatalog characters;
-    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters);
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "");
     client.update(0);
     const auto& view = client.worldState();
     ASSERT_EQ(view.entities.size(), 2u);
@@ -188,7 +188,7 @@ TEST(BroadcastNetworkTest, ContenidoVacioEnElSnapshotDejaLasManosRemotasLibres) 
     packets.snapshot("");
     BroadcastPeer peer(packets.bytes);
     const world::CharacterCatalog characters;
-    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters);
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "");
     client.update(0);
     ASSERT_EQ(client.worldState().entities.size(), 2u);
     EXPECT_FALSE(client.worldState().entities[1].carriedContent.has_value());

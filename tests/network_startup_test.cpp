@@ -74,7 +74,7 @@ private:
 TEST(NetworkStartupTest, UsaLaCabanaAsignadaSinPerderElEventoDeFinDeDia) {
     StartupServer server("cabin_2", true);
     const world::CharacterCatalog characters;
-    game::NetworkGameClient client(Socket("127.0.0.1", server.port()), 1, characters);
+    game::NetworkGameClient client(Socket("127.0.0.1", server.port()), 1, characters, "");
     EXPECT_EQ(client.initialMapId(), "cabin_2");
     EXPECT_EQ(client.worldName(), "ad");
     client.update(0);
@@ -87,14 +87,14 @@ TEST(NetworkStartupTest, UsaLaCabanaAsignadaSinPerderElEventoDeFinDeDia) {
 TEST(NetworkStartupTest, PrimerLoteSinMapaFallaAntesDeIniciarLosHilos) {
     StartupServer server("");
     const world::CharacterCatalog characters;
-    EXPECT_THROW(game::NetworkGameClient(Socket("127.0.0.1", server.port()), 1, characters),
+    EXPECT_THROW(game::NetworkGameClient(Socket("127.0.0.1", server.port()), 1, characters, ""),
                  world::ConfigError);
 }
 
 TEST(NetworkStartupTest, NuevoDiaSeEntregaConElLoteDeLaCabana) {
     StartupServer server("cabin_3", false, true);
     const world::CharacterCatalog characters;
-    game::NetworkGameClient client(Socket("127.0.0.1", server.port()), 1, characters);
+    game::NetworkGameClient client(Socket("127.0.0.1", server.port()), 1, characters, "");
     client.update(0);
     EXPECT_TRUE(client.worldState().dayChanged);
     EXPECT_EQ(client.worldState().mapId, "cabin_3");

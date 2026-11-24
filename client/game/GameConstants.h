@@ -7,6 +7,9 @@ namespace game {
 // Constantes de la capa de estado/vista del juego.
 constexpr std::size_t kLocalPlayerIndex = 0;
 
+// Ids de aviso (ViewNotice::id); cada uno tiene su texto en ui/notice.toml.
+constexpr const char* kNoticeInventoryFull = "inventory_full";
+
 // Celdas de alcance alrededor de lo que se toca (la cama, un edificio):
 // el click solo hace algo si el jugador está sobre el elemento o a esta
 // distancia.

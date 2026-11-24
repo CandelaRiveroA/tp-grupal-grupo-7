@@ -27,6 +27,10 @@ struct InputCommand {
         // escena (provisorio). Lo consume PlaySession; NO viaja al
         // GameClient. El catálogo real lo manda el server.
         OpenCatalog,
+        // DEMO (tecla I): muestra el aviso "Inventario lleno". Lo consume
+        // PlaySession; NO viaja al GameClient. Se borra cuando el server
+        // mande el aviso (ViewNotice).
+        TestNotice,
         // DEMO (tecla N): rota el estilo del catálogo del comerciante. Lo
         // consume PlaySession; NO viaja al GameClient. Se borra cuando el
         // servidor rote los estilos.
@@ -54,6 +58,9 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
+        // Abre/cierra el popup de configuración (ESC fuera del chat). Lo
+        // consume PlaySession; NO viaja al GameClient.
+        ToggleSettings,
     };
 
     Kind kind;

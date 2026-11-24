@@ -280,10 +280,6 @@ void WorkspaceView::setWorld(const worldmodel::World& world) {
 	selectMap(editor::kHomeMapId);
 }
 
-const worldmodel::PrefabCatalog& WorkspaceView::catalog() const {
-	return catalog_;
-}
-
 void WorkspaceView::selectMap(const std::string& mapId) {
 	activeMapId_ = mapId;
 	tree_->selectMap(mapId);
@@ -409,7 +405,7 @@ void WorkspaceView::replaceScenario() {
 	canvas_->setMap(nullptr);
 	try {
 		worldmodel::WorldFactory().replaceMapScenario(
-			world_, activeMapId_, scenario, catalog_);
+			world_, activeMapId_, scenario);
 	} catch (const worldmodel::FormatError& error) {
 		// replaceMapScenario opera sobre copia, asi que world_ queda intacta.
 		if (world_.maps.contains(activeMapId_)) {

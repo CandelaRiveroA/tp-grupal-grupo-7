@@ -26,7 +26,7 @@ worldmodel::World editorWorldRoundTrip() {
 			TALLER_PREFABS_TOML);
 	const worldmodel::WorldFactory factory;
 	worldmodel::World made = factory.makeDefault(
-		"real", library, catalog, factory.firstOfEachKind(library));
+		"real", library, factory.firstOfEachKind(library));
 
 	const auto place = [&](worldmodel::Map& target,
 			       worldmodel::ObjectRole role,

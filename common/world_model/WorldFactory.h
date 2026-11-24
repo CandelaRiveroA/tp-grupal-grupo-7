@@ -7,7 +7,6 @@
 #include "world_model/Geometry.h"
 #include "world_model/Map.h"
 #include "world_model/MapRules.h"
-#include "world_model/PrefabCatalog.h"
 #include "world_model/Scenario.h"
 #include "world_model/ScenarioLibrary.h"
 #include "world_model/World.h"
@@ -32,7 +31,6 @@ public:
 
 	World makeDefault(const std::string& name,
 			  const ScenarioLibrary& library,
-			  const PrefabCatalog& catalog,
 			  const ScenarioChoice& choice) const;
 	// Elige el primer escenario de la biblioteca para cada tipo. Si falta lanza FormatError.
 	ScenarioChoice firstOfEachKind(const ScenarioLibrary& library) const;
@@ -44,8 +42,7 @@ public:
 	// portales; en un mapa extra copia el escenario sin puntos. Si falla,
 	// world queda intacto y se lanza FormatError.
 	void replaceMapScenario(World& world, const std::string& mapId,
-				const Scenario& scenario,
-				const PrefabCatalog& catalog = {}) const;
+				const Scenario& scenario) const;
 	// Elimina un mapa extra existente
 	void removeExtraMap(World& world, const std::string& mapId) const;
 	void addCabinMap(World& world, int index,

@@ -49,6 +49,13 @@
 | `/siguiente_nivel` | Avanza automáticamente al siguiente nivel de la mazmorra, sin tener que buscar la puerta o escalera. | `/siguiente_nivel` |
 | `/ir_nivel [numero]` | Teletransporta al jugador directamente al nivel indicado de la mazmorra (1 a 10). Útil para probar, por ejemplo, la aparición de oro a partir de la 5ta sala. | `/ir_nivel 5` |
 
+### Escenarios
+
+| Comando | Descripción | Ejemplo |
+| --- | --- | --- |
+| `/tp [escenario]` | Teletransporta al jugador al escenario indicado, eligiendo una celda caminable como punto de aparición. | `/tp town` |
+| `/tp_info` | Lista los escenarios disponibles en la partida. | `/tp_info` |
+
 ### Granja
 
 | Comando | Descripción | Ejemplo |
@@ -67,6 +74,7 @@
 | Comando | Descripción | Ejemplo |
 | --- | --- | --- |
 | `/terminar_dia` | Fuerza el fin del día actual, como si el reloj llegara a las 2 am. Dispara el guardado automático de la partida. | `/terminar_dia` |
+| `/tiempo [minutos]` | Fija el reloj del día en el valor indicado (0 a 1200 minutos, donde 1200 = 2 am). El reloj sigue avanzando desde ese valor. Permite probar eventos ligados a la hora del día. | `/tiempo 600` |
 
 ## Notas de diseño
 

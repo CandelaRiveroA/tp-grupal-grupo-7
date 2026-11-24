@@ -328,8 +328,8 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
   directamente una acción concreta (`Water`, `Milk`, ...), se respeta tal
   cual.
 - **El slot viaja con el Pick.** Seleccionar un casillero (teclas 1..N, N =
-  `InventoryLayout::count`) es local, pero al usar, `PickMessage.slot` manda
-  el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
+  `InventoryLayout::count`) envía `SelectSlotMessage` al servidor. Al usar,
+  `PickMessage.slot` también manda el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
   ella lo decide la fuente.
 - **Centro Comunitario.** Los sets se identifican por nombre en el chat
   (`cultivos`, `minerales`, `animales`, `pelea`, `dinero`) y por los IDs 1 a 5
@@ -439,3 +439,15 @@ adaptador lo traduce al mismo `SceneDescription` que `scenes.toml`.
    mensaje, ese método solo manda la intención y el cambio vuelve por
    `mapId`.
 
+
+## 15. Objetos sostenidos y agradecimiento de regalos
+
+- `SelectSlotMessage` actualiza el casillero seleccionado del jugador autenticado
+  por su conexión. No lleva un player_id elegido por el cliente.
+- Cada snapshot incluye `ServerPlayerHeld` por jugador visible. El contenido sale
+  del inventario del servidor; vacío indica manos libres. El local conserva la
+  respuesta inmediata del HUD y los remotos usan `ViewEntity::carriedContent`.
+- `ServerGiftAccepted` se transmite a todos solo tras una transferencia exitosa.
+  El receptor no dispara un corazón por pulsar Aceptar.
+- `GiftThanks` conserva el temporizador visual de cada receptor, con la duración
+  de `dialogs.toml`, y aplica la indicación a entidades de tipo Player por ID.

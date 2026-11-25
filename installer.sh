@@ -14,9 +14,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # ---------- Configuracion ----------
-APP_NAME="taller"
-PREFIX="/opt/${APP_NAME}"
-BIN_DIR="/usr/local/bin"
+NAME="JoJa's unemployed people"
+APP_NAME="$NAME"
+PREFIX="/opt/taller"
 REPO_URL="https://github.com/CandelaRiveroA/tp-grupal-grupo-7"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLONE=0
@@ -36,6 +36,11 @@ if [[ -z "$TARGET_HOME" || ! -d "$TARGET_HOME" ]]; then
     TARGET_HOME="/root"
     TARGET_USER="root"
 fi
+
+BIN_DIR="${TARGET_HOME}/.local/bin"
+DATA_DIR="${TARGET_HOME}/.local/share/${NAME}"
+CONFIG_DIR="${TARGET_HOME}/.config/${NAME}"
+TARGET_GROUP="$(id -gn "$TARGET_USER")"
 
 # Directorio del Escritorio (respeta idioma: Desktop, Escritorio, etc.).
 if command -v xdg-user-dir >/dev/null 2>&1 && [[ $EUID -eq 0 ]]; then
@@ -114,7 +119,7 @@ uninstall() {
         warn "Se conservan las dependencias instaladas (--keep-deps)."
     fi
 
-    rm -rf "$PREFIX"
+    rm -rf "$PREFIX" "$DATA_DIR" "$CONFIG_DIR"
 
     ok "Desinstalacion completada."
     exit 0
@@ -175,31 +180,50 @@ info "Paso 4 - Resto de dependencias instaladas."
 # Paso 5 - Compilar el juego
 info "Paso 5 - Compilando el juego (puede tardar varios minutos)..."
 cmake -S "$SRC_DIR" -B "$PREFIX" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DTALLER_TESTS=OFF \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DTALLER_TESTS=ON \
     -DTALLER_TILE_INSPECTOR=OFF \
     -DTALLER_QT_HARNESS=OFF \
-    -DTALLER_INSTALL_SCENARIOS_DIR="${PREFIX}/editor/scenarios" \
-    -DTALLER_INSTALL_WORLDS_DIR="${PREFIX}/worlds" \
-    -DTALLER_INSTALL_PREFABS_TOML="${PREFIX}/editor/prefabs.toml" \
-    -DTALLER_INSTALL_ASSETS_DIR="${PREFIX}/assets"
+    "-DTALLER_INSTALL_ASSETS_DIR=${DATA_DIR}/assets" \
+    "-DTALLER_INSTALL_SOUNDS_DIR=${DATA_DIR}/sounds" \
+    "-DTALLER_INSTALL_WORLDS_DIR=${CONFIG_DIR}/worlds" \
+    "-DTALLER_INSTALL_SCENARIOS_DIR=${CONFIG_DIR}/editor/scenarios" \
+    "-DTALLER_INSTALL_PREFABS_TOML=${CONFIG_DIR}/editor/prefabs.toml"
+
 cmake --build "$PREFIX" --parallel "$(nproc)"
+info "Paso 5 - Ejecutando tests unitarios..."
+"${PREFIX}/taller_tests"
 ok "Paso 5 - Completado"
 
 # Paso 6 - Preparar carpetas de datos
 info "Paso 6 - Moviendo archivos a las carpetas correctas..."
-mkdir -p "${PREFIX}/editor" "${PREFIX}/worlds"
+sudo -u "$TARGET_USER" mkdir -p "$BIN_DIR" "${DATA_DIR}/assets" "${DATA_DIR}/sounds" \
+    "${CONFIG_DIR}/client" "${CONFIG_DIR}/editor" "${CONFIG_DIR}/worlds"
+# Los assets del build se trasladan a la carpeta de datos del usuario.
+rm -rf "${DATA_DIR}/assets" "${DATA_DIR}/sounds"
+mv "${PREFIX}/assets" "${DATA_DIR}/assets"
+mv "${PREFIX}/sounds" "${DATA_DIR}/sounds"
+# Los TOML se guardan en configuración. Los enlaces permiten que assetPath()
+# siga encontrándolos sin cambiar el código del cliente.
+while IFS= read -r -d '' config_file; do
+    relative="${config_file#"${DATA_DIR}/assets/"}"
+    destination="${CONFIG_DIR}/client/${relative}"
+    mkdir -p "$(dirname "$destination")"
+    mv -f "$config_file" "$destination"
+    ln -s "$destination" "$config_file"
+done < <(find "${DATA_DIR}/assets" -type f -name '*.toml' -print0)
 if [[ -d "${SRC_DIR}/editor/scenarios" ]]; then
-    cp -r "${SRC_DIR}/editor/scenarios" "${PREFIX}/editor/"
+    cp -r "${SRC_DIR}/editor/scenarios" "${CONFIG_DIR}/editor/"
 fi
 if [[ -f "${SRC_DIR}/editor/prefabs.toml" ]]; then
-    cp "${SRC_DIR}/editor/prefabs.toml" "${PREFIX}/editor/"
+    cp "${SRC_DIR}/editor/prefabs.toml" "${CONFIG_DIR}/editor/"
 fi
 if [[ -d "${SRC_DIR}/worlds" ]]; then
-    cp -r "${SRC_DIR}/worlds/." "${PREFIX}/worlds/" 2>/dev/null || true
+    cp -r "${SRC_DIR}/worlds/." "${CONFIG_DIR}/worlds/" 2>/dev/null || true
 fi
+chown -R "${TARGET_USER}:${TARGET_GROUP}" "$DATA_DIR" "$CONFIG_DIR"
 
-# Ejecutables en /usr/local/bin. El servidor requiere el servicio (puerto).
+# Ejecutables en ~/.local/bin. El servidor requiere el servicio (puerto).
 ln -sf "${PREFIX}/taller_client"  "${BIN_DIR}/taller_client"
 cat > "${BIN_DIR}/taller_server" <<EOF
 #!/usr/bin/env bash
@@ -208,6 +232,8 @@ EOF
 chmod +x "${BIN_DIR}/taller_server"
 ln -sf "${PREFIX}/taller_editor"  "${BIN_DIR}/taller_editor"
 ln -sf "${PREFIX}/uninstall.sh"  "${BIN_DIR}/taller_uninstall"
+chown -h "${TARGET_USER}:${TARGET_GROUP}" "${BIN_DIR}/taller_client" \
+    "${BIN_DIR}/taller_server" "${BIN_DIR}/taller_editor" "${BIN_DIR}/taller_uninstall"
 ok "Paso 6 - Completado"
 
 # Paso 7 - Accesos directos en el Desktop
@@ -216,7 +242,7 @@ mkdir -p "$DESKTOP_DIR"
 
 # Copiar iconos si existen en el repo.
 for icon_src in "${SRC_DIR}/assets"/taller_*_icon.png; do
-    [[ -f "$icon_src" ]] && cp "$icon_src" "$PREFIX/"
+    [[ -f "$icon_src" ]] && cp "$icon_src" "$DATA_DIR/"
 done
 
 make_desktop() {
@@ -228,8 +254,8 @@ make_desktop() {
     local icon="${6:-applications-games}"
     local file="${DESKTOP_DIR}/${name}.desktop"
     # Si hay icono copiado, usarlo.
-    if [[ -f "${PREFIX}/${name}_icon.png" ]]; then
-        icon="${PREFIX}/${name}_icon.png"
+    if [[ -f "${DATA_DIR}/${name}_icon.png" ]]; then
+        icon="${DATA_DIR}/${name}_icon.png"
     fi
     cat > "$file" <<EOF
 [Desktop Entry]
@@ -245,13 +271,13 @@ EOF
     chown "${TARGET_USER}:${TARGET_USER}" "$file" 2>/dev/null || true
 }
 
-make_desktop "taller_client" "taller_client" "Taller Client"
-make_desktop "taller_server" "taller_server" "Taller Server" "8080" "true"
-make_desktop "taller_editor" "taller_editor" "Taller Editor"
+make_desktop "taller_client" "taller_client" "JUP - Client"
+make_desktop "taller_server" "taller_server" "JUP - Server" "8080" "true"
+make_desktop "taller_editor" "taller_editor" "JUP - Editor"
 ok "Paso 7 - Completado"
 
 # Copiar este script como desinstalador
-cp "${SRC_DIR}/installer.sh" "${PREFIX}/uninstall.sh"
+cp "${BASH_SOURCE[0]}" "${PREFIX}/uninstall.sh"
 chmod +x "${PREFIX}/uninstall.sh"
 
 # Paso 8 - Limpieza de dependencias de compilacion (opcional, se conserva el repo fuente)

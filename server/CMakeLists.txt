@@ -86,5 +86,10 @@ target_sources(taller_server
 
 target_include_directories(taller_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(NOT DEFINED TALLER_INSTALL_WORLDS_DIR)
+    set(TALLER_INSTALL_WORLDS_DIR "${CMAKE_SOURCE_DIR}/worlds")
+endif()
+
 target_compile_definitions(taller_server PRIVATE
-    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
+    "TALLER_WORLDS_DIR=\"${TALLER_INSTALL_WORLDS_DIR}\""
+)

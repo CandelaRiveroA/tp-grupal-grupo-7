@@ -290,11 +290,23 @@ set_target_properties(taller_client PROPERTIES AUTOMOC ON AUTORCC ON)
 # La copia de assets al build (add_custom_command POST_BUILD) vive en la
 # raíz: el target taller_client se crea ahí y CMake solo permite esa
 # forma del comando en el directorio donde se creó el target.
+if(NOT DEFINED TALLER_INSTALL_ASSETS_DIR)
+    set(TALLER_INSTALL_ASSETS_DIR "${CMAKE_BINARY_DIR}/assets")
+endif()
+
+if(NOT DEFINED TALLER_INSTALL_SOUNDS_DIR)
+    set(TALLER_INSTALL_SOUNDS_DIR "${CMAKE_BINARY_DIR}/sounds")
+endif()
+
+if(NOT DEFINED TALLER_INSTALL_WORLDS_DIR)
+    set(TALLER_INSTALL_WORLDS_DIR "${CMAKE_SOURCE_DIR}/worlds")
+endif()
+
 target_compile_definitions(taller_client PRIVATE
-    # \" produce comillas literales: el macro llega como "…/assets"
-    TALLER_ASSET_DIR=\"${CMAKE_BINARY_DIR}/assets\"
-    TALLER_SOUNDS_DIR=\"${CMAKE_BINARY_DIR}/sounds\"
-    TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
+    "TALLER_ASSET_DIR=\"${TALLER_INSTALL_ASSETS_DIR}\""
+    "TALLER_SOUNDS_DIR=\"${TALLER_INSTALL_SOUNDS_DIR}\""
+    "TALLER_WORLDS_DIR=\"${TALLER_INSTALL_WORLDS_DIR}\""
+)
 
 # La raíz solo expone el repo root como include ("common/foo.h");
 # con esto los includes del cliente son "core/...", "qt/...", etc.
@@ -304,3 +316,4 @@ target_include_directories(taller_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # find_package de arriba): hay que linkearlo con forma keyword (PRIVATE)
 # para que CMake lo resuelva desde acá y no desde la raíz.
 target_link_libraries(taller_client PRIVATE Qt6::Widgets taller_qt_theme)
+

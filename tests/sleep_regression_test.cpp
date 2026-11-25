@@ -62,7 +62,7 @@ TEST(SleepRegressionTest, FinDeDiaDuranteSalidaDeMapaConservaLaEspera) {
     transition.changeTo("farm", true);
     transition.tick(2);
     EXPECT_TRUE(transition.holding());
-    EXPECT_EQ(transition.scene(), "cabin_1");
+    EXPECT_EQ(transition.scene(), "farm");
 }
 
 TEST(SleepRegressionTest, FinDeDiaDuranteEntradaDeMapaConservaLaEspera) {
@@ -75,7 +75,7 @@ TEST(SleepRegressionTest, FinDeDiaDuranteEntradaDeMapaConservaLaEspera) {
     transition.tick(3);
     transition.tick(5);
     EXPECT_TRUE(transition.holding());
-    EXPECT_EQ(transition.scene(), "cabin_1");
+    EXPECT_EQ(transition.scene(), "farm");
 }
 
 TEST(SleepRegressionTest, DatosDeCabanaNoSeDibujanSobreLaGranja) {

@@ -7,8 +7,8 @@
 
 #include "player.h"
 
-DroppedItem::DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y):
-        IEntity(x, y), payload(std::move(item)) {}
+DroppedItem::DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y, uint8_t amount):
+        IEntity(x, y), payload(std::move(item)), amount(amount) {}
 
 bool DroppedItem::is_walkable() const { return true; }
 
@@ -25,13 +25,30 @@ bool DroppedItem::pickup_on_take() const {
 }
 
 void DroppedItem::interact(Player& p, ToolType tool, World& w) {
-    if (tool == ToolType::HAND && this->payload) {
-        // El payload se mueve al inventario: el item se lee antes.
-        const ItemID picked = this->payload->get_id();
+if (tool == ToolType::HAND && this->payload) {
+        
+        bool picked_at_least_one = false;
+        const ItemID picked_id = this->payload->get_id(); 
 
-        if (p.pick_up_item(std::move(this->payload))) {
+        while (this->amount > 0) {
+            std::unique_ptr<Item> copy = this->payload->clone();
+            
+            if (p.pick_up_item(std::move(copy))) {
+                this->amount--;
+                picked_at_least_one = true;
+            } else {
+                break;
+            }
+        }
+
+        // Si la pila se vació a 0, destruimos el contenedor del suelo
+        if (this->amount == 0) {
             w.remove_entity(this);
-            w.record_pickup(p.get_id(), picked);
+        }
+
+        // Emitimos la señal de pickup UNA SOLA VEZ
+        if (picked_at_least_one) {
+            w.record_pickup(p.get_id(), picked_id);
         }
     }
 }

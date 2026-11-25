@@ -10,9 +10,10 @@
 class DroppedItem: public IEntity {
 private:
     std::unique_ptr<Item> payload;
+    uint8_t amount; 
 
 public:
-    DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y);
+    DroppedItem(std::unique_ptr<Item> item, uint16_t x, uint16_t y, uint8_t amount = 1);
     ~DroppedItem() override = default;
 
     bool is_walkable() const override;

@@ -240,7 +240,7 @@ struct LocalWorldView {
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
     // Avisos del tick (p. ej. inventario lleno). Los llena la fuente de
-    // estado; mientras el server no los mande queda vacío.
+    // estado a partir de los eventos enviados por el servidor.
     std::vector<ViewNotice> notices;
     // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
     std::optional<ViewGiftRequest> giftRequest;

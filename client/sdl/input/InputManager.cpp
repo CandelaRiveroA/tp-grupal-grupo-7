@@ -107,7 +107,6 @@ auto InputManager::defaultCommandBindings() const
     // DEMO: catálogo del mercado (lo reemplaza el server).
     bindings.insert({SDLK_b, game::InputCommand{Kind::OpenCatalog, 0}});
     // DEMO: aviso "Inventario lleno" (lo reemplaza el server).
-    bindings.insert({SDLK_i, game::InputCommand{Kind::TestNotice, 0}});
     // DEMO: rota el estilo del catálogo (lo reemplaza el server).
     bindings.insert({SDLK_n, game::InputCommand{Kind::NextMarketSet, 0}});
     // Los teclas de test de enemigos (G/F/H/K/V/J/L) quedaron SIN bind

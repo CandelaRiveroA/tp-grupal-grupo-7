@@ -460,11 +460,6 @@ void PlaySession::tick(int iteration) {
                                                                         : core::kMarketRoom);
             continue;
         }
-        if (command.kind == game::InputCommand::Kind::TestNotice) {
-            // DEMO: el aviso real llega por LocalWorldView::notices.
-            noticeQueue_.show(game::kNoticeInventoryFull);
-            continue;
-        }
         if (command.kind == game::InputCommand::Kind::CycleMap) {
             // DEMO: escena siguiente (mapas del editor y salas).
             sceneTransition_.changeTo(sceneSwitcher_.nextId());

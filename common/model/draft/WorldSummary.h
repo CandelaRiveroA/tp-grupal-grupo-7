@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 
@@ -8,4 +9,6 @@ struct WorldSummary {
 	std::string name;
 	// Puede venir vacía.
 	std::string description;
+	// 0 indica que el servidor aún no informó el límite.
+	std::uint32_t maxPlayers = 0;
 };

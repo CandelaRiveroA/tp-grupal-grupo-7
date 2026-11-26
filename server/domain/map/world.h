@@ -32,6 +32,7 @@ class Barn;
 class Enemy;
 class Crop;
 class Merchant;
+class Product;
 
 struct GiftOffer {
     uint8_t sender_id;
@@ -209,7 +210,7 @@ public:
     void record_resource_hit(uint16_t x, uint16_t y, bool destroyed);
     std::vector<ResourceHit> take_resource_hits();
     bool try_pick_up_item(Player& player, std::unique_ptr<Item> item);
-    void give_item_or_gold(Player& player, std::unique_ptr<Item> item);
+    void give_item_or_gold(Player& player, std::unique_ptr<Product> item);
     std::set<uint8_t> take_inventory_full();
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();

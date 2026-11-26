@@ -1004,15 +1004,19 @@ bool World::try_pick_up_item(Player& player, std::unique_ptr<Item> item) {
     return player.pick_up_item(std::move(item));
 }
 
-void World::give_item_or_gold(Player& player, std::unique_ptr<Item> item) {
+void World::give_item_or_gold(Player& player, std::unique_ptr<Product> item) {
     if (!item) {
         return;
     }
-    // Solo entran Products acá: crops, minerales y animales donados/recompensa.
-    const auto* product = dynamic_cast<const Product*>(item.get());
-    const uint16_t price = product ? product->get_final_price() : 0;
-    if (!try_pick_up_item(player, std::move(item))) {
-        player.add_gold(price);
+    const ItemID id = item->get_id();
+    // Guardar el valor antes de mover el unique_ptr: si no entra, se compensa
+    // el producto de la recompensa con su precio según la calidad.
+    const uint16_t value = item->get_final_price();
+    if (try_pick_up_item(player, std::move(item))) {
+        record_pickup(player.get_id(), id);
+    } else {
+        const uint32_t total = static_cast<uint32_t>(player.get_gold()) + value;
+        player.set_gold(static_cast<uint16_t>(std::min<uint32_t>(total, 65535u)));
     }
 }
 
@@ -1298,7 +1302,7 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
     }
     if (!offered) {
         for (auto& item_to_restore: donated) {
-            give_item_or_gold(p, std::move(item_to_restore));
+            p.pick_up_item(std::move(item_to_restore));
         }
     }
     return offered;
@@ -1381,12 +1385,15 @@ void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
         std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
         return;
     }
-    if (sender_id != receiver_id) {
-        if (sender_it->second->finalize_gift_reception(*receiver_it->second)) {
-            this->accepted_gifts.push_back(receiver_id);
-        } else if (!receiver.can_pick_up_item(*held)) {
-            this->inventory_full.insert(receiver_id);
-        }
+    if (sender_id == receiver_id || !held->can_be_traded()) {
+    return;
+    }
+    if (!receiver.can_pick_up_item(*held)) {
+        this->inventory_full.insert(receiver_id);
+        return;
+    }
+    if (sender_it->second->finalize_gift_reception(*receiver_it->second)) {
+        this->accepted_gifts.push_back(receiver_id);
     }
 }
 

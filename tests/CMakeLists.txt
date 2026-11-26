@@ -13,6 +13,7 @@ target_sources(taller_tests
     protocol/messages_test.cpp
     sleep_regression_test.cpp
     gameplay_bugs_test.cpp
+    merchant_interaction_test.cpp
     network_startup_test.cpp
     ../client/game/NetworkGameClient.cpp
     ../client/client_sender.cpp

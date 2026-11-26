@@ -1,5 +1,6 @@
 #include "merchant.h"
 
+#include <cstdlib>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -30,6 +31,13 @@ Merchant::Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
         id(std::move(id)),
         sell_catalog(std::move(sell_catalog)),
         buy_catalog(std::move(buy_catalog)) {}
+
+bool Merchant::is_in_range(uint16_t x, uint16_t y) const {
+    return std::abs(static_cast<int>(get_x()) - static_cast<int>(x)) <=
+                   kMerchantInteractionRadius &&
+           std::abs(static_cast<int>(get_y()) - static_cast<int>(y)) <=
+                   kMerchantInteractionRadius;
+}
 
 bool Merchant::is_walkable() const { return false; }
 

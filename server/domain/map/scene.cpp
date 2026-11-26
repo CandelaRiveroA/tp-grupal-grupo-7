@@ -176,11 +176,11 @@ Merchant* Scene::get_merchant_at(uint16_t x, uint16_t y) {
 
 Merchant* Scene::get_nearest_merchant(uint16_t x, uint16_t y) const {
     Merchant* nearest = nullptr;
-    int nearest_distance = 2;
+    int nearest_distance = 2 * kMerchantInteractionRadius + 1;
     for (Merchant* merchant: merchants) {
         const int dx = std::abs(static_cast<int>(merchant->get_x()) - static_cast<int>(x));
         const int dy = std::abs(static_cast<int>(merchant->get_y()) - static_cast<int>(y));
-        if (dx <= 1 && dy <= 1) {
+        if (merchant->is_in_range(x, y)) {
             const int distance = dx + dy;
             if (distance < nearest_distance ||
                 (distance == nearest_distance && nearest == nullptr)) {

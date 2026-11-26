@@ -270,6 +270,7 @@ struct ServerGold {
     uint16_t gold;
 };
 
+// Posición física de los pies del mercader.
 struct ServerNpcPlacement {
     std::string id;
     uint16_t x;

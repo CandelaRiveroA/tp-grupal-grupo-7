@@ -212,6 +212,7 @@ struct ViewSleep {
 // manda la fuente de estado (el servidor). `id` es el de npcs.toml. El
 // cliente solo lo dibuja y lo hace clickeable ahí; lo visual (hoja, retrato,
 // texto) sigue siendo del TOML.
+// Posición física de los pies, tal como llega del servidor.
 struct ViewNpcPlacement {
     std::string id;
     int cellX;

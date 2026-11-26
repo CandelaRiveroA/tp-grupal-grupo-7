@@ -236,7 +236,7 @@ World::World(const worldmodel::World& wm):
             } else {
                 // Comerciante por marker en su interior.
                 const uint16_t mx = static_cast<uint16_t>(marker.cell.column);
-                const uint16_t my = static_cast<uint16_t>(marker.cell.row);
+                const uint16_t my = static_cast<uint16_t>(marker.cell.row + kMerchantFeetOffset);
                 std::unique_ptr<Merchant> merch = Town::make_merchant(marker.kind, mx, my);
                 if (merch) {
                     static_cast<Scene*>(raw)->place_merchant(std::move(merch));
@@ -658,11 +658,7 @@ Merchant* World::get_merchant_for_command(uint8_t player_id) {
     const auto selected = this->selected_merchants.find(player_id);
     if (selected != this->selected_merchants.end()) {
         Merchant* merchant = selected->second;
-        const int dx = std::abs(static_cast<int>(merchant->get_x()) -
-                                static_cast<int>(player.get_x()));
-        const int dy = std::abs(static_cast<int>(merchant->get_y()) -
-                                static_cast<int>(player.get_y()));
-        if (dx <= 1 && dy <= 1) {
+        if (merchant->is_in_range(player.get_x(), player.get_y())) {
             return merchant;
         }
         this->selected_merchants.erase(selected);

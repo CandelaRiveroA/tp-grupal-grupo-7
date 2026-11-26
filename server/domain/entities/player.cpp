@@ -91,7 +91,7 @@ bool Player::is_gravely_wounded() const {
 }
 
 uint8_t Player::get_movement_steps() const {
-    if (this->is_gravely_wounded() || this->walking) {
+    if (this->is_gravely_wounded() || this->is_exhausted() || this->walking) {
         return kWoundedMovementSteps;
     }
     return kNormalMovementSteps;

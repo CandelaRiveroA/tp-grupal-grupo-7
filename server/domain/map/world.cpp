@@ -1125,6 +1125,7 @@ void World::end_day() {
     }
     clear_sleep();
     this->waking = true;
+    this->death_to_bed.clear();
     this->woke.clear();
     this->day_ended = true;
 }

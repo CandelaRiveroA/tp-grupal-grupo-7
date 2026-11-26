@@ -1,5 +1,6 @@
 #include "match.h"
 
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <memory>
@@ -43,69 +44,39 @@ void DayClock::restart(uint16_t start_minutes) {
 uint32_t DayClock::generation() const { return this->day_generation.load(); }
 
 void DayClock::execute() {
-    while (true) {
-        // Un reinicio que llega justo al terminar el día ya no hace falta:
-        // el día siguiente arranca igual.
-        this->restart_requested.store(false);
-        const uint32_t current_generation = this->day_generation.load();
-        const auto day_start = std::chrono::steady_clock::now();
-        bool interrupted = false;
-        uint8_t creature_steps = 0;
-        uint8_t enemy_steps = 0;
-        uint16_t clock_minutes = 0;
-        // Duerme en pasos cortos para que stop() corte sin esperar el día entero.
-        while (std::chrono::steady_clock::now() - day_start <
-               std::chrono::seconds(kDayDurationSeconds)) {
-            if (!should_keep_running()) {
-                return;
-            }
-            if (this->restart_requested.exchange(false)) {
-                // El sueño avanzó el día: se corta sin empujar DayPassed.
-                interrupted = true;
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
-            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                            std::chrono::steady_clock::now() - day_start)
-                                            .count();
-            const auto elapsed_minutes = elapsed_ms * kDayClockMinutes / (kDayDurationSeconds * 1000) /
-                                         kClockStepMinutes * kClockStepMinutes;
-            uint16_t minutes = static_cast<uint16_t>(this->start_minutes_.load()) + static_cast<uint16_t>(elapsed_minutes);
-            if (minutes > kDayClockMinutes) {
-                minutes = kDayClockMinutes;
-            }
+    uint32_t current_generation = generation();
+    uint16_t base_minutes = start_minutes_.load();
+    auto day_start = std::chrono::steady_clock::now();
+    uint16_t clock_minutes = 0;
+    uint8_t creature_steps = 0;
+    uint8_t enemy_steps = 0;
+    while (should_keep_running()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kClockStepMs));
+        if (restart_requested.exchange(false)) {
+            current_generation = generation();
+            base_minutes = start_minutes_.load();
+            day_start = std::chrono::steady_clock::now();
+            clock_minutes = 0;
+        }
+        const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - day_start).count();
+        const auto elapsed_minutes = elapsed_ms * kDayClockMinutes /
+                (kDayDurationSeconds * 1000) / kClockStepMinutes * kClockStepMinutes;
+        const auto minutes = static_cast<uint16_t>(std::min<int64_t>(
+                kDayClockMinutes, base_minutes + elapsed_minutes));
+        try {
             if (minutes != clock_minutes) {
-                clock_minutes = static_cast<uint16_t>(minutes);
-                try {
-                    events.push(MatchEvent(ClockStep{clock_minutes, current_generation}));
-                } catch (const ClosedQueue&) {
-                    return;
-                }
+                clock_minutes = minutes;
+                events.push(MatchEvent(ClockStep{minutes, current_generation}));
             }
-            // Usa la misma cola que el día: el mundo solo lo toca el hilo de Match.
             if (++creature_steps >= kCreatureTickSteps) {
                 creature_steps = 0;
-                try {
-                    events.push(MatchEvent(CreatureTick{}));
-                } catch (const ClosedQueue&) {
-                    return;
-                }
+                events.push(MatchEvent(CreatureTick{}));
             }
-            // Persecución y llamas: 10 veces más seguido que el reloj lento.
             if (++enemy_steps >= kEnemyTickSteps) {
                 enemy_steps = 0;
-                try {
-                    events.push(MatchEvent(EnemyTick{}));
-                } catch (const ClosedQueue&) {
-                    return;
-                }
+                events.push(MatchEvent(EnemyTick{}));
             }
-        }
-        if (interrupted) {
-            continue;
-        }
-        try {
-            events.push(MatchEvent(DayPassed{}));
         } catch (const ClosedQueue&) {
             return;
         }
@@ -155,9 +126,9 @@ Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output,
     place_enemies();
 }
 
-// Pasaron los 30 s sin que nadie durmiera: se termina el día. Todos duermen
+// El reloj alcanzó el límite del día. Todos duermen
 // donde están y amanecen en la cama cuando despiertan.
-void Match::handle(const DayPassed& /*day*/) {
+void Match::finish_day() {
     world.mark_all_fainted_by_timeout();
     world.end_day();
     flush_community_events();
@@ -201,11 +172,15 @@ void Match::handle(const EnemyTick& /*tick*/) {
 void Match::handle(const ClockStep& step) {
     // Un paso de un día reiniciado llega tarde: se descarta. Con el día
     // terminado el reloj queda congelado hasta que despierten todos.
-    if (step.generation != clock.generation() || step.minutes == clock_minutes_sent ||
-        world.is_waking()) {
+    if (step.generation != clock.generation() || world.is_waking()) {
         return;
     }
-    broadcast_clock(step.minutes);
+    if (step.minutes != clock_minutes_sent) {
+        broadcast_clock(step.minutes);
+    }
+    if (step.minutes >= kDayClockMinutes) {
+        finish_day();
+    }
 }
 
 // Transiciones del día: al terminar, la pantalla se apaga; al arrancar, todos
@@ -311,11 +286,11 @@ void Match::handle(const PlayerMessage& event) {
     }
     flush_community_events();
     sync_day();
-    if (const auto desired = world.take_desired_clock_minutes()) {
-        broadcast_clock(*desired);
-    }
     if (const auto restart = world.take_clock_restart_request()) {
         clock.restart(*restart);
+    }
+    if (const auto desired = world.take_desired_clock_minutes()) {
+        handle(ClockStep{*desired, clock.generation()});
     }
     push_sleep_state();
     sync_all();

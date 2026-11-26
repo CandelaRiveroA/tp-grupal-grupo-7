@@ -49,6 +49,7 @@
 #include "world/SettingsLayout.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
+#include "world/WorldMapConfig.h"
 #include "world/WorldMapLoader.h"
 #include "world_model/MapRules.h"
 #include "world_model/WorldRepository.h"
@@ -168,6 +169,7 @@ std::optional<int> Application::runGame(SessionConfig session) {
         const world::NoticeLayout notice(core::assetPath(core::kNoticeFile));
         const world::NameplateLayout nameplate(core::assetPath(core::kTextFile));
         const world::SettingsLayout settings(core::assetPath(core::kSettingsFile));
+        const world::WorldMapConfig worldMap(core::assetPath(core::kWorldMapFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::NetworkGameClient> gameClient =
@@ -177,6 +179,7 @@ std::optional<int> Application::runGame(SessionConfig session) {
                                              ? session.worldName
                                              : gameClient->worldName();
         std::string worldPath;
+        std::string minimapDir;
         if (!worldName.empty()) {
             if (!worldmodel::MapRules().isValidWorldName(worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::InvalidValue,
@@ -184,6 +187,7 @@ std::optional<int> Application::runGame(SessionConfig session) {
             }
             const worldmodel::WorldRepository worlds(core::kWorldsDir);
             worldPath = worlds.filePathFor(worldName);
+            minimapDir = worlds.minimapDirFor(worldName);
             if (!worlds.exists(worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::UnreadableInput,
                                          worldPath);
@@ -206,12 +210,13 @@ std::optional<int> Application::runGame(SessionConfig session) {
         world::Scenario scenario(config_, std::move(scene));
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
-                                prompt, chat, notice, nameplate, settings,
+                                prompt, chat, notice, nameplate, settings, worldMap,
                                 // Sin envoltura MockWorldClient: los enemigos
                                 // ahora los manda el server por red, y este
                                 // puntero apagado deja los disparadores de
                                 // prueba (teclas de test) inertes.
-                                hudOverlays, lighting, palettes, nullptr, worldPath, initialMap);
+                                hudOverlays, lighting, palettes, nullptr, worldPath, initialMap,
+                                minimapDir);
         if (playSession.run()) {
             return std::nullopt;
         }

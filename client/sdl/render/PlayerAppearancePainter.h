@@ -7,9 +7,11 @@
 #include <map>
 #include <vector>
 
+#include "common/model/draft/CharacterAppearance.h"
 #include "sdl/context/SdlConstants.h"
 #include "sdl/render/PixelComposer.h"
 #include "world/CharacterAppearance.h"
+#include "world/ViewDirection.h"
 
 namespace game {
 struct ViewEntity;
@@ -18,6 +20,7 @@ struct ViewEntity;
 namespace world {
 class CharacterCatalog;
 struct CharacterPalettes;
+enum class CreatureKind;
 }  // namespace world
 
 namespace sdl {
@@ -42,9 +45,19 @@ public:
 		  world::ActionKind action, int frameIndex,
 		  const SDL2pp::Rect& dest, Flip flip = Flip::None) const;
 
+	// Compone al jugador en pose Front y dibuja solo el recorte de la
+	// cabeza.
+	void drawHead(const CharacterAppearance& appearance,
+		      const SDL2pp::Rect& dest) const;
+
 private:
 	using Rgba = PixelComposer::Rgba;
 	using PixelRules = PixelComposer::PixelRules;
+
+	bool compose(world::CreatureKind kind, world::Direction facing,
+		     const CharacterAppearance& characterAppearance,
+		     const world::Pose& pose, world::ActionKind action,
+		     int frameIndex) const;
 
 	const world::AppearanceOption* optionAt(
 		const std::vector<world::AppearanceOption>& options,

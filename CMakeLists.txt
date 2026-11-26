@@ -311,6 +311,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/StructureSelection.cpp
         client/game/PopupState.cpp
         client/game/GiftThanks.cpp
+        client/game/WorldMapState.cpp
         client/game/SceneTransition.cpp
         client/game/SceneSnapshot.cpp
         client/game/DayPhase.cpp
@@ -323,6 +324,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/SettingsLayout.cpp
         client/world/SliderLayout.cpp
         client/game/SettingsState.cpp
+        client/world/WorldMapConfig.cpp
+        client/world/WorldMapLayout.cpp
         client/game/ToolUseCue.cpp
         client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp

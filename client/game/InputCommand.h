@@ -16,9 +16,12 @@ struct InputCommand {
         SelectSlot,
         // Alterna entre caminar 1 y 2 celdas por movimiento.
         ToggleWalking,
-        // Cambio de escenario local (tecla M): alterna mercado y
-        // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
-        ToggleMarket,
+        // Alterna el mapa del mundo (tecla M). Lo consume PlaySession;
+        // NO viaja al GameClient.
+        ToggleWorldMap,
+        // Cierra overlays transitorios (ESC con chat cerrado). Lo consume
+        // PlaySession; NO viaja al GameClient.
+        CancelOverlay,
         // DEMO (tecla O): pasa a la escena siguiente (mapas del editor
         // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
         // GameClient. Se borra cuando el server mande el mapa.

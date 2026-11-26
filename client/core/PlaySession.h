@@ -31,6 +31,7 @@
 #include "game/SceneTransition.h"
 #include "game/SceneSnapshot.h"
 #include "game/ViewMotion.h"
+#include "game/WorldMapState.h"
 #include "sdl/audio/AudioCatalog.h"
 #include "sdl/audio/AudioMixer.h"
 #include "sdl/audio/AudioPlayer.h"
@@ -54,6 +55,7 @@
 #include "sdl/render/Renderer.h"
 #include "sdl/render/SettingsPainter.h"
 #include "sdl/render/TextRenderer.h"
+#include "sdl/render/WorldMapPainter.h"
 #include "world/CursorCatalog.h"
 #include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
@@ -88,6 +90,7 @@ struct InventoryLayout;
 struct ObtainedBannerCatalog;
 struct ResourceCatalog;
 struct ToolOverlayCatalog;
+struct WorldMapConfig;
 }  // namespace world
 
 namespace core {
@@ -110,12 +113,14 @@ public:
                 const world::NoticeLayout& notice,
                 const world::NameplateLayout& nameplate,
                 const world::SettingsLayout& settings,
+                const world::WorldMapConfig& worldMap,
                 const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes,
                 game::EnemyTestTrigger* enemyTestTrigger = nullptr,
                 const std::string& worldPath = "",
-                std::string initialSceneId = "farm");
+                std::string initialSceneId = "farm",
+                const std::string& minimapDir = "");
 
     // Corre el game loop hasta que se pida salir. Devuelve true si el
     // jugador abandonó la partida y hay que volver al lobby.
@@ -214,6 +219,9 @@ private:
     // Además exige algo transferible en el casillero activo: con una
     // herramienta el server no arma el pedido (ver isGiftTarget).
     bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
+    void toggleWorldMap();
+    void closeWorldMap();
+    std::vector<std::string> worldMapExteriors(const world::WorldMapConfig& config) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario). De dónde sale cada escena
@@ -343,6 +351,9 @@ private:
     // Objetos animados clickeables (cofre): abierto/cerrado por id.
     game::PropAnimator props_;
     sdl::ChatPainter chatPainter_;
+    game::WorldMapState worldMap_;
+    sdl::WorldMapPainter worldMapPainter_;
+    std::map<game::InputCommand::Kind, void (PlaySession::*)()> worldMapActions_;
     // Aviso en pantalla ("Inventario lleno"): la fuente lo pide, la cola
     // cuenta el tiempo y el painter dibuja.
     game::NoticeQueue noticeQueue_;

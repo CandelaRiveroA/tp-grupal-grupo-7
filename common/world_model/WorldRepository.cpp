@@ -51,17 +51,19 @@ std::string WorldRepository::filePathFor(const std::string& name) const {
 		.string();
 }
 
+std::string WorldRepository::minimapDirFor(const std::string& name) const {
+	return (std::filesystem::path(directoryPath_) / (name + "_minimaps"))
+		.string();
+}
+
 std::string WorldRepository::minimapPathFor(const std::string& name,
 					    const std::string& mapId) const {
-	return (std::filesystem::path(directoryPath_) /
-		(name + "_minimaps") / (mapId + ".png"))
+	return (std::filesystem::path(minimapDirFor(name)) / (mapId + ".png"))
 		.string();
 }
 
 bool WorldRepository::prepareMinimapsDir(const World& world) const {
-	const std::filesystem::path dir =
-		std::filesystem::path(directoryPath_) /
-		(world.name + "_minimaps");
+	const std::filesystem::path dir(minimapDirFor(world.name));
 	std::error_code error;
 	std::filesystem::create_directories(dir, error);
 	if (error) {

@@ -236,6 +236,13 @@ void Match::broadcast_clock(uint16_t minutes) {
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     character_names[joined.player_id] = joined.characterName;
+    // El nuevo recibe los existentes y todos reciben al nuevo, en cualquier mapa.
+    for (const auto& [id, name]: character_names) {
+        if (id != joined.player_id) {
+            send_to(joined.player_id, ServerPlayerName{id, name});
+        }
+    }
+    broadcast(ServerPlayerName{joined.player_id, joined.characterName});
     uint8_t cabin_k = 1;
     if (!free_cabins_.empty()) {
         cabin_k = *free_cabins_.begin();
@@ -275,6 +282,9 @@ void Match::handle(const PlayerMessage& event) {
     }
     // El evento nace en el pickup (ver DroppedItem::interact), no de comparar
     // inventarios: solo se traduce a mensaje acá.
+    for (const uint8_t id: world.take_inventory_full()) {
+        send_to(id, ServerInventoryFull{});
+    }
     for (const PlayerPickup& pickup: world.take_pickups()) {
         send_to(pickup.player_id, ServerObtained{content_id_for(pickup.item)});
     }

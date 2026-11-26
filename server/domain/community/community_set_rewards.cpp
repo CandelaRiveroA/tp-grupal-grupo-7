@@ -11,13 +11,13 @@ CommunitySetRewards::CommunitySetRewards():
                     for (uint8_t id: world.get_player_ids()) {
                         Player& player = world.get_player(id);
                         for (int i = 0; i < 5; ++i) {
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::STRAWBERRY_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::ONION_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::POTATO_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::PUMPKIN_SEED, 20, Quality::BASE));
                         }
                     }

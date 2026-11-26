@@ -172,6 +172,10 @@ ToolType Player::get_equipped_tool() const {
     }
 }
 
+bool Player::can_pick_up_item(const Item& item) const {
+    return backpack.can_add_item(item);
+}
+
 bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
 }
@@ -239,7 +243,6 @@ bool Player::finalize_gift_reception(Player& receiver) {
         return true;
     }
 
-    //TODO: disparar una notificación de inventario lleno si lo deseas.
     return false;
 }
 

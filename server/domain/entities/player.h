@@ -112,6 +112,7 @@ public:
     // Interacción con herramientas e inventario
     void select_slot(uint8_t slot_idx);
     ToolType get_equipped_tool() const;
+    bool can_pick_up_item(const Item& item) const;
     bool pick_up_item(std::unique_ptr<Item> item);
     std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
     std::vector<std::unique_ptr<Item>> extract_items_with_min_quality(

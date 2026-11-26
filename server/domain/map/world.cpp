@@ -8,6 +8,7 @@
 #include "../animals/animal.h"
 #include "../animals/animal_catalog.h"
 #include "../furniture/bed.h"
+#include "../inventory/product.h"
 #include "portal.h"
 #include "barn.h"
 #include "../enemies/enemy.h"
@@ -996,6 +997,35 @@ std::vector<ResourceHit> World::take_resource_hits() {
     return hits;
 }
 
+bool World::try_pick_up_item(Player& player, std::unique_ptr<Item> item) {
+    if (!item) {
+        return false;
+    }
+    if (!player.can_pick_up_item(*item)) {
+        inventory_full.insert(player.get_id());
+        return false;
+    }
+    return player.pick_up_item(std::move(item));
+}
+
+void World::give_item_or_gold(Player& player, std::unique_ptr<Item> item) {
+    if (!item) {
+        return;
+    }
+    // Solo entran Products acá: crops, minerales y animales donados/recompensa.
+    const auto* product = dynamic_cast<const Product*>(item.get());
+    const uint16_t price = product ? product->get_final_price() : 0;
+    if (!try_pick_up_item(player, std::move(item))) {
+        player.add_gold(price);
+    }
+}
+
+std::set<uint8_t> World::take_inventory_full() {
+    std::set<uint8_t> result;
+    result.swap(inventory_full);
+    return result;
+}
+
 void World::record_pickup(uint8_t player_id, ItemID item) {
     this->pickups.push_back(PlayerPickup{player_id, item});
 }
@@ -1271,7 +1301,7 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
     }
     if (!offered) {
         for (auto& item_to_restore: donated) {
-            p.pick_up_item(std::move(item_to_restore));
+            give_item_or_gold(p, std::move(item_to_restore));
         }
     }
     return offered;
@@ -1354,9 +1384,12 @@ void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
         std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
         return;
     }
-    if (sender_id != receiver_id &&
-        sender_it->second->finalize_gift_reception(*receiver_it->second)) {
-        this->accepted_gifts.push_back(receiver_id);
+    if (sender_id != receiver_id) {
+        if (sender_it->second->finalize_gift_reception(*receiver_it->second)) {
+            this->accepted_gifts.push_back(receiver_id);
+        } else if (!receiver.can_pick_up_item(*held)) {
+            this->inventory_full.insert(receiver_id);
+        }
     }
 }
 

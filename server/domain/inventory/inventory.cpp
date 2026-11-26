@@ -6,6 +6,15 @@
 
 Inventory::Inventory(uint8_t max): max_slots(max) { this->slots.resize(this->max_slots); }
 
+bool Inventory::can_add_item(const Item& item) const {
+    for (const auto& slot: slots) {
+        if (slot.is_empty() || (!slot.is_full() && slot.item->is_stackable_with(item))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Inventory::add_item(std::unique_ptr<Item> new_item) {
     if (!new_item)
         return false;

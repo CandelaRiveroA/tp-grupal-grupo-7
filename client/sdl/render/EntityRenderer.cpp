@@ -115,4 +115,8 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	}
 }
 
+const PlayerAppearancePainter& EntityRenderer::appearancePainter() const {
+	return appearancePainter_;
+}
+
 }  // namespace sdl

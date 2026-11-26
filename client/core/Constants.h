@@ -83,6 +83,8 @@ constexpr const char* kHudOverlaysFile = "ui/hud.toml";
 
 constexpr const char* kLightingFile = "ui/lighting.toml";
 
+constexpr const char* kWorldMapFile = "ui/world_map.toml";
+
 // ==== Chat ====
 
 // Ticks del parpadeo del cursor en la línea de tipeo.

@@ -77,6 +77,8 @@ public:
 			      const Viewport& viewport, int firstRow,
 			      int lastRow);
 
+	const PlayerAppearancePainter& appearancePainter() const;
+
 private:
 	void drawResource(const game::ViewResource& resource,
 			  const world::ScenePixelMapper& mapper,

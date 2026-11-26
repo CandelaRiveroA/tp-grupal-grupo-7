@@ -100,8 +100,8 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-    // Cambio de escenario local: mercado / dormitorio.
-    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleMarket, 0}});
+    // Mapa del mundo (tecla M). El cierre con ESC se resuelve vía ToggleSettings en PlaySession.
+    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleWorldMap, 0}});
     // DEMO: siguiente escena (lo reemplaza el mapa que mande el server).
     bindings.insert({SDLK_o, game::InputCommand{Kind::CycleMap, 0}});
     // DEMO: catálogo del mercado (lo reemplaza el server).

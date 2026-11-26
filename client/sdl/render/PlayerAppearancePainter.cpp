@@ -10,6 +10,7 @@
 #include "world/CharacterCatalog.h"
 #include "world/CharacterLayout.h"
 #include "world/CharacterPalettes.h"
+#include "world/EntityAppearance.h"
 
 namespace sdl {
 
@@ -61,34 +62,86 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 				   const int frameIndex,
 				   const SDL2pp::Rect& dest,
 				   const Flip flip) const {
-	if (pose.empty() || dest.w <= 0 || dest.h <= 0) {
+	if (dest.w <= 0 || dest.h <= 0 ||
+	    !compose(entity.kind, entity.facing, entity.appearance, pose,
+		     action, frameIndex)) {
 		return;
+	}
+
+	// `dest` es la celda cuadrada. CharacterLayout
+	// lo ubica centrado y apoyado abajo para no deformarlo.
+	const world::LayerFrame& base = pose.front();
+	const world::CharacterLayout layout(
+		world::PixelRect{dest.x, dest.y, dest.w, dest.h},
+		characters_.drawnWidth(entity.kind),
+		characters_.drawnHeight(entity.kind));
+	const world::PixelRect body = layout.layerRect(base, base);
+
+	composer_.present(
+		SDL2pp::Rect(body.x, body.y, body.width, body.height), flip);
+}
+
+void PlayerAppearancePainter::drawHead(const CharacterAppearance& appearance,
+				       const SDL2pp::Rect& dest) const {
+	if (dest.w <= 0 || dest.h <= 0) {
+		return;
+	}
+	const world::CreatureData* creature =
+		characters_.find(world::CreatureKind::Player);
+	if (creature == nullptr) {
+		return;
+	}
+	const world::AppearanceResolver resolver(*creature);
+	const world::EntityAppearance entityAppearance = resolver.appearanceFor(
+		world::Direction::Front, world::ActionKind::Idle, 0);
+	if (entityAppearance.pose == nullptr ||
+	    entityAppearance.pose->empty()) {
+		return;
+	}
+	if (!compose(world::CreatureKind::Player, world::Direction::Front,
+		     appearance, *entityAppearance.pose,
+		     world::ActionKind::Idle, 0)) {
+		return;
+	}
+	const int headSize =
+		characters_.sheetCellWidth(world::CreatureKind::Player);
+	composer_.presentRegion(SDL2pp::Rect(0, 0, headSize, headSize), dest,
+				Flip::None);
+}
+
+bool PlayerAppearancePainter::compose(
+	const world::CreatureKind kind, const world::Direction facing,
+	const CharacterAppearance& characterAppearance,
+	const world::Pose& pose, const world::ActionKind action,
+	const int frameIndex) const {
+	if (pose.empty()) {
+		return false;
 	}
 
 	const world::AppearanceData& appearance =
-		characters_.appearanceFor(entity.kind);
+		characters_.appearanceFor(kind);
 	if (!appearance.present) {
-		return;
+		return false;
 	}
 
-	const int cellWidth = characters_.sheetCellWidth(entity.kind);
-	const int cellHeight = characters_.sheetCellHeight(entity.kind);
+	const int cellWidth = characters_.sheetCellWidth(kind);
+	const int cellHeight = characters_.sheetCellHeight(kind);
 	const world::LayerFrame& base = pose.front();
 	const int canvasWidth = base.cols * cellWidth;
 	const int canvasHeight = base.rows * cellHeight;
 	if (canvasWidth <= 0 || canvasHeight <= 0) {
-		return;
+		return false;
 	}
 	composer_.reset(canvasWidth, canvasHeight);
 
 	const world::AppearanceSide side =
-		kSides[static_cast<std::size_t>(entity.facing)];
+		kSides[static_cast<std::size_t>(facing)];
 	const std::size_t sideIndex = static_cast<std::size_t>(side);
 
 	SpriteSheet& baseSheet = sheets_.sheet(
-		characters_.sheetFile(entity.kind),
-		core::assetPath(characters_.sheetFile(entity.kind)),
-		cellWidth, cellHeight);
+		characters_.sheetFile(kind),
+		core::assetPath(characters_.sheetFile(kind)), cellWidth,
+		cellHeight);
 
 	// Coronilla y pies del frame (bordes del contenido del cuerpo): anclas
 	// para lo que va sobre la cabeza y sobre las piernas. Salen del
@@ -99,10 +152,10 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 						  base.cols, base.rows);
 
 	PixelRules skinRules;
-	readSkinRules(appearance.skin, entity.appearance.skin, skinRules);
+	readSkinRules(appearance.skin, characterAppearance.skin, skinRules);
 
 	const world::AppearanceOption* shirtOption =
-		optionAt(appearance.shirt.options, entity.appearance.shirt);
+		optionAt(appearance.shirt.options, characterAppearance.shirt);
 	const world::SheetRegion* shirtRegion = regionAt(shirtOption, side);
 	PixelRules sleeveRules;
 	if (shirtRegion != nullptr) {
@@ -125,9 +178,9 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	// Ojos: sólo las pupilas que ya trae el cuerpo, antes de que el pelo
 	// o los accesorios las tapen.
 	if (!palettes_.eyes.empty()) {
-		const int index = std::clamp(static_cast<int>(entity.appearance.eyes),
-					     0,
-					     static_cast<int>(palettes_.eyes.size()) - 1);
+		const int index = std::clamp(
+			static_cast<int>(characterAppearance.eyes), 0,
+			static_cast<int>(palettes_.eyes.size()) - 1);
 		const std::array<int, 3>& witness = palettes_.eyes.front();
 		const std::array<int, 3>& rgb = palettes_.eyes[index];
 		PixelRules rules;
@@ -144,7 +197,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	// Pantalón: la opción tiene tres cuadros por cara (idle + dos de
 	// caminata). Caminar usa los de piernas; el resto queda en el 0.
 	const world::AppearanceOption* pantsOption =
-		optionAt(appearance.pants.options, entity.appearance.pants);
+		optionAt(appearance.pants.options, characterAppearance.pants);
 	if (pantsOption != nullptr) {
 		const std::vector<world::SheetRegion>& frames =
 			pantsOption->sides[static_cast<std::size_t>(side)];
@@ -160,7 +213,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 			if (!palettes_.pants.empty()) {
 				const int index = std::clamp(
 					static_cast<int>(
-						entity.appearance.pantsColor),
+						characterAppearance.pantsColor),
 					0,
 					static_cast<int>(palettes_.pants.size()) - 1);
 				const std::array<int, 3>& rgb =
@@ -207,7 +260,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 	// Accesorio: la opción 0 no tiene caras; espalda tampoco.
 	const world::AppearanceOption* accessoryOption =
 		optionAt(appearance.accessory.options,
-			 entity.appearance.accessory);
+			 characterAppearance.accessory);
 	const world::SheetRegion* accessoryRegion =
 		regionAt(accessoryOption, side);
 	if (accessoryRegion != nullptr) {
@@ -220,13 +273,13 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 
 	// Pelo: va arriba de todo y se tiñe con el color elegido.
 	const world::AppearanceOption* hairOption =
-		optionAt(appearance.hair.options, entity.appearance.hair);
+		optionAt(appearance.hair.options, characterAppearance.hair);
 	const world::SheetRegion* hairRegion = regionAt(hairOption, side);
 	if (hairRegion != nullptr) {
 		PixelRules rules;
 		if (!palettes_.hair.empty()) {
 			const int index = std::clamp(
-				static_cast<int>(entity.appearance.hairColor), 0,
+				static_cast<int>(characterAppearance.hairColor), 0,
 				static_cast<int>(palettes_.hair.size()) - 1);
 			const std::array<int, 3>& rgb = palettes_.hair[index];
 			rules.tint = true;
@@ -241,18 +294,7 @@ void PlayerAppearancePainter::draw(const game::ViewEntity& entity,
 				     hairPos[0], hairPos[1], rules);
 	}
 
-	// El lienzo es el cuerpo nativo (1x2 celdas = 16x32), no el box de la
-	// celda (cuadrado). Se dibuja en el rect del CUERPO que calcula
-	// CharacterLayout —centrado y anclado abajo— para conservar la
-	// proporción y el tamaño con el que se dibujaba antes (drawn 32x64).
-	const world::CharacterLayout layout(
-		world::PixelRect{dest.x, dest.y, dest.w, dest.h},
-		characters_.drawnWidth(entity.kind),
-		characters_.drawnHeight(entity.kind));
-	const world::PixelRect body = layout.layerRect(base, base);
-
-	composer_.present(
-		SDL2pp::Rect(body.x, body.y, body.width, body.height), flip);
+	return true;
 }
 
 const world::AppearanceOption* PlayerAppearancePainter::optionAt(

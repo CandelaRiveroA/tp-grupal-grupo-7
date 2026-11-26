@@ -293,4 +293,8 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 				drawRect.height));
 }
 
+const PlayerAppearancePainter& Renderer::appearancePainter() const {
+	return entityRenderer_.appearancePainter();
+}
+
 }  // namespace sdl

@@ -25,6 +25,7 @@
 #include "world/ScenePixelMapper.h"
 #include "world/ViewDirection.h"
 #include "world/WorldConstants.h"
+#include "world/WorldMapConfig.h"
 
 namespace core {
 
@@ -41,12 +42,14 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                          const world::NoticeLayout& notice,
                          const world::NameplateLayout& nameplate,
                          const world::SettingsLayout& settings,
+                         const world::WorldMapConfig& worldMap,
                          const world::HudOverlayCatalog& hudOverlays,
                          const world::HudOverlayCatalog& lighting,
                          const world::CharacterPalettes& palettes,
                          game::EnemyTestTrigger* enemyTestTrigger,
                          const std::string& worldPath,
-                         std::string initialSceneId):
+                         std::string initialSceneId,
+                         const std::string& minimapDir):
         sources_(std::string(), worldPath, core::assetPath(core::kOverlayFile)),
         sceneSwitcher_(sources_.byPriority(), std::move(initialSceneId), scenario.scene()),
         gameClient_(gameClient),
@@ -114,6 +117,12 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         marketPopupPainter_(sdlContext_, textRenderer_),
         marketPopup_(market, inventory_),
         chatPainter_(sdlContext_, textRenderer_, chat),
+        worldMapPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.appearancePainter(),
+                         worldMap, minimapDir),
+        worldMapActions_{
+                {game::InputCommand::Kind::ToggleWorldMap, &PlaySession::toggleWorldMap},
+                {game::InputCommand::Kind::CancelOverlay, &PlaySession::closeWorldMap},
+        },
         noticeQueue_(notice.durationTicks),
         noticePainter_(sdlContext_, textRenderer_, notice),
         nameplatePainter_(textRenderer_, nameplate),
@@ -129,6 +138,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::InputCommand::Kind::ToggleSettings, sdl::SoundId::Cancel},
                 {game::InputCommand::Kind::ChatCancel, sdl::SoundId::Cancel},
         } {
+    worldMap_.configureFromSources(sources_.byPriority(), worldMapExteriors(worldMap));
     // El volumen elegido de cada categoría rige desde el primer sonido.
     audioMixer_.apply(settings_.volumes());
     renderer_.prepareScene(scene());
@@ -190,6 +200,7 @@ void PlaySession::tick(int iteration) {
         npcPopup_ = nullptr;
         lastNpcId_.clear();
         marketPopup_.close();
+        worldMap_.close();
         settings_.close();
         popupState_.hide();
         sceneTransition_.changeTo(sceneSwitcher_.id(), true);
@@ -317,6 +328,7 @@ void PlaySession::tick(int iteration) {
         npcPopup_ = nullptr;
         lastNpcId_.clear();
         marketPopup_.close();
+        worldMap_.close();
         settings_.close();
         if (lastSleeping_ == 0) {
             voted_ = false;
@@ -334,6 +346,7 @@ void PlaySession::tick(int iteration) {
     // Llegó un pedido de regalo (ServerGiftRequest): abre el popup del
     // receptor con el nombre del emisor y guarda a quién se le contesta.
     if (state.giftRequest.has_value()) {
+        worldMap_.close();
         pendingGiftSenderId_ = state.giftRequest->senderId;
         settings_.close();
         popupState_.showGiftReceived(state.giftRequest->senderName);
@@ -431,12 +444,19 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         if (command.kind == game::InputCommand::Kind::OpenCatalog) {
+            if (worldMap_.isOpen() || settings_.modal()) {
+                continue;
+            }
             // DEMO (tecla B): catálogo de prueba, sin pasar por el NPC.
             toggleDemoCatalog();
             continue;
         }
         if (command.kind == game::InputCommand::Kind::ToggleSettings) {
-            toggleSettings();
+            if (worldMap_.isOpen()) {
+                closeWorldMap();
+            } else {
+                toggleSettings();
+            }
             continue;
         }
         // Con el popup de un NPC (o el de configuración) abierto el mundo
@@ -454,10 +474,12 @@ void PlaySession::tick(int iteration) {
             // El catálogo real se pide por /consultar_catalogo en el chat.
             continue;
         }
-        if (command.kind == game::InputCommand::Kind::ToggleMarket) {
-            // Cambio de escenario local: mercado ↔ dormitorio.
-            sceneTransition_.changeTo(sceneSwitcher_.id() == core::kMarketRoom ? core::kInitialRoom
-                                                                        : core::kMarketRoom);
+        if (const auto mapAction = worldMapActions_.find(command.kind);
+            mapAction != worldMapActions_.end()) {
+            (this->*(mapAction->second))();
+            continue;
+        }
+        if (worldMap_.isOpen()) {
             continue;
         }
         if (command.kind == game::InputCommand::Kind::TestNotice) {
@@ -478,9 +500,9 @@ void PlaySession::tick(int iteration) {
     const game::PlayerEvents events =
             player_.tick(iteration,
                          popupState_.modal() || npcPopup_ != nullptr || marketPopup_.isOpen() ||
-                                         settings_.modal() ?
-                                 std::nullopt :
-                                 pressed,
+                                         settings_.modal() || worldMap_.isOpen()
+                                 ? std::nullopt
+                                 : pressed,
                          playerCommands);
     if (events.toolSwitched) {
         audio_.play(sdl::SoundId::ToolSwitch);
@@ -627,6 +649,11 @@ void PlaySession::tick(int iteration) {
     drawMarketCatalog();
     dragSettingsSlider();
     drawSettings();
+    if (worldMap_.isOpen()) {
+        worldMapPainter_.draw(worldMap_.activeExterior(),
+                              worldMap_.pinsForActive(state.worldMapPlayers),
+                              sdlContext_.width(), sdlContext_.height());
+    }
 
     // El puntero: la variante la decide el estado de juego (si hay algo
     // interactivo bajo el cursor); el painter solo dibuja.
@@ -639,9 +666,16 @@ void PlaySession::tick(int iteration) {
     // el click sobre un elemento entrable lo mete/saca (presentación
     // local) y se consume ahí.
     for (const game::PointerClick& click: input_.takeClicks()) {
-        // Con la configuración abierta solo cuentan sus controles.
+        // Con la configuración o el mapa abiertos solo cuentan sus controles.
         if (settings_.modal()) {
             handleSettingsClick(click);
+            continue;
+        }
+        if (worldMap_.isOpen()) {
+            if (worldMapPainter_.hitsSwitchArrow(sdlContext_.width(), sdlContext_.height(),
+                                                 worldMap_.activeExterior(), click.x, click.y)) {
+                worldMap_.switchExterior();
+            }
             continue;
         }
         const world::PixelPoint worldClick =
@@ -789,11 +823,18 @@ void PlaySession::tick(int iteration) {
     // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
     world::CursorKind cursorKind = world::CursorKind::Normal;
-    // Con el popup de un NPC o del catálogo abierto el mundo está bloqueado.
-    const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen() || settings_.modal();
+    // Con el popup de un NPC, del catálogo, configuración o mapa abierto el mundo está bloqueado.
+    const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen() ||
+                              settings_.modal() || worldMap_.isOpen();
     if (settings_.modal()) {
         cursorKind = overSettingsControl(mousePoint) ? world::CursorKind::Interactive :
                                                        world::CursorKind::Normal;
+    } else if (worldMap_.isOpen()) {
+        cursorKind = worldMapPainter_.hitsSwitchArrow(sdlContext_.width(), sdlContext_.height(),
+                                                     worldMap_.activeExterior(), mousePoint.x,
+                                                     mousePoint.y)
+                ? world::CursorKind::Interactive
+                : world::CursorKind::Normal;
     } else if (popupState_.modal()) {
         const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
         bool overPopup = false;
@@ -919,7 +960,8 @@ void PlaySession::drawPopup(const world::PixelBox& panel) {
 
 void PlaySession::toggleSettings() {
     // Cerrar siempre se puede; abrir no si otro popup ya bloquea el mundo.
-    const bool otherPopup = npcPopup_ != nullptr || marketPopup_.isOpen() || popupState_.modal();
+    const bool otherPopup = npcPopup_ != nullptr || marketPopup_.isOpen() ||
+                            popupState_.modal() || worldMap_.isOpen();
     if (!settings_.isOpen() && otherPopup) {
         return;
     }
@@ -1043,8 +1085,8 @@ void PlaySession::toggleDemoCatalog() {
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
     // El catálogo que pide la fuente de estado. Abre el popup (cerrando el de
     // un NPC si lo hubiera) y reemplaza la oferta abierta si es de otro
-    // comerciante. Se ignora con un popup modal.
-    if (!view.marketOffer.has_value() || popupState_.modal()) {
+    // comerciante. Se ignora con un popup modal o el mapa abierto.
+    if (!view.marketOffer.has_value() || popupState_.modal() || worldMap_.isOpen()) {
         return;
     }
     npcPopup_ = nullptr;
@@ -1128,6 +1170,23 @@ bool PlaySession::isGiftTarget(const game::PickTarget& target,
                                        return inventorySlot.slotIndex == slot;
                                    });
     return held != view.inventory.end() && held->tradable;
+}
+
+void PlaySession::toggleWorldMap() {
+    worldMap_.toggle(sceneSwitcher_.id());
+}
+
+void PlaySession::closeWorldMap() {
+    worldMap_.close();
+}
+
+std::vector<std::string> PlaySession::worldMapExteriors(const world::WorldMapConfig& config) const {
+    std::vector<std::string> ids;
+    ids.reserve(config.exteriors.size());
+    for (const world::WorldMapExteriorConfig& exterior: config.exteriors) {
+        ids.push_back(exterior.id);
+    }
+    return ids;
 }
 
 }  // namespace core

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Instalador / desinstalador del TP Final - Grupo 7.
 # Uso:
-#   ./installer.sh            -> instala
-#   ./installer.sh --uninstall -> desinstala
+#   sudo ./installer.sh             -> descarga main de GitHub e instala
+#   sudo ./installer.sh --local     -> instala el proyecto junto al script
+#   sudo ./installer.sh --uninstall -> desinstala
 
 set -euo pipefail
 
@@ -19,7 +20,7 @@ APP_NAME="$NAME"
 PREFIX="/opt/taller"
 REPO_URL="https://github.com/CandelaRiveroA/tp-grupal-grupo-7"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLONE=0
+LOCAL=0
 
 # Flags se procesan mas abajo, despues de asegurar root.
 
@@ -77,7 +78,8 @@ for arg in "$@"; do
     case "$arg" in
         --uninstall|uninstall) UNINSTALL=1 ;;
         --keep-deps|--no-remove-deps) KEEP_DEPS=1 ;;
-        --clone|--from-github) CLONE=1 ;;
+        --local) LOCAL=1 ;;
+        *) fail "Opcion desconocida: $arg. Usa --local para instalar desde una copia local; sin opciones se descarga GitHub." ;;
     esac
 done
 
@@ -129,14 +131,10 @@ if [[ $UNINSTALL -eq 1 ]]; then
     uninstall
 fi
 
-# Clonar el repo desde GitHub si se pidio (--clone / --from-github).
-if [[ $CLONE -eq 1 ]]; then
-    TMP_SRC="$(mktemp -d /tmp/taller-clone-XXXXXX)"
-    trap 'rm -rf "$TMP_SRC"' EXIT
-    info "Clonando repositorio desde GitHub..."
-    git clone --depth 1 --branch main "$REPO_URL" "$TMP_SRC"
-    SRC_DIR="$TMP_SRC"
-    ok "Repositorio clonado"
+# La copia local debe estar junto al instalador. Validar antes de instalar
+# dependencias o eliminar una instalacion existente.
+if [[ $LOCAL -eq 1 && ! -f "${SRC_DIR}/CMakeLists.txt" ]]; then
+    fail "No se encontro CMakeLists.txt en ${SRC_DIR}. Coloca el instalador en la raiz del proyecto para usar --local."
 fi
 
 # ---------- Instalacion ----------
@@ -158,6 +156,21 @@ apt-get update -y
 apt-get install -y --no-install-recommends ca-certificates
 apt-get install -y --no-install-recommends $DEPS
 ok "Paso 0 - Completado"
+
+# Por defecto se descarga el repo. Git y los certificados ya se instalaron
+# en el Paso 0, incluso en una maquina que no los tenia previamente.
+if [[ $LOCAL -eq 0 ]]; then
+    TMP_SRC="$(mktemp -d /tmp/taller-clone-XXXXXX)"
+    trap 'rm -rf "$TMP_SRC"' EXIT
+    info "Clonando repositorio desde GitHub (rama main)..."
+    git clone --depth 1 --branch main "$REPO_URL" "$TMP_SRC"
+    SRC_DIR="$TMP_SRC"
+    ok "Repositorio clonado"
+else
+    info "Usando copia local del proyecto: ${SRC_DIR}"
+fi
+
+[[ -f "${SRC_DIR}/CMakeLists.txt" ]] || fail "No se encontro CMakeLists.txt en ${SRC_DIR}."
 
 # Limpieza de instalacion previa
 info "Eliminando instalacion previa de ${APP_NAME} (si existe)..."
@@ -190,7 +203,7 @@ cmake -S "$SRC_DIR" -B "$PREFIX" \
     "-DTALLER_INSTALL_SCENARIOS_DIR=${CONFIG_DIR}/editor/scenarios" \
     "-DTALLER_INSTALL_PREFABS_TOML=${CONFIG_DIR}/editor/prefabs.toml"
 
-cmake --build "$PREFIX" --parallel "$(nproc)"
+cmake --build "$PREFIX" --parallel 4
 info "Paso 5 - Ejecutando tests unitarios..."
 "${PREFIX}/taller_tests"
 ok "Paso 5 - Completado"

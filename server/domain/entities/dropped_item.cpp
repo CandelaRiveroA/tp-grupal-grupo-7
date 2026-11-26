@@ -33,7 +33,7 @@ if (tool == ToolType::HAND && this->payload) {
         while (this->amount > 0) {
             std::unique_ptr<Item> copy = this->payload->clone();
             
-            if (p.pick_up_item(std::move(copy))) {
+            if (w.try_pick_up_item(p, std::move(copy))) {
                 this->amount--;
                 picked_at_least_one = true;
             } else {

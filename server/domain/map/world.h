@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -31,6 +32,7 @@ class Barn;
 class Enemy;
 class Crop;
 class Merchant;
+class Product;
 
 struct GiftOffer {
     uint8_t sender_id;
@@ -67,6 +69,7 @@ private:
     // Eventos globales consumidos por Match.
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
+    std::set<uint8_t> inventory_full;
     std::vector<uint8_t> gift_answers;
     std::vector<uint8_t> accepted_gifts;
     std::map<std::pair<uint8_t, uint8_t>, ItemID> offered_gifts;
@@ -206,6 +209,9 @@ public:
     void take_item(uint8_t player_id);
     void record_resource_hit(uint16_t x, uint16_t y, bool destroyed);
     std::vector<ResourceHit> take_resource_hits();
+    bool try_pick_up_item(Player& player, std::unique_ptr<Item> item);
+    void give_item_or_gold(Player& player, std::unique_ptr<Product> item);
+    std::set<uint8_t> take_inventory_full();
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
 

@@ -73,7 +73,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                                    player.get_health(), player.get_max_health(),
                                    player.get_energy(),
                                    player.get_max_energy(),
-                                   player.faintedByEnergy() ? 1u : 0u));
+                                   (player.faintedByEnergy() || player.faintedByTimeout()) ? 1u : 0u));
     }
 
     for (const MerchantPlacement& placement: scene.get_merchant_placements()) {

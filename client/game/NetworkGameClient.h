@@ -130,10 +130,7 @@ private:
     std::string worldName_;
     std::string initialMapId_;
     bool pendingDayChanged_ = false;
-    // Nombre de personaje por player_id (ViewEntity::displayName). Hoy solo
-    // tiene el del jugador local. ESCALABILIDAD: cuando el server mande los
-    // nombres, su handler en apply() es `names_[id] = nombre;` y el dibujo
-    // no cambia (solo cambia quién llena la vista, convención §6).
+    // Nombres públicos recibidos del servidor, conservados entre mapas.
     std::map<uint8_t, std::string> names_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;

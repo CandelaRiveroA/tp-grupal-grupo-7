@@ -42,8 +42,6 @@ struct PlayerLeft {
     uint8_t player_id;
 };
 
-struct DayPassed {};
-
 // Cambio de salto de la hora de juego. `generation` identifica el día que lo
 // produjo: un reinicio del día (sueño, salida) deja pasos viejos en la cola
 // y Match los descarta.
@@ -59,12 +57,11 @@ struct CreatureTick {};
 // más seguido que CreatureTick: es el mismo ritmo que el jugador (400 ms).
 struct EnemyTick {};
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick,
-                                EnemyTick, ClockStep>;
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, CreatureTick, EnemyTick,
+                                ClockStep>;
 
-// Empuja un DayPassed cada día de juego mientras la partida corre.
-// restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
-// del día (todos despiertos), para que los 30 segundos arranquen de cero.
+// Publica ClockStep con generación; Match termina el día al llegar al límite.
+// restart() invalida los pasos anteriores y reinicia desde la hora indicada.
 class DayClock: public Worker {
 private:
     Queue<MatchEvent>& events;
@@ -106,7 +103,7 @@ private:
     void handle(const PlayerMessage& event);
     void handle_chat(uint8_t player_id, const std::string& text);
     void handle(const PlayerLeft& left);
-    void handle(const DayPassed& day);
+    void finish_day();
     void handle(const CreatureTick& tick);
     void handle(const EnemyTick& tick);
     void handle(const ClockStep& step);

@@ -43,6 +43,8 @@ enum class ServerMessageType : uint8_t {
     MapChange = 31,
     PlayerHeld = 32,
     GiftAccepted = 33,
+    PlayerName = 34,
+    InventoryFull = 35,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -67,7 +69,7 @@ struct ServerStatus {
     uint16_t max_health;
     uint16_t energy;      // x100
     uint16_t max_energy;  // x100
-    // 1 = desmayado por falta de energía (vida intacta). 0 = no.
+    // 1 = desmayado por energía o por fin de horario. 0 = no.
     uint8_t fainted;
     ServerStatus(uint8_t player_id, uint16_t x, uint16_t y, Direction direction,
                  const CharacterAppearance& appearance,
@@ -268,6 +270,7 @@ struct ServerGold {
     uint16_t gold;
 };
 
+// Posición física de los pies del mercader.
 struct ServerNpcPlacement {
     std::string id;
     uint16_t x;
@@ -305,6 +308,13 @@ struct ServerGiftAccepted {
     uint8_t receiver_id;
 };
 
+struct ServerPlayerName {
+    uint8_t player_id;
+    std::string characterName;
+};
+
+struct ServerInventoryFull {};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
@@ -312,6 +322,6 @@ using ServerMessage =
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
                      ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
                      ServerGold, ServerNpcPlacement, ServerMarketOffer, ServerMapChange,
-                     ServerPlayerHeld, ServerGiftAccepted>;
+                     ServerPlayerHeld, ServerGiftAccepted, ServerPlayerName, ServerInventoryFull>;
 
 #endif

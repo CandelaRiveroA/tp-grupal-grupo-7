@@ -214,7 +214,6 @@ void PlaySession::tick(int iteration) {
         // y reabriría "Esperando al resto de jugadores...".
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
-        sceneTransition_.release();
         audio_.play(sdl::SoundId::RoosterCrow);
         // Día nuevo: los stats simulados arrancan llenos (lo dirá el server).
         for (auto& entry : stats_) {
@@ -480,11 +479,6 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         if (worldMap_.isOpen()) {
-            continue;
-        }
-        if (command.kind == game::InputCommand::Kind::TestNotice) {
-            // DEMO: el aviso real llega por LocalWorldView::notices.
-            noticeQueue_.show(game::kNoticeInventoryFull);
             continue;
         }
         if (command.kind == game::InputCommand::Kind::CycleMap) {
@@ -755,6 +749,9 @@ void PlaySession::tick(int iteration) {
         if (const world::NpcDef* npc = npcCatalog_.npcAt(sceneSwitcher_.id(), worldClick,
                                                          scene().cellPixelSize, npcCells);
             npc != nullptr) {
+            if (!npcPlacements_.canInteractWith(*npc, state, npcCells)) {
+                continue;
+            }
             if (!npc->hasPopup()) {
                 // Objeto animado (cofre): el click lo abre o lo cierra.
                 props_.toggle(npc->id, static_cast<int>(npc->body.frames.size()),
@@ -826,6 +823,8 @@ void PlaySession::tick(int iteration) {
     // Con el popup de un NPC, del catálogo, configuración o mapa abierto el mundo está bloqueado.
     const bool worldBlocked = npcPopup_ != nullptr || marketPopup_.isOpen() ||
                               settings_.modal() || worldMap_.isOpen();
+    const world::NpcDef* hoveredNpc = npcCatalog_.npcAt(
+            sceneSwitcher_.id(), worldCursor, scene().cellPixelSize, npcCells);
     if (settings_.modal()) {
         cursorKind = overSettingsControl(mousePoint) ? world::CursorKind::Interactive :
                                                        world::CursorKind::Normal;
@@ -852,8 +851,8 @@ void PlaySession::tick(int iteration) {
     } else if (!worldBlocked &&
                (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
                 structureSelection_.hits(worldCursor, state) ||
-                npcCatalog_.npcAt(sceneSwitcher_.id(), worldCursor, scene().cellPixelSize,
-                                  npcCells) != nullptr)) {
+                (hoveredNpc != nullptr &&
+                 npcPlacements_.canInteractWith(*hoveredNpc, state, npcCells)))) {
         cursorKind = world::CursorKind::Interactive;
     }
     cursorPainter_.draw(cursorCatalog_, cursorKind, input_.mousePosition());
@@ -1057,10 +1056,18 @@ void PlaySession::drawNpcPopup() {
     npcPopupPainter_.draw(*npcPopup_, panel);
 }
 
+bool PlaySession::canInteractWithMerchant(const std::string& id,
+                                         const game::LocalWorldView& view) const {
+    const world::NpcDef* npc = npcCatalog_.find(id);
+    return npc != nullptr && npc->room == sceneSwitcher_.id() &&
+           npcPlacements_.canInteractWith(*npc, view, npcPlacements_.cellsFrom(view, scene()));
+}
+
 void PlaySession::openMarketOfSpokenNpc() {
     // El catálogo es el del último comerciante con el que se habló; sin
     // comerciante (o si el NPC no tiene catálogo) no abre nada.
-    if (lastNpcId_.empty() || !marketCatalog_.hasMerchant(lastNpcId_)) {
+    if (lastNpcId_.empty() || !marketCatalog_.hasMerchant(lastNpcId_) ||
+        !canInteractWithMerchant(lastNpcId_, gameClient_.worldState())) {
         return;
     }
     const int setCount = marketCatalog_.defaultSetCount(lastNpcId_);
@@ -1074,7 +1081,8 @@ void PlaySession::toggleDemoCatalog() {
         marketPopup_.close();
         return;
     }
-    if (npcPopup_ != nullptr || popupState_.modal()) {
+    if (npcPopup_ != nullptr || popupState_.modal() ||
+        !canInteractWithMerchant(core::kDemoCatalogMerchant, gameClient_.worldState())) {
         return;
     }
     marketPopup_.open(world::MarketOffer{
@@ -1085,8 +1093,9 @@ void PlaySession::toggleDemoCatalog() {
 void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
     // El catálogo que pide la fuente de estado. Abre el popup (cerrando el de
     // un NPC si lo hubiera) y reemplaza la oferta abierta si es de otro
-    // comerciante. Se ignora con un popup modal o el mapa abierto.
-    if (!view.marketOffer.has_value() || popupState_.modal() || worldMap_.isOpen()) {
+    // comerciante. Se ignora con un popup modal, el mapa abierto o si no se puede interactuar con el mercader.
+    if (!view.marketOffer.has_value() || popupState_.modal() || worldMap_.isOpen() ||
+        !canInteractWithMerchant(view.marketOffer->merchantId, view)) {
         return;
     }
     npcPopup_ = nullptr;

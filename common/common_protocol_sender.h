@@ -33,6 +33,8 @@ private:
     void send_message(const protocol::SelectSlotMessage& message);
     void send_message(const ServerPlayerHeld& message);
     void send_message(const ServerGiftAccepted& message);
+    void send_message(const ServerPlayerName& message);
+    void send_message(const ServerInventoryFull& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);

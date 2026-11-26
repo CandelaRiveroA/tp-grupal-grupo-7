@@ -121,11 +121,6 @@ std::optional<world::CreatureKind> NetworkGameClient::creatureKindFor(
 }
 
 void NetworkGameClient::sendCommand(const protocol::ClientMessage& message) {
-    if (std::holds_alternative<protocol::TakeMessage>(message)) {
-        // Orden del mock: primero los animales (ordeño), después el piso (recogida).
-        startMilking();
-        startPickup();
-    }
     commands_.push(message);
 }
 
@@ -263,6 +258,14 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 }
 
 void NetworkGameClient::applyNow(const ServerMessage& message) {
+    if (const auto* name = std::get_if<ServerPlayerName>(&message)) {
+        names_[name->player_id] = name->characterName;
+        return;
+    }
+    if (std::holds_alternative<ServerInventoryFull>(message)) {
+        view_.notices.push_back(ViewNotice{kNoticeInventoryFull});
+        return;
+    }
     if (const auto* held = std::get_if<ServerPlayerHeld>(&message)) {
         players_[held->player_id].carriedContent = held->content_id.empty()
                 ? std::nullopt : std::optional<std::string>{held->content_id};
@@ -507,6 +510,14 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         return;
     }
     if (const auto* obtained = std::get_if<ServerObtained>(&message)) {
+        // Solo animar recogidas que el servidor haya aceptado.
+        if (obtained->content_id == "milk") {
+            startMilking();
+        } else if (obtained->content_id == "egg" || obtained->content_id == "strawberry" ||
+                   obtained->content_id == "onion" || obtained->content_id == "potato" ||
+                   obtained->content_id == "pumpkin") {
+            startPickup();
+        }
         // El evento de obtención viaja por content_id (vocabulario
         // genérico): el view lo refleja tal cual.
         obtained_.push_back(ViewObtained{obtained->content_id});
@@ -563,6 +574,7 @@ void NetworkGameClient::pruneToBatch() {
 }
 
 void NetworkGameClient::update(int) {
+    view_.notices.clear();
     view_.giftAcceptedPlayers.clear();
     view_.resourceHits.clear();
     view_.dayEnded = false;

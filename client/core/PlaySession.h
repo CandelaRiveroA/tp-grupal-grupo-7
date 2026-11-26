@@ -161,6 +161,8 @@ private:
     // Popup del catálogo del mercado. Quien lo pide (hoy la tecla demo,
     // mañana el mensaje del server) solo llama a open/close; el dibujo
     // y los datos no cambian.
+    bool canInteractWithMerchant(const std::string& id,
+                                 const game::LocalWorldView& view) const;
     void openMarketOfSpokenNpc();
     // DEMO (tecla B): abre el catálogo del comerciante de prueba, o lo
     // cierra si ya está abierto. No depende de la escena.

@@ -8,6 +8,7 @@
 #include "../animals/animal.h"
 #include "../animals/animal_catalog.h"
 #include "../furniture/bed.h"
+#include "../inventory/product.h"
 #include "portal.h"
 #include "barn.h"
 #include "../enemies/enemy.h"
@@ -235,7 +236,7 @@ World::World(const worldmodel::World& wm):
             } else {
                 // Comerciante por marker en su interior.
                 const uint16_t mx = static_cast<uint16_t>(marker.cell.column);
-                const uint16_t my = static_cast<uint16_t>(marker.cell.row);
+                const uint16_t my = static_cast<uint16_t>(marker.cell.row + kMerchantFeetOffset);
                 std::unique_ptr<Merchant> merch = Town::make_merchant(marker.kind, mx, my);
                 if (merch) {
                     static_cast<Scene*>(raw)->place_merchant(std::move(merch));
@@ -657,11 +658,7 @@ Merchant* World::get_merchant_for_command(uint8_t player_id) {
     const auto selected = this->selected_merchants.find(player_id);
     if (selected != this->selected_merchants.end()) {
         Merchant* merchant = selected->second;
-        const int dx = std::abs(static_cast<int>(merchant->get_x()) -
-                                static_cast<int>(player.get_x()));
-        const int dy = std::abs(static_cast<int>(merchant->get_y()) -
-                                static_cast<int>(player.get_y()));
-        if (dx <= 1 && dy <= 1) {
+        if (merchant->is_in_range(player.get_x(), player.get_y())) {
             return merchant;
         }
         this->selected_merchants.erase(selected);
@@ -996,6 +993,39 @@ std::vector<ResourceHit> World::take_resource_hits() {
     return hits;
 }
 
+bool World::try_pick_up_item(Player& player, std::unique_ptr<Item> item) {
+    if (!item) {
+        return false;
+    }
+    if (!player.can_pick_up_item(*item)) {
+        inventory_full.insert(player.get_id());
+        return false;
+    }
+    return player.pick_up_item(std::move(item));
+}
+
+void World::give_item_or_gold(Player& player, std::unique_ptr<Product> item) {
+    if (!item) {
+        return;
+    }
+    const ItemID id = item->get_id();
+    // Guardar el valor antes de mover el unique_ptr: si no entra, se compensa
+    // el producto de la recompensa con su precio según la calidad.
+    const uint16_t value = item->get_final_price();
+    if (try_pick_up_item(player, std::move(item))) {
+        record_pickup(player.get_id(), id);
+    } else {
+        const uint32_t total = static_cast<uint32_t>(player.get_gold()) + value;
+        player.set_gold(static_cast<uint16_t>(std::min<uint32_t>(total, 65535u)));
+    }
+}
+
+std::set<uint8_t> World::take_inventory_full() {
+    std::set<uint8_t> result;
+    result.swap(inventory_full);
+    return result;
+}
+
 void World::record_pickup(uint8_t player_id, ItemID item) {
     this->pickups.push_back(PlayerPickup{player_id, item});
 }
@@ -1095,6 +1125,7 @@ void World::end_day() {
     }
     clear_sleep();
     this->waking = true;
+    this->death_to_bed.clear();
     this->woke.clear();
     this->day_ended = true;
 }
@@ -1354,8 +1385,14 @@ void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
         std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
         return;
     }
-    if (sender_id != receiver_id &&
-        sender_it->second->finalize_gift_reception(*receiver_it->second)) {
+    if (sender_id == receiver_id || !held->can_be_traded()) {
+    return;
+    }
+    if (!receiver.can_pick_up_item(*held)) {
+        this->inventory_full.insert(receiver_id);
+        return;
+    }
+    if (sender_it->second->finalize_gift_reception(*receiver_it->second)) {
         this->accepted_gifts.push_back(receiver_id);
     }
 }

@@ -15,13 +15,6 @@ void SceneTransition::changeTo(const std::string& scene,
 		}
 		// El fin de día puede llegar durante un cambio de mapa: no
 		// perder la espera del despertar aunque ya haya un fade activo.
-		if (holdAtBlack) {
-			holdAtBlack_ = true;
-			if (phase_ == Phase::FadingIn) {
-				phase_ = Phase::FadingOut;
-				startIteration_ = -1;
-			}
-		}
 		// Una transición a la vez (POLA): la que está en curso sigue
 		// hasta el final. Única excepción: el pedido de quedarse en
 		// negro (fin del día), que se suma a la que corre.
@@ -102,9 +95,15 @@ bool SceneTransition::active() const { return phase_ != Phase::Idle; }
 bool SceneTransition::holding() const { return phase_ == Phase::Holding; }
 
 void SceneTransition::release() {
+	if (phase_ == Phase::FadingOut) {
+		// El amanecer puede llegar antes de completar el fundido.
+		holdAtBlack_ = false;
+		return;
+	}
 	if (phase_ != Phase::Holding) {
 		return;
 	}
+	holdAtBlack_ = false;
 	// Se suelta el negro: ahora sí cambian los datos y vuelve el fade.
 	phase_ = Phase::FadingIn;
 	startIteration_ = -1;

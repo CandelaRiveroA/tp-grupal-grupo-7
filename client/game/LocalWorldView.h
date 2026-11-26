@@ -222,6 +222,17 @@ struct ViewFurniture {
     int cellY;
 };
 
+// Posición global de un jugador para el mapa del mundo (tecla M).
+// La fuente de estado (servidor o mock) la actualiza en cada tick.
+struct ViewMapPlayer {
+    int id = 0;
+    std::string mapId;
+    int cellX = 0;
+    int cellY = 0;
+    CharacterAppearance appearance{};
+    bool isLocal = false;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
@@ -254,6 +265,9 @@ struct LocalWorldView {
     // servidor. Vacío = el cliente elige la escena (teclas de prueba,
     // edificios tocados); con valor, la escena sigue a la fuente.
     std::string mapId;
+    // Posición global de cada jugador conectado para el mapa del mundo (tecla M).
+    // La llena la fuente de estado (servidor o mock) en cada tick.
+    std::vector<ViewMapPlayer> worldMapPlayers;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;

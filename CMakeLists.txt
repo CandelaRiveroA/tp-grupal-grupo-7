@@ -303,11 +303,14 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/AreaProximity.cpp
         client/game/StructureSelection.cpp
         client/game/PopupState.cpp
+        client/game/WorldMapState.cpp
         client/game/SceneTransition.cpp
         client/game/DayPhase.cpp
         client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
         client/world/PromptLayout.cpp
+        client/world/WorldMapConfig.cpp
+        client/world/WorldMapLayout.cpp
         client/game/ToolUseCue.cpp
         client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp

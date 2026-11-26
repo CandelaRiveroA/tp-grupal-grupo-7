@@ -82,6 +82,7 @@ target_sources(taller_client
     sdl/render/NpcRenderer.cpp
     sdl/render/NpcPopupPainter.cpp
     sdl/render/MarketPopupPainter.cpp
+    sdl/render/WorldMapPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
     sdl/audio/AudioPlayer.cpp
@@ -170,6 +171,7 @@ target_sources(taller_client
     game/ActionResolver.h
     game/NpcPlacementResolver.h
     game/MarketPopupState.h
+    game/WorldMapState.h
     game/MarketSetCycle.h
     game/PropAnimator.h
     game/InventorySelector.h
@@ -213,6 +215,8 @@ target_sources(taller_client
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
     world/PixelBox.h
+    world/WorldMapConfig.h
+    world/WorldMapLayout.h
     world/AnchorLayout.h
     world/HudOverlayCatalog.h
     world/HudOverlayTomlReader.h
@@ -256,6 +260,7 @@ target_sources(taller_client
     sdl/render/DialogPainter.h
     sdl/render/TextRenderer.h
     sdl/render/PromptPainter.h
+    sdl/render/WorldMapPainter.h
     sdl/render/ChatPainter.h
     sdl/input/InputManager.h
     sdl/audio/AudioCatalog.h

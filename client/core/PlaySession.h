@@ -26,6 +26,7 @@
 #include "game/ResourceAudioCue.h"
 #include "game/SceneTransition.h"
 #include "game/ViewMotion.h"
+#include "game/WorldMapState.h"
 #include "sdl/audio/AudioCatalog.h"
 #include "sdl/audio/AudioPlayer.h"
 #include "sdl/context/SdlContext.h"
@@ -43,6 +44,7 @@
 #include "sdl/render/PromptPainter.h"
 #include "sdl/render/Renderer.h"
 #include "sdl/render/TextRenderer.h"
+#include "sdl/render/WorldMapPainter.h"
 #include "world/CursorCatalog.h"
 #include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
@@ -74,6 +76,7 @@ struct InventoryLayout;
 struct ObtainedBannerCatalog;
 struct ResourceCatalog;
 struct ToolOverlayCatalog;
+struct WorldMapConfig;
 }  // namespace world
 
 namespace core {
@@ -93,11 +96,13 @@ public:
                 const world::DigitCatalog& digits, const world::CursorCatalog& cursors,
                 const world::DialogCatalog& dialogs, const world::FontCatalog& font,
                 const world::PromptLayout& prompt, const world::ChatLayout& chat,
+                const world::WorldMapConfig& worldMap,
                 const world::HudOverlayCatalog& hudOverlays,
                 const world::HudOverlayCatalog& lighting,
                 const world::CharacterPalettes& palettes,
                 game::EnemyTestTrigger* enemyTestTrigger = nullptr,
-                const std::string& worldPath = "");
+                const std::string& worldPath = "",
+                const std::string& minimapDir = "");
 
     // Corre el game loop hasta que se pida salir.
     void run();
@@ -175,6 +180,9 @@ private:
     // Además exige algo transferible en el casillero activo: con una
     // herramienta el server no arma el pedido (ver isGiftTarget).
     bool isGiftTarget(const game::PickTarget& target, const game::LocalWorldView& view) const;
+    void toggleWorldMap();
+    void closeWorldMap();
+    std::vector<std::string> worldMapExteriors(const world::WorldMapConfig& config) const;
 
     // La escena actual: intercambiable al cambiar de escenario (la
     // ventana la sigue dando el Scenario). De dónde sale cada escena
@@ -296,6 +304,9 @@ private:
     // Objetos animados clickeables (cofre): abierto/cerrado por id.
     game::PropAnimator props_;
     sdl::ChatPainter chatPainter_;
+    game::WorldMapState worldMap_;
+    sdl::WorldMapPainter worldMapPainter_;
+    std::map<game::InputCommand::Kind, void (PlaySession::*)()> worldMapActions_;
 
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.

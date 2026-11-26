@@ -45,6 +45,7 @@
 #include "world/SceneDescription.h"
 #include "world/ToolOverlay.h"
 #include "world/ToolOverlayLoader.h"
+#include "world/WorldMapConfig.h"
 #include "world_model/MapRules.h"
 #include "world_model/WorldRepository.h"
 
@@ -158,11 +159,13 @@ int Application::runGame(SessionConfig session) {
         const world::PromptLayout prompt(core::assetPath(core::kTextFile));
         const world::ChatLayout chat =
                 world::ChatConfigLoader().loadFromFile(core::assetPath(core::kChatFile));
+        const world::WorldMapConfig worldMap(core::assetPath(core::kWorldMapFile));
         const int toolUseDuration =
                 characters.dataFor(world::CreatureKind::Player).toolUseDurationTicks();
         std::unique_ptr<game::GameClient> gameClient =
                 createGameClient(std::move(*session.connection), characters, toolUseDuration);
         std::string worldPath;
+        std::string minimapDir;
         if (!session.worldName.empty()) {
             if (!worldmodel::MapRules().isValidWorldName(session.worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::InvalidValue,
@@ -170,6 +173,7 @@ int Application::runGame(SessionConfig session) {
             }
             const worldmodel::WorldRepository worlds(core::kWorldsDir);
             worldPath = worlds.filePathFor(session.worldName);
+            minimapDir = worlds.minimapDirFor(session.worldName);
             if (!worlds.exists(session.worldName)) {
                 throw world::ConfigError(world::ConfigErrorKind::UnreadableInput,
                                          worldPath);
@@ -177,12 +181,12 @@ int Application::runGame(SessionConfig session) {
         }
         PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
-                                prompt, chat,
+                                prompt, chat, worldMap,
                                 // Sin envoltura MockWorldClient: los enemigos
                                 // ahora los manda el server por red, y este
                                 // puntero apagado deja los disparadores de
                                 // prueba (teclas de test) inertes.
-                                hudOverlays, lighting, palettes, nullptr, worldPath);
+                                hudOverlays, lighting, palettes, nullptr, worldPath, minimapDir);
         playSession.run();
         return 0;
     } catch (const world::ConfigError& error) {

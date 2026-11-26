@@ -15,7 +15,7 @@ FakeSaveService::FakeSaveService(std::optional<ServiceError> failure,
 
 std::vector<SaveSummary> FakeSaveService::buildInitialSaves() const {
 	// Apariencias variadas dentro de los rangos del catalogo verificados por
-	// el harness (hair 0..31, shirt 0..47, pants 0..6, accessory 0..19).
+	// el harness (hair 0..23, shirt 0..47, pants 0..6, accessory 0..19).
 	SaveSummary iris;
 	iris.id = 1;
 	iris.worldName = "Valle Verde";

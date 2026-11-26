@@ -5,7 +5,7 @@
 
 #include <arpa/inet.h>
 
-ProtocolSender::ProtocolSender(Socket& socket): socket(socket) {}
+ProtocolSender::ProtocolSender(SocketIO& socket): socket(socket) {}
 
 void ProtocolSender::send_uint8(uint8_t value) {
     if (socket.sendall(&value, sizeof(value)) != sizeof(value)) {

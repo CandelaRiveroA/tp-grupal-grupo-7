@@ -6,7 +6,7 @@
 
 #include <arpa/inet.h>
 
-ProtocolReceiver::ProtocolReceiver(Socket& socket):
+ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
         socket(socket),
         handlers{
                 {protocol::ClientMessageType::SelectSlot,

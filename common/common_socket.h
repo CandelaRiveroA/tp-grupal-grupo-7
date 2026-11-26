@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <vector>
 
+#include "common_socket_io.h"
+
 /*
  * TDA Socket.
  * Por simplificación este TDA se enfocará solamente
  * en sockets TCP (IPv4 o IPv6).
  * */
-class Socket {
+class Socket: public SocketIO {
 private:
     int skt;
     bool closed;
@@ -143,8 +145,8 @@ public:
      * para envio/recibo, lease `sz`.
      *
      * */
-    int sendall(const void* data, unsigned int sz);
-    int recvall(void* data, unsigned int sz);
+    int sendall(const void* data, unsigned int sz) override;
+    int recvall(void* data, unsigned int sz) override;
 
     /*
      * Overloads que reciben std::vector<uint8_t>.
@@ -197,6 +199,6 @@ public:
      * se llamara a `Socket::shutdown` y `Socket::close`
      * automáticamente.
      * */
-    ~Socket();
+    ~Socket() override;
 };
 #endif

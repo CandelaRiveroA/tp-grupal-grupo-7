@@ -9,6 +9,8 @@ target_sources(taller_tests
     popup_state_test.cpp
     visual_broadcast_test.cpp
     broadcast_network_test.cpp
+    protocol/mock_socket.cpp
+    protocol/messages_test.cpp
     sleep_regression_test.cpp
     network_startup_test.cpp
     ../client/game/NetworkGameClient.cpp

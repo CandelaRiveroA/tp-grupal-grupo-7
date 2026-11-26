@@ -8,11 +8,11 @@
 #include "common_command.h"
 #include "common_match_request.h"
 #include "common_server_status.h"
-#include "common_socket.h"
+#include "common_socket_io.h"
 
 class ProtocolSender {
 private:
-    Socket& socket;
+    SocketIO& socket;
 
     void send_uint8(uint8_t value);
     void send_uint16(uint16_t value);
@@ -63,7 +63,7 @@ private:
     void send_message(const ServerMarketOffer& offer);
 
 public:
-    explicit ProtocolSender(Socket& socket);
+    explicit ProtocolSender(SocketIO& socket);
     
     void send_client_message(const protocol::ClientMessage& message);
     void send_server_message(const ServerMessage& message);

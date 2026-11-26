@@ -7,6 +7,7 @@
 
 #include "common/common_protocol_receiver.h"
 #include "common/common_protocol_sender.h"
+#include "common/common_socket.h"
 #include "core/Constants.h"
 
 NetworkWorldService::NetworkWorldService(QObject* parent) : WorldService(parent) {}

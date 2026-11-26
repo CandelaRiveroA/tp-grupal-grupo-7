@@ -4,6 +4,11 @@ if (NOT DEFINED CMAKE_CXX_COMPILER)
     set(CMAKE_CXX_COMPILER g++)
 endif()
 
+# c89-gcc fuerza -std=c89 y rechaza cualquier otro -std; SDL2 necesita C99+.
+if (CMAKE_C_COMPILER MATCHES "c89" OR "$ENV{CC}" MATCHES "c89")
+    set(CMAKE_C_COMPILER gcc CACHE FILEPATH "" FORCE)
+endif()
+
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()

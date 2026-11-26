@@ -10,11 +10,11 @@
 #include "common_command.h"
 #include "common_match_request.h"
 #include "common_server_status.h"
-#include "common_socket.h"
+#include "common_socket_io.h"
 
 class ProtocolReceiver {
 private:
-    Socket& socket;
+    SocketIO& socket;
     using Handler = protocol::ClientMessage (ProtocolReceiver::*)();
     std::map<protocol::ClientMessageType, Handler> handlers;
     using ServerHandler = ServerMessage (ProtocolReceiver::*)();
@@ -71,7 +71,7 @@ private:
     static ResourceDamage damage_from_byte(uint8_t value);
 
 public:
-    explicit ProtocolReceiver(Socket& socket);
+    explicit ProtocolReceiver(SocketIO& socket);
 
     std::optional<protocol::ClientMessage> receive_command();
     protocol::ClientMessage receive_gift_response_message();

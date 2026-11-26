@@ -491,15 +491,15 @@ TEST(IssueFormatterTest, FormatsWorldMapAndCellIssues) {
 	const IssueFormatter formatter;
 	EXPECT_EQ(formatter.format(
 			  ValidationIssue{worldmodel::IssueCode::EmptyName, "",
-					  {-1, -1}}),
+					  {-1, -1}, ""}),
 		  "el nombre del mundo no puede ser vacio");
 	EXPECT_EQ(
 		formatter.format(ValidationIssue{
-			worldmodel::IssueCode::MissingObject, "farm", {-1, -1}}),
+			worldmodel::IssueCode::MissingObject, "farm", {-1, -1}, ""}),
 		"falta un objeto requerido (mapa: farm)");
 	EXPECT_EQ(formatter.format(
 			  ValidationIssue{worldmodel::IssueCode::MarkerOutOfBounds,
-					  "farm", {3, 4}}),
+					  "farm", {3, 4}, ""}),
 		  "marcador fuera de los limites (mapa: farm) (celda: 3, 4)");
 }
 
@@ -508,7 +508,7 @@ TEST(IssueFormatterTest, EveryIssueCodeHasADescription) {
 	const int last = static_cast<int>(worldmodel::IssueCode::WrongPortalTarget);
 	for (int code = 0; code <= last; ++code) {
 		const std::string text = formatter.format(ValidationIssue{
-			static_cast<worldmodel::IssueCode>(code), "", {-1, -1}});
+			static_cast<worldmodel::IssueCode>(code), "", {-1, -1}, ""});
 		EXPECT_NE(text, "problema desconocido") << "codigo " << code;
 	}
 }

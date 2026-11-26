@@ -23,6 +23,8 @@ ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
                  &ProtocolReceiver::receive_toggle_walking_message},
         },
         server_handlers{
+                {ServerMessageType::PlayerName, &ProtocolReceiver::receive_player_name_message},
+                {ServerMessageType::InventoryFull, &ProtocolReceiver::receive_inventory_full_message},
                 {ServerMessageType::PlayerHeld, &ProtocolReceiver::receive_player_held_message},
                 {ServerMessageType::GiftAccepted, &ProtocolReceiver::receive_gift_accepted_message},
                 {ServerMessageType::Status, &ProtocolReceiver::receive_status_message},
@@ -482,4 +484,13 @@ ServerMessage ProtocolReceiver::receive_player_held_message() {
 
 ServerMessage ProtocolReceiver::receive_gift_accepted_message() {
     return ServerGiftAccepted{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_player_name_message() {
+    const uint8_t id = receive_uint8();
+    return ServerPlayerName{id, receive_string()};
+}
+
+ServerMessage ProtocolReceiver::receive_inventory_full_message() {
+    return ServerInventoryFull{};
 }

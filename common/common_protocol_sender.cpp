@@ -371,3 +371,13 @@ void ProtocolSender::send_message(const ServerGiftAccepted& message) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::GiftAccepted));
     send_uint8(message.receiver_id);
 }
+
+void ProtocolSender::send_message(const ServerPlayerName& message) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::PlayerName));
+    send_uint8(message.player_id);
+    send_string(message.characterName);
+}
+
+void ProtocolSender::send_message(const ServerInventoryFull& /*message*/) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::InventoryFull));
+}

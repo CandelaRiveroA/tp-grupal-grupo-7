@@ -95,6 +95,9 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | 24 | `GiftRequest` | `sender_id u8, characterName str, content_id str` | El emisor (`sender_id`) ofreció su ítem equipado (`content_id`); el server lo reenvía al **receptor**. `characterName` = nombre del emisor para el popup (`{0}`). Evento (no estado): se aplica inmediato, fuera del lote; el receptor contesta con `GiftResponseMessage` (sección 1) |
 | 25 | `GiftAnswered` | (sin payload) | El receptor contestó el pedido de regalo (acepte o rechace): el server lo manda **solo al emisor**, que así cierra su popup de espera. Evento |
 
+| 34 | `PlayerName` | `player_id u8, characterName str` | Nombre público. Al entrar se reciben los nombres existentes y se transmite el del nuevo a todos, incluso en otros mapas. Se conserva entre lotes y se elimina con `Leave` |
+| 35 | `InventoryFull` | (sin payload) | Evento privado de recogida rechazada por capacidad. Se traduce a `ViewNotice{"inventory_full"}` y usa el cartel real de SDL; la tecla I de demo fue retirada |
+
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).
 - `content_id` es el vocabulario compartido de `inventory.toml` y

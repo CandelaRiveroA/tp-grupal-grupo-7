@@ -36,6 +36,8 @@ private:
     protocol::ClientMessage receive_select_slot_message();
     ServerMessage receive_player_held_message();
     ServerMessage receive_gift_accepted_message();
+    ServerMessage receive_player_name_message();
+    ServerMessage receive_inventory_full_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();

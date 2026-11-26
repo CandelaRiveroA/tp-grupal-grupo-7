@@ -123,9 +123,9 @@ TEST(ProtocolMockTest, RechazaTipoDeMensajeDesconocido) {
     EXPECT_THROW(receiver.receive_server_message(), std::invalid_argument);
 }
 
-// Dos situaciones que se parecen pero no son lo mismo: no llegar a mandar
-// nada significa "se cortó la conexión" (devuelve vacío), y recibir un
-// mensaje a medias es un error de verdad (tira excepción).
+// Dos situaciones: 
+// no llegar a mandar nada significa "se cortó la conexión" (devuelve vacío), 
+// y recibir un mensaje a medias es un error de verdad (tira excepción).
 TEST(ProtocolMockTest, DistingueFinDeConexionDeMensajeIncompleto) {
     MockSocket socket;
     ProtocolReceiver receiver(socket);

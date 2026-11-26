@@ -194,4 +194,38 @@ TEST(BroadcastNetworkTest, ContenidoVacioEnElSnapshotDejaLasManosRemotasLibres) 
     EXPECT_FALSE(client.worldState().entities[1].carriedContent.has_value());
 }
 
+TEST(BroadcastNetworkTest, NombresPublicosYAvisoRealLleganALaVista) {
+    BroadcastPackets packets;
+    // Eventos antes del primer lote: también cubre jugadores que entran tarde.
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::Welcome));
+    packets.bytes.push_back(1);
+    packets.string("ad");
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::PlayerName));
+    packets.bytes.push_back(2);
+    packets.string("Miguel");
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::InventoryFull));
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::DayEnd));
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::Reset));
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::MapChange));
+    packets.string("cabin_1");
+    packets.status(1, 1);
+    packets.status(2, 2);
+    packets.bytes.back() = 1;  // desmayo por horario con vida intacta
+    packets.bytes.push_back(static_cast<uint8_t>(ServerMessageType::SyncEnd));
+    BroadcastPeer peer(packets.bytes);
+    const world::CharacterCatalog characters;
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "Ana");
+    client.update(0);
+    const auto& view = client.worldState();
+    ASSERT_EQ(view.entities.size(), 2u);
+    EXPECT_EQ(view.entities[1].displayName, "Miguel");
+    EXPECT_EQ(view.entities[1].action, world::ActionKind::Faint);
+    ASSERT_EQ(view.notices.size(), 1u);
+    EXPECT_EQ(view.notices[0].id, "inventory_full");
+    EXPECT_TRUE(view.dayEnded);
+    client.update(1);
+    EXPECT_TRUE(client.worldState().notices.empty());
+    EXPECT_EQ(client.worldState().entities[1].displayName, "Miguel");
+}
+
 }  // namespace

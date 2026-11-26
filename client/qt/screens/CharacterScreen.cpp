@@ -36,6 +36,7 @@ CharacterScreen::CharacterScreen(SessionService* session,
 	, editor_(nullptr)
 	, content_(nullptr)
 	, worldLabel_(nullptr)
+	, worldPlayersLabel_(nullptr)
 	, worldSelector_(nullptr)
 	, characterName_(nullptr)
 	, gameName_(nullptr)
@@ -72,8 +73,7 @@ void CharacterScreen::onWorldSelected(WorldSummary world) {
 		return;
 	}
 	world_ = world;
-	worldLabel_->setText(
-		QString("Mundo: %1").arg(QString::fromStdString(world_->name)));
+	updateWorldInfo();
 	updateValidation();
 }
 
@@ -223,11 +223,25 @@ QWidget* CharacterScreen::makeFormColumn() {
 	gameName_ = makeInputRow(layout, "Nombre de la granja", "gameInput",
 				 CHAR_INPUT_MAX_CHARS);
 
+	auto* worldInfo = new QVBoxLayout();
+	worldInfo->setContentsMargins(0, 0, 0, 0);
+	worldInfo->setSpacing(4);
+
 	worldLabel_ = new QLabel(column);
 	worldLabel_->setObjectName("worldLabel");
-	layout->addWidget(worldLabel_);
+	worldInfo->addWidget(worldLabel_);
 
-	layout->addSpacing(16);
+	worldPlayersLabel_ = new QLabel(column);
+	worldPlayersLabel_->setObjectName("worldPlayersLabel");
+	auto* playersRow = new QHBoxLayout();
+	playersRow->setContentsMargins(0, 0, 0, 0);
+	playersRow->addWidget(worldPlayersLabel_);
+	playersRow->addStretch();
+	worldInfo->addLayout(playersRow);
+
+	layout->addLayout(worldInfo);
+
+	layout->addSpacing(8);
 	layout->addWidget(editor_->sliderColumn(column));
 	layout->addStretch();
 
@@ -313,6 +327,33 @@ void CharacterScreen::onSessionFailed(ServiceError error) {
 	showState(ScreenState::Error, messageFor(error));
 }
 
+void CharacterScreen::updateWorldInfo() {
+	const bool showWorld = mode_ != Mode::JoinGame;
+	worldLabel_->setVisible(showWorld);
+	if (!showWorld || !world_.has_value()) {
+		worldLabel_->clear();
+		worldPlayersLabel_->clear();
+		worldPlayersLabel_->setVisible(false);
+		return;
+	}
+
+	worldLabel_->setText(
+		QString("Mundo: %1").arg(QString::fromStdString(world_->name)));
+
+	if (world_->maxPlayers == 0) {
+		worldPlayersLabel_->clear();
+		worldPlayersLabel_->setVisible(false);
+		return;
+	}
+
+	const QString text =
+		world_->maxPlayers == 1
+			? QString("Max. 1 jugador")
+			: QString("Max. %1 jugadores").arg(world_->maxPlayers);
+	worldPlayersLabel_->setText(text);
+	worldPlayersLabel_->setVisible(true);
+}
+
 void CharacterScreen::resetDraft() {
 	// En modo unirse el nombre de la partida lo puso el server: fuera del
 	// draft, queda como info read-only de a qué partida entraste. La
@@ -329,7 +370,6 @@ void CharacterScreen::resetDraft() {
 	gameName_->setReadOnly(mode_ == Mode::JoinGame);
 	gameName_->style()->unpolish(gameName_);
 	gameName_->style()->polish(gameName_);
-	worldLabel_->setVisible(mode_ != Mode::JoinGame);
 	worldSelector_->setVisible(mode_ == Mode::NewGame);
 	if (mode_ == Mode::JoinGame) {
 		selection_.gameName = joinedName;
@@ -337,13 +377,7 @@ void CharacterScreen::resetDraft() {
 		gameName_->setText(QString::fromStdString(joinedName));
 	}
 
-	if (world_.has_value()) {
-		worldLabel_->setText(
-			QString("Mundo: %1")
-				.arg(QString::fromStdString(world_->name)));
-	} else {
-		worldLabel_->clear();
-	}
+	updateWorldInfo();
 
 	create_->setText(mode_ == Mode::JoinGame ? "Aceptar" : "Crear");
 	create_->setToolTip(create_->text());

@@ -71,6 +71,7 @@ private:
 
 	QFrame* content_;
 	QLabel* worldLabel_;
+	QLabel* worldPlayersLabel_;
 	WorldSelectorWidget* worldSelector_;
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
@@ -101,6 +102,7 @@ private:
 	void onJoined(const std::string& gameName, const std::string& worldName);
 	void onSessionFailed(ServiceError error);
 	void onWorldSelected(WorldSummary world);
+	void updateWorldInfo();
 	void resetDraft();
 	void showState(ScreenState state, const QString& message);
 	bool canSubmit() const;

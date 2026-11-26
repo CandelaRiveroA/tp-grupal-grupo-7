@@ -34,6 +34,16 @@ QWidget#character QLabel {
     font-size: 24px;
 }
 
+QWidget#character QLabel#worldPlayersLabel {
+    color: #7a5230;
+    font-family: "Pixel Operator";
+    font-size: 20px;
+    background: rgba(122, 82, 48, 0.12);
+    border: 1px solid rgba(122, 82, 48, 0.35);
+    border-radius: 3px;
+    padding: 1px 8px;
+}
+
 QWidget#character QLabel#screenStatus {
     color: #fff0ba;
     font-family: "Pixel Operator";

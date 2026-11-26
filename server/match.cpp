@@ -8,32 +8,19 @@
 #include <variant>
 
 #include "commands/commands.h"
-#include "domain/animals/chicken.h"
-#include "domain/animals/cow.h"
 #include "domain/enemies/enemy_controller.h"
 #include "domain/furniture/bed.h"
 #include "domain/minerals/mine_controller.h"
-
-// Mismo tamaño que la habitación de client/sdl/assets/scenes.toml (bedroom).
-#define kWidth 30
-#define kHeight 20
-#define kSpawnX 15
-#define kSpawnY 10
 
 // TODO: sistema de salas de la caverna: con sala 1 el oro no se genera
 // (ver MineController::make_rock).
 #define kDungeonRooms 10
 
-// Misma celda que enter.lie de la cama en scenes.toml (bedroom). Una sola cama
-// compartida: los durmientes no colisionan, así todos caben en ella.
-#define kBedX 20
-#define kBedY 13
-
-// shortcut: un día de juego de 30s para probar; en la versión final son 15 min
-// (900 s). El timeout del sueño sale de esta misma constante: cambiarlos juntos.
-#define kDayDurationSeconds 120
+// Un día de juego dura 14 min reales (840 s). El timeout del sueño sale de
+// esta misma constante: cambiarlos juntos.
+#define kDayDurationSeconds 840
 // Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
-#define kDayClockMinutes 1200
+// (kDayClockMinutes vive en common/common_constants.h)
 #define kClockStepMinutes 10
 #define kClockStepMs 100
 // Pasos de kClockStepMs entre el reloj lento de criaturas (40 = 4 s). Ajustable.
@@ -43,10 +30,12 @@
 #define kEnemyTickSteps 4
 
 DayClock::DayClock(Queue<MatchEvent>& events):
-        events(events), restart_requested(false), day_generation(0) {}
+        events(events), restart_requested(false), day_generation(0), start_minutes_(0) {}
 
-void DayClock::restart() {
-    // Primero la generación: los pasos del día viejo ya no valen.
+void DayClock::restart(uint16_t start_minutes) {
+    // Primero la base de tiempo, luego la generación: los pasos del día viejo
+    // ya no valen.
+    this->start_minutes_.store(start_minutes);
     this->day_generation.fetch_add(1);
     this->restart_requested.store(true);
 }
@@ -79,8 +68,12 @@ void DayClock::execute() {
             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                                             std::chrono::steady_clock::now() - day_start)
                                             .count();
-            const auto minutes = elapsed_ms * kDayClockMinutes / (kDayDurationSeconds * 1000) /
-                                 kClockStepMinutes * kClockStepMinutes;
+            const auto elapsed_minutes = elapsed_ms * kDayClockMinutes / (kDayDurationSeconds * 1000) /
+                                         kClockStepMinutes * kClockStepMinutes;
+            uint16_t minutes = static_cast<uint16_t>(this->start_minutes_.load()) + static_cast<uint16_t>(elapsed_minutes);
+            if (minutes > kDayClockMinutes) {
+                minutes = kDayClockMinutes;
+            }
             if (minutes != clock_minutes) {
                 clock_minutes = static_cast<uint16_t>(minutes);
                 try {
@@ -128,14 +121,6 @@ void Match::place_minerals() {
     }
 }
 
-void Match::place_animals() {
-    // Animales de prueba, igual que las piedras: hasta que haya generación de mundo.
-    world.add_animal(std::make_unique<Chicken>(3, 3));
-    world.add_animal(std::make_unique<Chicken>(26, 4));
-    world.add_animal(std::make_unique<Cow>(4, 4));
-    world.add_animal(std::make_unique<Cow>(25, 5));
-}
-
 void Match::place_enemies() {
     for (uint8_t room = 1; room <= kDungeonRooms; ++room) {
         const DungeonFloor& floor = world.get_dungeon_floor(room);
@@ -145,19 +130,23 @@ void Match::place_enemies() {
     }
 }
 
-Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output):
+Match::Match(Queue<MatchEvent>& events, ServerOutputMonitor& output,
+            worldmodel::World&& world_model):
         events(events),
         output(output),
-        world(kWidth, kHeight),
+        world(std::move(world_model)),
         clock(events),
         sleeping_sent(0),
         total_sent(0),
         clock_minutes_sent(0) {
-    // Inicio
-    world.get_scene(SceneId::FARMHOUSE)
-            .set_entity_at(kBedX, kBedY, std::make_unique<Bed>(kBedX, kBedY));
-    // Granja
-    place_animals();
+    // Cabañas libres para asignar a los jugadores que entren.
+    for (uint8_t k = 1; k <= world.cabin_count(); ++k) {
+        free_cabins_.insert(k);
+    }
+    if (free_cabins_.empty()) {
+        free_cabins_.insert(1);
+    }
+    // Inicio: las camas y los portales ya vienen del mundo (TOML).
     // Pueblo
     // Comerciantes nacen solos cuando se crea Town
     // TODO: Dejo nota para persistencia
@@ -223,16 +212,14 @@ void Match::handle(const ClockStep& step) {
 // van a la cama y el reloj vuelve a las 6:00.
 void Match::sync_day() {
     if (world.take_day_ended()) {
-        // La caverna se repone en todo fin de día, sea por timeout
-        // (DayPassed) o porque todos durmieron (World::try_advance_sleep),
-        // que cierra el día sin pasar por DayPassed.
-        place_minerals();
-        place_enemies();
+        // La caverna se regenera al comenzar el día, después de su limpieza
+        // (DungeonFloor::on_new_day), tanto al dormir como por timeout.
         broadcast(ServerDayEnd{});
     }
     if (world.take_day_started()) {
         for (const uint8_t id: world.get_player_ids()) {
-            world.transfer_player(id, SceneId::FARMHOUSE, kBedX, kBedY);
+            Player& p = world.get_player(id);
+            world.transfer_player(id, p.get_home_scene(), p.get_home_x(), p.get_home_y());
             world.reset_player_for_day(id);
         }
         clock.restart();
@@ -249,8 +236,18 @@ void Match::broadcast_clock(uint16_t minutes) {
 void Match::handle(const PlayerJoined& joined) {
     outputs[joined.player_id] = joined.statuses;
     character_names[joined.player_id] = joined.characterName;
+    uint8_t cabin_k = 1;
+    if (!free_cabins_.empty()) {
+        cabin_k = *free_cabins_.begin();
+        free_cabins_.erase(free_cabins_.begin());
+    }
+    player_cabin_[joined.player_id] = cabin_k;
+    auto bed = world.cabin_bed(cabin_k);
     world.add_player(joined.player_id,
-                     std::make_unique<Player>(joined.player_id, kSpawnX, kSpawnY));
+                     std::make_unique<Player>(joined.player_id, bed.second.first,
+                                              bed.second.second, bed.first,
+                                              bed.first, bed.second.first,
+                                              bed.second.second));
     world.set_player_appearance(joined.player_id, joined.appearance);
     // Si el día ya terminó, el que entra también tiene que despertar.
     if (world.is_waking()) {
@@ -299,8 +296,17 @@ void Match::handle(const PlayerMessage& event) {
     for (const uint8_t answered : world.take_gift_answers()) {
         send_to(answered, ServerGiftAnswered{});
     }
+    for (const uint8_t receiver: world.take_accepted_gifts()) {
+        broadcast(ServerGiftAccepted{receiver});
+    }
     flush_community_events();
     sync_day();
+    if (const auto desired = world.take_desired_clock_minutes()) {
+        broadcast_clock(*desired);
+    }
+    if (const auto restart = world.take_clock_restart_request()) {
+        clock.restart(*restart);
+    }
     push_sleep_state();
     sync_all();
 }
@@ -333,6 +339,11 @@ void Match::handle(const PlayerLeft& left) {
     const std::shared_ptr<Queue<ServerMessage>> leaving = it->second;
     outputs.erase(it);
     character_names.erase(left.player_id);
+    const auto cabinIt = player_cabin_.find(left.player_id);
+    if (cabinIt != player_cabin_.end()) {
+        free_cabins_.insert(cabinIt->second);
+        player_cabin_.erase(cabinIt);
+    }
     // Saca al jugador de la votación: nadie queda esperando a un ausente.
     world.remove_player(left.player_id);
     sync_day();
@@ -437,22 +448,3 @@ void Match::execute() {
     clock.stop();
     clock.join();
 }
- /*
- // Cabaña <-> Granja
-world.get_scene(SceneId::FARMHOUSE)
-        .set_entity_at(15, 19, std::make_unique<Portal>(15, 19, SceneId::FARM, 15, 2));
-world.get_scene(SceneId::FARM)
-        .set_entity_at(15, 1, std::make_unique<Portal>(15, 1, SceneId::FARMHOUSE, 15, 18));
-
-// Granja <-> Pueblo
-world.get_scene(SceneId::FARM)
-        .set_entity_at(29, 10, std::make_unique<Portal>(29, 10, SceneId::TOWN, 1, 10));
-world.get_scene(SceneId::TOWN)
-        .set_entity_at(0, 10, std::make_unique<Portal>(0, 10, SceneId::FARM, 28, 10));
-
-// Granja <-> Dungeon piso 1
-world.get_scene(SceneId::FARM)
-        .set_entity_at(15, 19, std::make_unique<Portal>(15, 19, SceneId::DUNGEON_1, 15, 2));
-world.get_scene(SceneId::DUNGEON_1)
-        .set_entity_at(15, 1, std::make_unique<Portal>(15, 1, SceneId::FARM, 15, 18));
- */

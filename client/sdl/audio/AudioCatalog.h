@@ -2,10 +2,11 @@
 
 #include <array>
 
+#include "world/SoundCategory.h"
+
 namespace sdl {
 
-
-enum class SoundCategory { Sfx, Music };
+using SoundCategory = world::SoundCategory;
 
 enum class SoundId {
 	Step,
@@ -25,10 +26,12 @@ enum class SoundId {
 	MonsterDead,
 	ColdSpell,
 	Fireball,
+	NewMessage,
+	Cancel,
 };
 
 inline constexpr int kSoundCount =
-	static_cast<int>(SoundId::Fireball) + 1;
+	static_cast<int>(SoundId::Cancel) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -53,6 +56,8 @@ inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/combat/monsterdead.ogg", SoundCategory::Sfx},
 	 {"sfx/combat/coldSpell.ogg", SoundCategory::Sfx},
 	 {"sfx/combat/fireball.ogg", SoundCategory::Sfx},
+	 {"sfx/ui/new_message.ogg", SoundCategory::Sfx},
+	 {"sfx/ui/cancel.ogg", SoundCategory::Sfx},
 }};
 
 }

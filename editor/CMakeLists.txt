@@ -12,6 +12,7 @@ set(EDITOR_SOURCES
     ValidationPanel.cpp
     AddExtraMapDialog.cpp
     PaletteView.cpp
+    PortalPrefabs.cpp
     PortalsView.cpp
     TilesetCache.cpp
     MinimapGenerator.cpp
@@ -31,6 +32,7 @@ set(EDITOR_SOURCES
     ValidationPanel.h
     AddExtraMapDialog.h
     PaletteView.h
+    PortalPrefabs.h
     PortalsView.h
     TilesetCache.h
     MinimapGenerator.h

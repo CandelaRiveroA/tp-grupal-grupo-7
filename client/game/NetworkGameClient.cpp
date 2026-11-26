@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 
 #include "game/GameConstants.h"
+#include "world/ConfigError.h"
 #include "world/ContentIds.h"
 #include "world/CreatureCatalog.h"
 #include "world/ResourceCatalog.h"
@@ -34,13 +35,14 @@ world::ActionKind actionKindFor(const EnemyAction action) {
 }  // namespace
 
 NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
-                                     const world::CharacterCatalog& characters):
+                                     const world::CharacterCatalog& characters,
+                                     const std::string& localCharacterName):
         socket_(std::move(socket)),
         sender_(socket_),
         receiver_(socket_),
         clientSender_(sender_, commands_),
         clientReceiver_(receiver_, messages_),
-        localPlayerId_(receiver_.receive_welcome().player_id),
+        localPlayerId_(0),
         toolUseDurationTicks_(toolUseDurationTicks > 0 ? toolUseDurationTicks : 1),
         characters_(&characters),
         resourceStates_{{ResourceDamage::Intact, world::ResourceState::Intact},
@@ -58,8 +60,39 @@ NetworkGameClient::NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
                        {"skull_fire_green", world::CreatureKind::SkullFireGreen}},
         marketSides_{{ServerMarketSide::Sells, world::MarketSide::Sells},
                      {ServerMarketSide::Buys, world::MarketSide::Buys}} {
+    const auto welcome = receiver_.receive_welcome();
+    localPlayerId_ = welcome.player_id;
+    worldName_ = welcome.worldName;
+    names_[localPlayerId_] = localCharacterName;
+    receiveInitialState();
     clientSender_.start();
     clientReceiver_.start();
+}
+
+void NetworkGameClient::receiveInitialState() {
+    bool inBatch = false;
+    for (;;) {
+        ServerMessage message = receiver_.receive_server_message();
+        if (std::holds_alternative<ServerReset>(message)) {
+            inBatch = true;
+            initialMapId_.clear();
+        }
+        if (inBatch) {
+            if (const auto* map = std::get_if<ServerMapChange>(&message)) {
+                initialMapId_ = map->mapId;
+            }
+        }
+        const bool complete = inBatch && std::holds_alternative<ServerSyncEnd>(message);
+        // El primer update aplica también los eventos previos al lote
+        // (por ejemplo DayEnd al unirse durante el despertar).
+        messages_.push(std::move(message));
+        if (complete) {
+            if (initialMapId_.empty()) {
+                throw world::ConfigError(world::ConfigErrorKind::MissingStructure, "mapId");
+            }
+            return;
+        }
+    }
 }
 
 NetworkGameClient::~NetworkGameClient() {
@@ -180,12 +213,19 @@ void NetworkGameClient::startPickup() {
     }
 }
 
+bool NetworkGameClient::isIncomingChat(const ServerChat& chat) const {
+    return !chat.system && chat.player_id != localPlayerId_;
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
     // El chat es un evento, no estado: se aplica ya (fuera del lote).
     if (const auto* chat = std::get_if<ServerChat>(&message)) {
         receiveChat(chat->player_id,
                     chat->system ? std::string("Servidor") : chat->characterName,
                     chat->text);
+        if (isIncomingChat(*chat)) {
+            ++view_.incomingChatVersion;
+        }
         return;
     }
     if (const auto* set = std::get_if<ServerSetCompleted>(&message)) {
@@ -208,6 +248,10 @@ void NetworkGameClient::apply(const ServerMessage& message) {
             applyNow(buffered);
         }
         pruneToBatch();
+        if (pendingDayChanged_) {
+            view_.dayChanged = true;
+            pendingDayChanged_ = false;
+        }
         batch_.clear();
         return;
     }
@@ -219,10 +263,19 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 }
 
 void NetworkGameClient::applyNow(const ServerMessage& message) {
+    if (const auto* held = std::get_if<ServerPlayerHeld>(&message)) {
+        players_[held->player_id].carriedContent = held->content_id.empty()
+                ? std::nullopt : std::optional<std::string>{held->content_id};
+        return;
+    }
+    if (const auto* accepted = std::get_if<ServerGiftAccepted>(&message)) {
+        view_.giftAcceptedPlayers.push_back(accepted->receiver_id);
+        return;
+    }
     if (std::holds_alternative<ServerReset>(message)) {
         // Cada lote describe el estado completo: lo que no vuelve ya no existe.
-        // players_ no se borra porque ServerStatus reescribe todas las
-        // posiciones y ServerLeave ya borra a quien se fue.
+        // ServerStatus reescribe a los jugadores presentes; pruneToBatch
+        // retira los ausentes al completar el lote.
         resources_.clear();
         dropped_.clear();
         crops_.clear();
@@ -244,6 +297,10 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     if (const auto* placement = std::get_if<ServerNpcPlacement>(&message)) {
         view_.npcPlacements.push_back(ViewNpcPlacement{
                 placement->id, placement->x, placement->y});
+        return;
+    }
+    if (const auto* mapChange = std::get_if<ServerMapChange>(&message)) {
+        view_.mapId = mapChange->mapId;
         return;
     }
     if (const auto* offer = std::get_if<ServerMarketOffer>(&message)) {
@@ -356,6 +413,10 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     }
     if (const auto* leave = std::get_if<ServerLeave>(&message)) {
         players_.erase(leave->player_id);
+        // El nombre se va con el jugador (el local nunca recibe su Leave).
+        if (leave->player_id != localPlayerId_) {
+            names_.erase(leave->player_id);
+        }
         return;
     }
     if (const auto* status = std::get_if<ServerStatus>(&message)) {
@@ -400,7 +461,8 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         return;
     }
     if (std::holds_alternative<ServerDay>(message)) {
-        view_.dayChanged = true;
+        // El nuevo día se presenta con su mapa y sus posiciones completos.
+        pendingDayChanged_ = true;
         return;
     }
     if (const auto* sleepers = std::get_if<ServerSleepingPlayers>(&message)) {
@@ -479,8 +541,12 @@ void NetworkGameClient::pruneToBatch() {
         return;
     }
     std::set<uint16_t> live_enemies;
+    std::set<uint8_t> live_players;
     std::set<uint16_t> live_projectiles;
     for (const ServerMessage& message: this->batch_) {
+        if (const auto* status = std::get_if<ServerStatus>(&message)) {
+            live_players.insert(status->player_id);
+        }
         if (const auto* enemy = std::get_if<ServerEnemy>(&message)) {
             live_enemies.insert(enemy->id);
         } else if (const auto* projectile = std::get_if<ServerProjectile>(&message)) {
@@ -489,12 +555,15 @@ void NetworkGameClient::pruneToBatch() {
     }
     std::erase_if(this->enemies_,
                   [&live_enemies](const auto& entry) { return !live_enemies.count(entry.first); });
+    std::erase_if(this->players_,
+                  [&live_players](const auto& entry) { return !live_players.count(entry.first); });
     std::erase_if(this->projectiles_, [&live_projectiles](const auto& entry) {
         return !live_projectiles.count(entry.first);
     });
 }
 
 void NetworkGameClient::update(int) {
+    view_.giftAcceptedPlayers.clear();
     view_.resourceHits.clear();
     view_.dayEnded = false;
     view_.dayChanged = false;
@@ -539,7 +608,12 @@ void NetworkGameClient::update(int) {
                           player.moving ? world::ActionKind::Walk : world::ActionKind::Idle,
                           std::nullopt};
         entity.sleeping = std::find(sleepers_.begin(), sleepers_.end(), id) != sleepers_.end();
+        entity.id = id;
         entity.appearance = player.appearance;
+        entity.carriedContent = player.carriedContent;
+        if (const auto name = names_.find(id); name != names_.end()) {
+            entity.displayName = name->second;
+        }
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;
@@ -605,6 +679,10 @@ void NetworkGameClient::update(int) {
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }
+
+const std::string& NetworkGameClient::worldName() const { return worldName_; }
+
+const std::string& NetworkGameClient::initialMapId() const { return initialMapId_; }
 
 bool NetworkGameClient::connected() const {
     return !clientSender_.failed() && !clientReceiver_.failed();

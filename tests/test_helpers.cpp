@@ -15,7 +15,7 @@ bool has_item(const Player& player, ItemID id) {
 
 bool cell_has_item(World& world, uint16_t x, uint16_t y, ItemID id) {
     std::vector<const IEntity*> entities;
-    for (const IEntity* e : world.get_scene(SceneId::FARMHOUSE).get_entity_at(x, y)) {
+    for (const IEntity* e : world.get_scene("farmhouse").get_entity_at(x, y)) {
         entities.push_back(e);
     }
     for (const IEntity* e : world.get_farm().get_entity_at(x, y)) {

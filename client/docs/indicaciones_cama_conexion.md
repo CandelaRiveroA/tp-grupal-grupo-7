@@ -54,9 +54,9 @@ que el flujo actual de la vista.
      Cada cliente manda `WakeMessage` al apretar OK.
    - **Despertaron todos** → `ServerDay`: `changeTo(...)` a la cabaña del
      jugador (`mapId`, p. ej. `"cabin_1"`..`"cabin_N"`, o `"bedroom"` en el
-     fallback de `scenes.toml`) **y el cue del gallo**. El reloj vuelve a
+     carga del mundo del servidor) **y el cue del gallo**. El reloj vuelve a
      las 6:00 y todos quedan en su cama (`MarkerKind::Bed`). (Hoy en
-     `PlaySession` el `dayEnded` sigue usando `kInitialRoom` hasta que el
+     `PlaySession` el `dayEnded` sigue el `mapId` del servidor hasta que el
      servidor informe `LocalWorldView::mapId`.)
 
 ### El jugador muerto no se le pregunta
@@ -115,4 +115,5 @@ El mecanismo (popups, transición, fades, re-indexado) no se tocó.
 
 > Para la conexión completa de mapas del editor (`worlds/<nombre>.toml`,
 > `LocalWorldView::mapId`, `MarkerKind::Bed` como spawn y cabañas `1..N`),
-> ver `client/docs/indicaciones_mundo_conexion.md` y `client/docs/convenciones.md` (§14).
+> ver `client/docs/implementacion_mundo_servidor.md` y
+> `client/docs/convenciones.md` (§14).

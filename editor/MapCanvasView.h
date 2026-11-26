@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "MapLayerItem.h"
+#include "PortalPrefabs.h"
 #include "common/world_model/Geometry.h"
 #include "common/world_model/MapObject.h"
 #include "common/world_model/MapRules.h"
@@ -18,6 +19,7 @@ class TilesetCache;
 
 namespace worldmodel {
 struct Map;
+class PrefabCatalog;
 struct PrefabDef;
 }
 
@@ -26,7 +28,8 @@ class MapCanvasView : public QGraphicsView {
 	Q_OBJECT
 
 public:
-	explicit MapCanvasView(const TilesetCache& tilesets, QWidget* parent = nullptr);
+	MapCanvasView(const worldmodel::PrefabCatalog& catalog,
+		      const TilesetCache& tilesets, QWidget* parent = nullptr);
 
 	void setMap(worldmodel::Map* map);
 	void setShowCollision(bool show);
@@ -78,12 +81,20 @@ private:
 			  worldmodel::TilePos cell) const;
 	std::optional<worldmodel::TilePos> prefabDoorAt(
 		worldmodel::TilePos cell) const;
+	std::optional<std::size_t> linkedPortalObjectIndex(
+		const worldmodel::Portal& portal) const;
+	worldmodel::MapObject makeObjectFromPrefab(
+		const worldmodel::PrefabDef& prefab, worldmodel::TilePos cell,
+		std::optional<worldmodel::TilePos> door = std::nullopt,
+		int doorWidth = 1) const;
 	void resetToNavigate();
 	void notifyMapEdited();
 	void updateCursor();
 
 	QGraphicsScene* scene_ = nullptr;
 	MapLayerItem* layerItem_ = nullptr;
+	const worldmodel::PrefabCatalog& catalog_;
+	PortalPrefabs portalPrefabs_;
 	worldmodel::Map* map_ = nullptr;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
 	bool placingBed_ = false;

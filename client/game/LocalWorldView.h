@@ -63,6 +63,13 @@ struct ViewEntity {
     // server). El render los acota contra characters.toml y cae al 0 si
     // están fuera de rango. Va al final por los aggregate-init posicionales.
     CharacterAppearance appearance{};
+    // Selección pública del hotbar, distinta del contenido de una recogida.
+    std::optional<std::string> carriedContent = std::nullopt;
+
+    // Nombre que se muestra bajo los pies (el nombre de PERSONAJE elegido
+    // al entrar, no el usuario del login). Lo llena la fuente de estado;
+    // vacío = no se dibuja. Va al final por los aggregate-init posicionales.
+    std::string displayName{};
 };
 
 // Recurso picable. La fuente decide contentId, celda y estado; al
@@ -233,10 +240,19 @@ struct ViewMapPlayer {
     bool isLocal = false;
 };
 
+// Aviso puntual para el jugador (evento, no estado): "qué pasó" por id
+// ("inventory_full"). El texto y el aspecto viven en ui/notice.toml.
+struct ViewNotice {
+    std::string id;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Avisos del tick (p. ej. inventario lleno). Los llena la fuente de
+    // estado; mientras el server no los mande queda vacío.
+    std::vector<ViewNotice> notices;
     // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
     std::optional<ViewGiftRequest> giftRequest;
     // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
@@ -260,6 +276,8 @@ struct LocalWorldView {
     // servidor (ServerFurniture), por ejemplo al cargar una partida
     // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
     std::vector<ViewFurniture> placedFurniture;
+    // Eventos de regalo aceptado: IDs de receptores; se vacían en cada update.
+    std::vector<uint8_t> giftAcceptedPlayers;
     // Mapa en el que está el jugador (id del mapa del editor: "farm",
     // "town", "market"...). Lo manda la fuente de estado cuando hay
     // servidor. Vacío = el cliente elige la escena (teclas de prueba,
@@ -308,6 +326,11 @@ struct LocalWorldView {
     // Sube con cada mensaje: el tope del historial impide usar su tamaño
     // para detectar uno nuevo.
     int chatVersion = 0;
+
+    // Sube solo con los mensajes que llegan de OTRO jugador: no cuenta lo
+    // que mandó el local (el servidor se lo devuelve) ni los avisos de
+    // sistema. Lo lee ChatCue para avisar con un sonido.
+    int incomingChatVersion = 0;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve

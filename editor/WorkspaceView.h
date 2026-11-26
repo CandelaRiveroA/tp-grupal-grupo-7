@@ -37,7 +37,6 @@ public:
 		      QWidget* parent = nullptr);
 
 	void setWorld(const worldmodel::World& world);
-	const worldmodel::PrefabCatalog& catalog() const;
 
 signals:
 	void backRequested();
@@ -96,5 +95,5 @@ private:
 	void setPickTargetUiLocked(bool locked);
 	void setDirty();
 	void updateHeading();
-	bool hasTilesetConflict(const std::string& tilesetId) const;
+	void ensureWorldTileset(const std::string& tilesetId);
 };

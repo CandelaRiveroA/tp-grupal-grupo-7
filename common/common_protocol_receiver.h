@@ -5,15 +5,16 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "common_command.h"
 #include "common_match_request.h"
 #include "common_server_status.h"
-#include "common_socket.h"
+#include "common_socket_io.h"
 
 class ProtocolReceiver {
 private:
-    Socket& socket;
+    SocketIO& socket;
     using Handler = protocol::ClientMessage (ProtocolReceiver::*)();
     std::map<protocol::ClientMessageType, Handler> handlers;
     using ServerHandler = ServerMessage (ProtocolReceiver::*)();
@@ -32,6 +33,9 @@ private:
     protocol::ClientMessage receive_wake_message();
     protocol::ClientMessage receive_chat_message();
     protocol::ClientMessage receive_toggle_walking_message();
+    protocol::ClientMessage receive_select_slot_message();
+    ServerMessage receive_player_held_message();
+    ServerMessage receive_gift_accepted_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();
@@ -60,13 +64,14 @@ private:
     ServerMessage receive_victory_message();
     ServerMessage receive_gold_message();
     ServerMessage receive_npc_placement_message();
+    ServerMessage receive_map_change_message();
     ServerMessage receive_market_offer_message();
 
     static Direction direction_from_byte(uint8_t value);
     static ResourceDamage damage_from_byte(uint8_t value);
 
 public:
-    explicit ProtocolReceiver(Socket& socket);
+    explicit ProtocolReceiver(SocketIO& socket);
 
     std::optional<protocol::ClientMessage> receive_command();
     protocol::ClientMessage receive_gift_response_message();
@@ -74,6 +79,7 @@ public:
     ServerWelcome receive_welcome();
     MatchRequest receive_match_request();
     LobbyStatus receive_lobby_status();
+    std::vector<std::string> receive_world_list();
 };
 
 #endif

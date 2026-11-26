@@ -6,8 +6,20 @@
 #include <utility>
 
 #include "../animals/animal.h"
+#include "../animals/animal_catalog.h"
+#include "../furniture/bed.h"
+#include "portal.h"
+#include "barn.h"
 #include "../enemies/enemy.h"
+#include "../npc/marnie.h"
 #include "../npc/merchant.h"
+#include "../npc/robin.h"
+
+#include "world_model/Map.h"
+#include "world_model/MapObject.h"
+#include "world_model/MapRules.h"
+#include "world_model/Portal.h"
+#include "world_model/World.h"
 
 // Ciclo fijo de 28 días que vuelve al día 1.
 #define kDaysPerCycle 28
@@ -22,22 +34,20 @@
 #define kBedX 20
 #define kBedY 13
 
-static SceneId dungeon_scene_id(uint8_t room_number) {
-    return static_cast<SceneId>(static_cast<uint8_t>(SceneId::DUNGEON_1) + (room_number - 1));
+static std::string dungeon_scene_id(uint8_t room_number) {
+    return "dungeon_" + std::to_string(room_number);
 }
 
-static bool is_dungeon_scene(SceneId id) {
-    return static_cast<uint8_t>(id) >= static_cast<uint8_t>(SceneId::DUNGEON_1) &&
-           static_cast<uint8_t>(id) <= static_cast<uint8_t>(SceneId::DUNGEON_10);
-}
+// (is_dungeon_scene ya no se usa; la deteccion de mazmorra va por MapRules::dungeonLevel.)
 
 World::World(uint16_t w, uint16_t h):
         scenes(),
-        farmhouse(nullptr),
         farm(nullptr),
+        barn(nullptr),
+        barn_scene_id_("barn"),
         town(nullptr),
         dungeon_floors(),
-        active_scene(SceneId::FARMHOUSE),
+        active_scene("farmhouse"),
         selected_merchants(),
         next_enemy_id(kFirstEnemyId),
         next_projectile_id(kFirstProjectileId),
@@ -65,25 +75,286 @@ World::World(uint16_t w, uint16_t h):
         community_set_rewards(),
         players() {
     auto house_ptr = std::make_unique<Scene>(w, h);
-    this->farmhouse = house_ptr.get();
-    this->scenes.emplace(SceneId::FARMHOUSE, std::move(house_ptr));
+    this->scenes.emplace("farmhouse", std::move(house_ptr));
+    this->spawn_map_ = "farmhouse";
+    this->spawn_x_ = kBedX;
+    this->spawn_y_ = kBedY;
 
     auto farm_ptr = std::make_unique<Farm>(w, h);
     this->farm = farm_ptr.get();
-    this->scenes.emplace(SceneId::FARM, std::move(farm_ptr));
+    this->scenes.emplace("farm", std::move(farm_ptr));
+
+    auto barn_ptr = std::make_unique<Barn>(w, h);
+    this->barn = barn_ptr.get();
+    this->scenes.emplace("barn", std::move(barn_ptr));
 
     auto town_ptr = std::make_unique<Town>(w, h);
     this->town = town_ptr.get();
-    this->scenes.emplace(SceneId::TOWN, std::move(town_ptr));
+    this->town->place_default_merchants();
+    this->scenes.emplace("town", std::move(town_ptr));
 
-    this->dungeon_floors.reserve(kDungeonFloorCount);
     const uint16_t default_spawn_x = w / 2;
     const uint16_t default_spawn_y = h / 2;
     for (uint8_t room = 1; room <= kDungeonFloorCount; ++room) {
         auto floor_ptr = std::make_unique<DungeonFloor>(room, w, h,
                                                         default_spawn_x, default_spawn_y);
-        this->dungeon_floors.push_back(floor_ptr.get());
+        this->dungeon_floors[room] = floor_ptr.get();
         this->scenes.emplace(dungeon_scene_id(room), std::move(floor_ptr));
+    }
+}
+
+World::World(const worldmodel::World& wm):
+        scenes(),
+        farm(nullptr),
+        barn(nullptr),
+        barn_scene_id_("barn"),
+        town(nullptr),
+        dungeon_floors(),
+        active_scene("farm"),
+        selected_merchants(),
+        next_enemy_id(kFirstEnemyId),
+        next_projectile_id(kFirstProjectileId),
+        next_orc_group_id(1),
+        next_vampire_pair_id(1),
+        resource_hits(),
+        pickups(),
+        gift_answers(),
+        pending_gifts(),
+        sleepers(),
+        accepted(),
+        death_to_bed(),
+        waking(false),
+        woke(),
+        day_ended(false),
+        day_started(false),
+        day(1),
+        community_center(),
+        community_victory(false),
+        current_room(0),
+        market_discount_active(false),
+        double_sell_active(false),
+        skull_survived_without_damage(true),
+        community_set_catalog(),
+        community_set_rewards(),
+        players() {
+    // Construir una escena por cada mapa del mundo.
+    for (const auto& [id, map] : wm.maps) {
+        std::unique_ptr<Scene> scene_ptr;
+        if (map.kind == worldmodel::MapKind::Farm) {
+            scene_ptr = std::make_unique<Farm>(static_cast<uint16_t>(map.width),
+                                                static_cast<uint16_t>(map.height));
+        } else if (map.kind == worldmodel::MapKind::Barn) {
+            auto barn_ptr = std::make_unique<Barn>(static_cast<uint16_t>(map.width),
+                                                    static_cast<uint16_t>(map.height));
+            this->barn = barn_ptr.get();
+            this->barn_scene_id_ = id;
+            scene_ptr = std::move(barn_ptr);
+        } else if (map.kind == worldmodel::MapKind::Town) {
+            scene_ptr = std::make_unique<Town>(static_cast<uint16_t>(map.width),
+                                               static_cast<uint16_t>(map.height));
+        } else if (map.kind == worldmodel::MapKind::Dungeon) {
+            // Spawn para poblar rocas/enemigos: celda de llegada del portal que
+            // entra a este mapa; si no hay, el centro.
+            uint16_t spawn_x = static_cast<uint16_t>(map.width / 2);
+            uint16_t spawn_y = static_cast<uint16_t>(map.height / 2);
+            for (const auto& m : wm.maps) {
+                for (const worldmodel::Portal& p : m.second.portals) {
+                    if (p.targetMap == id) {
+                        spawn_x = static_cast<uint16_t>(p.targetCell.column);
+                        spawn_y = static_cast<uint16_t>(p.targetCell.row);
+                        break;
+                    }
+                }
+                if (spawn_x != static_cast<uint16_t>(map.width / 2) ||
+                    spawn_y != static_cast<uint16_t>(map.height / 2)) {
+                    break;
+                }
+            }
+            const uint8_t level = static_cast<uint8_t>(map.level > 0 ? map.level : 1);
+            auto floor_ptr = std::make_unique<DungeonFloor>(
+                    level,
+                    static_cast<uint16_t>(map.width),
+                    static_cast<uint16_t>(map.height), spawn_x, spawn_y, id);
+            if (level >= 1) {
+                this->dungeon_floors[level] = floor_ptr.get();
+            }
+            scene_ptr = std::move(floor_ptr);
+        } else {
+            scene_ptr = std::make_unique<Scene>(static_cast<uint16_t>(map.width),
+                                                 static_cast<uint16_t>(map.height));
+        }
+        Scene* raw = scene_ptr.get();
+        if (map.kind == worldmodel::MapKind::Farm) {
+            this->farm = static_cast<Farm*>(raw);
+        }
+        if (map.kind == worldmodel::MapKind::Town) {
+            this->town = static_cast<Town*>(raw);
+        }
+
+        // Colisiones desde el TOML.
+        const std::size_t cells = static_cast<std::size_t>(map.width) *
+                                  static_cast<std::size_t>(map.height);
+        for (std::size_t i = 0; i < cells && i < map.collision.size(); ++i) {
+            const uint16_t x = static_cast<uint16_t>(i % map.width);
+            const uint16_t y = static_cast<uint16_t>(i / map.width);
+            raw->set_wall(x, y, map.collision[i]);
+        }
+
+        // Portales: un Portal por celda del rectangulo (size).
+        for (const worldmodel::Portal& portal : map.portals) {
+            const int w = portal.width > 0 ? portal.width : 1;
+            const int h = portal.height > 0 ? portal.height : 1;
+            for (int dy = 0; dy < h; ++dy) {
+                for (int dx = 0; dx < w; ++dx) {
+                    const uint16_t cx = static_cast<uint16_t>(portal.cell.column + dx);
+                    const uint16_t cy = static_cast<uint16_t>(portal.cell.row + dy);
+                    if (!raw->in_bounds(cx, cy)) {
+                        continue;
+                    }
+                    raw->set_entity_at(cx, cy,
+                            std::make_unique<Portal>(cx, cy, portal.targetMap,
+                                                     static_cast<uint16_t>(portal.targetCell.column),
+                                                     static_cast<uint16_t>(portal.targetCell.row)));
+                }
+            }
+        }
+
+        // Marcador de cama: entidad Bed.
+        for (const worldmodel::Marker& marker : map.markers) {
+            if (marker.kind == worldmodel::MarkerKind::Bed) {
+                const uint16_t bx = static_cast<uint16_t>(marker.cell.column);
+                const uint16_t by = static_cast<uint16_t>(marker.cell.row);
+                if (raw->in_bounds(bx, by)) {
+                    raw->set_entity_at(bx, by, std::make_unique<Bed>(bx, by));
+                }
+                if (this->spawn_map_.empty()) {
+                    this->spawn_map_ = id;
+                    this->spawn_x_ = bx;
+                    this->spawn_y_ = by;
+                }
+            } else {
+                // Comerciante por marker en su interior.
+                const uint16_t mx = static_cast<uint16_t>(marker.cell.column);
+                const uint16_t my = static_cast<uint16_t>(marker.cell.row);
+                std::unique_ptr<Merchant> merch = Town::make_merchant(marker.kind, mx, my);
+                if (merch) {
+                    static_cast<Scene*>(raw)->place_merchant(std::move(merch));
+                }
+            }
+        }
+
+        this->scenes.emplace(id, std::move(scene_ptr));
+    }
+
+    // Puertas de edificios -> interiores: portal sintetico por celda de puerta.
+    // El interior ya existe en this->scenes (ctor los construyo antes); su
+    // portal InteriorExit da la celda de llegada.
+    worldmodel::MapRules rules;
+    for (const auto& [hostId, hostMap] : wm.maps) {
+        if (!rules.isInteriorHost(hostId)) {
+            continue;
+        }
+        Scene* hostScene = this->scenes.count(hostId) ? this->scenes.at(hostId).get() : nullptr;
+        if (hostScene == nullptr) {
+            continue;
+        }
+        // Indices de cabañas en orden de aparicion.
+        int cabinIndex = 0;
+        for (std::size_t i = 0; i < hostMap.objects.size(); ++i) {
+            const worldmodel::MapObject& obj = hostMap.objects[i];
+            if (!obj.door.has_value()) {
+                continue;
+            }
+            std::string target;
+            if (obj.role == worldmodel::ObjectRole::Cabin) {
+                ++cabinIndex;
+                target = rules.cabinId(cabinIndex);
+            } else {
+                for (const worldmodel::MapRule& r : rules.all()) {
+                    if (r.interiorObject.has_value() && *r.interiorObject == obj.role) {
+                        target = r.id;
+                        break;
+                    }
+                }
+            }
+            if (target.empty() || this->scenes.find(target) == this->scenes.end()) {
+                continue;
+            }
+            // Celda de llegada dentro del interior: portal InteriorExit.
+            uint16_t arrivalX = static_cast<uint16_t>(wm.maps.at(target).width / 2);
+            uint16_t arrivalY = static_cast<uint16_t>(wm.maps.at(target).height / 2);
+            for (const worldmodel::Portal& p : wm.maps.at(target).portals) {
+                if (p.kind == worldmodel::PortalKind::InteriorExit) {
+                    arrivalX = static_cast<uint16_t>(p.cell.column);
+                    arrivalY = static_cast<uint16_t>(p.cell.row);
+                    break;
+                }
+            }
+            const int dw = obj.doorWidth > 0 ? obj.doorWidth : 1;
+            for (int dx = 0; dx < dw; ++dx) {
+                const uint16_t cx = static_cast<uint16_t>(obj.door->column + dx);
+                const uint16_t cy = static_cast<uint16_t>(obj.door->row);
+                if (!hostScene->in_bounds(cx, cy)) {
+                    continue;
+                }
+                hostScene->set_entity_at(cx, cy,
+                        std::make_unique<Portal>(cx, cy, target, arrivalX, arrivalY));
+            }
+        }
+    }
+
+    // Cabañas ordenadas: cabin_1..cabin_N (por índice de objeto en farm).
+    int cabinCount = 0;
+    const auto farmIt = wm.maps.find("farm");
+    if (farmIt != wm.maps.end()) {
+        for (const worldmodel::MapObject& o : farmIt->second.objects) {
+            if (o.role == worldmodel::ObjectRole::Cabin) {
+                ++cabinCount;
+            }
+        }
+    }
+    for (int k = 1; k <= cabinCount; ++k) {
+        const std::string cabinId = rules.cabinId(k);
+        uint16_t bx = static_cast<uint16_t>(wm.maps.count(cabinId) ? wm.maps.at(cabinId).width / 2 : 1);
+        uint16_t by = static_cast<uint16_t>(wm.maps.count(cabinId) ? wm.maps.at(cabinId).height / 2 : 1);
+        if (wm.maps.count(cabinId)) {
+            for (const worldmodel::Marker& m : wm.maps.at(cabinId).markers) {
+                if (m.kind == worldmodel::MarkerKind::Bed) {
+                    bx = static_cast<uint16_t>(m.cell.column);
+                    by = static_cast<uint16_t>(m.cell.row);
+                    break;
+                }
+            }
+        }
+        this->cabin_beds_.push_back({cabinId, {bx, by}});
+    }
+
+    // (Sin fallback: si un mundo valido no tiene farm/town, lo detecta el
+    // WorldValidator en create y la partida no se crea.)
+    if (this->spawn_map_.empty() && !this->scenes.empty()) {
+        this->spawn_map_ = this->scenes.begin()->first;
+        // spawn en centro del primer mapa
+        Scene* s = this->scenes.begin()->second.get();
+        this->spawn_x_ = static_cast<uint16_t>(s->get_width() / 2);
+        this->spawn_y_ = static_cast<uint16_t>(s->get_height() / 2);
+    }
+
+    // active_scene: el primer mapa con cama, o el primero disponible.
+    bool found_bed = false;
+    for (const auto& [id, map] : wm.maps) {
+        for (const worldmodel::Marker& m : map.markers) {
+            if (m.kind == worldmodel::MarkerKind::Bed) {
+                this->active_scene = id;
+                found_bed = true;
+                break;
+            }
+        }
+        if (found_bed) {
+            break;
+        }
+    }
+    if (!found_bed && !this->scenes.empty()) {
+        this->active_scene = this->scenes.begin()->first;
     }
 }
 
@@ -98,6 +369,15 @@ const Scene& World::get_scene_of(uint8_t player_id) const {
     return get_scene(this->players.at(player_id)->get_scene());
 }
 
+std::vector<SceneId> World::get_scene_ids() const {
+    std::vector<SceneId> ids;
+    ids.reserve(this->scenes.size());
+    for (const auto& kv : this->scenes) {
+        ids.push_back(kv.first);
+    }
+    return ids;
+}
+
 void World::set_active_scene(SceneId id) { this->active_scene = id; }
 SceneId World::get_active_scene() const { return this->active_scene; }
 
@@ -105,29 +385,49 @@ Farm& World::get_farm() { return *this->farm; }
 
 Town& World::get_town() { return *this->town; }
 
+const std::string& World::spawn_map() const { return this->spawn_map_; }
+uint16_t World::spawn_x() const { return this->spawn_x_; }
+uint16_t World::spawn_y() const { return this->spawn_y_; }
+
+std::size_t World::cabin_count() const { return this->cabin_beds_.size(); }
+
+std::pair<std::string, std::pair<uint16_t, uint16_t>> World::cabin_bed(std::size_t k) const {
+    if (k == 0 || k > this->cabin_beds_.size()) {
+        return {this->spawn_map_, {this->spawn_x_, this->spawn_y_}};
+    }
+    return this->cabin_beds_[k - 1];
+}
+
 DungeonFloor& World::get_dungeon_floor(uint8_t room_number) {
-    if (room_number < 1 || room_number > this->dungeon_floors.size()) {
+    const auto it = this->dungeon_floors.find(room_number);
+    if (it == this->dungeon_floors.end()) {
         throw std::out_of_range("Dungeon room number out of bounds");
     }
-    return *this->dungeon_floors[room_number - 1];
+    return *it->second;
 }
 
 DungeonFloor* World::active_dungeon_floor() {
-    if (!is_dungeon_scene(this->active_scene)) {
+    const auto level = worldmodel::MapRules().dungeonLevel(this->active_scene);
+    if (!level.has_value()) {
         return nullptr;
     }
-    const size_t idx = static_cast<size_t>(static_cast<uint8_t>(this->active_scene) -
-                                           static_cast<uint8_t>(SceneId::DUNGEON_1));
-    return this->dungeon_floors[idx];
+    const auto it = this->dungeon_floors.find(*level);
+    if (it == this->dungeon_floors.end()) {
+        return nullptr;
+    }
+    return it->second;
 }
 
 const DungeonFloor* World::active_dungeon_floor() const {
-    if (!is_dungeon_scene(this->active_scene)) {
+    const auto level = worldmodel::MapRules().dungeonLevel(this->active_scene);
+    if (!level.has_value()) {
         return nullptr;
     }
-    const size_t idx = static_cast<size_t>(static_cast<uint8_t>(this->active_scene) -
-                                           static_cast<uint8_t>(SceneId::DUNGEON_1));
-    return this->dungeon_floors[idx];
+    const auto it = this->dungeon_floors.find(*level);
+    if (it == this->dungeon_floors.end()) {
+        return nullptr;
+    }
+    return it->second;
 }
 
 void World::transfer_player(uint8_t player_id, SceneId target_scene, uint16_t x, uint16_t y) {
@@ -142,10 +442,8 @@ void World::transfer_player(uint8_t player_id, SceneId target_scene, uint16_t x,
     player.set_scene(target_scene);
     player.set_position(x, y);
 
-    if (is_dungeon_scene(target_scene)) {
-        const uint8_t room = static_cast<uint8_t>(static_cast<uint8_t>(target_scene) -
-                                                  static_cast<uint8_t>(SceneId::DUNGEON_1) + 1);
-        set_current_room(room);
+    if (const auto level = worldmodel::MapRules().dungeonLevel(target_scene)) {
+        set_current_room(static_cast<uint8_t>(*level));
     } else if (this->current_room != 0) {
         leave_dungeon();
     }
@@ -194,6 +492,9 @@ void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
 }
 
 void World::remove_player(uint8_t player_id) {
+    std::erase_if(this->offered_gifts, [player_id](const auto& offer) {
+        return offer.first.first == player_id || offer.first.second == player_id;
+    });
     this->players.erase(player_id);
     this->selected_merchants.erase(player_id);
     this->sleepers.erase(player_id);
@@ -287,15 +588,51 @@ void World::set_player_appearance(uint8_t player_id, const CharacterAppearance& 
 }
 
 // ---------------------------------------------------------
-// ANIMALES (DELEGADOS A FARM)
+// ANIMALES (DELEGADOS AL ESTABLO)
 // ---------------------------------------------------------
 void World::add_animal(std::unique_ptr<Animal> animal) {
-    this->farm->add_animal(std::move(animal));
+    if (this->barn) {
+        this->barn->add_animal(std::move(animal));
+    }
+}
+
+AnimalPurchaseResult World::buy_animals(Player& player, ItemID type, uint16_t quantity,
+                                         uint16_t cost) {
+    if (!this->barn) {
+        return AnimalPurchaseResult::BarnUnavailable;
+    }
+    std::vector<std::pair<uint16_t, uint16_t>> occupied;
+    for (const auto& [id, other]: this->players) {
+        if (other->get_scene() == this->barn_scene_id_) {
+            occupied.emplace_back(other->get_x(), other->get_y());
+        }
+    }
+    return this->barn->buy_animals(player, type, quantity, cost, occupied);
 }
 
 void World::tick_animals() {
-    this->active_scene = SceneId::FARM;
-    this->farm->tick_animals(*this);
+    if (!this->barn) {
+        return;
+    }
+    const SceneId previous = this->active_scene;
+    this->active_scene = this->barn_scene_id_;
+    this->barn->tick_animals(*this);
+    this->active_scene = previous;
+}
+
+void World::reward_animals(Player& player, ItemID type, uint16_t quantity) {
+    const AnimalCatalog catalog;
+    const AnimalOffer* offer = catalog.find(type);
+    if (!offer) {
+        return;
+    }
+    for (uint16_t i = 0; i < quantity; ++i) {
+        // Una unidad por intento: la parte que entra se entrega y el
+        // resto se compensa al precio de catálogo, sin cobrar al jugador.
+        if (buy_animals(player, type, 1, 0) != AnimalPurchaseResult::Success) {
+            player.add_gold(offer->price);
+        }
+    }
 }
 
 // ---------------------------------------------------------
@@ -310,22 +647,13 @@ void World::place_merchant(std::unique_ptr<Merchant> merchant) {
 
 Merchant* World::get_nearest_merchant(uint8_t player_id) const {
     const Player& player = get_player(player_id);
-    if (player.get_scene() != SceneId::TOWN) {
-        return nullptr;
-    }
-    return this->town->get_nearest_merchant(player.get_x(), player.get_y());
+    const Scene& scene = this->get_scene(player.get_scene());
+    return scene.get_nearest_merchant(player.get_x(), player.get_y());
 }
 
-std::vector<MerchantPlacement> World::get_merchant_placements() const {
-    return this->town->get_merchant_placements();
-}
 
 Merchant* World::get_merchant_for_command(uint8_t player_id) {
     const Player& player = get_player(player_id);
-    if (player.get_scene() != SceneId::TOWN) {
-        this->selected_merchants.erase(player_id);
-        return nullptr;
-    }
     const auto selected = this->selected_merchants.find(player_id);
     if (selected != this->selected_merchants.end()) {
         Merchant* merchant = selected->second;
@@ -391,7 +719,7 @@ void World::clear_flames() {
 
 void World::tick_enemies() {
     const SceneId previous = this->active_scene;
-    for (DungeonFloor* floor: this->dungeon_floors) {
+    for (const auto& [lvl, floor] : this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         floor->tick_enemies(*this);
     }
@@ -401,7 +729,7 @@ void World::tick_enemies() {
 bool World::tick_enemies_pursuit() {
     const SceneId previous = this->active_scene;
     bool changed = false;
-    for (DungeonFloor* floor: this->dungeon_floors) {
+    for (const auto& [lvl, floor] : this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         changed = floor->tick_enemies_pursuit(*this) || changed;
     }
@@ -412,7 +740,7 @@ bool World::tick_enemies_pursuit() {
 bool World::tick_flames() {
     const SceneId previous = this->active_scene;
     bool any_flying = false;
-    for (DungeonFloor* floor: this->dungeon_floors) {
+    for (const auto& [lvl, floor] : this->dungeon_floors) {
         this->active_scene = floor->get_scene_id();
         any_flying = floor->tick_flames(*this) || any_flying;
     }
@@ -474,9 +802,9 @@ bool World::damage_player(uint8_t player_id, uint8_t damage) {
     const bool killed = player.take_damage(damage);
 
     if (player.get_health() < hp_before && player.is_gravely_wounded() &&
-        is_dungeon_scene(player.get_scene())) {
-        const uint8_t room = static_cast<uint8_t>(static_cast<uint8_t>(player.get_scene()) -
-                                                  static_cast<uint8_t>(SceneId::DUNGEON_1) + 1);
+        worldmodel::MapRules().dungeonLevel(player.get_scene()).has_value()) {
+        const uint8_t room = static_cast<uint8_t>(
+                *worldmodel::MapRules().dungeonLevel(player.get_scene()));
         get_dungeon_floor(room).add_blood_puddle(player.get_x(), player.get_y());
     }
     if (killed) {
@@ -512,7 +840,7 @@ bool World::tick_death_to_bed() {
         if (player.get_health() > 0 && !player.faintedByEnergy()) {
             continue;
         }
-        transfer_player(id, SceneId::FARMHOUSE, kBedX, kBedY);
+        transfer_player(id, player.get_home_scene(), player.get_home_x(), player.get_home_y());
         record_sleep_request(id);
         answer_sleep(id, true);
         arrived = true;
@@ -563,7 +891,7 @@ void World::use_tool(uint8_t player_id) {
     bool action_performed = false;
 
     // Solo en la Granja se puede arar o regar el suelo.
-    if (this->active_scene == SceneId::FARM) {
+    if (this->active_scene == "farm") {
         if (tool == ToolType::SHOVEL) {
             this->farm->till_soil(tx, ty);
             action_performed = true;
@@ -598,7 +926,7 @@ void World::apply_consume_energy(uint8_t player_id, uint16_t amount) {
 
 bool World::try_plant_seed(uint8_t player_id, uint16_t tx, uint16_t ty) {
     Player& p = *this->players.at(player_id);
-    if (p.get_scene() != SceneId::FARM) {
+    if (p.get_scene() != "farm") {
         return false;
     }
     return this->farm->try_plant_seed(p, tx, ty);
@@ -619,9 +947,9 @@ void World::take_item(uint8_t player_id) {
         return;
     }
 
-    // Ordeñe / animales (solo en FARM).
-    if (this->active_scene == SceneId::FARM &&
-        this->farm->try_hand_action_animals(p, *this)) {
+    // Ordeñe / animales: exclusivamente dentro del establo.
+    if (this->barn && this->active_scene == this->barn_scene_id_ &&
+        this->barn->try_hand_action_animals(p, *this)) {
         return;
     }
 
@@ -696,6 +1024,29 @@ void World::advance_day() {
 }
 
 uint8_t World::get_day() const { return this->day; }
+
+void World::set_clock_minutes(uint16_t minutes) {
+    this->desired_clock_minutes_ = minutes;
+    this->clock_minutes_dirty_ = true;
+}
+
+std::optional<uint16_t> World::take_desired_clock_minutes() {
+    if (!this->clock_minutes_dirty_) {
+        return std::nullopt;
+    }
+    this->clock_minutes_dirty_ = false;
+    return this->desired_clock_minutes_;
+}
+
+void World::request_clock_restart(uint16_t start_minutes) {
+    this->pending_clock_restart_ = start_minutes;
+}
+
+std::optional<uint16_t> World::take_clock_restart_request() {
+    auto v = this->pending_clock_restart_;
+    this->pending_clock_restart_.reset();
+    return v;
+}
 
 void World::clear_sleep() {
     this->sleepers.clear();
@@ -967,6 +1318,7 @@ bool World::take_victory() {
 // REGALOS
 // ---------------------------------------------------------
 void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    this->offered_gifts.insert_or_assign({sender, receiver}, item);
     this->pending_gifts.push_back({sender, receiver, item});
 }
 
@@ -975,18 +1327,43 @@ void World::notify_gift_answered(uint8_t sender_id) {
 }
 
 std::vector<GiftOffer> World::take_gift_requests() {
-    return std::move(this->pending_gifts);
+    return std::exchange(this->pending_gifts, {});
 }
 
 std::vector<uint8_t> World::take_gift_answers() {
-    return std::move(this->gift_answers);
+    return std::exchange(this->gift_answers, {});
 }
 
 void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
+    const auto offer = this->offered_gifts.find({sender_id, receiver_id});
+    if (offer == this->offered_gifts.end()) {
+        return;
+    }
+    const ItemID offered_item = offer->second;
+    this->offered_gifts.erase(offer);
     auto sender_it = this->players.find(sender_id);
     auto receiver_it = this->players.find(receiver_id);
     if (sender_it == this->players.end() || receiver_it == this->players.end()) {
         return;
     }
-    sender_it->second->finalize_gift_reception(*receiver_it->second);
+    const Player& sender = *sender_it->second;
+    const Player& receiver = *receiver_it->second;
+    const Item* held = sender.peek_equipped_item();
+    if (!held || held->get_id() != offered_item || sender.get_scene() != receiver.get_scene() ||
+        std::abs(static_cast<int>(sender.get_x()) - receiver.get_x()) > 1 ||
+        std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
+        return;
+    }
+    if (sender_id != receiver_id &&
+        sender_it->second->finalize_gift_reception(*receiver_it->second)) {
+        this->accepted_gifts.push_back(receiver_id);
+    }
+}
+
+std::vector<uint8_t> World::take_accepted_gifts() {
+    return std::exchange(this->accepted_gifts, {});
+}
+
+void World::cancel_gift_request(uint8_t sender_id, uint8_t receiver_id) {
+    this->offered_gifts.erase({sender_id, receiver_id});
 }

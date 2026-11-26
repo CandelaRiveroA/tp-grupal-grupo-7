@@ -4,6 +4,11 @@ if (NOT DEFINED CMAKE_CXX_COMPILER)
     set(CMAKE_CXX_COMPILER g++)
 endif()
 
+# c89-gcc fuerza -std=c89 y rechaza cualquier otro -std; SDL2 necesita C99+.
+if (CMAKE_C_COMPILER MATCHES "c89" OR "$ENV{CC}" MATCHES "c89")
+    set(CMAKE_C_COMPILER gcc CACHE FILEPATH "" FORCE)
+endif()
+
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
@@ -219,6 +224,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/MarketCatalog.cpp
         client/world/MarketPopupStyle.cpp
         client/world/MarketSideNames.cpp
+        client/world/CropQualityNames.cpp
         client/world/MarketOfferResolver.cpp
         client/world/ContentCatalog.cpp
         client/world/CursorCatalog.cpp
@@ -263,6 +269,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ViewSpatialIndex.cpp
         client/game/FootstepCue.cpp
         client/game/ResourceAudioCue.cpp
+        client/game/ChatCue.cpp
         client/game/ObtainedBannerQueue.cpp
         client/game/LocalWorldView.cpp
         client/game/FloorItems.cpp
@@ -303,12 +310,20 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/AreaProximity.cpp
         client/game/StructureSelection.cpp
         client/game/PopupState.cpp
+        client/game/GiftThanks.cpp
         client/game/WorldMapState.cpp
         client/game/SceneTransition.cpp
+        client/game/SceneSnapshot.cpp
         client/game/DayPhase.cpp
         client/game/FractionStat.cpp
         client/world/FontCatalog.cpp
+        client/world/NoticeLayout.cpp
+        client/world/NameplateLayout.cpp
+        client/game/NoticeQueue.cpp
         client/world/PromptLayout.cpp
+        client/world/SettingsLayout.cpp
+        client/world/SliderLayout.cpp
+        client/game/SettingsState.cpp
         client/world/WorldMapConfig.cpp
         client/world/WorldMapLayout.cpp
         client/game/ToolUseCue.cpp
@@ -467,7 +482,7 @@ if(TALLER_SERVER)
     set_project_warnings(taller_server ${TALLER_MAKE_WARNINGS_AS_ERRORS} FALSE)
 
     # Link the taller_common lib target
-    target_link_libraries(taller_server taller_common)
+    target_link_libraries(taller_server taller_common taller_world_model)
 endif()
 
 if(TALLER_EDITOR)
@@ -548,5 +563,6 @@ if(TALLER_TESTS)
         TALLER_TOOLS_OVERLAY_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/tools_overlay.toml\"
         TALLER_SCENARIO_FIXTURES_DIR=\"${CMAKE_SOURCE_DIR}/tests/fixtures/scenarios\"
         TALLER_PREFABS_TOML=\"${CMAKE_SOURCE_DIR}/editor/prefabs.toml\"
-        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\")
+        TALLER_DIALOGS_TOML=\"${CMAKE_SOURCE_DIR}/client/sdl/assets/ui/dialogs.toml\"
+        TALLER_WORLDS_DIR=\"${CMAKE_SOURCE_DIR}/worlds\")
 endif()

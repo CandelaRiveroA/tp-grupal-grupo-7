@@ -48,6 +48,7 @@ private:
     // Se usa después de construirla: recibe los mundos antes de navegar.
     CharacterScreen* character_;
     WorldService* worldService_;
+    bool worldRequestPending_;
     NetworkSessionService* sessions_;
     std::optional<core::SessionConfig> selection_;
     std::string username_;

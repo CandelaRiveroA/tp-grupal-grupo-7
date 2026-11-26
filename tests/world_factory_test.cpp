@@ -13,7 +13,6 @@
 
 namespace {
 
-using worldfixtures::defaultCatalog;
 using worldfixtures::defaultWorld;
 using worldfixtures::fullLibrary;
 using worldfixtures::kHeight;
@@ -29,7 +28,6 @@ using worldmodel::MarkerKind;
 using worldmodel::ObjectRole;
 using worldmodel::Portal;
 using worldmodel::PortalKind;
-using worldmodel::PrefabCatalog;
 using worldmodel::Scenario;
 using worldmodel::ScenarioChoice;
 using worldmodel::ScenarioLibrary;
@@ -79,7 +77,7 @@ template <typename Action> void expectInvalid(Action action) {
 TEST(WorldFactoryTest, MakeDefaultBuildsEmptyFarmWithoutCabins) {
 	const World empty = WorldFactory().makeDefault(
 		"Primavera", worldfixtures::fullLibrary(),
-		worldfixtures::defaultCatalog(), worldfixtures::validChoice());
+		worldfixtures::validChoice());
 	EXPECT_EQ(empty.name, "Primavera");
 	ASSERT_EQ(empty.maps.size(), 17u);
 	for (const char* id : {"farm", "town", "carpentry", "blacksmith",
@@ -275,30 +273,24 @@ TEST(WorldFactoryTest, FirstOfEachKindPicksOnePerKindAndLeavesMissingEmpty) {
 		factory.firstOfEachKind(onlyFarm);
 	EXPECT_EQ(partial.farm, "farm_a");
 	EXPECT_TRUE(partial.town.empty());
-	EXPECT_THROW(
-		factory.makeDefault("W", onlyFarm, defaultCatalog(), partial),
-		FormatError);
+	EXPECT_THROW(factory.makeDefault("W", onlyFarm, partial), FormatError);
 }
 
 TEST(WorldFactoryTest, MissingScenarioIsInvalid) {
 	const ScenarioLibrary library = fullLibrary();
-	const PrefabCatalog catalog = defaultCatalog();
 	ScenarioChoice choice = validChoice();
 	choice.farm.clear();
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("n", library, catalog,
-						 choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
 TEST(WorldFactoryTest, WrongScenarioKindIsInvalid) {
 	const ScenarioLibrary library = fullLibrary();
-	const PrefabCatalog catalog = defaultCatalog();
 	ScenarioChoice choice = validChoice();
 	choice.farm = "town_a";
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("n", library, catalog,
-						 choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
@@ -310,8 +302,7 @@ TEST(WorldFactoryTest, ZeroDimensionScenarioIsInvalid) {
 	ScenarioChoice choice = validChoice();
 	choice.town = "bad_town";
 	expectInvalid([&] {
-		(void)WorldFactory().makeDefault("n", library,
-						 defaultCatalog(), choice);
+		(void)WorldFactory().makeDefault("n", library, choice);
 	});
 }
 
@@ -325,8 +316,8 @@ TEST(WorldFactoryTest, PlaceMapPointsSnapsToNearestWalkableWhenBlocked) {
 	ScenarioChoice choice = validChoice();
 	choice.carpentry = "blocked_carpentry";
 
-	const World world = WorldFactory().makeDefault(
-		"n", library, defaultCatalog(), choice);
+	const World world =
+		WorldFactory().makeDefault("n", library, choice);
 	const Map& carpentry = world.maps.at("carpentry");
 	ASSERT_EQ(carpentry.markers.size(), 1u);
 	EXPECT_EQ(carpentry.markers[0].cell, (worldmodel::TilePos{0, 0}));
@@ -385,8 +376,7 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
 
 	const Scenario newCarpentry =
 		scenarioOf("carpentry_b", MapKind::Carpentry, 16, 12);
-	WorldFactory().replaceMapScenario(world, "carpentry", newCarpentry,
-					  defaultCatalog());
+	WorldFactory().replaceMapScenario(world, "carpentry", newCarpentry);
 	EXPECT_EQ(world.maps.at("carpentry").width, 16);
 	const Portal* carpentryExit =
 		findPortal(world.maps.at("carpentry"), PortalKind::InteriorExit);
@@ -396,8 +386,7 @@ TEST(WorldFactoryTest, ReplaceMapScenarioRebuildsMandatoryMapAndRewires) {
 
 	// Reemplazar farm limpia edificios sin fallar aunque exista cabin_1.
 	const Scenario bigFarm = scenarioOf("farm_b", MapKind::Farm, 30, 20);
-	WorldFactory().replaceMapScenario(world, "farm", bigFarm,
-					  defaultCatalog());
+	WorldFactory().replaceMapScenario(world, "farm", bigFarm);
 	const Map& farm = world.maps.at("farm");
 	EXPECT_EQ(farm.width, 30);
 	EXPECT_EQ(farm.height, 20);

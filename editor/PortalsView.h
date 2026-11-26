@@ -3,19 +3,26 @@
 #include <QIcon>
 #include <QPixmap>
 #include <QWidget>
-#include <array>
+#include <vector>
 
+#include "PortalPrefabs.h"
 #include "world_model/Portal.h"
 
 class QComboBox;
 class QListWidget;
+class TilesetCache;
+
+namespace worldmodel {
+class PrefabCatalog;
+}
 
 // Panel lateral para elegir un tipo de portal y su tamano de celdas.
 class PortalsView : public QWidget {
 	Q_OBJECT
 
 public:
-	explicit PortalsView(QWidget* parent = nullptr);
+	PortalsView(const worldmodel::PrefabCatalog& catalog,
+		    const TilesetCache& tilesets, QWidget* parent = nullptr);
 
 	void clearSelection();
 
@@ -29,15 +36,19 @@ private:
 		int height;
 	};
 
+	struct PortalEntry {
+		worldmodel::PortalKind kind;
+		const char* label;
+	};
+
+	const worldmodel::PrefabCatalog& catalog_;
+	const TilesetCache& tilesets_;
+	PortalPrefabs portalPrefabs_;
 	QComboBox* sizeCombo_ = nullptr;
 	QListWidget* list_ = nullptr;
 	QPixmap rune_;
-	std::array<SizeOption, 4> sizeOptions_{{
-		{"1x1 (1 celda)", 1, 1},
-		{"2x1 (horizontal)", 2, 1},
-		{"1x2 (vertical)", 1, 2},
-		{"2x2 (bloque)", 2, 2},
-	}};
+	std::vector<SizeOption> sizeOptions_;
+	std::vector<PortalEntry> portalEntries_;
 
 	void populatePortals();
 	SizeOption currentSizeOption() const;

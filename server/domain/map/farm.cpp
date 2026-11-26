@@ -1,10 +1,8 @@
 #include "farm.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <utility>
 
-#include "../animals/animal.h"
 #include "../crops/crop.h"
 #include "../crops/green_onion.h"
 #include "../crops/potato.h"
@@ -17,37 +15,6 @@ Farm::Farm(uint16_t width, uint16_t height): Scene(width, height) {}
 
 void Farm::on_entity_removed(IEntity* entity) {
     crops.erase(std::remove(crops.begin(), crops.end(), entity), crops.end());
-    animals.erase(std::remove(animals.begin(), animals.end(), entity), animals.end());
-}
-
-void Farm::add_animal(std::unique_ptr<Animal> animal) {
-    if (!animal) {
-        return;
-    }
-    const uint16_t x = animal->get_x();
-    const uint16_t y = animal->get_y();
-    if (!in_bounds(x, y)) {
-        return;
-    }
-    set_entity_at(x, y, std::move(animal));
-    animals.push_back(static_cast<Animal*>(this->grid[y][x].entities.back().get()));
-}
-
-void Farm::tick_animals(World& world) {
-    for (Animal* animal: animals) {
-        animal->wander(world);
-    }
-}
-
-bool Farm::try_hand_action_animals(Player& player, World& world) {
-    for (Animal* animal: animals) {
-        const int dx = static_cast<int>(animal->get_x()) - static_cast<int>(player.get_x());
-        const int dy = static_cast<int>(animal->get_y()) - static_cast<int>(player.get_y());
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && animal->try_hand_action(player, world)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void Farm::till_soil(uint16_t x, uint16_t y) {
@@ -94,11 +61,6 @@ bool Farm::try_plant_seed(Player& player, uint16_t tx, uint16_t ty) {
 }
 
 void Farm::on_new_day(World& world) {
-    const std::vector<Animal*> animals_today = animals;
-    for (Animal* animal: animals_today) {
-        animal->update(world);
-    }
-
     const std::vector<Crop*> crops_today = crops;
     for (Crop* crop: crops_today) {
         crop->update(world);

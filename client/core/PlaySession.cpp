@@ -203,7 +203,6 @@ void PlaySession::tick(int iteration) {
         // y reabriría "Esperando al resto de jugadores...".
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
-        sceneTransition_.release();
         audio_.play(sdl::SoundId::RoosterCrow);
         // Día nuevo: los stats simulados arrancan llenos (lo dirá el server).
         for (auto& entry : stats_) {

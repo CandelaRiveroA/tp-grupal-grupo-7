@@ -55,6 +55,11 @@ void InputManager::handleEvent(const SDL_Event& event) {
         clicks_.push_back(game::PointerClick{event.button.x, event.button.y});
         return;
     }
+    if (!textMode_ && event.type == SDL_MOUSEBUTTONDOWN &&
+        event.button.button == SDL_BUTTON_RIGHT) {
+        grabs_.push_back(game::PointerClick{event.button.x, event.button.y});
+        return;
+    }
 
     // Modo texto: caracteres, backspace y los one-shots Enter/ESC.
     if (textMode_) {
@@ -110,6 +115,9 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
+    bindings.insert({SDLK_r, game::InputCommand{Kind::RotateFurniture, 0}});
+    // Cerrar el popup abierto (ESC fuera del chat).
+    bindings.insert({SDLK_ESCAPE, game::InputCommand{Kind::CloseOverlay, 0}});
     bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
@@ -139,6 +147,12 @@ std::vector<game::PointerClick> InputManager::takeClicks() {
     std::vector<game::PointerClick> clicks;
     clicks.swap(clicks_);
     return clicks;
+}
+
+std::vector<game::PointerClick> InputManager::takeGrabs() {
+    std::vector<game::PointerClick> grabs;
+    grabs.swap(grabs_);
+    return grabs;
 }
 
 void InputManager::setTextMode(bool open) {

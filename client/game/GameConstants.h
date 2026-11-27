@@ -12,6 +12,10 @@ constexpr std::size_t kLocalPlayerIndex = 0;
 // distancia.
 constexpr int kInteractRing = 1;
 
+constexpr int kTransferAmount = 1;
+
+constexpr int kDiscardAmount = 1;
+
 // --- Reglas del "server falso" (el server real pondrá las suyas) -------
 
 // Tope de ítems en el piso del mundo: sin recogida el mundo se llena.

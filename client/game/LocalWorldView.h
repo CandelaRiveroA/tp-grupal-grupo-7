@@ -8,6 +8,7 @@
 #include "common/model/draft/CharacterAppearance.h"
 #include "game/GameConstants.h"
 #include "game/SoundCue.h"
+#include "world/FurnitureFacing.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
 #include "world/MarketOffer.h"
@@ -98,6 +99,11 @@ struct ViewInventorySlot {
     std::string contentId;
     int count;
     bool tradable = true;
+    // Huella de piso si el contenido es un MUEBLE colocable (celdas
+    // que ocupa). La manda la fuente de estado, como tradable: qué
+    // ítems del jugador son muebles no es dato fijo del cliente. Sin
+    // valor = no se coloca.
+    std::optional<world::GridSpan> footprint = std::nullopt;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un
@@ -216,10 +222,21 @@ struct ViewNpcPlacement {
 // estado (ServerFurniture) con el contentId y la celda; el cliente solo
 // lo dibuja con el visual de ese contentId en inventory.toml. La celda
 // es la base del mueble (abajo-izquierda del sprite).
+//
+// footprint:   celdas de PISO que ocupa (lo que bloquea), no la altura.
+//              La manda la fuente; 1x1 por defecto.
+// interactive: si se puede levantar (como el huevo). Lo decide la
+//              fuente de estado (cerrado, sin impedimentos); el
+//              cliente solo lo lee para el cursor y el Take.
 struct ViewFurniture {
     std::string contentId;
     int cellX;
     int cellY;
+    world::GridSpan footprint{1, 1};
+    bool interactive = false;
+    // Hacia dónde mira (la vista que lo dibuja). Lo manda la fuente; la
+    // huella de arriba es la de frente: de costado se gira.
+    world::FurnitureFacing facing = world::FurnitureFacing::Front;
 };
 
 struct LocalWorldView {
@@ -280,6 +297,11 @@ struct LocalWorldView {
     // comerciante (market.toml); con entradas, esas (las que SDL conoce) con el
     // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
     std::optional<world::MarketOffer> marketOffer;
+
+    // Contenido del contenedor abierto (cofre): los slots ocupados, con el
+    // mismo vocabulario que el inventario del jugador. Lo llena la fuente
+    // de estado (el servidor); vacío = los cuadros se ven vacíos.
+    std::vector<ViewInventorySlot> containerSlots;
 
     // Vida y energía del jugador local (0..max).
     int playerHealth = 0;

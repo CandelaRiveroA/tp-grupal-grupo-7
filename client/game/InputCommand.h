@@ -54,6 +54,13 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
+        // ESC fuera del chat: cierra el popup abierto (p. ej. el del
+        // cofre). Lo consume PlaySession; NO viaja al GameClient.
+        CloseOverlay,
+        // Tecla R: gira el mueble que se está por colocar. Lo
+        // consume PlaySession; NO viaja al GameClient (la orientación
+        // viaja con la colocación).
+        RotateFurniture,
     };
 
     Kind kind;

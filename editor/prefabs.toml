@@ -76,7 +76,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "pino_alto"
-name = "Pino Alto (Conífera)"
+name = "Pino Alto"
 category = "arboles_y_vegetacion"
 category_label = "Arboles y vegetacion"
 tile = "prefab_arboles_y_vegetacion:10,0"
@@ -92,7 +92,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "arbusto_2x2"
-name = "Arbusto Mediano (2×2)"
+name = "Arbusto Mediano"
 category = "arboles_y_vegetacion"
 category_label = "Arboles y vegetacion"
 tile = "prefab_arboles_y_vegetacion:13,0"
@@ -104,7 +104,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "arbusto_3x3"
-name = "Arbusto Grande (3×3)"
+name = "Arbusto Grande"
 category = "arboles_y_vegetacion"
 category_label = "Arboles y vegetacion"
 tile = "prefab_arboles_y_vegetacion:15,0"
@@ -155,7 +155,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_1x_esquina_se"
-name = "Camino 1× Esquina SE (Arriba↔Der / Abajo+Der)"
+name = "Camino 1× Esquina SE"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:5,0"
@@ -168,7 +168,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_1x_esquina_so"
-name = "Camino 1× Esquina SO (Abajo+Izq)"
+name = "Camino 1× Esquina SO"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:8,0"
@@ -181,7 +181,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_1x_esquina_ne"
-name = "Camino 1× Esquina NE (Arriba+Der)"
+name = "Camino 1× Esquina NE"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:11,0"
@@ -194,7 +194,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_1x_esquina_no"
-name = "Camino 1× Esquina NO (Arriba+Izq)"
+name = "Camino 1× Esquina NO"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:14,0"
@@ -348,7 +348,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_2x_esquina_se"
-name = "Camino 2× Esquina SE (Abajo+Der)"
+name = "Camino 2× Esquina SE"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:16,3"
@@ -362,7 +362,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_2x_esquina_so"
-name = "Camino 2× Esquina SO (Abajo+Izq)"
+name = "Camino 2× Esquina SO"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:20,3"
@@ -376,7 +376,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_2x_esquina_ne"
-name = "Camino 2× Esquina NE (Arriba+Der)"
+name = "Camino 2× Esquina NE"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:24,3"
@@ -390,7 +390,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "camino_2x_esquina_no"
-name = "Camino 2× Esquina NO (Arriba+Izq)"
+name = "Camino 2× Esquina NO"
 category = "caminos"
 category_label = "Caminos"
 tile = "prefab_caminos:28,3"
@@ -526,7 +526,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "cesped_pequeno"
-name = "Césped Pequeño Redondeado (5×4)"
+name = "Césped Pequeño Redondeado"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:0,0"
@@ -540,7 +540,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "cesped_isla_ovalada"
-name = "Césped Isla Ovalada (7×6)"
+name = "Césped Isla Ovalada"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:5,0"
@@ -556,7 +556,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "cesped_mancha_bicolor"
-name = "Césped Mancha Bicolor (7×6)"
+name = "Césped Mancha Bicolor"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:12,0"
@@ -572,7 +572,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "cesped_pradera_ancha"
-name = "Césped Pradera Ancha (9×5)"
+name = "Césped Pradera Ancha"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:19,0"
@@ -587,7 +587,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "flor_rosa_cesped"
-name = "Flores Rosas de Granja (1×1)"
+name = "Flores Rosas de Granja"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:28,0"
@@ -598,7 +598,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "flor_azul_cesped"
-name = "Flores Azules de Granja (1×1)"
+name = "Flores Azules de Granja"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:29,0"
@@ -609,7 +609,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "flor_blanca_cesped"
-name = "Florecillas Blancas en Césped (1×1)"
+name = "Florecillas Blancas en Césped"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:30,0"
@@ -620,7 +620,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "parche_flores_cesped"
-name = "Parche Mixto de Flores de Granja (3×3)"
+name = "Parche Mixto de Flores de Granja"
 category = "cesped_y_flores"
 category_label = "Cesped y flores"
 tile = "prefab_cesped_y_flores:0,6"
@@ -633,7 +633,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "casa_granja_1"
-name = "Casa de Granja (Nivel 1)"
+name = "Casa de Granja"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
 role = "cabin"
@@ -717,7 +717,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "gallinero"
-name = "Gallinero (Coop)"
+name = "Gallinero"
 category = "estructuras_granja"
 category_label = "Estructuras de granja"
 role = "barn"
@@ -748,7 +748,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_horizontal"
-name = "Valla Horizontal (2×2)"
+name = "Valla Horizontal"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:0,0"
@@ -760,7 +760,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_vertical"
-name = "Valla Vertical (1×2)"
+name = "Valla Vertical"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:2,0"
@@ -772,7 +772,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_esquina_se"
-name = "Valla Esquina SE (Abajo + Der)"
+name = "Valla Esquina SE"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:3,0"
@@ -785,7 +785,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_esquina_so"
-name = "Valla Esquina SO (Abajo + Izq)"
+name = "Valla Esquina SO"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:5,0"
@@ -798,7 +798,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_esquina_ne"
-name = "Valla Esquina NE (Arriba + Der)"
+name = "Valla Esquina NE"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:7,0"
@@ -811,7 +811,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "valla_esquina_no"
-name = "Valla Esquina NO (Arriba + Izq)"
+name = "Valla Esquina NO"
 category = "vallas"
 category_label = "Vallas"
 tile = "prefab_vallas:9,0"
@@ -940,7 +940,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "casa_naranja_emily"
-name = "Casa Naranja (estilo Emily)"
+name = "Casa Naranja"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -960,7 +960,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "casa_azul_jodi"
-name = "Casa Azul Náutica (estilo Sam/Jodi)"
+name = "Casa Azul Náutica"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -982,7 +982,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "casa_gris_alex"
-name = "Casa Gris de Piedra (estilo Evelyn/Alex)"
+name = "Casa Gris de Piedra"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -1003,7 +1003,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "cabana_verde"
-name = "Cabaña Verde (techo musgo)"
+name = "Cabaña Verde"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -1023,7 +1023,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "saloon"
-name = "Taberna (Stardrop Saloon)"
+name = "Taberna"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -1062,7 +1062,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "trailer"
-name = "Casa Rodante (Tráiler)"
+name = "Casa Rodante"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "building"
@@ -1077,7 +1077,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "centro_comunitario"
-name = "Centro Comunitario (Restaurado)"
+name = "Centro Comunitario"
 category = "casas_y_comercios"
 category_label = "Casas y comercios"
 role = "community_center"
@@ -1532,7 +1532,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "puente_madera_3x3"
-name = "Puente / Plataforma Madera 3×3"
+name = "Puente / Plataforma Madera"
 category = "mazmorra"
 category_label = "Mazmorra"
 tile = "prefab_mazmorra:13,0"
@@ -1545,7 +1545,7 @@ collision_grid = [
 
 [[prefabs]]
 id = "puente_madera_2x3"
-name = "Pasarela Madera Estrecha 2×3"
+name = "Pasarela Madera Estrecha"
 category = "mazmorra"
 category_label = "Mazmorra"
 tile = "prefab_mazmorra:16,0"

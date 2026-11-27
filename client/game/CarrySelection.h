@@ -10,8 +10,8 @@ namespace game {
 
 // Qué contenido sostiene el jugador local sobre la cabeza, derivado de
 // su selección en el inventario: si el slot activo tiene un contenido
-// SOLTABLE (rasgo `droppable` de world::ContentTraits), ese es el que se
-// sostiene; herramientas, slot vacío o contenido no soltable no
+// SOLTABLE (rasgo `droppable` de world::ContentTraits) o un MUEBLE (el
+// slot trae su huella), ese es el que se sostiene; herramientas, slot vacío o contenido no soltable no
 // sostienen nada. Es presentación LOCAL de la selección (el mismo
 // concepto que el marco rojo del HUD), no estado del servidor: cuando
 // el servidor mande qué se sostiene, este cálculo se retira y el dibujo
@@ -31,9 +31,14 @@ public:
 	// El contentId sostenido, o nullopt si no sostiene nada.
 	const std::optional<std::string>& held() const;
 
+	// La huella del mueble sostenido (nullopt si lo sostenido no es un
+	// mueble): la manda la fuente en el slot, no un TOML.
+	const std::optional<world::GridSpan>& heldFootprint() const;
+
 private:
 	const world::ContentTraits& traits_;
 	std::optional<std::string> held_;
+	std::optional<world::GridSpan> heldFootprint_;
 };
 
 }

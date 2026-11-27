@@ -136,6 +136,22 @@ bottom       = [2, 59]
 left         = [0, 58]
 right        = [3, 58]
 
+# --- Tacho -------------------------------------------------------------
+# Cuadro a la derecha de la barra: tocarlo tira una unidad del slot
+# seleccionado (lo decide la fuente de estado).
+# Se dibuja como un panel chico con el mismo marco que la barra.
+# size:     lado del panel como fracción del lado de un slot.
+# gap:      px entre el marco de la barra y el tacho (escala con ui_scale).
+# icon_pad: px entre el borde interior del panel y el ícono (opcional).
+# hover_tint: color que multiplica el botón con el mouse encima (opcional).
+[trash]
+image    = "ui/tacho.png"
+cell     = [32, 32]
+size     = 1.0
+gap      = 12
+icon_pad = 2
+hover_tint = [215, 185, 150]
+
 # --- Catálogo visual de ítems ------------------------------------------
 # Mapea cada ítem LÓGICO (lo que el servidor pone en el inventario) a su
 # APARIENCIA: de qué hoja sale y qué celda lo dibuja. El servidor manda
@@ -244,6 +260,18 @@ at    = [2, 4]
 sheet = "Ambience/Market/vaca.png"
 cell  = [32, 16]
 at    = [0, 0]
+
+[items.bed]           # cama: icono del inventario y de "sostener", la
+                      # cama ENTERA. En Towninterior.png sus celdas no
+                      # son contiguas, así que bed_icon.png es la misma
+                      # cama ya compuesta (cabecera, mitad y pie, las
+                      # celdas de npcs.toml id "bed"). En el mundo se
+                      # dibuja por piezas desde npcs.toml; si cambian
+                      # esas celdas, regenerar también este icono.
+sheet = "Decorations/bed_icon.png"
+cell  = [16, 16]
+at    = [0, 0]
+span  = [2, 4]
 
 # ---- Muebles de Robin (catálogo de la carpintería) ----
 # Cada mueble es un ítem; `span` = [cols, rows] de celdas que abarca en

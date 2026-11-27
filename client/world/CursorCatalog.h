@@ -14,6 +14,7 @@ enum class CursorKind {
 	Interactive,
 	// Otro jugador (no el local): apunta a "darle un regalo".
 	Gift,
+	Grab,
 };
 
 // Cursores del puntero como DATOS: qué sprite dibuja cada estado y

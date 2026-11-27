@@ -10,16 +10,20 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/ContainerSession.h"
 #include "game/ChatCue.h"
 #include "game/DayPhase.h"
 #include "game/DialogAnimator.h"
 #include "game/EnterSelection.h"
+#include "game/FurnitureKey.h"
+#include "game/FurnitureOrientation.h"
 #include "game/StructureSelection.h"
 #include "game/FarmSelection.h"
 #include "game/FootstepCue.h"
 #include "game/FractionStat.h"
 #include "game/InputCommand.h"
 #include "game/ObjectPicker.h"
+#include "game/PlacementSelection.h"
 #include "game/NoticeQueue.h"
 #include "game/ObtainedBannerQueue.h"
 #include "game/PlayerController.h"
@@ -45,6 +49,8 @@
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/DigitPainter.h"
 #include "sdl/render/HudOverlayPainter.h"
+#include "sdl/render/CloseButtonPainter.h"
+#include "sdl/render/FurnitureGhostPainter.h"
 #include "sdl/render/InventoryHud.h"
 #include "sdl/render/MarketPopupPainter.h"
 #include "sdl/render/NameplatePainter.h"
@@ -60,6 +66,7 @@
 #include "world/CreatureCatalog.h"
 #include "world/DialogCatalog.h"
 #include "world/FarmCatalogs.h"
+#include "world/FurnitureGeometry.h"
 #include "world/InventoryLayout.h"
 #include "world/MarketCatalog.h"
 #include "game/MarketPopupState.h"
@@ -140,10 +147,22 @@ private:
     // Marcador del lugar de plantado sobre la celda que apunta el puntero.
     void drawPlantingMarker(const world::ScenePixelMapper& cells);
 
+    // Vista previa del mueble sostenido sobre la celda apuntada: el
+    // marcador verde/rojo en cada celda de piso y el sprite
+    // semitransparente. QUÉ y dónde lo decidió PlacementSelection.
+    void drawPlacementGhost(const world::ScenePixelMapper& cells);
+
     // Capa frontal del elemento donde está metido el jugador (lo que lo
     // tapa). QUÉ dibujar lo decidió EnterSelection; esto solo lo pinta,
     // sobre las entidades y bajo el HUD.
     void drawEnteredFront(const game::LocalWorldView& view, const world::ScenePixelMapper& cells);
+
+    // Las dos fuentes de la capa frontal (tabla enteredFronts_): las filas
+    // de un elemento de la escena o las de un mueble por piezas.
+    void drawElementFront(const game::LocalWorldView& view, const game::EnteredFront& front,
+                          const world::ScenePixelMapper& cells);
+    void drawFurnitureFront(const game::LocalWorldView& view, const game::EnteredFront& front,
+                            const world::ScenePixelMapper& cells);
 
     // El popup del HUD con la figura vacía del inventario y su
     // contenido (la pregunta o el avance). El cuándo lo dice
@@ -157,6 +176,41 @@ private:
     // El popup de un NPC: mismo panel que el resto y, adentro, el
     // retrato y el texto que dicen sus datos.
     void drawNpcPopup();
+
+    // Popup del contenedor abierto (cofre): la figura del inventario con
+    // la grilla que declara su NPC y los slots que manda la vista.
+    void drawContainerPopup(const game::LocalWorldView& view, int iteration);
+
+    void observeContainer(const game::LocalWorldView& view, int iteration);
+
+    // Caja del panel del contenedor abierto (centrada, con su grilla):
+    // donde se dibuja y donde se toca su botón de cerrar.
+    // Precondición: openContainer_ != nullptr.
+    world::PixelBox containerPanel() const;
+
+    // ¿El punto cae sobre el botón de cerrar del contenedor abierto?
+    bool overContainerClose(const world::PixelPoint& point, int iteration) const;
+
+    bool overContainerTarget(const world::PixelPoint& point, const game::LocalWorldView& view,
+                             int iteration) const;
+
+    void handleContainerClick(const world::PixelPoint& point, const game::LocalWorldView& view,
+                              int iteration);
+
+    // Abre un mueble contenedor colocado (el cofre): la definición sale de
+    // npcs.toml por su contentId. Devuelve si el mueble es un contenedor al
+    // alcance (el click se consume); el abrir lo anima PropAnimator.
+    bool openFurnitureContainer(const game::ViewFurniture& furniture, int iteration);
+
+    bool toggleProp(const std::string& key, const world::NpcDef& def, int iteration);
+
+    // Cierra el contenedor abierto con su animación (botón o ESC). Solo
+    // actúa cuando ya terminó de abrirse; devuelve si lo cerró.
+    bool closeContainer(int iteration);
+
+    // Descarta el contenedor abierto sin animar (cambio de escena, fin
+    // del día): el cofre vuelve a estar cerrado.
+    void dropContainer();
 
     // Popup del catálogo del mercado. Quien lo pide (hoy la tecla demo,
     // mañana el mensaje del server) solo llama a open/close; el dibujo
@@ -214,6 +268,14 @@ private:
     // decide); esto solo lo lee para elegir la variante del cursor.
     bool isInteractive(const game::PickTarget& target, const game::LocalWorldView& view) const;
 
+    bool isGrabbable(const game::PickTarget& target, const game::LocalWorldView& view) const;
+
+    bool activeSlotOccupied(const game::LocalWorldView& view) const;
+
+    bool closeOverlay(int iteration);
+
+    void handleGrabs(const game::LocalWorldView& view, int iteration);
+
     // ¿El objetivo es OTRO jugador (no el local)? Lo decide la vista:
     // mismo tipo Player y un índice distinto de kLocalPlayerIndex.
     // Además exige algo transferible en el casillero activo: con una
@@ -254,6 +316,9 @@ private:
     // que los consume: el HUD y el renderer guardan lo que reciben.
     world::FarmCatalogs farm_;
     world::InventoryLayout inventory_;
+    // Geometría única de los muebles (bloque o por piezas, con su ancla):
+    // la comparten el dibujo, el click, la colocación y la cama.
+    world::FurnitureGeometry furnitureGeometry_;
 
     sdl::SdlContext sdlContext_;
     sdl::Camera camera_;
@@ -285,6 +350,15 @@ private:
     game::ChatCue chatCue_;
     game::FarmSelection farmSelection_;
     game::EnterSelection enterSelection_;
+    // De dónde sale la capa frontal -> quién la pinta (tabla, no switch).
+    std::map<game::EnterSource,
+             void (PlaySession::*)(const game::LocalWorldView&, const game::EnteredFront&,
+                                   const world::ScenePixelMapper&)>
+            enteredFronts_;
+    // Hacia dónde mira el mueble por colocar (click derecho) y dónde se
+    // colocaría (vista previa).
+    game::FurnitureOrientation orientation_;
+    game::PlacementSelection placement_;
     // Edificios clickeables del editor (rol con comportamiento en el
     // overlay): qué hacer con cada acción es esta tabla, no un switch.
     game::StructureSelection structureSelection_;
@@ -293,6 +367,12 @@ private:
     // NPC con el popup abierto (nullptr = ninguno). El click lo abre y
     // cualquier click posterior lo cierra.
     const world::NpcDef* npcPopup_ = nullptr;
+    // Contenedor (cofre) abierto (nullptr = ninguno): su popup aparece al
+    // terminar de abrirse y se cierra con un click o ESC.
+    const world::NpcDef* openContainer_ = nullptr;
+    // Clave de estado del contenedor abierto en PropAnimator: el id del
+    // NPC, o la del mueble colocado (game::FurnitureKey).
+    std::string containerKey_;
     // Id (npcs.toml) del último NPC con el que se habló: B abre el catálogo
     // de ESE comerciante. Provisorio hasta que el chat lo pida (validado por
     // el servidor). Vacío = ninguno.
@@ -333,6 +413,7 @@ private:
     game::PlayerController player_;
     game::ObjectPicker picker_;
     sdl::BuildPlacePainter markerPainter_;
+    sdl::FurnitureGhostPainter ghostPainter_;
     world::CursorCatalog cursorCatalog_;
     sdl::CursorPainter cursorPainter_;
     game::DialogAnimator dialogAnimator_;
@@ -342,6 +423,7 @@ private:
     sdl::ButtonPainter buttonPainter_;
     sdl::PromptPainter promptPainter_;
     sdl::NpcPopupPainter npcPopupPainter_;
+    sdl::CloseButtonPainter closeButtonPainter_;
     sdl::MarketPopupPainter marketPopupPainter_;
     // Popup del catálogo del comerciante: se declara después de
     // marketCatalog_ y de inventory_ (guarda referencias a ambos).
@@ -350,6 +432,7 @@ private:
     game::MarketSetCycle marketCycle_;
     // Objetos animados clickeables (cofre): abierto/cerrado por id.
     game::PropAnimator props_;
+    game::ContainerSession containerSession_;
     sdl::ChatPainter chatPainter_;
     game::WorldMapState worldMap_;
     sdl::WorldMapPainter worldMapPainter_;
@@ -369,6 +452,7 @@ private:
     // Sonido por cada evento de recurso confirmado. Es dato: se arma una
     // vez en el constructor, no por frame.
     std::map<game::ResourceAudioEvent, sdl::SoundId> resourceSounds_;
+    std::map<game::PropMotion, sdl::SoundId> propSounds_;
 
     // Sonido de cada comando de input que lo tiene (hoy ESC: abrir/cerrar
     // la configuración y cerrar el chat). Sumar uno = una fila.

@@ -114,6 +114,10 @@ void PlayerController::useToward(const world::GridCell& target,
     // exacta cuando el protocolo la lleve).
 }
 
+void PlayerController::place(const world::GridCell& cell, const world::FurnitureFacing facing) {
+    client_.requestPlace(FurniturePlacement{cell, activeSlot(), facing});
+}
+
 void PlayerController::stepWalk() {
     client_.sendCommand(moveCommand_.propose(walkPacer_.lastDirection()));
 }

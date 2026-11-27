@@ -17,6 +17,12 @@ public:
 
 	PixelRect box(const SpriteVisual& visual, const GridCell& base) const;
 
+	// La caja corrida `push` celdas (fracción) en la dirección `toward`
+	// (dx, dy en celdas, p. ej. {0, 1} = hacia abajo): la vista previa se
+	// adelanta hacia el lado donde se va a colocar.
+	PixelRect pushed(const PixelRect& box, const GridCell& toward,
+			 double push) const;
+
 private:
 	ScenePixelMapper mapper_;
 };

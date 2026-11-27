@@ -95,6 +95,65 @@ std::vector<PixelBox> InventoryLayout::slotBoxes(const PixelBox& outer,
 	return boxes;
 }
 
+int InventoryLayout::slotAt(const PixelBox& outer, const int columns,
+			    const int rows, const PixelPoint& point) const {
+	return indexAt(slotBoxes(outer, columns, rows), point);
+}
+
+int InventoryLayout::slotAt(const int windowWidth, const int windowHeight,
+			    const PixelPoint& point) const {
+	return indexAt(slotBoxes(windowWidth, windowHeight), point);
+}
+
+int InventoryLayout::indexAt(const std::vector<PixelBox>& boxes,
+			     const PixelPoint& point) const {
+	for (std::size_t i = 0; i < boxes.size(); ++i) {
+		if (contains(boxes[i], point)) {
+			return static_cast<int>(i);
+		}
+	}
+	return -1;
+}
+
+bool InventoryLayout::contains(const PixelBox& box,
+			       const PixelPoint& point) const {
+	return point.x >= box.x && point.x < box.x + box.width &&
+	       point.y >= box.y && point.y < box.y + box.height;
+}
+
+PixelBox InventoryLayout::trashBox(const int windowWidth,
+				   const int windowHeight) const {
+	const PixelBox bar = outerBox(windowWidth, windowHeight);
+	const int side = static_cast<int>(slotDrawWidth() * trash.size + 0.5);
+	return PixelBox{bar.x + bar.width + scaled(trash.gap),
+			bar.y + (bar.height - side) / 2, side, side};
+}
+
+PixelBox InventoryLayout::trashInnerBox(const int windowWidth,
+					const int windowHeight) const {
+	return shrink(trashBox(windowWidth, windowHeight), borderThickness());
+}
+
+PixelBox InventoryLayout::trashIconBox(const int windowWidth,
+				       const int windowHeight) const {
+	return shrink(trashInnerBox(windowWidth, windowHeight),
+		      scaled(trash.iconPad));
+}
+
+PixelBox InventoryLayout::shrink(const PixelBox& box, const int pad) const {
+	const int width = box.width - 2 * pad;
+	const int height = box.height - 2 * pad;
+	return PixelBox{box.x + pad, box.y + pad, width > 0 ? width : 0,
+			height > 0 ? height : 0};
+}
+
+bool InventoryLayout::isOverTrash(const int windowWidth,
+				  const int windowHeight,
+				  const PixelPoint& point) const {
+	return trash.enabled &&
+	       contains(trashBox(windowWidth, windowHeight), point);
+}
+
 std::vector<PixelBox> InventoryLayout::slotBoxesNatural(
 	int windowWidth, int windowHeight) const {
 	return slotBoxes(windowWidth, windowHeight);

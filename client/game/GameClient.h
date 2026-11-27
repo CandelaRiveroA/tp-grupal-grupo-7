@@ -5,6 +5,10 @@
 #include <string>
 
 #include "common/common_command.h"
+#include "game/ContainerTransfer.h"
+#include "game/FurnitureGrab.h"
+#include "game/FurniturePlacement.h"
+#include "game/InventoryDiscard.h"
 #include "game/LocalWorldView.h"
 
 namespace game {
@@ -22,6 +26,16 @@ public:
 
     virtual void receiveChat(std::uint8_t /*playerId*/, const std::string& /*characterName*/,
                              const std::string& /*text*/) {}
+
+    virtual void requestTransfer(const ContainerTransfer& /*transfer*/) {}
+
+    // Intención de colocar el mueble de un slot en una celda. Default
+    // vacío: la fuente decide si se puede (hoy solo la demo la atiende).
+    virtual void requestPlace(const FurniturePlacement& /*placement*/) {}
+
+    virtual void requestGrab(const FurnitureGrab& /*grab*/) {}
+
+    virtual void requestDiscard(const InventoryDiscard& /*discard*/) {}
 
     // RECIBIR: el estado actual del mundo que dibuja el cliente.
     virtual const LocalWorldView& worldState() const = 0;

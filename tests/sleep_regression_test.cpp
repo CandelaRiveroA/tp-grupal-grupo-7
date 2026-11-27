@@ -3,6 +3,8 @@
 #include "game/ObjectPicker.h"
 #include "game/SceneTransition.h"
 #include "game/SceneSnapshot.h"
+#include "world/FurnitureGeometry.h"
+#include "world/NpcCatalog.h"
 
 TEST(SleepRegressionTest, CamaDelServidorSePuedePulsarEnTodaSuCaja) {
     world::ContentCatalog content;
@@ -10,7 +12,9 @@ TEST(SleepRegressionTest, CamaDelServidorSePuedePulsarEnTodaSuCaja) {
     visual.cols = 2;
     visual.rows = 4;
     content.visuals.emplace("bed", visual);
-    const game::ObjectPicker picker(content);
+    const world::NpcCatalog npcs(TALLER_NPCS_TOML);
+    const world::FurnitureGeometry furniture(content, npcs);
+    const game::ObjectPicker picker(content, furniture);
     const world::CharacterCatalog characters;
     const game::ViewMotion motion(characters);
     game::LocalWorldView view;
@@ -29,7 +33,9 @@ TEST(SleepRegressionTest, CamaDelServidorSePuedePulsarEnTodaSuCaja) {
 
 TEST(SleepRegressionTest, MuebleSinVisualNoCapturaClicks) {
     const world::ContentCatalog content;
-    const game::ObjectPicker picker(content);
+    const world::NpcCatalog npcs(TALLER_NPCS_TOML);
+    const world::FurnitureGeometry furniture(content, npcs);
+    const game::ObjectPicker picker(content, furniture);
     const world::CharacterCatalog characters;
     const game::ViewMotion motion(characters);
     game::LocalWorldView view;

@@ -4,6 +4,19 @@
 
 namespace world {
 
+PixelBox CloseButton::box(const PixelBox& panel) const {
+	return PixelBox{panel.x + panel.width - inset.x - size.width,
+			panel.y - inset.y - size.height, size.width,
+			size.height};
+}
+
+bool CloseButton::contains(const PixelBox& panel,
+			   const PixelPoint& point) const {
+	const PixelBox area = box(panel);
+	return point.x >= area.x && point.x < area.x + area.width &&
+	       point.y >= area.y && point.y < area.y + area.height;
+}
+
 PixelRect NpcBody::box(const int cellPixelSize, const GridCell& where) const {
 	const int width = drawn.width > 0 ? drawn.width
 					  : span.columns * cellPixelSize;

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "game/LocalWorldView.h"
+#include "world/FurnitureGeometry.h"
 #include "world/SceneDescription.h"
 #include "world/ScenePixelMapper.h"
 
@@ -29,11 +30,19 @@ struct EnterClick {
     std::optional<world::GridCell> walkTo;
 };
 
-// La capa frontal a dibujar de un elemento entrable: el elemento (índice
-// en la escena) y el rango de filas de su pieza que va ENCIMA de las
-// entidades. DTO plano.
+// De dónde sale un entrable: un elemento de la escena o un mueble
+// colocado (la cama que se puede mover).
+enum class EnterSource {
+    Element,
+    Furniture,
+};
+
+// La capa frontal a dibujar de un entrable: de dónde sale (y su índice:
+// en scene.elements o en view.placedFurniture) y el rango de filas de
+// su pieza que va ENCIMA de las entidades. DTO plano.
 struct EnteredFront {
-    std::size_t elementIndex;
+    EnterSource source;
+    std::size_t index;
     int firstRow;
     int lastRow;
 };
@@ -58,6 +67,13 @@ public:
     // índices de los entrables siempre son de la escena actual.
     void reindex(const world::SceneDescription& scene, int cellPixelSize);
 
+    // Suma los muebles colocados en los que uno se mete (la cama, con
+    // `[npcs.furniture.enter]`). Una vez por tick, ANTES de las
+    // consultas: los muebles se mueven, así que no se indexan una vez.
+    // La celda donde se acuesta es la del mueble (la de la fuente).
+    void observeFurniture(const LocalWorldView& view, const world::FurnitureGeometry& furniture,
+                          int cellPixelSize);
+
     // Click en px de mundo: qué pide el click (ver EnterClick).
     EnterClick clickAt(const world::PixelPoint& worldPoint, const LocalWorldView& view) const;
 
@@ -76,7 +92,8 @@ public:
 
 private:
     struct Entrable {
-        std::size_t elementIndex;
+        EnterSource source;
+        std::size_t index;
         world::PixelRect bounds;
         world::GridCell at;
         world::GridSpan span;
@@ -101,6 +118,8 @@ private:
     // celda)? La cercanía sale de los datos del elemento (at/span).
     bool near(const Entrable& entry, const LocalWorldView& view) const;
 
+    // Los de la escena (fijos) y, encima, los muebles del tick.
+    std::vector<Entrable> sceneEntrables_;
     std::vector<Entrable> entrables_;
 };
 

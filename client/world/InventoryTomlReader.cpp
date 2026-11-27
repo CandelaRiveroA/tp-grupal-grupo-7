@@ -45,6 +45,10 @@ constexpr const char* kAnchorBottomCenter = "bottom_center";
 
 constexpr const char* kItems = "items";
 constexpr const char* kItemAt = "at";
+constexpr const char* kItemViewSide = "side";
+constexpr const char* kItemViewBack = "back";
+constexpr std::array<const char*, 2> kItemViews = {kItemViewSide,
+						   kItemViewBack};
 constexpr const char* kSlotDrawn = "slot_drawn";
 constexpr const char* kDroppable = "droppable";
 
@@ -159,6 +163,17 @@ void InventoryTomlReader::readItems(world::InventoryLayout& layout) const {
 		// con el lector compartido (sheet/cell/at/drawn).
 		layout.content.visuals.emplace(
 			name, world::SpriteVisual(doc_, base, kItemAt));
+		// Vistas opcionales (costado, atrás): contenido propio
+		// `<id>_<vista>`, sin rasgos.
+		for (const char* view : kItemViews) {
+			const std::string viewBase = join(base, view);
+			if (doc_.hasKey(viewBase)) {
+				layout.content.visuals.emplace(
+					name + "_" + view,
+					world::SpriteVisual(doc_, viewBase,
+							    kItemAt));
+			}
+		}
 		// droppable (opcional, default false): rasgo del contenido
 		// (¿se puede soltar del inventario?). Vive en la tabla de
 		// rasgos, no en la apariencia.

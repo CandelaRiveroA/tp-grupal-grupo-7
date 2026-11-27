@@ -17,7 +17,7 @@ public:
 
     // Regenera: limpia lo que este controller puebla y coloca la nueva
     // generación en celdas libres, sin pisar la celda reservada (spawn)
-    // ni las que ya tienen algo (cama, animales).
+    // ni paredes, celdas colisionables o las que ya tienen algo.
     void populate(World& world, uint16_t reserved_x, uint16_t reserved_y);
 
 protected:

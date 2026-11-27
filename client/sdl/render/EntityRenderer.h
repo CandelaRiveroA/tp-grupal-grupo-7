@@ -45,6 +45,8 @@ public:
 		  const game::ActionResolver& actions, int animationTick,
 		  const Viewport& viewport) const;
 
+	const PlayerAppearancePainter& appearancePainter() const;
+
 private:
 	SheetCache& sheets_;
 	const world::CharacterCatalog& characters_;

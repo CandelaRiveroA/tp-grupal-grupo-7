@@ -6,9 +6,11 @@
 #include <vector>
 
 #include "common/model/draft/CharacterAppearance.h"
+#include "game/GameConstants.h"
 #include "game/SoundCue.h"
 #include "world/CreatureCatalog.h"
 #include "world/CropCatalog.h"
+#include "world/MarketOffer.h"
 #include "world/Grid.h"
 #include "world/GroundCatalog.h"
 #include "world/Indication.h"
@@ -61,6 +63,13 @@ struct ViewEntity {
     // server). El render los acota contra characters.toml y cae al 0 si
     // están fuera de rango. Va al final por los aggregate-init posicionales.
     CharacterAppearance appearance{};
+    // Selección pública del hotbar, distinta del contenido de una recogida.
+    std::optional<std::string> carriedContent = std::nullopt;
+
+    // Nombre que se muestra bajo los pies (el nombre de PERSONAJE elegido
+    // al entrar, no el usuario del login). Lo llena la fuente de estado;
+    // vacío = no se dibuja. Va al final por los aggregate-init posicionales.
+    std::string displayName{};
 };
 
 // Recurso picable. La fuente decide contentId, celda y estado; al
@@ -199,10 +208,52 @@ struct ViewSleep {
     int total = 0;
 };
 
+// Dónde está parado un NPC del mercado. Es estado PERSISTENTE del mundo: lo
+// manda la fuente de estado (el servidor). `id` es el de npcs.toml. El
+// cliente solo lo dibuja y lo hace clickeable ahí; lo visual (hoja, retrato,
+// texto) sigue siendo del TOML.
+// Posición física de los pies, tal como llega del servidor.
+struct ViewNpcPlacement {
+    std::string id;
+    int cellX;
+    int cellY;
+};
+
+// Mueble que el jugador tiene colocado en el mundo (lo que consiguió y
+// puso en la partida). Es estado PERSISTENTE: lo manda la fuente de
+// estado (ServerFurniture) con el contentId y la celda; el cliente solo
+// lo dibuja con el visual de ese contentId en inventory.toml. La celda
+// es la base del mueble (abajo-izquierda del sprite).
+struct ViewFurniture {
+    std::string contentId;
+    int cellX;
+    int cellY;
+};
+
+// Posición global de un jugador para el mapa del mundo (tecla M).
+// La fuente de estado (servidor o mock) la actualiza en cada tick.
+struct ViewMapPlayer {
+    int id = 0;
+    std::string mapId;
+    int cellX = 0;
+    int cellY = 0;
+    CharacterAppearance appearance{};
+    bool isLocal = false;
+};
+
+// Aviso puntual para el jugador (evento, no estado): "qué pasó" por id
+// ("inventory_full"). El texto y el aspecto viven en ui/notice.toml.
+struct ViewNotice {
+    std::string id;
+};
+
 struct LocalWorldView {
     std::vector<ViewEntity> entities;
     std::vector<ViewResource> resources;
     std::vector<ViewObtained> obtained;
+    // Avisos del tick (p. ej. inventario lleno). Los llena la fuente de
+    // estado a partir de los eventos enviados por el servidor.
+    std::vector<ViewNotice> notices;
     // Pedido de regalo recibido en el tick (nullopt si no llegó ninguno).
     std::optional<ViewGiftRequest> giftRequest;
     // El receptor contestó MI pedido de regalo (ServerGiftAnswered):
@@ -218,6 +269,24 @@ struct LocalWorldView {
     // Los cultivos plantados (persistente; ver ViewCrop). Los manda el
     // servidor (ServerCrop).
     std::vector<ViewCrop> plantedCrops;
+    // Posición de cada NPC (persistente; ver ViewNpcPlacement). La manda el
+    // servidor. Vacío = cada NPC usa la celda `at` por defecto de npcs.toml;
+    // un NPC que la fuente no menciona también usa la suya.
+    std::vector<ViewNpcPlacement> npcPlacements;
+    // Muebles colocados (persistente; ver ViewFurniture). Los manda el
+    // servidor (ServerFurniture), por ejemplo al cargar una partida
+    // guardada. Vacío = el cuarto solo tiene lo inicial de la escena.
+    std::vector<ViewFurniture> placedFurniture;
+    // Eventos de regalo aceptado: IDs de receptores; se vacían en cada update.
+    std::vector<uint8_t> giftAcceptedPlayers;
+    // Mapa en el que está el jugador (id del mapa del editor: "farm",
+    // "town", "market"...). Lo manda la fuente de estado cuando hay
+    // servidor. Vacío = el cliente elige la escena (teclas de prueba,
+    // edificios tocados); con valor, la escena sigue a la fuente.
+    std::string mapId;
+    // Posición global de cada jugador conectado para el mapa del mundo (tecla M).
+    // La llena la fuente de estado (servidor o mock) en cada tick.
+    std::vector<ViewMapPlayer> worldMapPlayers;
     // Cues que emitieron entidades este tick (p. ej. la gallina cacarea).
     // Se limpian cada tick; la presentación los reproduce y los apaga.
     std::vector<ViewSoundEvent> soundEvents;
@@ -226,11 +295,24 @@ struct LocalWorldView {
     // La hora cambia de a 10 min.
     int dayNumber = 1;
     int clockMinutes = 0;
+    // Plata del jugador. La manda el servidor al comenzar y cada vez que
+    // cambia; mientras no la mande vale la inicial local (kStartingGold).
+    int gold = kStartingGold;
     // Se terminó el día (ServerDayEnd) y amaneció (ServerDay). Eventos: valen
     // solo en el tick en que llegan. Presentación: negro + popup de OK, y al
     // amanecer se levanta el negro con el gallo.
     bool dayEnded = false;
     bool dayChanged = false;
+    // Eventos del Centro Comunitario; valen solo el tick en que llegan.
+    uint8_t setCompleted = 0;
+    bool victory = false;
+    // Catálogo de un comerciante que el servidor pide mostrar (la respuesta a
+    // /consultar_catalogo). EVENTO: vale solo en el tick en que llega; quien lo
+    // llene lo limpia en cada update, como dayEnded. `merchantId` es el id de
+    // npcs.toml; sin entradas = SDL muestra la oferta por defecto de ese
+    // comerciante (market.toml); con entradas, esas (las que SDL conoce) con el
+    // monto que trae cada una. SDL la ignora si ya hay un popup abierto.
+    std::optional<world::MarketOffer> marketOffer;
 
     // Vida y energía del jugador local (0..max).
     int playerHealth = 0;
@@ -245,6 +327,11 @@ struct LocalWorldView {
     // Sube con cada mensaje: el tope del historial impide usar su tamaño
     // para detectar uno nuevo.
     int chatVersion = 0;
+
+    // Sube solo con los mensajes que llegan de OTRO jugador: no cuenta lo
+    // que mandó el local (el servidor se lo devuelve) ni los avisos de
+    // sistema. Lo lee ChatCue para avisar con un sonido.
+    int incomingChatVersion = 0;
 
     // Suma un contenido al inventario (la regla genérica: apila por
     // contentId; si no estaba, ocupa el primer slot libre) y devuelve

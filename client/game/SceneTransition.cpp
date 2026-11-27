@@ -8,15 +8,42 @@ SceneTransition::SceneTransition(const int fadeTicks)
 void SceneTransition::changeTo(const std::string& scene,
 			       const bool holdAtBlack) {
 	if (phase_ != Phase::Idle) {
+		if (!holdAtBlack && (phase_ == Phase::FadingOut || phase_ == Phase::Holding)) {
+			// El mapa del servidor puede llegar después de DayEnd.
+			// Todavía en negro: actualizar el destino antes de despertar.
+			scene_ = scene;
+		}
+		// El fin de día puede llegar durante un cambio de mapa: no
+		// perder la espera del despertar aunque ya haya un fade activo.
 		// Una transición a la vez (POLA): la que está en curso sigue
-		// hasta el final.
+		// hasta el final. Única excepción: el pedido de quedarse en
+		// negro (fin del día), que se suma a la que corre.
+		if (holdAtBlack) {
+			upgradeToHold(scene);
+		}
 		return;
 	}
 	scene_ = scene;
 	holdAtBlack_ = holdAtBlack;
 	phase_ = Phase::FadingOut;
 	startIteration_ = -1;
+	resumeElapsed_ = 0;
 	swapPending_ = false;
+}
+
+void SceneTransition::upgradeToHold(const std::string& scene) {
+	if (phase_ == Phase::Holding) {
+		return;
+	}
+	scene_ = scene;
+	holdAtBlack_ = true;
+	if (phase_ == Phase::FadingIn) {
+		// Vuelve a oscurecer desde el negro que ya tenía.
+		phase_ = Phase::FadingOut;
+		startIteration_ = -1;
+		resumeElapsed_ = alpha_ * fadeTicks_ / 255;
+		swapPending_ = false;
+	}
 }
 
 void SceneTransition::tick(const int iteration) {
@@ -30,7 +57,8 @@ void SceneTransition::tick(const int iteration) {
 		return;
 	}
 	if (startIteration_ < 0) {
-		startIteration_ = iteration;
+		startIteration_ = iteration - resumeElapsed_;
+		resumeElapsed_ = 0;
 	}
 	const int elapsed = iteration - startIteration_;
 
@@ -67,9 +95,15 @@ bool SceneTransition::active() const { return phase_ != Phase::Idle; }
 bool SceneTransition::holding() const { return phase_ == Phase::Holding; }
 
 void SceneTransition::release() {
+	if (phase_ == Phase::FadingOut) {
+		// El amanecer puede llegar antes de completar el fundido.
+		holdAtBlack_ = false;
+		return;
+	}
 	if (phase_ != Phase::Holding) {
 		return;
 	}
+	holdAtBlack_ = false;
 	// Se suelta el negro: ahora sí cambian los datos y vuelve el fade.
 	phase_ = Phase::FadingIn;
 	startIteration_ = -1;

@@ -39,6 +39,8 @@
 | --- | --- | --- |
 | `/completar_set [nombre_set]` | Completa un set (bundle) específico del centro comunitario y otorga su premio. Valores válidos: `cultivos`, `metales`, `animales`, `pelea`, `dinero`. | `/completar_set metales` |
 | `/completar_todo` | Completa todos los sets del centro comunitario de una sola vez. Útil para probar la pantalla de victoria del juego. | `/completar_todo` |
+| `/donar [set] [item] [cantidad]` | Dona productos o recursos de la mochila al set indicado. | `/donar cultivos frutilla 1` |
+| `/donar dinero [cantidad]` | Dona oro de la billetera al set de dinero. El set se completa al acumular 10.000 oro. | `/donar dinero 10000` |
 
 ### Mazmorra
 
@@ -46,6 +48,13 @@
 | --- | --- | --- |
 | `/siguiente_nivel` | Avanza automáticamente al siguiente nivel de la mazmorra, sin tener que buscar la puerta o escalera. | `/siguiente_nivel` |
 | `/ir_nivel [numero]` | Teletransporta al jugador directamente al nivel indicado de la mazmorra (1 a 10). Útil para probar, por ejemplo, la aparición de oro a partir de la 5ta sala. | `/ir_nivel 5` |
+
+### Escenarios
+
+| Comando | Descripción | Ejemplo |
+| --- | --- | --- |
+| `/tp [escenario]` | Teletransporta al jugador al escenario indicado, eligiendo una celda caminable como punto de aparición. | `/tp town` |
+| `/tp_info` | Lista los escenarios disponibles en la partida. | `/tp_info` |
 
 ### Granja
 
@@ -65,6 +74,7 @@
 | Comando | Descripción | Ejemplo |
 | --- | --- | --- |
 | `/terminar_dia` | Fuerza el fin del día actual, como si el reloj llegara a las 2 am. Dispara el guardado automático de la partida. | `/terminar_dia` |
+| `/tiempo [minutos]` | Fija el reloj del día en el valor indicado (0 a 1200 minutos, donde 1200 = 2 am). El reloj sigue avanzando desde ese valor. Permite probar eventos ligados a la hora del día. | `/tiempo 600` |
 
 ## Notas de diseño
 

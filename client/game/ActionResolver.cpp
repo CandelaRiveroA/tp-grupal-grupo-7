@@ -15,6 +15,8 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Action}},
 		  {world::ActionKind::Walk,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
+		  {world::ActionKind::Run,
+		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
 		  {world::ActionKind::CarryWalk,
 		   ActionSpec{ActionRole::Locomotion, PhaseClock::Step}},
 		  // Acción: la enciende y apaga la fuente; se anima tal
@@ -48,6 +50,7 @@ ActionResolver::ActionResolver(const ViewMotion& motion,
 	, carryVariants_{
 		  {world::ActionKind::Idle, world::ActionKind::Carry},
 		  {world::ActionKind::Walk, world::ActionKind::CarryWalk},
+		  {world::ActionKind::Run, world::ActionKind::CarryWalk},
 	  }
 	, toolActions_{
 		  {world::ItemKind::WateringCan, world::ActionKind::Water},
@@ -84,18 +87,20 @@ world::ActionKind ActionResolver::actionFor(const ViewEntity& entity,
 	const world::ActionKind fromSource = toolAction(entity);
 	world::ActionKind base = fromSource;
 	if (specFor(fromSource).role == ActionRole::Locomotion) {
-		base = motion_.isWalking(index, it, entity.moving)
-			       ? world::ActionKind::Walk
-			       : fromSource;
+		if (motion_.isRunning(index, it, entity.moving)) {
+			base = world::ActionKind::Run;
+		} else if (motion_.isWalking(index, it, entity.moving)) {
+			base = world::ActionKind::Walk;
+		}
 	}
-	// Sostener un contenido soltable es presentación LOCAL de la
-	// selección del HUD (como el marco rojo): mientras el jugador
-	// local sostenga algo, su pose es SIEMPRE la variante "sosteniendo"
+	// El local refleja su HUD sin esperar la red; los remotos usan el
+	// contenido seleccionado confirmado por el servidor. La pose es la
+	// variante "sosteniendo"
 	// (Idle -> Carry, Walk -> CarryWalk y lo no mapeado -> Carry). La
 	// fuente puede mandar cualquier acción (un golpe, ...): con el
 	// saco en la cabeza solo se ven los brazos arriba y el contenido
 	// sobre la cabeza.
-	if (index == kLocalPlayerIndex && carry_.held().has_value()) {
+	if (heldContentId(entity, index).has_value()) {
 		const auto variant = carryVariants_.find(base);
 		return variant != carryVariants_.end() ? variant->second
 						       : world::ActionKind::Carry;
@@ -117,6 +122,11 @@ int ActionResolver::phaseFor(const ViewEntity& entity, std::size_t index,
 
 const std::optional<std::string>& ActionResolver::heldContentId() const {
 	return carry_.held();
+}
+
+const std::optional<std::string>& ActionResolver::heldContentId(
+        const ViewEntity& entity, std::size_t index) const {
+    return index == kLocalPlayerIndex ? carry_.held() : entity.carriedContent;
 }
 
 PhaseClock ActionResolver::clockFor(const world::ActionKind action) const {

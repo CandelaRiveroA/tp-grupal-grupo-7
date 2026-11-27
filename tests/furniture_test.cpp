@@ -8,11 +8,13 @@
 #include "../server/domain/animals/chicken.h"
 #include "../server/domain/entities/player.h"
 #include "../server/domain/furniture/bed.h"
+#include "../server/domain/furniture/furniture.h"
 #include "../server/domain/inventory/decoration_item.h"
 #include "../server/domain/inventory/item.h"
 #include "../server/domain/map/world.h"
 
 #include "world_view.h"
+#include "test_helpers.h"
 
 namespace {
 
@@ -27,44 +29,6 @@ std::vector<T> only(const std::vector<ServerMessage>& messages) {
     return out;
 }
 
-bool has_item(const Player& player, ItemID id) {
-    const Inventory& inventory = player.get_inventory();
-    for (uint8_t slot = 0; slot < inventory.get_max_slots(); ++slot) {
-        const Item* item = inventory.peek_item(slot);
-        if (item != nullptr && item->get_id() == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool cell_has_item(const World& world, uint16_t x, uint16_t y, ItemID id) {
-    // cppcheck-suppress useStlAlgorithm;
-    for (const IEntity* entity: world.get_entity_at(x, y)) {
-        const auto snap = entity->snapshot();
-        if (snap && snap->item == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// La cama es caminable: no se distingue de una celda vacía por las
-// colisiones, hay que mirar su snapshot.
-bool cell_has_furniture(const World& world, uint16_t x, uint16_t y) {
-    // cppcheck-suppress useStlAlgorithm;
-    for (const IEntity* entity: world.get_entity_at(x, y)) {
-        const auto snap = entity->snapshot();
-        if (snap && snap->kind == CellSnapshot::Kind::Furniture) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// ---------------------------------------------------------
-// La cama se muestra como mueble, no como un ítem del piso.
-// ---------------------------------------------------------
 TEST(FurnitureTest, LaCamaSeMuestraComoMuebleEnElSync) {
     World world(5, 5);
     world.add_player(1, std::make_unique<Player>(1, 0, 0));
@@ -91,7 +55,7 @@ TEST(FurnitureTest, UnGolpeDePicoLaDestruyeYDejaElDecorationItem) {
     auto player = std::make_unique<Player>(1, 1, 2);
     Player* p = player.get();
     world.add_player(1, std::move(player));
-    world.set_entity_at(1, 3, std::make_unique<Bed>(1, 3));
+    world.set_entity_at(1, 3, std::make_unique<Furniture>(1, 3, ItemID::BED, 0));
     world.set_player_facing(1, Direction::DOWN);
 
     // La pala (slot 1) no la rompe.
@@ -109,7 +73,7 @@ TEST(FurnitureTest, UnGolpeDePicoLaDestruyeYDejaElDecorationItem) {
     // El jugador camina sobre el drop y lo recoge (efecto imán).
     world.move_player(1, Direction::DOWN);
     EXPECT_EQ(p->get_x(), 1);
-    EXPECT_EQ(p->get_y(), 3);
+    EXPECT_EQ(p->get_y(), 4);
     EXPECT_TRUE(has_item(*p, ItemID::BED));
 
     const std::vector<PlayerPickup> pickups = world.take_pickups();
@@ -153,7 +117,7 @@ TEST(FurnitureTest, PisarLaCamaPideDormirYBloqueaElMovimiento) {
     world.answer_sleep(1, false);
     EXPECT_EQ(world.sleeping_count(), 0);
     world.move_player(1, Direction::LEFT);
-    EXPECT_EQ(p->get_x(), 1);
+    EXPECT_EQ(p->get_x(), 0);
     EXPECT_EQ(p->get_y(), 2);
 }
 
@@ -190,7 +154,14 @@ TEST(FurnitureTest, TodosLosJugadoresDebenAceptarParaDormir) {
     world.answer_wake(2);
     EXPECT_TRUE(world.take_day_started());
     EXPECT_FALSE(world.take_day_started());
-    EXPECT_TRUE(cell_has_item(world, 0, 0, ItemID::EGG));
+    bool has_egg = false;
+    for (const IEntity* entity: world.get_scene("barn").get_entity_at(0, 0)) {
+        const auto item = entity->snapshot();
+        if (item && item->item == ItemID::EGG) {
+            has_egg = true;
+        }
+    }
+    EXPECT_TRUE(has_egg);
 }
 
 // ---------------------------------------------------------

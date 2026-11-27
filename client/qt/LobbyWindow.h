@@ -20,9 +20,9 @@ struct CharacterPalettes;
 }
 
 class CharacterScreen;
-class FakeWorldService;
 class NetworkSessionService;
 class QStackedWidget;
+class WorldService;
 struct CharacterSelection;
 struct SaveSummary;
 
@@ -47,7 +47,8 @@ private:
     Screen* current_;
     // Se usa después de construirla: recibe los mundos antes de navegar.
     CharacterScreen* character_;
-    FakeWorldService* worldService_;
+    WorldService* worldService_;
+    bool worldRequestPending_;
     NetworkSessionService* sessions_;
     std::optional<core::SessionConfig> selection_;
     std::string username_;

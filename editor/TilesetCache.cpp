@@ -55,6 +55,19 @@ QPixmap TilesetCache::tilePixmap(const worldmodel::TileRef& ref, int widthCells,
 	return sheet.copy(x, y, widthPx, heightPx);
 }
 
+QIcon TilesetCache::centeredIcon(const QPixmap& sprite, int iconSize) const {
+	const QPixmap scaled = sprite.scaled(iconSize, iconSize,
+					     Qt::KeepAspectRatio,
+					     Qt::FastTransformation);
+	QPixmap canvas(iconSize, iconSize);
+	canvas.fill(Qt::transparent);
+	QPainter painter(&canvas);
+	const int x = (iconSize - scaled.width()) / 2;
+	const int y = (iconSize - scaled.height()) / 2;
+	painter.drawPixmap(x, y, scaled);
+	return QIcon(canvas);
+}
+
 QPixmap TilesetCache::makeFallback(int width, int height) {
 	QPixmap pixmap(width, height);
 	pixmap.fill(Qt::black);

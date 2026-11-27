@@ -13,12 +13,12 @@
 
 #define SHEET_PUPIL_RGB 0x682b0f
 
-// Peinados: hoja recortada a las 32 celdas usadas (2 filas).
+// Peinados: hoja recortada a las 24 celdas usadas (fila 0 completa + mitad de fila 1).
 #define SHEET_HAIR_W 16
 #define SHEET_HAIR_H 32
 #define SHEET_HAIR_COLUMNS 16
 #define SHEET_HAIR_STRIDE_Y 32
-#define SHEET_HAIR_COUNT 32
+#define SHEET_HAIR_COUNT 24
 #define SHEET_HAIR_OFFSET_Y 0
 
 // Camisas: hoja recortada a las 48 celdas usadas (3 filas).

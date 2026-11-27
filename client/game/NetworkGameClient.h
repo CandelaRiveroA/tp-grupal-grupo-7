@@ -29,8 +29,12 @@ public:
     // toolUseDurationTicks: cuánto dura la animación de golpe en el cliente.
     // Es presentación: el servidor avisa cuándo se usó la herramienta.
     // characters: duración de la animación de ordeñe (presentación).
+    // localCharacterName: el nombre de PERSONAJE elegido al entrar (no el
+    // usuario del login). Hoy el server no manda nombres, así que el del
+    // jugador local lo pone el cliente; los demás quedan vacíos.
     NetworkGameClient(Socket&& socket, int toolUseDurationTicks,
-                      const world::CharacterCatalog& characters);
+                      const world::CharacterCatalog& characters,
+                      const std::string& localCharacterName);
     ~NetworkGameClient() override;
 
     void sendCommand(const protocol::ClientMessage& message) override;
@@ -38,12 +42,23 @@ public:
     const LocalWorldView& worldState() const override;
     bool connected() const override;
 
+    // Mundo de la partida informado por el servidor en el welcome.
+    const std::string& worldName() const;
+
+    // Mapa del primer lote completo, antes de crear la presentación.
+    const std::string& initialMapId() const;
+
     
     void sendChat(const std::string& text) override;
     void receiveChat(std::uint8_t playerId, const std::string& characterName,
                      const std::string& text) override;
 
 private:
+    void receiveInitialState();
+
+    // ¿El mensaje es de otro jugador? (ni del local ni de sistema)
+    bool isIncomingChat(const ServerChat& chat) const;
+
     struct RemotePlayer {
         int cellX = 0;
         int cellY = 0;
@@ -53,6 +68,7 @@ private:
         // Herramienta del último golpe (la manda el servidor en ServerToolUsed).
         std::optional<world::ItemKind> activeTool;
         CharacterAppearance appearance;
+        std::optional<std::string> carriedContent;
         int health = 0;
         int maxHealth = 0;
         int energy = 0;      // x100
@@ -111,6 +127,11 @@ private:
     ClientReceiver clientReceiver_;
 
     uint8_t localPlayerId_;
+    std::string worldName_;
+    std::string initialMapId_;
+    bool pendingDayChanged_ = false;
+    // Nombres públicos recibidos del servidor, conservados entre mapas.
+    std::map<uint8_t, std::string> names_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
     // Tabla de traducción protocolo -> vista (convención §4: diccionario
@@ -122,6 +143,7 @@ private:
     // Vocabulario kind del servidor -> CreatureKind (convención §4:
     // diccionario miembro, inicializado en el constructor).
     std::map<std::string, world::CreatureKind> creatureKinds_;
+    std::map<ServerMarketSide, world::MarketSide> marketSides_;
 
     std::map<uint8_t, RemotePlayer> players_;
     // IDs de los jugadores en la cama (último aviso de ServerSleepingPlayers).
@@ -134,6 +156,7 @@ private:
     // Lista (no mapa por celda): varios huevos pueden estar apilados.
     std::vector<ViewDroppedItem> dropped_;
     std::vector<ViewCrop> crops_;
+    std::vector<ViewFurniture> furniture_;
     std::vector<ViewGroundEffect> groundEffects_;
     std::map<int, ViewInventorySlot> inventory_;
     InteractionSession session_;

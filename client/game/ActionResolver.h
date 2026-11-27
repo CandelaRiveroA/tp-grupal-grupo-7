@@ -42,8 +42,8 @@ struct ActionSpec {
 };
 
 // Resuelve la pose efectiva de cada entidad: la acción que se anima, su
-// fase y —para el jugador local— qué contenido sostiene. La caminata y
-// el "sostener" son presentación local (selección del HUD); el resto de
+// fase y qué contenido sostiene. El local refleja su HUD; los remotos
+// usan la selección enviada por el servidor. El resto de
 // las acciones las decide la fuente de estado. El render solo anima lo
 // que resuelve esta clase (contrato §6/§10).
 class ActionResolver {
@@ -58,6 +58,8 @@ public:
 	// Contenido sostenido sobre la cabeza (el que dibuja la pose
 	// Carry), o nullopt si no se sostiene nada.
 	const std::optional<std::string>& heldContentId() const;
+    const std::optional<std::string>& heldContentId(const ViewEntity& entity,
+                                                  std::size_t index) const;
 
 	// Con qué reloj anima una acción: la clasificación de la propia
 	// tabla (la fuente única de "esto es cadencia de paso", que usan

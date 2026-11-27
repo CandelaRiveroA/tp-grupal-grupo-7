@@ -14,7 +14,24 @@ public:
 
 	SceneDescription readRoom(const std::string& roomName) const;
 
+	// Hojas de la raíz `[tilesets.*]` si las hay (sin ellas no hace
+	// nada): para TOML que completan una escena ya armada (overlay).
+	void readExtraTileSets(SceneDescription& scene) const;
+
+	// Elementos de `<base>.elements` con la MISMA sintaxis que una sala
+	// (sin la key no hace nada). Validan contra los tilesets que ya
+	// tenga `scene`.
+	void readExtraElements(const std::string& base, int defaultScale,
+			       SceneDescription& scene) const;
+
+	// Nombre de dirección del TOML -> vocabulario. Lanza
+	// ConfigError(InvalidValue, path) si el nombre no existe.
+	Direction parseFacing(const std::string& name,
+			      const std::string& context) const;
+
 private:
+	void readTileSetEntries(SceneDescription& scene) const;
+
 	void readTileSets(SceneDescription& scene) const;
 
 	// Poblaciones OPCIONALES de la sala ([rooms.X.spawns]): qué puebla
@@ -49,11 +66,6 @@ private:
 	void readWhen(const tomlcfg::TomlDocument& element,
 		      const std::string& context,
 		      ElementPlacement& placement) const;
-
-	// Nombre de dirección del TOML -> vocabulario. Lanza
-	// ConfigError(InvalidValue, path) si el nombre no existe.
-	Direction parseFacing(const std::string& name,
-			      const std::string& context) const;
 
 	// Nombre de momento del día del TOML -> vocabulario. Lanza
 	// ConfigError(InvalidValue, path) si el nombre no existe.

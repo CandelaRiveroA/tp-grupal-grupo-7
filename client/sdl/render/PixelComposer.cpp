@@ -110,13 +110,17 @@ PixelComposer::Rgba PixelComposer::sample(SpriteSheet& sheet, const int x,
 }
 
 void PixelComposer::present(const SDL2pp::Rect& dest, const Flip flip) {
+	presentRegion(SDL2pp::Rect(0, 0, width_, height_), dest, flip);
+}
+
+void PixelComposer::presentRegion(const SDL2pp::Rect& src,
+				  const SDL2pp::Rect& dest, const Flip flip) {
 	if (!texture_.has_value() || width_ <= 0 || height_ <= 0) {
 		return;
 	}
 	texture_->Update(SDL2pp::NullOpt, canvas_.data(),
 			 width_ * static_cast<int>(sizeof(std::uint32_t)));
-	context_.drawTexture(*texture_, SDL2pp::Rect(0, 0, width_, height_),
-			     dest, flip);
+	context_.drawTexture(*texture_, src, dest, flip);
 }
 
 PixelComposer::Rgba PixelComposer::applyRules(Rgba pixel,

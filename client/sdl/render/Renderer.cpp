@@ -7,6 +7,7 @@
 #include "sdl/render/RenderConstants.h"
 #include "sdl/render/Viewport.h"
 #include "world/DroppedItemLayout.h"
+#include "world/FurnitureLayout.h"
 #include "world/ScenePixelMapper.h"
 #include "world/WorldConstants.h"
 
@@ -27,6 +28,8 @@ Renderer::Renderer(SdlContext& context,
 	, sheetCache_(context)
 	, entityRenderer_(context, sheetCache_, characters, toolOverlay,
 			  content, palettes)
+	, layerPainter_(sheetCache_)
+	, npcRenderer_(context)
 	, groundPainter_(sheetCache_, ground)
 	, cropPainter_(sheetCache_, crops) {}
 
@@ -34,6 +37,14 @@ void Renderer::prepareScene(const world::SceneDescription& scene) {
 	const world::ScenePixelMapper mapper(scene.cellPixelSize);
 	sceneIndex_.rebuild(scene, mapper);
 	sceneIndexReady_ = true;
+}
+
+void Renderer::setNpcs(const std::vector<const world::NpcDef*>& npcs) {
+	npcRenderer_.setNpcs(npcs);
+}
+
+void Renderer::setNpcFrames(const std::map<std::string, int>& frames) {
+	npcRenderer_.setFrames(frames);
 }
 
 void Renderer::drawWorld(const world::SceneDescription& scene,
@@ -67,12 +78,24 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 	viewIndex_.queryDroppedItems(dynamicQuery, visibleItems_);
 	viewIndex_.queryEntities(dynamicQuery, visibleEntities_);
 
+	// El piso en grilla (mapas del editor) va debajo de todo elemento.
+	layerPainter_.draw(scene, mapper, viewport,
+			   world::LayerPass::Background);
+
+	depth_.clear();
 	for (const std::uint32_t index : visibleElements_) {
 		const world::ElementPlacement& element = scene.elements[index];
 		// El momento del día filtra: lo que solo se dibuja en su
 		// momento (key `when` de scenes.toml) no pasa de acá; el
 		// índice espacial y el resto del frame no se enteran.
 		if (!element.visibleAt(timeOfDay)) {
+			continue;
+		}
+		// Lo que está "de pie" (árboles, edificios) se ordena con las
+		// entidades más abajo; el resto va ya, debajo de todo.
+		if (element.depthSorted) {
+			depth_.addElement(element.at.row + element.span.rows - 1,
+					  index);
 			continue;
 		}
 		drawElement(scene, element, mapper, viewport);
@@ -99,10 +122,38 @@ void Renderer::drawWorld(const world::SceneDescription& scene,
 		drawDroppedItem(view.droppedItems[index], mapper, viewport);
 	}
 
-	for (const std::uint32_t index : visibleEntities_) {
-		entityRenderer_.draw(view.entities[index], index, scene, motion,
-				    actionResolver, animationTick, viewport);
+	// NPCs estáticos: debajo de las entidades, como los recursos.
+	npcRenderer_.draw(viewport, scene.cellPixelSize,
+			  npcPlacements_.cellsFrom(view, scene));
+
+	// Entidades y elementos de pie, en orden de profundidad: quien está
+	// detrás de la base de un árbol queda tapado por él.
+	for (std::size_t i = 0; i < view.placedFurniture.size(); ++i) {
+		depth_.addFurniture(view.placedFurniture[i].cellY,
+				    static_cast<std::uint32_t>(i));
 	}
+	for (const std::uint32_t index : visibleEntities_) {
+		depth_.addEntity(view.entities[index].cellY, index);
+	}
+	for (const world::DepthItem& item : depth_.sorted()) {
+		if (item.kind == world::DepthKind::Element) {
+			drawElement(scene, scene.elements[item.index], mapper,
+				    viewport);
+			continue;
+		}
+		if (item.kind == world::DepthKind::Furniture) {
+			drawFurniture(view.placedFurniture[item.index], mapper,
+				      viewport);
+			continue;
+		}
+		entityRenderer_.draw(view.entities[item.index], item.index, scene,
+				    motion, actionResolver, animationTick,
+				    viewport);
+	}
+
+	// Capa frontal de los escenarios (mostradores, techos, copas): encima de entidades.
+	layerPainter_.draw(scene, mapper, viewport,
+			   world::LayerPass::Foreground);
 }
 
 void Renderer::drawElement(const world::SceneDescription& scene,
@@ -185,6 +236,28 @@ void Renderer::drawResource(const game::ViewResource& resource,
 			SDL2pp::Rect(x, y, w, h));
 }
 
+void Renderer::drawFurniture(const game::ViewFurniture& furniture,
+			     const world::ScenePixelMapper& mapper,
+			     const Viewport& viewport) {
+	// Un contentId sin visual no se dibuja (igual que un ítem del piso).
+	const world::SpriteVisual* visual = content_.find(furniture.contentId);
+	if (visual == nullptr) {
+		return;
+	}
+	const world::PixelRect box = world::FurnitureLayout(mapper).box(
+		*visual, world::GridCell{furniture.cellX, furniture.cellY});
+	const world::PixelRect onScreen = viewport.toScreen(box);
+	if (!viewport.intersects(onScreen)) {
+		return;
+	}
+	SpriteSheet& sheet = sheetCache_.sheet(
+		visual->sheetImage, core::assetPath(visual->sheetImage),
+		visual->cellWidth, visual->cellHeight);
+	sheet.drawBlock(visual->col, visual->row, visual->cols, visual->rows,
+			SDL2pp::Rect(onScreen.x, onScreen.y, onScreen.width,
+				     onScreen.height));
+}
+
 void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 			       const world::ScenePixelMapper& mapper,
 			       const Viewport& viewport) {
@@ -218,6 +291,10 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 	sheet.draw(visual.col, visual.row,
 		   SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
 				drawRect.height));
+}
+
+const PlayerAppearancePainter& Renderer::appearancePainter() const {
+	return entityRenderer_.appearancePainter();
 }
 
 }  // namespace sdl

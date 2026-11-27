@@ -17,6 +17,26 @@ TEST(PopupStateTest, SinVotarMuestraLaPregunta) {
     PopupState popup;
     popup.showSleepState(1, 3, false, false);
     EXPECT_EQ(popup.view(), PopupView::Question);
+    EXPECT_EQ(popup.promptId(), world::PromptId::SleepQuestion);
+}
+
+TEST(PopupStateTest, LaPreguntaDeSuenoNoHerdaLaCopiaAnterior) {
+    // Al pasar del popup de cambio de día (o de regalo) a la pregunta de
+    // sueño, la copia tiene que ser la de SleepQuestion: si no, el painter
+    // dibuja la copia vieja (sin opciones/botón) y el popup queda sin
+    // respuesta. Regresión del bug "botón de irse a la cama que no aparece".
+    PopupState popup;
+    popup.showNextDay();
+    EXPECT_EQ(popup.promptId(), world::PromptId::NextDay);
+    popup.showSleepState(1, 3, false, false);
+    EXPECT_EQ(popup.view(), PopupView::Question);
+    EXPECT_EQ(popup.promptId(), world::PromptId::SleepQuestion);
+
+    PopupState popup2;
+    popup2.showGiftReceived("Teo");
+    popup2.showSleepState(1, 3, false, false);
+    EXPECT_EQ(popup2.view(), PopupView::Question);
+    EXPECT_EQ(popup2.promptId(), world::PromptId::SleepQuestion);
 }
 
 TEST(PopupStateTest, YaVotoMuestraElAvance) {

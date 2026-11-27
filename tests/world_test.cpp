@@ -3,6 +3,8 @@
 
 #include "../server/domain/map/world.h"
 #include "../server/domain/entities/player.h"
+#include "world_model/WorldRepository.h"
+#include "world_model/WorldValidator.h"
 #include "../server/domain/entities/i_entity.h"
 #include "../server/domain/inventory/product.h"
 #include "../server/domain/inventory/item_types.h"
@@ -21,6 +23,14 @@ public:
     void interact(Player& /*p*/, ToolType /*tool*/, World& /*w*/) override {}
     void update(World& /*w*/) override {}};
 
+    TEST(WorldTest, JugadorSinHogarExplicitoUsaEscenaYPosicionInicial) {
+        const Player player(1, 9, 7, "farm");
+
+        EXPECT_EQ(player.get_home_scene(), "farm");
+        EXPECT_EQ(player.get_home_x(), 9);
+        EXPECT_EQ(player.get_home_y(), 7);
+    }
+
 TEST(WorldTest, JugadorSeMueveHaciaCeldaVacia) {
     World world(5, 5);
     
@@ -31,10 +41,128 @@ TEST(WorldTest, JugadorSeMueveHaciaCeldaVacia) {
     // Movemos a la derecha
     world.move_player(1, Direction::RIGHT);
 
-    // Debe haber avanzado a (3, 2) y mirar a la derecha
-    EXPECT_EQ(p->get_x(), 3);
+    // Debe haber avanzado dos celdas a (4, 2) y mirar a la derecha
+    EXPECT_EQ(p->get_x(), 4);
     EXPECT_EQ(p->get_y(), 2);
     EXPECT_EQ(p->get_facing(), Direction::RIGHT);
+}
+
+TEST(WorldTest, JugadorGravementeHeridoSeMueveUnaCelda) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    p->set_health(19);
+    world.add_player(1, std::move(player));
+
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_EQ(p->get_x(), 3);
+    EXPECT_EQ(p->get_y(), 2);
+}
+
+TEST(WorldTest, JugadorCon20PorCientoSeMueveDosCeldas) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    p->set_health(20);
+    world.add_player(1, std::move(player));
+
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_EQ(p->get_x(), 4);
+    EXPECT_EQ(p->get_y(), 2);
+}
+
+TEST(WorldTest, AlternarModoWalkingReduceElMovimientoSinCambiarElDanio) {
+    World world(5, 5);
+
+    auto player = std::make_unique<Player>(1, 2, 2);
+    Player* p = player.get();
+    world.add_player(1, std::move(player));
+
+    p->toggle_walking();
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_TRUE(p->is_walking());
+    EXPECT_EQ(p->get_movement_steps(), 1);
+    EXPECT_EQ(p->get_sword_damage(), 2);
+    EXPECT_EQ(p->get_x(), 3);
+
+    p->toggle_walking();
+    world.move_player(1, Direction::RIGHT);
+
+    EXPECT_FALSE(p->is_walking());
+    EXPECT_EQ(p->get_movement_steps(), 2);
+    EXPECT_EQ(p->get_sword_damage(), 2);
+    EXPECT_EQ(p->get_x(), 4);
+}
+
+TEST(WorldTest, CompletarSetCentroComunitarioAplicaRecompensa) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+
+    EXPECT_FALSE(world.is_set_completed("dinero"));
+    EXPECT_TRUE(world.complete_set("dinero"));
+    EXPECT_TRUE(world.is_set_completed("dinero"));
+    EXPECT_TRUE(world.is_market_discount_active());
+    EXPECT_TRUE(world.is_double_sell_active());
+}
+
+TEST(WorldTest, SetDineroSeCompletaAlDonarDiezMilOro) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+
+    Player& player = world.get_player(1);
+    player.set_gold(12000);
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "dinero", ItemID::GOLD_ORB, 6000));
+    EXPECT_EQ(player.get_gold(), 6000u);
+    EXPECT_FALSE(world.is_set_completed("dinero"));
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "dinero", ItemID::GOLD_ORB, 4000));
+    EXPECT_EQ(player.get_gold(), 2000u);
+    EXPECT_TRUE(world.is_set_completed("dinero"));
+
+    EXPECT_EQ(world.get_community_center().get_gold_donated(), 10000u);
+}
+
+TEST(WorldTest, SetMineralesRequiereLasCantidadesIndicadas) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    Player& player = world.get_player(1);
+
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+
+    EXPECT_TRUE(world.donate_to_community_center(
+            1, "minerales", ItemID::COAL_ORB, 2));
+    EXPECT_FALSE(world.is_set_completed("minerales"));
+    EXPECT_EQ(player.get_inventory().get_amount(8), 0u);
+}
+
+TEST(WorldTest, DonacionIncompatibleNoConsumeElInventario) {
+    World world(5, 5);
+    world.add_player(1, std::make_unique<Player>(1, 1, 1));
+    Player& player = world.get_player(1);
+
+    player.pick_up_item(std::make_unique<Product>(ItemID::COAL_ORB, 10, Quality::BASE));
+
+    EXPECT_FALSE(world.donate_to_community_center(
+            1, "cultivos", ItemID::COAL_ORB, 1));
+    EXPECT_FALSE(player.get_inventory().is_slot_empty(0));
+}
+
+TEST(WorldTest, CompletarTodosLosSetsProduceVictoria) {
+    World world(5, 5);
+
+    EXPECT_TRUE(world.complete_all_sets());
+    EXPECT_TRUE(world.is_community_center_completed());
+    EXPECT_TRUE(world.take_victory());
+    EXPECT_FALSE(world.take_victory());
 }
 
 TEST(WorldTest, JugadorNoPuedeSalirDelMapa) {
@@ -162,3 +290,54 @@ TEST(WorldTest, ContestarElRegaloAvisaAlEmisor) {
     ASSERT_EQ(answers.size(), 1u);
     EXPECT_EQ(answers[0], 1);
 }
+
+TEST(WorldTest, MundoAdCargaEscenasYTransfierePorPortal) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    const worldmodel::World wm = repo.load("ad");
+    ASSERT_TRUE(worldmodel::WorldValidator().validate(wm).empty());
+
+    World world(wm);
+    // El mundo real tiene 18 mapas; la granja y el pueblo son obligatorios.
+    EXPECT_TRUE(world.get_scene("farm").get_width() > 0);
+    EXPECT_TRUE(world.get_scene("town").get_height() > 0);
+
+    // La colision viene del TOML (una celda caminable donde hay portal).
+    // Portal farm->town en (13,4) (size 2x1): pisarlo transfiere.
+    auto player = std::make_unique<Player>(1, 13, 4, "farm");
+    Player* p = player.get();
+    world.add_player(1, std::move(player));
+    world.set_active_scene("farm");
+
+    // Disparar la interaccion de portal pisando la celda.
+    world.move_player(1, Direction::RIGHT);
+    // El jugador queda en town (o al menos cambio de escena).
+    EXPECT_EQ(p->get_scene(), std::string("town"));
+}
+TEST(WorldTest, CabinCountYBedEnMundoAd) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    const worldmodel::World wm = repo.load("ad");
+    World world(wm);
+    EXPECT_EQ(world.cabin_count(), 1u);
+    auto bed = world.cabin_bed(1);
+    EXPECT_EQ(bed.first, std::string("cabin_1"));
+    // cabaña 0 cae al spawn
+    auto fallback = world.cabin_bed(0);
+    EXPECT_EQ(fallback.first, world.spawn_map());
+}
+
+TEST(WorldTest, TodosLosMundosDelRepoSonValidos) {
+    const worldmodel::WorldRepository repo(TALLER_WORLDS_DIR);
+    for (const std::string& name : repo.listWorlds()) {
+        const worldmodel::World wm = repo.load(name);
+        const std::vector<worldmodel::ValidationIssue> issues =
+                worldmodel::WorldValidator().validate(wm);
+        EXPECT_TRUE(issues.empty()) << name;
+    }
+}
+
+
+
+
+
+
+

@@ -70,6 +70,7 @@ enum class ActionKind {
     // frames de death invertidos, characters.toml `frames_from` +
     // `reverse`). La enciende la fuente; termina en la pose viva.
     Revive,
+    Run,
 };
 
 struct ActionData {

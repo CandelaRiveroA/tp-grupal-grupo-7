@@ -6,19 +6,10 @@
 
 #include "world/ContentCatalog.h"
 #include "world/ContentTraits.h"
+#include "world/CropQuality.h"
 #include "world/SpriteVisual.h"
 
 namespace world {
-
-// Calidad del producto cosechado (vocabulario del juego, lo comunica el
-// servidor; alineado con Quality de server/domain/inventory/item_types.h).
-enum class CropQuality {
-	Base,
-	Good,
-	Excellent,
-	Incredible,
-	Perfect,
-};
 
 // Ciclo de vida de UN cultivo como datos puros: todas sus apariencias
 // (el saco del inventario, la semilla plantada, los crecimientos y las

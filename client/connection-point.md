@@ -25,7 +25,7 @@ Archivo: `common/common_command.h`. El cliente envía **intenciones** por
 dirección; el servidor decide qué pasa (colisiones, herramienta, inventario).
 
 ```cpp
-enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7 };
+enum class ClientMessageType : uint8_t { Move = 1, Pick = 2, Take = 3, Sleep = 4, Wake = 5, Chat = 6, GiftResponse = 7, ToggleWalking = 8 };
 
 struct MoveMessage { Direction direction; };  // caminar; fija el facing
 struct PickMessage { Direction direction; uint8_t slot; };  // usar el casillero `slot` sobre la celda enfrentada
@@ -34,11 +34,18 @@ struct SleepMessage { bool accept; };         // voto del aviso de la cama
 struct WakeMessage {};                       // OK del popup del nuevo día
 struct ChatMessage { std::string text; };    // texto libre: broadcast, @nombre privado o /comando
 struct GiftResponseMessage { uint8_t sender_id; bool accept; };  // responde el pedido de regalo de `sender_id`
+struct ToggleWalkingMessage {}; // alterna el modo de 1 o 2 celdas por movimiento
 
-using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage>;
+using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage, GiftResponseMessage, ToggleWalkingMessage>;
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
+- El Centro Comunitario usa chat:
+  `/donar [cultivos|minerales|animales] [item] [cantidad]`,
+  `/donar dinero [cantidad]`, `/completar_set [nombre]` y
+  `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
+  3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
+  `set_id u8`; `ServerVictory` no lleva payload.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la
@@ -46,6 +53,9 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
   `type (u8) | accept (u8)`
   (1 = confirma dormir, 0 = cancela y sale de la cama). `GiftResponse`:
   `type (u8) | sender_id (u8) | accept (u8)` (1 = acepta el regalo).
+  `ToggleWalking`: `type (u8)` sin payload. La tecla `X` produce este
+  mensaje one-shot y alterna el modo server-side. La tecla es `Shift`
+  (izquierdo o derecho).
 
 ---
 
@@ -61,7 +71,7 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
 | 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
-| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100), fainted u8` | Pose, personalización y vida/energía de un jugador. `fainted` = 1 cuando el jugador se desmayó por falta de energía (la vida se conserva): dispara la pose Faint y el popup no cancelable, igual que la muerte en combate. El cliente reacciona al flanco de `health` y de `fainted`: 0 = desmayo terminal (Faint + sonido, hasta que la vida/energía vuelvan); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100), fainted u8` | Pose, personalización y vida/energía de un jugador. `fainted` = 1 cuando el jugador se desmayó por falta de energía o por agotar el horario del día (la vida se conserva): dispara la pose Faint y el popup no cancelable, igual que la muerte en combate. El cliente reacciona al flanco de `health` y de `fainted`: 0 = desmayo terminal (Faint + sonido, hasta que la vida/energía vuelvan); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
 | 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |
@@ -84,6 +94,9 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | 23 | `Chat` | `player_id u8, characterName str, text str, system u8` | Mensaje de chat. `system = 1` = mensaje del servidor (respuesta de cheat/error): se muestra sin prefijo de jugador; si no, prefijo `characterName`. Evento (no estado): se aplica inmediato, fuera del lote Reset…SyncEnd |
 | 24 | `GiftRequest` | `sender_id u8, characterName str, content_id str` | El emisor (`sender_id`) ofreció su ítem equipado (`content_id`); el server lo reenvía al **receptor**. `characterName` = nombre del emisor para el popup (`{0}`). Evento (no estado): se aplica inmediato, fuera del lote; el receptor contesta con `GiftResponseMessage` (sección 1) |
 | 25 | `GiftAnswered` | (sin payload) | El receptor contestó el pedido de regalo (acepte o rechace): el server lo manda **solo al emisor**, que así cierra su popup de espera. Evento |
+
+| 34 | `PlayerName` | `player_id u8, characterName str` | Nombre público. Al entrar se reciben los nombres existentes y se transmite el del nuevo a todos, incluso en otros mapas. Se conserva entre lotes y se elimina con `Leave` |
+| 35 | `InventoryFull` | (sin payload) | Evento privado de recogida rechazada por capacidad. Se traduce a `ViewNotice{"inventory_full"}` y usa el cartel real de SDL; la tecla I de demo fue retirada |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

@@ -25,13 +25,14 @@
 - **Headers chicos y enfocados.** Si un header crece mucho (orientativo:
   >300 líneas) suele ser señal de que mezcla datos con lógica: separar.
 
-## 2. Nada global, nada static, nada de funciones libres
+## 2. Nada global, nada static, nada de funciones libres ni namespaces anónimos
 
 - **Prohibido el estado global** y las variables `static` (de archivo o de
   función) que guarden estado.
-- **Prohibidas las funciones libres** sueltas en el namespace para lógica.
-- **Prohibidos los métodos `static`** como "helpers". Si algo es un helper
-  de una clase, va como **método de instancia** (privado si es interno).
+- **Prohibidos los `namespace {` anónimos** y las **funciones libres** sueltas
+  para helpers internos.
+- **Prohibidos los métodos o funciones `static`** como "helpers". Todo helper
+  interno de una clase va como **método de instancia privado** de esa clase.
 - Regla general: **siempre preferir lo que vive dentro de una clase.** Si
   una traducción/cálculo se comparte, se expone como método (o constructor)
   de la clase dueña del concepto, no como función libre ni static.
@@ -58,10 +59,11 @@
 
 ## 4. Preferencias de estilo de implementación
 
-- **Diccionario sobre switch.** Para mapear un valor a otro, preferir un
-  `std::map`/tabla sobre un `switch`. (Nota: el `switch` sobre `enum class`
-  da chequeo de exhaustividad con `-Wswitch`; el mapa no. Aun así, la
-  preferencia del proyecto es el diccionario.)
+- **Prohibido `switch / case` y cadenas `if / else if` sobre enums/tipos.**
+  Para despachar o mapear por `enum class` / tipo, usar un **`std::map` como
+  variable miembro privada de la clase** (inicializado en el constructor, por
+  ejemplo mapeando la clave a un valor o a un puntero a método miembro). No
+  usar `switch` ni `if / else if` encadenados.
 - **enum class** para vocabulario (no números sueltos): `CreatureKind`,
   `ItemKind`, `ActionKind`, `Layer`, etc.
 - **Prohibido `dynamic_cast` (RTTI) en código nuevo de producción** (los
@@ -326,9 +328,21 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
   directamente una acción concreta (`Water`, `Milk`, ...), se respeta tal
   cual.
 - **El slot viaja con el Pick.** Seleccionar un casillero (teclas 1..N, N =
-  `InventoryLayout::count`) es local, pero al usar, `PickMessage.slot` manda
-  el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
+  `InventoryLayout::count`) envía `SelectSlotMessage` al servidor. Al usar,
+  `PickMessage.slot` también manda el casillero activo y la fuente usa esa herramienta. Qué se puede hacer con
   ella lo decide la fuente.
+- **Centro Comunitario.** Los sets se identifican por nombre en el chat
+  (`cultivos`, `minerales`, `animales`, `pelea`, `dinero`) y por los IDs 1 a 5
+  en el protocolo. El servidor decide qué set está listo y aplica la
+  recompensa una sola vez. Los eventos `ServerSetCompleted` y `ServerVictory`
+  son del servidor; el chat de victoria se manda como mensaje de sistema.
+- **Modo de movimiento del jugador.** La tecla `Shift` envía
+  `ToggleWalkingMessage`; el servidor alterna el estado privado `walking`
+  de cada jugador. Normalmente una orden mueve 2 celdas, pero el modo
+  `walking` mueve 1. Estar por debajo del 20 % de vida impone 1 celda
+  aunque el jugador no haya activado el modo manual. Al volver a al menos
+  el 20 %, recupera el modo elegido. Esta preferencia de movimiento no
+  cambia el daño de la espada: normal 2 y menos del 20 % 1.
 - **Presentación local del campo** (`game::FarmSelection`): lo que se
   sostiene sobre la cabeza (contenido `droppable` del slot activo) y el
   marcador de plantado bajo el puntero salen de la selección del HUD; el
@@ -336,3 +350,104 @@ mande. La fuente solo llena `LocalWorldView`; SDL decide cómo se ve y suena.
 - **Sumar un sistema del campo** = una fila en la tabla que corresponda
   (`toolActions_`, `ToolUseSounds`) + sus datos en TOML; `PlaySession` solo
   compone y llama, no decide.
+
+## 13. NPCs del mercado (Pierre, Marnie, Clint, Robin)
+
+- **Lo visual es dato** (`npcs.toml`): hoja del cuerpo, retrato, texto, estilo
+  del popup y sala. Agregar un NPC = un bloque `[[npcs]]`, sin tocar código.
+- **Dónde está parado es estado de juego**: lo manda la fuente de estado
+  (el servidor) por `LocalWorldView::npcPlacements` (`ViewNpcPlacement`: `id`
+  de `npcs.toml` + celda). `game::NpcPlacementResolver` la traduce a
+  `world::NpcCells`, que usan el dibujo (`NpcRenderer`) y el click
+  (`NpcCatalog::npcAt`): ambos ven la MISMA celda.
+- **`at` del TOML es solo la posición por defecto.** Hoy nadie llena
+  `npcPlacements`, así que valen las `at`; un NPC que la fuente no menciona
+  también usa la suya. Al conectar el servidor solo cambia quién llena la
+  vista; el dibujo no se toca.
+
+## 14. Mundo del editor, overlay y partida guardada
+
+El editor guarda un `world.toml` (`common/world_model/`) con los ambientes y
+las decoraciones por defecto. El cliente lo lee sin cambiar el dibujo: el
+adaptador lo traduce al mismo `SceneDescription` que `scenes.toml`.
+
+- **Quién dice qué.**
+  - **Editor (`world.toml`):** fondo, piso, caminos, decoraciones y
+    edificios por defecto, y dónde van los comerciantes, la cama y el
+    spawn (`markers`).
+  - **Cliente (TOML propios):** cómo se escala, la variante de noche de
+    una decoración, qué hace el click sobre cada rol de edificio, las
+    decoraciones iniciales del primer arranque y el aspecto de todo lo
+    que consigue el jugador. Todo en `overlay.toml`, `npcs.toml` e
+    `inventory.toml`.
+  - **Fuente de estado (el server):** lo dinámico (animales, cultivos,
+    ítems, jugadores), los muebles de la partida guardada
+    (`LocalWorldView::placedFurniture`) y el mapa actual
+    (`LocalWorldView::mapId`).
+- **Coherencia en celdas.** Server y cliente hablan en CELDAS enteras. Una
+  celda del editor = una celda del server = `tile_size * scale` px en
+  pantalla, con UNA escala por mapa (`overlay.toml [world] scale`). El
+  cliente puede dibujar a la escala que quiera, pero un objeto ocupa
+  siempre las celdas que dice su `size`: el árbol que el server ve en tal
+  celda es el que se dibuja ahí. El adaptador falla (no deforma) si una
+  hoja no encaja exacto.
+- **Fuentes de escena.** `world::SceneSource` es la interfaz (`ids`,
+  `has`, `load`). Hoy: `ScenesRoomSource` (`scenes.toml`) y
+  `EditorWorldSource` (`world.toml`). `SceneSources` las ordena (el editor
+  gana ante un id repetido) y `SceneSwitcher` es dueño de la escena actual.
+  `PlaySession` no carga archivos: aplica lo que resuelve el switcher.
+- **Overlay.** El editor identifica cada decoración por su tile de origen
+  (`"tileset:col,row"`); el overlay se engancha ahí. Una entrada que no
+  coincide con nada no frena el juego: `OverlayAudit` la devuelve como
+  `ConfigError(UnmatchedEntry, path)` y se muestra en UN solo lugar
+  (`PlaySession`, con el `Logger`).
+- **Anchors.** `markers` y `portals` del mapa viajan como datos de la escena
+  (`SceneMarker`, `ScenePortal`). La celda por defecto de un NPC sale de su
+  marker (`NpcPlacementResolver`: mapa < fuente de estado). La celda donde
+  se acuesta el jugador sale del marker `bed`, la misma que usa el server.
+- **Edificios clickeables.** Un objeto con `role` de edificio es una
+  `SceneStructure`; `StructureSelection` calcula su caja con `ElementLayout`
+  (lo que se toca es lo que se dibuja, y si el editor lo mueve la caja lo
+  acompaña) y exige cercanía (`AreaProximity`, como la cama). La acción
+  sale de una tabla por rol (`StructureAction`), no de un `switch`.
+- **Profundidad.** `world::DepthOrder` ordena por fila base los objetos del
+  editor, los muebles colocados y las entidades. Es lo único que mezcla
+  elementos con entidades; el fondo y los pisos van siempre debajo.
+- **Muebles de la partida guardada.** El server manda `ServerFurniture`
+  (`content_id` + celda) y `NetworkGameClient` lo vuelca en
+  `placedFurniture`. El cliente lo dibuja con el visual de ese `content_id`
+  en `inventory.toml` (`world::FurnitureLayout`). La celda del mueble es su
+  BASE (abajo-izquierda): el sprite crece hacia la derecha y hacia arriba
+  `span` celdas. Un `content_id` sin visual no se dibuja.
+
+### Contrato mínimo con el server (lo que SDL espera)
+
+1. **Mismo `world.toml`.** El server carga el mismo archivo del editor para
+   la colisión y las posiciones; el cliente solo lo usa para dibujar.
+2. **Mapa actual.** La fuente de estado llena `LocalWorldView::mapId` con el
+   id del mapa (`farm`, `town`, `market`, ...). Vacío = el cliente elige
+   (teclas de prueba y edificios tocados, que hoy cambian la escena local).
+   Con valor, la escena sigue a la fuente: el cambio entra por el fade de
+   `SceneTransition` y un id que ninguna fuente conoce se ignora.
+3. **Posiciones en celdas** (`x`, `y` enteros), ya como hoy.
+4. **Muebles.** `ServerFurniture{x, y, content_id}` por cada mueble
+   colocado, con los `content_id` de `inventory.toml`. Si el server también
+   manda la cama como mueble, hay que decidir quién la dibuja (hoy la
+   dibuja la decoración del mapa con su `enter`), para no duplicarla.
+5. **Pasar a otro mapa.** Tocar un edificio con `enter_map` hoy cambia la
+   escena local (`PlaySession::enterStructureMap`); cuando exista el
+   mensaje, ese método solo manda la intención y el cambio vuelve por
+   `mapId`.
+
+
+## 15. Objetos sostenidos y agradecimiento de regalos
+
+- `SelectSlotMessage` actualiza el casillero seleccionado del jugador autenticado
+  por su conexión. No lleva un player_id elegido por el cliente.
+- Cada snapshot incluye `ServerPlayerHeld` por jugador visible. El contenido sale
+  del inventario del servidor; vacío indica manos libres. El local conserva la
+  respuesta inmediata del HUD y los remotos usan `ViewEntity::carriedContent`.
+- `ServerGiftAccepted` se transmite a todos solo tras una transferencia exitosa.
+  El receptor no dispara un corazón por pulsar Aceptar.
+- `GiftThanks` conserva el temporizador visual de cada receptor, con la duración
+  de `dialogs.toml`, y aplica la indicación a entidades de tipo Player por ID.

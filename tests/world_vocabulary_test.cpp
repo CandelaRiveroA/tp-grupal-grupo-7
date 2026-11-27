@@ -13,8 +13,11 @@ TEST(WorldVocabularyTest, MapKindRoundTrip) {
 		{"farm", worldmodel::MapKind::Farm},
 		{"town", worldmodel::MapKind::Town},
 		{"cabin", worldmodel::MapKind::Cabin},
-		{"market", worldmodel::MapKind::Market},
-		{"community_center", worldmodel::MapKind::CommunityCenter},
+		{"carpentry", worldmodel::MapKind::Carpentry},
+		{"blacksmith", worldmodel::MapKind::Blacksmith},
+		{"general_store", worldmodel::MapKind::GeneralStore},
+		{"ranch", worldmodel::MapKind::Ranch},
+		{"barn", worldmodel::MapKind::Barn},
 		{"dungeon", worldmodel::MapKind::Dungeon},
 	};
 	for (const auto& [text, kind] : cases) {
@@ -26,7 +29,11 @@ TEST(WorldVocabularyTest, MapKindRoundTrip) {
 TEST(WorldVocabularyTest, ObjectRoleRoundTrip) {
 	const std::pair<std::string, worldmodel::ObjectRole> cases[] = {
 		{"cabin", worldmodel::ObjectRole::Cabin},
-		{"market", worldmodel::ObjectRole::Market},
+		{"carpentry", worldmodel::ObjectRole::Carpentry},
+		{"blacksmith", worldmodel::ObjectRole::Blacksmith},
+		{"general_store", worldmodel::ObjectRole::GeneralStore},
+		{"ranch", worldmodel::ObjectRole::Ranch},
+		{"barn", worldmodel::ObjectRole::Barn},
 		{"community_center", worldmodel::ObjectRole::CommunityCenter},
 		{"decoration", worldmodel::ObjectRole::Decoration},
 	};
@@ -38,7 +45,6 @@ TEST(WorldVocabularyTest, ObjectRoleRoundTrip) {
 
 TEST(WorldVocabularyTest, MarkerKindRoundTrip) {
 	const std::pair<std::string, worldmodel::MarkerKind> cases[] = {
-		{"player_spawn", worldmodel::MarkerKind::PlayerSpawn},
 		{"bed", worldmodel::MarkerKind::Bed},
 		{"merchant_marnie", worldmodel::MarkerKind::MerchantMarnie},
 		{"merchant_clint", worldmodel::MarkerKind::MerchantClint},

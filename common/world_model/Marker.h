@@ -5,7 +5,6 @@
 namespace worldmodel {
 
 enum class MarkerKind {
-	PlayerSpawn,
 	Bed,
 	MerchantMarnie,
 	MerchantClint,
@@ -14,7 +13,7 @@ enum class MarkerKind {
 };
 
 struct Marker {
-	MarkerKind kind = MarkerKind::PlayerSpawn;
+	MarkerKind kind = MarkerKind::Bed;
 	TilePos cell;
 };
 

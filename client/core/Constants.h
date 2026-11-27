@@ -37,8 +37,21 @@ constexpr const char* kAssetsDir = TALLER_ASSET_DIR;
 #endif
 constexpr const char* kSoundsDir = TALLER_SOUNDS_DIR;
 
-constexpr const char* kScenesFile = "scenes.toml";
+#ifndef TALLER_WORLDS_DIR
+#define TALLER_WORLDS_DIR "worlds"
+#endif
+constexpr const char* kWorldsDir = TALLER_WORLDS_DIR;
+
+// Datos propios del cliente que completan el mundo del editor (escala,
+// variantes de noche, decoraciones iniciales). Opcional.
+constexpr const char* kOverlayFile = "overlay.toml";
 constexpr const char* kInitialRoom = "bedroom";
+constexpr const char* kMarketRoom = "market";
+// DEMO (tecla B): comerciante cuyo catálogo abre la tecla, en cualquier
+// escena. Se borra junto con la tecla cuando el server mande la oferta.
+constexpr const char* kDemoCatalogMerchant = "pierre";
+constexpr const char* kNpcsFile = "npcs.toml";
+constexpr const char* kMarketFile = "market.toml";
 
 constexpr const char* kCharactersFile = "characters.toml";
 constexpr const char* kEnemiesFile = "enemies.toml";
@@ -62,9 +75,15 @@ constexpr const char* kTextFile = "ui/text.toml";
 
 constexpr const char* kChatFile = "ui/chatbox.toml";
 
+constexpr const char* kNoticeFile = "ui/notice.toml";
+
+constexpr const char* kSettingsFile = "ui/settings.toml";
+
 constexpr const char* kHudOverlaysFile = "ui/hud.toml";
 
 constexpr const char* kLightingFile = "ui/lighting.toml";
+
+constexpr const char* kWorldMapFile = "ui/world_map.toml";
 
 // ==== Chat ====
 

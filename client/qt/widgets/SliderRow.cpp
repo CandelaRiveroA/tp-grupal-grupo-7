@@ -6,7 +6,7 @@
 #include <QSlider>
 #include <QVBoxLayout>
 
-#include "qt/theme/GameCursor.h"
+#include "qt_theme/GameCursor.h"
 
 namespace {
 constexpr int kBlockSpacing = 2;

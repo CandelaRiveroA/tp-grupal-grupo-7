@@ -14,6 +14,26 @@ struct InputCommand {
         UseTool,
         Collect,
         SelectSlot,
+        // Alterna entre caminar 1 y 2 celdas por movimiento.
+        ToggleWalking,
+        // Alterna el mapa del mundo (tecla M). Lo consume PlaySession;
+        // NO viaja al GameClient.
+        ToggleWorldMap,
+        // Cierra overlays transitorios (ESC con chat cerrado). Lo consume
+        // PlaySession; NO viaja al GameClient.
+        CancelOverlay,
+        // DEMO (tecla O): pasa a la escena siguiente (mapas del editor
+        // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
+        // GameClient. Se borra cuando el server mande el mapa.
+        CycleMap,
+        // DEMO (tecla B): abre/cierra el catálogo de Pierre en cualquier
+        // escena (provisorio). Lo consume PlaySession; NO viaja al
+        // GameClient. El catálogo real lo manda el server.
+        OpenCatalog,
+        // DEMO (tecla N): rota el estilo del catálogo del comerciante. Lo
+        // consume PlaySession; NO viaja al GameClient. Se borra cuando el
+        // servidor rote los estilos.
+        NextMarketSet,
         // ANDAMIAJE TEMPORAL (prueba): disparan acciones de los
         // enemigos del mundo simulado (G mover, F atacar, H daño, K
         // muerte), de sus proyectiles (J avanzar, L desaparecer) y el
@@ -37,6 +57,9 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
+        // Abre/cierra el popup de configuración (ESC fuera del chat). Lo
+        // consume PlaySession; NO viaja al GameClient.
+        ToggleSettings,
     };
 
     Kind kind;

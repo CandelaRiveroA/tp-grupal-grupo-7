@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QIcon>
 #include <QPixmap>
 #include <map>
 #include <string>
@@ -20,6 +21,9 @@ public:
 	// hoja o el rectangulo cae fuera, devuelve una grilla magenta/negra.
 	QPixmap tilePixmap(const worldmodel::TileRef& ref, int widthCells = 1,
 			   int heightCells = 1) const;
+
+	// Escala un sprite manteniendo proporcion y lo centra en un icono cuadrado.
+	QIcon centeredIcon(const QPixmap& sprite, int iconSize) const;
 
 private:
 	struct Entry {

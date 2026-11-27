@@ -5,9 +5,11 @@
 #include <string>
 #include <vector>
 
+#include "world/Color.h"
 #include "world/ContentCatalog.h"
 #include "world/ContentTraits.h"
 #include "world/PixelBox.h"
+#include "world/ScenePixelMapper.h"
 #include "world/SpriteVisual.h"
 
 namespace world {
@@ -42,6 +44,17 @@ struct FrameLayout {
 	};
 	std::array<Piece, 4> corners;
 	std::array<Piece, 4> edges;
+};
+
+struct TrashButton {
+	bool enabled = false;
+	std::string sheetImage;
+	int cellWidth = 0;
+	int cellHeight = 0;
+	double size = 1.0;
+	int gap = 0;
+	int iconPad = 0;
+	Color hoverTint{255, 255, 255, 255};
 };
 
 struct InventoryLayout {
@@ -82,6 +95,8 @@ struct InventoryLayout {
 	FrameCells slotFrame;
 
 	FrameCells activeSlotFrame;
+
+	TrashButton trash;
 
 	ContentCatalog content;
 
@@ -129,6 +144,21 @@ struct InventoryLayout {
 	std::vector<PixelBox> slotBoxes(const PixelBox& outer, int columns,
 					int rows) const;
 
+	int slotAt(const PixelBox& outer, int columns, int rows,
+		   const PixelPoint& point) const;
+
+	int slotAt(int windowWidth, int windowHeight,
+		   const PixelPoint& point) const;
+
+	PixelBox trashBox(int windowWidth, int windowHeight) const;
+
+	PixelBox trashInnerBox(int windowWidth, int windowHeight) const;
+
+	PixelBox trashIconBox(int windowWidth, int windowHeight) const;
+
+	bool isOverTrash(int windowWidth, int windowHeight,
+			 const PixelPoint& point) const;
+
 	// La caja que ocupa una grilla columns×rows de slots (slots +
 	// separaciones + el inset del marco).
 	PixelBox gridBox(int columns, int rows) const;
@@ -167,6 +197,13 @@ struct InventoryLayout {
 					 int digitCount) const;
 
 private:
+	int indexAt(const std::vector<PixelBox>& boxes,
+		    const PixelPoint& point) const;
+
+	bool contains(const PixelBox& box, const PixelPoint& point) const;
+
+	PixelBox shrink(const PixelBox& box, int pad) const;
+
 	FrameLayout nineSliceInside(const PixelBox& box, int t, int cells,
 				    const FrameCells& f,
 				    bool tileEdges) const;

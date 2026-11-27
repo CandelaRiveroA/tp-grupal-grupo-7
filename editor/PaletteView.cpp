@@ -1,17 +1,14 @@
 #include "PaletteView.h"
 
 #include <QComboBox>
-#include <QIcon>
-#include <QListView>
-#include <QListWidget>
 #include <QListWidgetItem>
 #include <QPixmap>
-#include <QSignalBlocker>
-#include <QSize>
 #include <QString>
 #include <QVBoxLayout>
+#include <vector>
 
 #include "Constants.h"
+#include "PaletteListWidget.h"
 #include "TilesetCache.h"
 #include "world_model/PrefabCatalog.h"
 
@@ -25,18 +22,7 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 					QString::fromStdString(category));
 	}
 
-	list_ = new QListWidget(this);
-	list_->setObjectName("paletteList");
-	list_->setViewMode(QListView::IconMode);
-	list_->setMovement(QListView::Static);
-	list_->setResizeMode(QListView::Adjust);
-	list_->setWrapping(true);
-	list_->setWordWrap(true);
-	list_->setUniformItemSizes(true);
-	list_->setIconSize(
-		QSize(editor::kPaletteIconSize, editor::kPaletteIconSize));
-	list_->setGridSize(editor::kPaletteGridSize);
-	list_->setSpacing(editor::kPaletteItemSpacing);
+	list_ = new PaletteListWidget("paletteList", this);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(editor::kPaletteMargins);
@@ -46,8 +32,7 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 	connect(categoryCombo_, &QComboBox::currentIndexChanged, this,
 		[this](int index) {
 			if (index < 0) {
-				const QSignalBlocker blocker(list_);
-				list_->clear();
+				list_->setCards({});
 				return;
 			}
 			const std::string category =
@@ -91,14 +76,12 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 }
 
 void PaletteView::clearSelection() {
-	const QSignalBlocker blocker(list_);
 	list_->clearSelection();
 	list_->setCurrentItem(nullptr);
 }
 
 void PaletteView::populateCategory(const std::string& category) {
-	const QSignalBlocker blocker(list_);
-	list_->clear();
+	std::vector<PaletteListWidget::Card> cards;
 
 	for (const worldmodel::PrefabDef* prefab :
 	     catalog_.byCategory(category)) {
@@ -107,24 +90,21 @@ void PaletteView::populateCategory(const std::string& category) {
 		}
 		const QPixmap sprite = tilesets_.tilePixmap(
 			prefab->tile, prefab->width, prefab->height);
-		const QString label = QString("%1 (%2x%3)")
-					      .arg(QString::fromStdString(
-						      prefab->name))
-					      .arg(prefab->width)
-					      .arg(prefab->height);
-		auto* item = new QListWidgetItem(
+		cards.push_back({
 			tilesets_.centeredIcon(sprite, editor::kPaletteIconSize),
-			label, list_);
-		item->setToolTip(label);
-		item->setData(Qt::UserRole, QString::fromStdString(prefab->id));
+			QString::fromStdString(prefab->name),
+			QString::fromStdString(prefab->id),
+		});
 	}
 	if (category == "estructuras_granja") {
-		auto* bedItem = new QListWidgetItem(
+		cards.push_back({
 			tilesets_.centeredIcon(
 				QPixmap(":/editor/ui/bed_marker.png"),
 				editor::kPaletteIconSize),
-			"Cama (marcador)", list_);
-		bedItem->setToolTip("Cama (marcador)");
-		bedItem->setData(Qt::UserRole, QString("__bed__"));
+			"Cama (marcador)",
+			QString("__bed__"),
+		});
 	}
+
+	list_->setCards(cards);
 }

@@ -8,8 +8,8 @@
 #include "PortalPrefabs.h"
 #include "world_model/Portal.h"
 
+class PaletteListWidget;
 class QComboBox;
-class QListWidget;
 class TilesetCache;
 
 namespace worldmodel {
@@ -45,7 +45,7 @@ private:
 	const TilesetCache& tilesets_;
 	PortalPrefabs portalPrefabs_;
 	QComboBox* sizeCombo_ = nullptr;
-	QListWidget* list_ = nullptr;
+	PaletteListWidget* list_ = nullptr;
 	QPixmap rune_;
 	std::vector<SizeOption> sizeOptions_;
 	std::vector<PortalEntry> portalEntries_;

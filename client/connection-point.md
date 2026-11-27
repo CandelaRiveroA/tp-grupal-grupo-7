@@ -71,7 +71,7 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | Tipo | Mensaje | Payload | Significado |
 |------|---------|---------|-------------|
 | 2 | `Welcome` | `player_id u8` | Se envía una vez al conectarse |
-| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100), fainted u8` | Pose, personalización y vida/energía de un jugador. `fainted` = 1 cuando el jugador se desmayó por falta de energía (la vida se conserva): dispara la pose Faint y el popup no cancelable, igual que la muerte en combate. El cliente reacciona al flanco de `health` y de `fainted`: 0 = desmayo terminal (Faint + sonido, hasta que la vida/energía vuelvan); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
+| 1 | `Status` | `player_id u8, x u16, y u16, direction u8, appearance 8×u8, health u16, max_health u16, energy u16 (×100), max_energy u16 (×100), fainted u8` | Pose, personalización y vida/energía de un jugador. `fainted` = 1 cuando el jugador se desmayó por falta de energía o por agotar el horario del día (la vida se conserva): dispara la pose Faint y el popup no cancelable, igual que la muerte en combate. El cliente reacciona al flanco de `health` y de `fainted`: 0 = desmayo terminal (Faint + sonido, hasta que la vida/energía vuelvan); el salto a <20 % deja el charco de sangre en su celda (misma regla que `World::damage_player`) |
 | 3 | `Leave` | `player_id u8` | Un jugador se desconectó |
 | 4 | `Resource` | `x u16, y u16, content_id str, damage u8` | Mineral visible (`damage`: 0 intacto, 1 fisurado, 2 roto) |
 | 5 | `Dropped` | `x u16, y u16, content_id str, interactive u8` | Item caído en el piso (`interactive`: 1 = se levanta con Take y anima la recogida, 0 = solo entra al inventario) |
@@ -94,6 +94,9 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 | 23 | `Chat` | `player_id u8, characterName str, text str, system u8` | Mensaje de chat. `system = 1` = mensaje del servidor (respuesta de cheat/error): se muestra sin prefijo de jugador; si no, prefijo `characterName`. Evento (no estado): se aplica inmediato, fuera del lote Reset…SyncEnd |
 | 24 | `GiftRequest` | `sender_id u8, characterName str, content_id str` | El emisor (`sender_id`) ofreció su ítem equipado (`content_id`); el server lo reenvía al **receptor**. `characterName` = nombre del emisor para el popup (`{0}`). Evento (no estado): se aplica inmediato, fuera del lote; el receptor contesta con `GiftResponseMessage` (sección 1) |
 | 25 | `GiftAnswered` | (sin payload) | El receptor contestó el pedido de regalo (acepte o rechace): el server lo manda **solo al emisor**, que así cierra su popup de espera. Evento |
+
+| 34 | `PlayerName` | `player_id u8, characterName str` | Nombre público. Al entrar se reciben los nombres existentes y se transmite el del nuevo a todos, incluso en otros mapas. Se conserva entre lotes y se elimina con `Leave` |
+| 35 | `InventoryFull` | (sin payload) | Evento privado de recogida rechazada por capacidad. Se traduce a `ViewNotice{"inventory_full"}` y usa el cartel real de SDL; la tecla I de demo fue retirada |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

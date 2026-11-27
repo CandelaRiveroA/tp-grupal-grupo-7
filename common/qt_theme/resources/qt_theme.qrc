@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="fonts/stardew.ttf">fonts/StardewValley.ttf</file>
+        <file alias="fonts/pixel_operator.ttf">fonts/PixelOperator.ttf</file>
+        <file alias="ui/title/sky.png">ui/home_background.png</file>
+        <file alias="ui/title/clouds.png">ui/Clouds.png</file>
+        <file alias="ui/cursor_arrow.png">ui/cursor_arrow.png</file>
+        <file alias="ui/join/scroll.png">ui/join_scroll.png</file>
+        <file alias="ui/join/input_box.png">ui/join_input_box.png</file>
+        <file alias="ui/menu_tiles.png">ui/MenuTiles.png</file>
+        <file alias="ui/character/recessed_box.png">ui/char_recessed_box.png</file>
+        <file alias="ui/character/text_box.png">ui/Character_TextBox.png</file>
+    </qresource>
+</RCC>

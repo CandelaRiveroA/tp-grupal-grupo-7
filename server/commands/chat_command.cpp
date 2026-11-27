@@ -29,6 +29,22 @@ ChatRouter::ChatRouter() {
                                const std::vector<std::string>& args) {
         return player_commands_.oro(world, sender, args);
     };
+    handlers_["/terminar_dia"] = [this](World& world, uint8_t sender,
+                                       const std::vector<std::string>& args) {
+        return player_commands_.terminar_dia(world, sender, args);
+    };
+    handlers_["/tiempo"] = [this](World& world, uint8_t sender,
+                                  const std::vector<std::string>& args) {
+        return player_commands_.tiempo(world, sender, args);
+    };
+    handlers_["/tp"] = [this](World& world, uint8_t sender,
+                              const std::vector<std::string>& args) {
+        return player_commands_.tp(world, sender, args);
+    };
+    handlers_["/tp_info"] = [this](World& world, uint8_t sender,
+                                   const std::vector<std::string>& args) {
+        return player_commands_.tp_info(world, sender, args);
+    };
     handlers_["/donar"] = [this](World& world, uint8_t sender,
                                  const std::vector<std::string>& args) {
         return community_commands_.donar(world, sender, args);

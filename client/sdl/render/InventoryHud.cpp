@@ -10,15 +10,13 @@ namespace sdl {
 
 InventoryHud::InventoryHud(SdlContext& context,
 			   const world::InventoryLayout& layout,
-			   const world::DigitCatalog& digits)
+			   DigitPainter& digits)
 	: context_(context)
 	, layout_(layout)
 	, digits_(digits)
 	, sheet_(context, core::assetPath(layout.sheetImage),
 		 layout.cellWidth, layout.cellHeight)
-	, itemSheets_(context)
-	, digitSheet_(context, core::assetPath(digits.sheetImage),
-		      digits.cellWidth, digits.cellHeight) {}
+	, itemSheets_(context) {}
 
 void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 	auto drawPiece = [&](const world::FrameLayout::Piece& p) {
@@ -146,13 +144,7 @@ void InventoryHud::drawCount(const world::PixelBox& slot, int count) {
 	const std::vector<int> digits = world::digitsOf(count);
 	const std::vector<world::PixelBox> boxes =
 		layout_.countBoxes(slot, static_cast<int>(digits.size()));
-	for (std::size_t i = 0; i < digits.size() && i < boxes.size(); ++i) {
-		const world::SheetCell& cell = digits_.cellFor(digits[i]);
-		const world::PixelBox& box = boxes[i];
-		digitSheet_.draw(cell.col, cell.row,
-				 SDL2pp::Rect(box.x, box.y, box.width,
-					      box.height));
-	}
+	digits_.draw(digits, boxes);
 }
 
 }

@@ -3,15 +3,16 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "common_command.h"
 #include "common_match_request.h"
 #include "common_server_status.h"
-#include "common_socket.h"
+#include "common_socket_io.h"
 
 class ProtocolSender {
 private:
-    Socket& socket;
+    SocketIO& socket;
 
     void send_uint8(uint8_t value);
     void send_uint16(uint16_t value);
@@ -29,6 +30,11 @@ private:
     void send_message(const protocol::WakeMessage& message);
     void send_message(const protocol::ChatMessage& message);
     void send_message(const protocol::ToggleWalkingMessage& message);
+    void send_message(const protocol::SelectSlotMessage& message);
+    void send_message(const ServerPlayerHeld& message);
+    void send_message(const ServerGiftAccepted& message);
+    void send_message(const ServerPlayerName& message);
+    void send_message(const ServerInventoryFull& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -55,16 +61,19 @@ private:
     void send_message(const ServerGiftAnswered& answered);
     void send_message(const ServerGold& gold);
     void send_message(const ServerNpcPlacement& placement);
+    void send_message(const ServerMapChange& change);
     void send_message(const ServerMarketOffer& offer);
 
 public:
-    explicit ProtocolSender(Socket& socket);
+    explicit ProtocolSender(SocketIO& socket);
     
     void send_client_message(const protocol::ClientMessage& message);
     void send_server_message(const ServerMessage& message);
     void send_welcome(const ServerWelcome& welcome);
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
+    void send_world_list_request();
+    void send_world_list(const std::vector<std::string>& worlds);
     void send_message(const protocol::GiftResponseMessage& message);
     void send_message(const ServerSetCompleted& completed);
     void send_message(const ServerVictory& victory);

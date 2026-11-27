@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "world_model/Constants.h"
 #include "world_model/Map.h"
 #include "world_model/MapObject.h"
 #include "world_model/Marker.h"
@@ -33,10 +34,20 @@ public:
 
 	const std::vector<MapRule>& all() const;
 	const MapRule* find(const std::string& id) const;
+	std::vector<std::string> requiredMapIds(int cabinCount) const;
+	// Mapa anfitrion donde debe colocarse un objeto con `role`, si aplica.
+	std::optional<std::string> requiredHostMap(ObjectRole role) const;
+	// IDs de interiores unicos (excluye cabanas por jugador).
+	std::vector<std::string> fixedInteriorIds() const;
+	bool isInteriorHost(const std::string& mapId) const;
 	bool isValidMapId(const std::string& id) const;
 	bool isValidWorldName(const std::string& name) const;
+	std::string cabinId(int k) const;
+	std::optional<int> cabinIndex(const std::string& id) const;
 	std::string dungeonId(int level) const;
 	std::optional<int> dungeonLevel(const std::string& id) const;
+	std::optional<std::string> expectedPortalTarget(
+		const std::string& mapId, PortalKind kind) const;
 
 private:
 	std::vector<MapRule> rules_;

@@ -2,10 +2,13 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "world_model/Geometry.h"
+#include "world_model/MapObject.h"
 #include "world_model/Tile.h"
 
 namespace worldmodel {
@@ -18,6 +21,9 @@ struct PrefabDef {
 	TileRef tile;
 	int width = 1;
 	int height = 1;
+	std::optional<ObjectRole> role;
+	std::optional<TilePos> door;
+	int doorWidth = 1;
 	std::vector<bool> collisionGrid;
 };
 
@@ -32,6 +38,7 @@ public:
 	std::vector<const PrefabDef*> byCategory(
 		const std::string& category) const;
 	const PrefabDef* find(const std::string& id) const;
+	const PrefabDef* findByRole(ObjectRole role) const;
 
 private:
 	std::map<std::string, TilesetDef> tilesets_;

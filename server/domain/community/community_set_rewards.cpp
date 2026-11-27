@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "../animals/chicken.h"
-#include "../animals/cow.h"
 #include "../inventory/product.h"
 #include "../map/world.h"
 
@@ -13,13 +11,13 @@ CommunitySetRewards::CommunitySetRewards():
                     for (uint8_t id: world.get_player_ids()) {
                         Player& player = world.get_player(id);
                         for (int i = 0; i < 5; ++i) {
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::STRAWBERRY_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::ONION_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::POTATO_SEED, 20, Quality::BASE));
-                            player.pick_up_item(std::make_unique<Product>(
+                            world.give_item_or_gold(player, std::make_unique<Product>(
                                     ItemID::PUMPKIN_SEED, 20, Quality::BASE));
                         }
                     }
@@ -32,23 +30,8 @@ CommunitySetRewards::CommunitySetRewards():
                 {CommunitySet::ANIMALS, [](World& world) {
                     for (uint8_t id: world.get_player_ids()) {
                         Player& player = world.get_player(id);
-                        world.add_animal(std::make_unique<Cow>(
-                                player.get_x() + 1 < world.get_width()
-                                        ? player.get_x() + 1
-                                        : player.get_x(),
-                                player.get_y()));
-                        world.add_animal(std::make_unique<Chicken>(
-                                player.get_x(),
-                                player.get_y() + 1 < world.get_height()
-                                        ? player.get_y() + 1
-                                        : player.get_y()));
-                        world.add_animal(std::make_unique<Chicken>(
-                                player.get_x() + 1 < world.get_width()
-                                        ? player.get_x() + 1
-                                        : player.get_x(),
-                                player.get_y() + 1 < world.get_height()
-                                        ? player.get_y() + 1
-                                        : player.get_y()));
+                        world.reward_animals(player, ItemID::COW, 1);
+                        world.reward_animals(player, ItemID::CHICKEN, 2);
                     }
                 }},
                 {CommunitySet::COMBAT, [](World& world) {

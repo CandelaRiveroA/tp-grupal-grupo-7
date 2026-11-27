@@ -7,14 +7,27 @@ target_sources(taller_tests
     invite_code_format.cpp
     matches_monitor_test.cpp
     popup_state_test.cpp
+    visual_broadcast_test.cpp
+    broadcast_network_test.cpp
+    protocol/mock_socket.cpp
+    protocol/messages_test.cpp
+    sleep_regression_test.cpp
+    gameplay_bugs_test.cpp
+    merchant_interaction_test.cpp
+    network_startup_test.cpp
+    ../client/game/NetworkGameClient.cpp
+    ../client/client_sender.cpp
+    ../client/client_receiver.cpp
     inventory_test.cpp
     world_test.cpp
     mineral_test.cpp
     mine_controller_test.cpp
+    cave_spawn_test.cpp
     enemy_controller_test.cpp
     world_interaction_mineral_test.cpp
     world_view_test.cpp
     animals_test.cpp
+    marnie_animals_test.cpp
     enemy_test.cpp
     furniture_test.cpp
     test_helpers.cpp
@@ -50,6 +63,7 @@ target_sources(taller_tests
     ../server/domain/enemies/skull.cpp
     ../server/domain/enemies/enemy_controller.cpp
     ../server/domain/animals/animal.cpp
+    ../server/domain/animals/animal_catalog.cpp
     ../server/domain/animals/chicken.cpp
     ../server/domain/animals/cow.cpp
     ../server/domain/furniture/furniture.cpp
@@ -58,6 +72,7 @@ target_sources(taller_tests
     ../server/domain/map/cell.cpp
     ../server/domain/map/scene.cpp
     ../server/domain/map/farm.cpp
+    ../server/domain/map/barn.cpp
     ../server/domain/map/town.cpp
     ../server/domain/map/dungeon_floor.cpp
     ../server/domain/map/portal.cpp
@@ -93,6 +108,12 @@ target_sources(taller_tests
     world_factory_test.cpp
     world_repository_test.cpp
     world_validator_test.cpp
+    prefab_catalog_test.cpp
+    world_map_loader_test.cpp
+    map_scene_adapter_test.cpp
+    structure_selection_test.cpp
+    real_overlay_assets_test.cpp
+    real_editor_world_test.cpp
     character_palette_loader_test.cpp
     enter_selection_test.cpp
     farming_test.cpp

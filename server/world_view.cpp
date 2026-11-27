@@ -57,22 +57,23 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     // posiciones que el lote ya no vuelve a describir.
     out.push_back(ServerReset{});
 
+    out.push_back(ServerMapChange{world.get_player(player_id).get_scene()});
+
     const SceneId scene_id = world.get_player(player_id).get_scene();
     const Scene& scene = world.get_scene(scene_id);
 
     // Solo los jugadores que están en la misma escena que player_id.
     for (const uint8_t id: world.get_player_ids_in_scene(scene_id)) {
         const Player& player = world.get_player(id);
+        const Item* held = player.peek_equipped_item();
+        out.push_back(ServerPlayerHeld{
+                id, held && held->can_be_traded() ? content_id_for(held->get_id()) : ""});
         out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
                                    player.get_appearance(),
                                    player.get_health(), player.get_max_health(),
                                    player.get_energy(),
                                    player.get_max_energy(),
-                                   player.faintedByEnergy() ? 1u : 0u));
-    }
-
-    for (const MerchantPlacement& placement: world.get_merchant_placements()) {
-        out.push_back(ServerNpcPlacement{placement.id, placement.x, placement.y});
+                                   (player.faintedByEnergy() || player.faintedByTimeout()) ? 1u : 0u));
     }
 
     for (const MerchantPlacement& placement: scene.get_merchant_placements()) {

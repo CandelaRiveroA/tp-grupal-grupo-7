@@ -15,6 +15,7 @@ class World;
 class DungeonFloor: public Scene {
 private:
     uint8_t room_number;
+    std::string map_id;
     uint16_t spawn_x;
     uint16_t spawn_y;
 
@@ -22,12 +23,15 @@ private:
     std::vector<Flame> flames;
     std::vector<std::pair<uint16_t, uint16_t>> blood_puddles;
 
+    bool can_spawn_at(uint16_t x, uint16_t y) const;
+
 protected:
     void on_entity_removed(IEntity* entity) override;
 
 public:
     DungeonFloor(uint8_t room_number, uint16_t width, uint16_t height,
-                 uint16_t spawn_x, uint16_t spawn_y);
+                 uint16_t spawn_x, uint16_t spawn_y,
+                 const std::string& map_id = {});
     ~DungeonFloor() override = default;
 
     uint8_t get_room_number() const;

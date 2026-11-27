@@ -26,7 +26,7 @@ public:
 signals:
 	void gameCreated();
 	// Al unirse, el mundo y el nombre de la partida ya vienen definidos.
-	void gameJoined(std::string gameName, std::uint32_t worldId);
+	void gameJoined(std::string gameName, std::string worldName);
 	void gameLoaded();
 	void sessionFailed(ServiceError error);
 };

@@ -50,8 +50,13 @@ void InputManager::handleEvent(const SDL_Event& event) {
 
     // Clicks: solo con el chat cerrado (sin input de juego no significan
     // nada).
+    if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+        pointerHeld_ = false;
+        return;
+    }
     if (!textMode_ && event.type == SDL_MOUSEBUTTONDOWN &&
         event.button.button == SDL_BUTTON_LEFT) {
+        pointerHeld_ = true;
         clicks_.push_back(game::PointerClick{event.button.x, event.button.y});
         return;
     }
@@ -95,12 +100,13 @@ auto InputManager::defaultCommandBindings() const
     // click sobre el mundo (PlayerController::useToward). Si algún día
     // se rebindea a una tecla, vuelve a entrar acá.
     bindings.insert({SDLK_RETURN, game::InputCommand{Kind::Collect, 0}});
-    // Cambio de escenario local: mercado / dormitorio.
-    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleMarket, 0}});
+    // Mapa del mundo (tecla M). El cierre con ESC se resuelve vía ToggleSettings en PlaySession.
+    bindings.insert({SDLK_m, game::InputCommand{Kind::ToggleWorldMap, 0}});
     // DEMO: siguiente escena (lo reemplaza el mapa que mande el server).
     bindings.insert({SDLK_o, game::InputCommand{Kind::CycleMap, 0}});
     // DEMO: catálogo del mercado (lo reemplaza el server).
     bindings.insert({SDLK_b, game::InputCommand{Kind::OpenCatalog, 0}});
+    // DEMO: aviso "Inventario lleno" (lo reemplaza el server).
     // DEMO: rota el estilo del catálogo (lo reemplaza el server).
     bindings.insert({SDLK_n, game::InputCommand{Kind::NextMarketSet, 0}});
     // Los teclas de test de enemigos (G/F/H/K/V/J/L) quedaron SIN bind
@@ -110,11 +116,14 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
-    // Popup del Centro Comunitario: C lo abre/cierra y ESC lo cierra.
+    // Popup del Centro Comunitario: C lo abre/cierra (el cierre con ESC se
+    // resuelve vía ToggleSettings en PlaySession).
     bindings.insert({SDLK_c, game::InputCommand{Kind::ToggleCommunityGoals, 0}});
-    bindings.insert({SDLK_ESCAPE, game::InputCommand{Kind::CloseCommunityGoals, 0}});
     bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
+    // ESC fuera del chat: el popup de configuración (con el chat abierto
+    // ESC lo resuelve handleTextEvent como ChatCancel).
+    bindings.insert({SDLK_ESCAPE, game::InputCommand{Kind::ToggleSettings, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
         bindings.insert(
@@ -194,6 +203,8 @@ int InputManager::takeBackspaces() {
 }
 
 const game::PointerPosition& InputManager::mousePosition() const { return pointerPosition_; }
+
+bool InputManager::pointerHeld() const { return pointerHeld_; }
 
 std::optional<world::Direction> InputManager::pressedDirection() const {
     for (const DirectionBinding& binding: directionBindings_) {

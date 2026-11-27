@@ -30,7 +30,7 @@ TEST(EnemyTest, TakeDamageBajaLaVidaYDevuelveTrueSoloAlMatar) {
 
 TEST(EnemyTest, SoloLaEspadaHaceDanioYMata) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player attacker(1, 0, 0);
     auto owned = std::make_unique<Skeleton>(2, 2);
     Skeleton* skeleton = owned.get();
@@ -54,7 +54,7 @@ TEST(EnemyTest, SoloLaEspadaHaceDanioYMata) {
 
 TEST(EnemyTest, EspadaHaceLaMitadDeDanioConMenosDel20PorCientoDeVida) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player normal_attacker(1, 0, 0);
     Player wounded_attacker(2, 0, 0);
     wounded_attacker.set_health(19);
@@ -90,9 +90,9 @@ TEST(EnemyTest, ElJugadorRecibeDanioYPisaEnCero) {
 
 TEST(EnemyTest, ElMuertoEsperaLaAnimacionAntesDeIrALaCama) {
     World world(25, 15);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.add_player(2, std::make_unique<Player>(2, 4, 4, SceneId::DUNGEON_1));  // no duerme: el día no avanza
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1", "farmhouse", 20, 13));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4, "dungeon_1"));  // no duerme: el día no avanza
     world.damage_player(1, 100);  // mata
 
     // La animación de desmayo corre donde cayó: mientras espera no lo
@@ -118,9 +118,9 @@ TEST(EnemyTest, ElMuertoEsperaLaAnimacionAntesDeIrALaCama) {
 
 TEST(EnemyTest, SiReviveMientrasEsperaNoLoMandanALaCama) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 1, 1, SceneId::DUNGEON_1));
-    world.add_player(2, std::make_unique<Player>(2, 4, 4, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 1, 1, "dungeon_1"));
+    world.add_player(2, std::make_unique<Player>(2, 4, 4, "dungeon_1"));
     world.damage_player(1, 100);  // mata
     world.reset_player_for_day(1);  // amaneció mientras esperaba: revive
 
@@ -139,7 +139,7 @@ TEST(EnemyTest, SiReviveMientrasEsperaNoLoMandanALaCama) {
 // ---------------------------------------------------------
 TEST(EnemyTest, ElEsqueletoReviveConVidaLlenaDespuesDeLosTicks) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player attacker(1, 0, 0);
     auto owned = std::make_unique<Skeleton>(2, 2);
     Skeleton* skeleton = owned.get();
@@ -166,7 +166,7 @@ TEST(EnemyTest, ElEsqueletoReviveConVidaLlenaDespuesDeLosTicks) {
 // ---------------------------------------------------------
 TEST(EnemyTest, ElEsqueletoAvanzaUnaCasillaYNoSaleDelMapa) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     auto owned = std::make_unique<Skeleton>(1, 1);
     Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
@@ -185,8 +185,8 @@ TEST(EnemyTest, ElEsqueletoAvanzaUnaCasillaYNoSaleDelMapa) {
 
 TEST(EnemyTest, ElEsqueletoPersigueAlJugadorDentroDelRango) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 5, 1, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 5, 1, "dungeon_1"));
     auto owned = std::make_unique<Skeleton>(1, 1);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
@@ -201,8 +201,8 @@ TEST(EnemyTest, ElEsqueletoPersigueAlJugadorDentroDelRango) {
 
 TEST(EnemyTest, ElEsqueletoGolpeaAlJugadorAdyacente) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 2, 1, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 2, 1, "dungeon_1"));
     auto owned = std::make_unique<Skeleton>(1, 1);
     world.add_enemy(std::move(owned));
 
@@ -213,8 +213,8 @@ TEST(EnemyTest, ElEsqueletoGolpeaAlJugadorAdyacente) {
 
 TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 9, 9, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 9, 9, "dungeon_1"));
     auto owned = std::make_unique<Skeleton>(0, 0);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
@@ -228,9 +228,9 @@ TEST(EnemyTest, ElEsqueletoIgnoraAlJugadorFueraDeRango) {
 
 TEST(EnemyTest, ElEsqueletoNoPersigueAUnJugadorMuerto) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 1, 2, SceneId::DUNGEON_1));
-    world.add_player(2, std::make_unique<Player>(2, 4, 1, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 1, 2, "dungeon_1"));
+    world.add_player(2, std::make_unique<Player>(2, 4, 1, "dungeon_1"));
     world.damage_player(1, 100);
     auto owned = std::make_unique<Skeleton>(1, 1);
     const Skeleton* skeleton = owned.get();
@@ -258,7 +258,7 @@ TEST(IMovableTest, NextTileAvanzaYSeQuedaEnElBorde) {
 // ---------------------------------------------------------
 TEST(OrcTest, AlMorirSueltaPlataSegunLaProbabilidad) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player attacker(1, 0, 0);
     auto sure = std::make_unique<Orc>(2, 2, 100);
     auto never = std::make_unique<Orc>(3, 3, 0);
@@ -288,7 +288,7 @@ TEST(OrcTest, AlMorirSueltaPlataSegunLaProbabilidad) {
 
 TEST(OrcTest, SpawnOrcPackDejaEntreTresYSeisOrcos) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_orc_pack(5, 5);
 
     int orcs = 0;
@@ -308,7 +308,7 @@ TEST(OrcTest, SpawnOrcPackDejaEntreTresYSeisOrcos) {
 
 TEST(OrcTest, SpawnOrcPackEnLaEsquinaNoSeSaleDelMapa) {
     World world(4, 4);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_orc_pack(0, 0);  // 9 celdas disponibles: entra la manada completa
 
     int orcs = 0;
@@ -339,7 +339,7 @@ protected:
 
 TEST(EnemyTest, AlMorirSueltaOroSegunLaProbabilidad) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player attacker(1, 0, 0);
     auto sure = std::make_unique<GoldEnemy>(2, 2, 100);
     auto never = std::make_unique<GoldEnemy>(3, 3, 0);
@@ -359,8 +359,8 @@ TEST(EnemyTest, AlMorirSueltaOroSegunLaProbabilidad) {
 
 TEST(EnemyTest, AgregarUnEnemigoFueraDelMapaNoRompe) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 2, 2, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 2, 2, "dungeon_1"));
     world.add_enemy(std::make_unique<Skeleton>(7, 7));  // fuera del mapa: se descarta
 
     auto owned = std::make_unique<Skeleton>(0, 0);
@@ -377,8 +377,8 @@ TEST(EnemyTest, AgregarUnEnemigoFueraDelMapaNoRompe) {
 // ---------------------------------------------------------
 TEST(VampireTest, ElGolpeGraveDejaCharcoYElVampiroReviveUnaVez) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 0, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 0, "dungeon_1"));
     Player attacker(1, 0, 0);
     world.damage_player(1, 85);  // 100 -> 15: por debajo del 20 %, deja sangre
 
@@ -409,8 +409,8 @@ TEST(VampireTest, ElGolpeGraveDejaCharcoYElVampiroReviveUnaVez) {
 
 TEST(VampireTest, LaMuerteDelJugadorTambienDejaCharco) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 0, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 0, "dungeon_1"));
     Player attacker(1, 0, 0);
     world.damage_player(1, 100);  // mata al jugador: también deja sangre
 
@@ -431,8 +431,8 @@ TEST(VampireTest, LaMuerteDelJugadorTambienDejaCharco) {
 
 TEST(VampireTest, UnGolpeNoGraveNoDejaCharcoYElVampiroNoRevive) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 0, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 0, "dungeon_1"));
     Player attacker(1, 0, 0);
     world.damage_player(1, 40);  // queda en 60: no es grave, no hay sangre
 
@@ -453,8 +453,8 @@ TEST(VampireTest, UnGolpeNoGraveNoDejaCharcoYElVampiroNoRevive) {
 
 TEST(VampireTest, AlMorirLaVampiraElVampiroEnfureceYPegaElDoble) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 5, 5, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 5, 5, "dungeon_1"));
     Player attacker(1, 0, 0);
     auto male = std::make_unique<Vampire>(6, 5);  // al lado del jugador
     auto female = std::make_unique<Vampiress>(8, 8);
@@ -478,8 +478,8 @@ TEST(VampireTest, AlMorirLaVampiraElVampiroEnfureceYPegaElDoble) {
 
 TEST(VampireTest, AlMorirElVampiroLaVampiraEnfureceYCorreElDoble) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 0, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 0, "dungeon_1"));
     Player attacker(1, 0, 0);
     auto male = std::make_unique<Vampire>(8, 0);
     auto female = std::make_unique<Vampiress>(5, 0);  // a 5 del jugador
@@ -503,7 +503,7 @@ TEST(VampireTest, AlMorirElVampiroLaVampiraEnfureceYCorreElDoble) {
 
 TEST(VampireTest, SpawnVampirePairDejaLaParejaEnlazada) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_vampire_pair(5, 5);
 
     Vampire* male = nullptr;
@@ -535,7 +535,7 @@ TEST(VampireTest, SpawnVampirePairDejaLaParejaEnlazada) {
 
 TEST(VampireTest, SiLaParejaSaleDelMundoElSobrevivienteNoQuedaColgado) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_vampire_pair(5, 5);
 
     Vampire* male = nullptr;
@@ -562,8 +562,8 @@ TEST(VampireTest, SiLaParejaSaleDelMundoElSobrevivienteNoQuedaColgado) {
 
 TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 0, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 0, "dungeon_1"));
     Player attacker(1, 0, 0);
     world.damage_player(1, 85);  // deja un charco...
     world.clear_blood_puddle();  // ...que el fin de día seca
@@ -588,7 +588,7 @@ TEST(VampireTest, FinDeDiaLimpiaLosCharcos) {
 // ---------------------------------------------------------
 TEST(SkullTest, NoPuedeSerAsesinadoNiSueltaOro) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     Player attacker(1, 0, 0);
     auto owned = std::make_unique<Skull>(3, 3);
     Skull* skull = owned.get();
@@ -604,8 +604,8 @@ TEST(SkullTest, NoPuedeSerAsesinadoNiSueltaOro) {
 
 TEST(SkullTest, LanzaLlamaQueVuelaHaciaElJugadorSinMoverse) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 3, 6, SceneId::DUNGEON_1));  // a distancia 3
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 3, 6, "dungeon_1"));  // a distancia 3
     auto owned = std::make_unique<Skull>(3, 3);
     Skull* skull = owned.get();
     world.add_enemy(std::move(owned));
@@ -629,8 +629,8 @@ TEST(SkullTest, LanzaLlamaQueVuelaHaciaElJugadorSinMoverse) {
 
 TEST(SkullTest, FueraDeRangoNoLanzaLlama) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 3, 11, SceneId::DUNGEON_1));  // a distancia 8
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 3, 11, "dungeon_1"));  // a distancia 8
     world.add_enemy(std::make_unique<Skull>(3, 3));
 
     world.tick_enemies();
@@ -640,8 +640,8 @@ TEST(SkullTest, FueraDeRangoNoLanzaLlama) {
 
 TEST(SkullTest, LaLlamaVerdeSaleCadaDosTicks) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 3, 6, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 3, 6, "dungeon_1"));
     world.add_enemy(std::make_unique<Skull>(3, 3));
 
     world.tick_enemies();  // tick 1: solo azul
@@ -657,8 +657,8 @@ TEST(SkullTest, LaLlamaVerdeSaleCadaDosTicks) {
 
 TEST(SkullTest, SeAcercaAlJugadorHastaLaDistanciaDeTiro) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 3, 9, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 3, 9, "dungeon_1"));
     auto owned = std::make_unique<Skull>(3, 3);
     const Skull* skull = owned.get();
     world.add_enemy(std::move(owned));
@@ -678,8 +678,8 @@ TEST(SkullTest, SeAcercaAlJugadorHastaLaDistanciaDeTiro) {
 
 TEST(SkullTest, FueraDeRangoDeAggroNoSeMueve) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 9, 9, SceneId::DUNGEON_1));  // distancia 9 > 7
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 9, 9, "dungeon_1"));  // distancia 9 > 7
     auto owned = std::make_unique<Skull>(0, 0);
     const Skull* skull = owned.get();
     world.add_enemy(std::move(owned));
@@ -696,8 +696,8 @@ TEST(SkullTest, FueraDeRangoDeAggroNoSeMueve) {
 // ---------------------------------------------------------
 TEST(FlameTest, LaLlamaPegaAlContactoYSeApaga) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 4, 1, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 4, 1, "dungeon_1"));
     world.spawn_flame(4, 4, 4, 1, 5, "skull_fire");  // sube hacia el jugador
 
     ASSERT_EQ(world.projectile_snapshots().size(), 1u);
@@ -710,8 +710,8 @@ TEST(FlameTest, LaLlamaPegaAlContactoYSeApaga) {
 
 TEST(FlameTest, LaLlamaMuereContraUnaPared) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.get_scene(SceneId::DUNGEON_1).get_cell(2, 1).is_wall = true;  // el objetivo está del otro lado
+    world.set_active_scene("dungeon_1");
+    world.get_scene("dungeon_1").get_cell(2, 1).is_wall = true;  // el objetivo está del otro lado
     world.spawn_flame(2, 2, 2, 0, 5, "skull_fire");
 
     world.tick_flames();
@@ -721,7 +721,7 @@ TEST(FlameTest, LaLlamaMuereContraUnaPared) {
 
 TEST(FlameTest, LaLlamaMuereContraElBordeDelMapa) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_flame(0, 4, 0, 9, 5, "skull_fire");  // objetivo fuera del mapa
 
     world.tick_flames();
@@ -730,7 +730,7 @@ TEST(FlameTest, LaLlamaMuereContraElBordeDelMapa) {
 
 TEST(FlameTest, LaLlamaNoBloqueaLasCeldas) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     world.spawn_flame(2, 2, 2, 4, 5, "skull_fire");
 
     EXPECT_TRUE(world.can_walk_to(2, 2));
@@ -742,8 +742,8 @@ TEST(FlameTest, LaLlamaNoBloqueaLasCeldas) {
 // ---------------------------------------------------------
 TEST(EnemyTest, ElGolpeTieneCooldownDeDiezTicksDePersecucion) {
     World world(10, 10);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 2, 1, SceneId::DUNGEON_1));
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 2, 1, "dungeon_1"));
     world.add_enemy(std::make_unique<Skeleton>(1, 1));  // adyacente
 
     world.tick_enemies_pursuit();
@@ -760,7 +760,7 @@ TEST(EnemyTest, ElGolpeTieneCooldownDeDiezTicksDePersecucion) {
 
 TEST(EnemyTest, SinJugadorEnRangoDeambulaSinSalirseDelMapa) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
+    world.set_active_scene("dungeon_1");
     auto owned = std::make_unique<Skeleton>(2, 2);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));
@@ -775,8 +775,8 @@ TEST(EnemyTest, SinJugadorEnRangoDeambulaSinSalirseDelMapa) {
 
 TEST(EnemyTest, NoDeambulaMientrasHayUnJugadorEnRango) {
     World world(5, 5);
-    world.set_active_scene(SceneId::DUNGEON_1);
-    world.add_player(1, std::make_unique<Player>(1, 0, 4, SceneId::DUNGEON_1));  // en rango de aggro
+    world.set_active_scene("dungeon_1");
+    world.add_player(1, std::make_unique<Player>(1, 0, 4, "dungeon_1"));  // en rango de aggro
     auto owned = std::make_unique<Skeleton>(0, 0);
     const Skeleton* skeleton = owned.get();
     world.add_enemy(std::move(owned));

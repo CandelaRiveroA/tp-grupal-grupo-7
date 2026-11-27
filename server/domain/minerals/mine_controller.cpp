@@ -20,10 +20,10 @@
 // Rates de aparición (suman 100, así que son % directos): roca = relleno
 // de la sala, de ahí su frecuencia muy alta.
 #define kWeightRock 45
-#define kWeightCoal 30
+#define kWeightCoal 27
 #define kWeightLapis 15
 #define kWeightSilver 8
-#define kWeightGold 2
+#define kWeightGold 5
 
 // Sala desde la que aparece el oro.
 #define kGoldFromRoom 5
@@ -32,9 +32,6 @@ MineController::MineController(uint8_t sala, uint32_t seed):
         EntityController(kMineDensityPercent, seed), sala(sala) {}
 
 void MineController::clear_generation(World& world) {
-    // El snapshot identifica el tipo sin RTTI: Resource = cualquier mineral,
-    // Dropped = cualquier item del piso venga de donde venga. Cama
-    // (Furniture) y animales (sin snapshot) no se tocan.
     std::vector<IEntity*> to_clear;
     for (uint16_t y = 0; y < world.get_height(); ++y) {
         for (uint16_t x = 0; x < world.get_width(); ++x) {
@@ -58,8 +55,6 @@ void MineController::spawn_at(World& world, uint16_t x, uint16_t y) {
 }
 
 std::unique_ptr<IEntity> MineController::make_rock(uint16_t x, uint16_t y) {
-    // TODO: sistema de salas: el peso del oro solo entra con sala >= 5.
-    // Hoy kRoomNumber es 1, así que el oro no aparece en la generación.
     const std::vector<int> weights = {kWeightRock, kWeightCoal, kWeightLapis, kWeightSilver,
                                       this->sala >= kGoldFromRoom ? kWeightGold : 0};
 

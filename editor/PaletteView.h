@@ -3,10 +3,12 @@
 #include <QWidget>
 #include <string>
 
+#include "PortalPrefabs.h"
+#include "world_model/Portal.h"
 #include "world_model/PrefabCatalog.h"
 
+class PaletteListWidget;
 class QComboBox;
-class QListWidget;
 class TilesetCache;
 
 // Panel de prefabs con selector de categoria y previsualizacion completa.
@@ -20,13 +22,15 @@ public:
 
 signals:
 	void prefabSelected(const worldmodel::PrefabDef* prefab);
+	void bedSelected();
+	void portalPicked(worldmodel::PortalKind kind, int width, int height);
 
 private:
 	void populateCategory(const std::string& category);
-	QPixmap centeredPreview(const QPixmap& sprite) const;
 
 	const worldmodel::PrefabCatalog& catalog_;
 	const TilesetCache& tilesets_;
+	PortalPrefabs portalPrefabs_;
 	QComboBox* categoryCombo_ = nullptr;
-	QListWidget* list_ = nullptr;
+	PaletteListWidget* list_ = nullptr;
 };

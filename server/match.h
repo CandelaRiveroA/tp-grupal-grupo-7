@@ -9,6 +9,9 @@
 #include <vector>
 
 #include "domain/map/world.h"
+#include "world_model/World.h"
+
+#include <set>
 
 #include "commands/chat_command.h"
 
@@ -39,8 +42,6 @@ struct PlayerLeft {
     uint8_t player_id;
 };
 
-struct DayPassed {};
-
 // Cambio de salto de la hora de juego. `generation` identifica el día que lo
 // produjo: un reinicio del día (sueño, salida) deja pasos viejos en la cola
 // y Match los descarta.
@@ -56,22 +57,22 @@ struct CreatureTick {};
 // más seguido que CreatureTick: es el mismo ritmo que el jugador (400 ms).
 struct EnemyTick {};
 
-using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, DayPassed, CreatureTick,
-                                EnemyTick, ClockStep>;
+using MatchEvent = std::variant<PlayerJoined, PlayerMessage, PlayerLeft, CreatureTick, EnemyTick,
+                                ClockStep>;
 
-// Empuja un DayPassed cada día de juego mientras la partida corre.
-// restart() corta el día en curso SIN empujar DayPassed: lo usa el arranque
-// del día (todos despiertos), para que los 30 segundos arranquen de cero.
+// Publica ClockStep con generación; Match termina el día al llegar al límite.
+// restart() invalida los pasos anteriores y reinicia desde la hora indicada.
 class DayClock: public Worker {
 private:
     Queue<MatchEvent>& events;
     std::atomic<bool> restart_requested;
     std::atomic<uint32_t> day_generation;
+    std::atomic<uint16_t> start_minutes_;
 
 public:
     explicit DayClock(Queue<MatchEvent>& events);
 
-    void restart();
+    void restart(uint16_t start_minutes = 0);
     uint32_t generation() const;
 
 protected:
@@ -83,6 +84,8 @@ private:
     Queue<MatchEvent>& events;
     ServerOutputMonitor& output;
     World world;
+    std::set<uint8_t> free_cabins_;
+    std::map<uint8_t, uint8_t> player_cabin_;
     DayClock clock;
     std::map<uint8_t, std::shared_ptr<Queue<ServerMessage>>> outputs;
     // Nombre de personaje por jugador (para mostrar en el chat y resolver '@').
@@ -100,13 +103,12 @@ private:
     void handle(const PlayerMessage& event);
     void handle_chat(uint8_t player_id, const std::string& text);
     void handle(const PlayerLeft& left);
-    void handle(const DayPassed& day);
+    void finish_day();
     void handle(const CreatureTick& tick);
     void handle(const EnemyTick& tick);
     void handle(const ClockStep& step);
     void sync_all();
     void place_minerals();
-    void place_animals();
     void place_enemies();
     void broadcast(const ServerMessage& message);
     void send_to(uint8_t player_id, const ServerMessage& message);
@@ -117,7 +119,8 @@ private:
     void flush_community_events();
 
 public:
-    Match(Queue<MatchEvent>& events, ServerOutputMonitor& output);
+    Match(Queue<MatchEvent>& events, ServerOutputMonitor& output,
+          worldmodel::World&& world_model);
 
 protected:
     void execute() override;

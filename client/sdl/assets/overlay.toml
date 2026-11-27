@@ -30,9 +30,29 @@ npc = "robin"
 action = "popup"
 target = "community_center"
 
-[roles.market]
+[roles.carpentry]
 action = "enter_map"
-target = "market"
+target = "carpentry"
+
+[roles.blacksmith]
+action = "enter_map"
+target = "blacksmith"
+
+[roles.general_store]
+action = "enter_map"
+target = "general_store"
+
+[roles.ranch]
+action = "enter_map"
+target = "ranch"
+
+[roles.cabin]
+action = "enter_map"
+target = "cabin_1"
+
+[roles.barn]
+action = "enter_map"
+target = "barn"
 
 # Variantes de noche y decoraciones iniciales: se declaran por el tile de
 # origen que guarda el editor ("tileset:col,row"). Ejemplos:

@@ -18,6 +18,7 @@ struct Scenario {
 	std::map<std::string, TilesetDef> tilesets;
 	std::vector<bool> collision;
 	TileGrid ground;
+	TileGrid front;
 };
 
 }

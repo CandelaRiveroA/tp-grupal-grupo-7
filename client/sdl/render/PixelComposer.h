@@ -69,6 +69,10 @@ public:
 	// Sube el lienzo a la textura y lo dibuja escalado en `dest`.
 	void present(const SDL2pp::Rect& dest, Flip flip);
 
+	// Sube el lienzo a la textura y copia la región `src` escalada a `dest`.
+	void presentRegion(const SDL2pp::Rect& src, const SDL2pp::Rect& dest,
+			   Flip flip = Flip::None);
+
 private:
 	Rgba applyRules(Rgba pixel, const PixelRules& rules) const;
 	void blendPixel(int x, int y, const Rgba& color);

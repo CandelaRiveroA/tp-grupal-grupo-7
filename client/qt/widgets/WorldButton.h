@@ -2,6 +2,7 @@
 
 #include <QAbstractButton>
 #include <QString>
+#include <cstdint>
 
 #include "common/model/draft/WorldSummary.h"
 
@@ -14,7 +15,8 @@ class WorldButton: public QAbstractButton {
     Q_OBJECT
 
 public:
-    WorldButton(const WorldSummary& world, const WorldSprites& sprites, QWidget* parent = nullptr);
+    WorldButton(const WorldSummary& world, std::uint32_t iconId, const WorldSprites& sprites,
+                QWidget* parent = nullptr);
 
     const WorldSummary& world() const;
 
@@ -27,5 +29,6 @@ private:
     QString makeToolTip() const;
 
     WorldSummary world_;
+    std::uint32_t iconId_;
     const WorldSprites& sprites_;
 };

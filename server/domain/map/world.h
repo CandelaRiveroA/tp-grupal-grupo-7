@@ -4,13 +4,17 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "../animals/animal_purchase.h"
 #include "../community/community_center.h"
+#include "world_model/World.h"
 #include "../community/community_set_catalog.h"
 #include "../community/community_set_rewards.h"
 #include "../entities/player.h"
@@ -24,9 +28,11 @@
 #include "town.h"
 
 class Animal;
+class Barn;
 class Enemy;
 class Crop;
 class Merchant;
+class Product;
 
 struct GiftOffer {
     uint8_t sender_id;
@@ -38,10 +44,15 @@ class World {
 private:
     // Dueño de todos los escenarios de la partida (FARMHOUSE, FARM, TOWN, DUNGEON_1..10).
     std::map<SceneId, std::unique_ptr<Scene>> scenes;
-    Scene* farmhouse;
     Farm* farm;
+    Barn* barn;
+    SceneId barn_scene_id_;
     Town* town;
-    std::vector<DungeonFloor*> dungeon_floors;
+    std::string spawn_map_;
+    uint16_t spawn_x_ = 0;
+    uint16_t spawn_y_ = 0;
+    std::vector<std::pair<std::string, std::pair<uint16_t, uint16_t>>> cabin_beds_;
+    std::map<int, DungeonFloor*> dungeon_floors;
     // Escena sobre la que se está ejecutando el tick o interacción actual
     // (permite que IEntity::interact / update sigan llamando a World& sin cambiar firmas).
     SceneId active_scene;
@@ -58,7 +69,10 @@ private:
     // Eventos globales consumidos por Match.
     std::vector<ResourceHit> resource_hits;
     std::vector<PlayerPickup> pickups;
+    std::set<uint8_t> inventory_full;
     std::vector<uint8_t> gift_answers;
+    std::vector<uint8_t> accepted_gifts;
+    std::map<std::pair<uint8_t, uint8_t>, ItemID> offered_gifts;
     std::vector<GiftOffer> pending_gifts;
 
     // Sueño y fin de día.
@@ -70,6 +84,12 @@ private:
     bool day_ended;
     bool day_started;
     uint8_t day;
+
+    // Cheat de tiempo: valor deseado del reloj y reinicio pendiente del
+    // DayClock (con su base de minutos).
+    uint16_t desired_clock_minutes_ = 0;
+    bool clock_minutes_dirty_ = false;
+    std::optional<uint16_t> pending_clock_restart_;
 
     // Centro Comunitario (estado global cooperativo).
     CommunityCenter community_center;
@@ -94,6 +114,7 @@ private:
 
 public:
     World(uint16_t w, uint16_t h);
+    World(const worldmodel::World& wm);
     ~World() = default;
     World(const World&) = delete;
     World& operator=(const World&) = delete;
@@ -102,10 +123,16 @@ public:
     Scene& get_scene(SceneId id);
     const Scene& get_scene(SceneId id) const;
     const Scene& get_scene_of(uint8_t player_id) const;
+    std::vector<SceneId> get_scene_ids() const;
     void set_active_scene(SceneId id);
     SceneId get_active_scene() const;
     Farm& get_farm();
     Town& get_town();
+    const std::string& spawn_map() const;
+    uint16_t spawn_x() const;
+    uint16_t spawn_y() const;
+    std::size_t cabin_count() const;
+    std::pair<std::string, std::pair<uint16_t, uint16_t>> cabin_bed(std::size_t k) const;
     DungeonFloor& get_dungeon_floor(uint8_t room_number);
     void transfer_player(uint8_t player_id, SceneId target_scene, uint16_t x, uint16_t y);
 
@@ -134,14 +161,17 @@ public:
     void select_slot(uint8_t player_id, uint8_t slot);
     void set_player_appearance(uint8_t player_id, const CharacterAppearance& appearance);
 
-    // --- Animales (delegados a Farm) ---
+    // --- Animales (delegados al establo) ---
     void add_animal(std::unique_ptr<Animal> animal);
     void tick_animals();
+    AnimalPurchaseResult buy_animals(Player& player, ItemID type, uint16_t quantity,
+                                     uint16_t cost);
+    void reward_animals(Player& player, ItemID type, uint16_t quantity);
 
     // --- Comerciantes (delegados a Town) ---
     void place_merchant(std::unique_ptr<Merchant> merchant);
     Merchant* get_nearest_merchant(uint8_t player_id) const;
-    std::vector<MerchantPlacement> get_merchant_placements() const;
+
     Merchant* get_merchant_for_command(uint8_t player_id);
     std::string process_merchant_command(uint8_t player_id, const std::string& text);
 
@@ -179,6 +209,9 @@ public:
     void take_item(uint8_t player_id);
     void record_resource_hit(uint16_t x, uint16_t y, bool destroyed);
     std::vector<ResourceHit> take_resource_hits();
+    bool try_pick_up_item(Player& player, std::unique_ptr<Item> item);
+    void give_item_or_gold(Player& player, std::unique_ptr<Product> item);
+    std::set<uint8_t> take_inventory_full();
     void record_pickup(uint8_t player_id, ItemID item);
     std::vector<PlayerPickup> take_pickups();
 
@@ -186,6 +219,10 @@ public:
     void tick_day();
     void advance_day();
     uint8_t get_day() const;
+    void set_clock_minutes(uint16_t minutes);
+    std::optional<uint16_t> take_desired_clock_minutes();
+    void request_clock_restart(uint16_t start_minutes);
+    std::optional<uint16_t> take_clock_restart_request();
     void record_sleep_request(uint8_t player_id);
     void answer_sleep(uint8_t player_id, bool accept);
     uint8_t sleeping_count() const;
@@ -225,6 +262,8 @@ public:
     void process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id);
     std::vector<GiftOffer> take_gift_requests();
     std::vector<uint8_t> take_gift_answers();
+    std::vector<uint8_t> take_accepted_gifts();
+    void cancel_gift_request(uint8_t sender_id, uint8_t receiver_id);
 };
 
 #endif  // WORLD_H

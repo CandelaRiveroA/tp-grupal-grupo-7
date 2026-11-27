@@ -68,6 +68,8 @@ TEST(ScenarioSerializerTest, RoundTripPreservesScenario) {
 	scenario.ground = TileGrid(12);
 	scenario.ground[0] = TileRef{"outdoors", 1, 2};
 	scenario.ground[7] = TileRef{"outdoors", 3, 4};
+	scenario.front = TileGrid(12);
+	scenario.front[3] = TileRef{"outdoors", 5, 6};
 
 	const ScenarioSerializer serializer;
 	const Scenario loaded =
@@ -80,6 +82,7 @@ TEST(ScenarioSerializerTest, RoundTripPreservesScenario) {
 	EXPECT_EQ(loaded.tileSize, scenario.tileSize);
 	EXPECT_EQ(loaded.collision, scenario.collision);
 	EXPECT_EQ(loaded.ground, scenario.ground);
+	EXPECT_EQ(loaded.front, scenario.front);
 	ASSERT_EQ(loaded.tilesets.size(), 1u);
 	EXPECT_EQ(loaded.tilesets.at("outdoors").image, "outdoors.png");
 	EXPECT_EQ(loaded.tilesets.at("outdoors").cellWidth, 16);

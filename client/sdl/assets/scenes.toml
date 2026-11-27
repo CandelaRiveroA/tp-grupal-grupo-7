@@ -97,29 +97,10 @@ scale       = 2
   at      = [18, 1]
   span    = [3, 8]
 
-  # Cama completa (vertical): un ÚNICO elemento de 2×4 celdas, fila
-  # por fila. Se omite la fila (6,11)(7,11) del mitad porque su aire
-  # transparente superior abría un gap; la base de la cabecera
-  # (4,11)(5,11) empalma directo con (6,12)(7,12).
-  #   Filas 0-1: cabecera     (4,10)(5,10) / (4,11)(5,11)
-  #   Fila  2:   mitad-bottom (6,12)(7,12)
-  #   Fila  3:   pie          (0,10)(1,10)
-  # scale=3 → 96×192px = 3×6 celdas lógicas. Mover: cambiar `at`.
-  # `enter`: el jugador puede meterse (click del cursor). Las filas 2-3
-  # (mitad + pie) se dibujan ENCIMA y lo tapan; la cabecera queda
-  # detrás (la cabeza se ve sobre la almohada). `lie` es la celda donde
-  # queda acostado.
-  [[rooms.bedroom.elements]]
-  tileset = "decoration"
-  piece   = [2, 4]
-  cells   = [ [4,10],[5,10],
-              [4,11],[5,11],
-              [6,12],[7,12],
-              [0,10],[1,10] ]
-  draw    = { mode = "single", scale = 3 }
-  at      = [19, 10]
-  span    = [3, 6]
-  enter   = { rows = [2, 3], lie = [20, 13], facing = "right" }
+  # La cama ya NO es una decoración fija: es un MUEBLE (contentId "bed",
+  # dibujado por piezas según npcs.toml) que manda la fuente de estado en
+  # su celda (la misma del server, donde se acuesta el jugador). Así se
+  # puede levantar y mover como cualquier mueble sin dibujarse dos veces.
 
   # Estado INICIAL del dormitorio: solo fondo, ventana, chimenea y
   # cama. Lo demás (planta, alfombra, mesas...) lo consigue el jugador

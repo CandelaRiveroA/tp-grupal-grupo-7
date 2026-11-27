@@ -10,6 +10,7 @@
 #include "game/MoveCommand.h"
 #include "game/WalkPacer.h"
 #include "world/CreatureCatalog.h"
+#include "world/FurnitureFacing.h"
 #include "world/Grid.h"
 #include "world/ViewDirection.h"
 
@@ -57,6 +58,10 @@ public:
     // Es intención del jugador: la fuente decide si se puede. Se
     // termina al llegar o al primer movimiento manual (el jugador manda).
     void walkTo(const world::GridCell& target);
+
+    // Intención de colocar el mueble del slot activo en `cell` (la celda
+    // del mueble para la fuente). La fuente de estado decide si se puede.
+    void place(const world::GridCell& cell, world::FurnitureFacing facing);
 
     int activeSlot() const;
 

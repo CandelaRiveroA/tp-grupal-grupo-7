@@ -5,8 +5,9 @@
 
 namespace game {
 
-ObjectPicker::ObjectPicker(const world::ContentCatalog& content)
-	: content_(content) {}
+ObjectPicker::ObjectPicker(const world::ContentCatalog& content,
+			   const world::FurnitureGeometry& furniture)
+	: content_(content), furniture_(furniture) {}
 
 PickTarget ObjectPicker::pick(const world::PixelPoint& worldPoint,
 			      const LocalWorldView& view,
@@ -51,6 +52,19 @@ PickTarget ObjectPicker::pick(const world::PixelPoint& worldPoint,
 			world::kUnitCellSpan);
 		if (contains(box, worldPoint)) {
 			return PickTarget{PickTarget::Kind::Crop, index};
+		}
+	}
+
+	// Muebles colocados al fondo: la caja es la de su sprite entero
+	// (todas sus partes: tapa y base cuentan como UNA unidad).
+	for (std::size_t i = view.placedFurniture.size(); i > 0; --i) {
+		const std::size_t index = i - 1;
+		const ViewFurniture& piece = view.placedFurniture[index];
+		const std::optional<world::FurnitureShape> shape = furniture_.shapeOf(
+			piece.contentId, world::GridCell{piece.cellX, piece.cellY}, mapper,
+			piece.facing);
+		if (shape.has_value() && contains(shape->box, worldPoint)) {
+			return PickTarget{PickTarget::Kind::Furniture, index};
 		}
 	}
 

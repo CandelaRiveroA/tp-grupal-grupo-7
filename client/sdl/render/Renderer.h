@@ -15,9 +15,12 @@
 #include "game/NpcPlacementResolver.h"
 #include "sdl/render/GroundEffectPainter.h"
 #include "sdl/render/NpcRenderer.h"
+#include "sdl/render/PropPainter.h"
+#include "game/FurnitureKey.h"
 #include "sdl/render/SheetCache.h"
 #include "sdl/render/TileLayerPainter.h"
 #include "world/ContentCatalog.h"
+#include "world/FurnitureGeometry.h"
 #include "world/DepthOrder.h"
 #include "world/CropCatalog.h"
 #include "world/GroundCatalog.h"
@@ -49,6 +52,10 @@ public:
 		 const world::CropCatalog& crops,
 		 const world::CharacterPalettes& palettes);
 
+	// Las hojas cacheadas del mundo (una textura por imagen): quien
+	// dibuja sobre el mundo con los mismos sprites las comparte.
+	SheetCache& sheets();
+
 	// Reconstruye el índice de elementos estáticos. Se llama cuando se
 	// entra a una escena o cuando cambia su contenido, no por frame.
 	void prepareScene(const world::SceneDescription& scene);
@@ -56,7 +63,22 @@ public:
 	// NPCs de la sala actual: se dibujan antes de las entidades.
 	void setNpcs(const std::vector<const world::NpcDef*>& npcs);
 	// Cuadro actual de los NPCs animados (cofres), por id.
+	// También lo usan los muebles animados colocados (clave
+	// game::FurnitureKey).
 	void setNpcFrames(const std::map<std::string, int>& frames);
+
+	// Geometría de los muebles (bloque o por piezas, con su ancla):
+	// la MISMA que usan el click y la colocación. Debe vivir más que el
+	// Renderer; sin ella los muebles no se dibujan.
+	void setFurniture(const world::FurnitureGeometry& furniture);
+
+	// Las filas frontales de un mueble por piezas (la cama: lo que tapa a
+	// quien duerme), encima de las entidades. QUÉ filas lo decide
+	// game::EnterSelection.
+	void drawFurnitureFront(const game::ViewFurniture& furniture,
+				const world::ScenePixelMapper& mapper,
+				const Viewport& viewport, int firstRow,
+				int lastRow);
 
 	// `timeOfDay` filtra los elementos con `when` (scenes.toml):
 	// qué momento es lo dice el dueño de DayPhase, no esto.
@@ -115,6 +137,10 @@ private:
 	EntityRenderer entityRenderer_;
 	TileLayerPainter layerPainter_;
 	NpcRenderer npcRenderer_;
+	PropPainter propPainter_;
+	game::FurnitureKey furnitureKey_;
+	const world::FurnitureGeometry* furniture_ = nullptr;
+	std::map<std::string, int> propFrames_;
 	game::NpcPlacementResolver npcPlacements_;
 	GroundEffectPainter groundPainter_;
 	CropPainter cropPainter_;

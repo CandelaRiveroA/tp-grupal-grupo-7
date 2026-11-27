@@ -62,6 +62,12 @@ public:
 	void setColorMod(std::uint8_t r, std::uint8_t g, std::uint8_t b);
 	void clearColorMod();
 
+	// Transparencia al dibujar (0 = invisible, 255 = opaco). Quien la
+	// pone la restaura con clearAlphaMod() al terminar: la hoja es
+	// compartida por todos los que dibujan con ella.
+	void setAlphaMod(std::uint8_t alpha);
+	void clearAlphaMod();
+
 	void drawBlock(int col, int row, int cols, int rows,
 		       const SDL2pp::Rect& dest, Flip flip = Flip::None,
 		       double fracW = 1.0, double fracH = 1.0,

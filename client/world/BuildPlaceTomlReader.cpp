@@ -16,6 +16,8 @@ constexpr const char* kSheetCell = "sheet.cell";
 constexpr const char* kStates = "states";
 constexpr const char* kBlock = "block";
 constexpr const char* kScale = "scale";
+constexpr const char* kGhostAlpha = "ghost.alpha";
+constexpr const char* kGhostPush = "ghost.push";
 
 // Estado lógico -> tabla del TOML que lo describe.
 struct StateBinding {
@@ -104,6 +106,21 @@ BuildPlaceCatalog BuildPlaceTomlReader::read() const {
 		}
 		catalog.setState(*state, readVisual(sheet, cell[0], cell[1],
 						   join(kStates, name)));
+	}
+	// Opacidad de la vista previa de un mueble (opcional; default del catálogo).
+	if (doc_.hasKey(kGhostAlpha)) {
+		const int alpha = doc_.getInt(kGhostAlpha);
+		if (alpha < 0 || alpha > 255) {
+			throw ConfigError(Kind::InvalidValue, kGhostAlpha);
+		}
+		catalog.setGhostAlpha(alpha);
+	}
+	if (doc_.hasKey(kGhostPush)) {
+		const double push = doc_.getDouble(kGhostPush);
+		if (push < 0.0) {
+			throw ConfigError(Kind::InvalidValue, kGhostPush);
+		}
+		catalog.setGhostPush(push);
 	}
 	return catalog;
 }

@@ -7,8 +7,8 @@
 #include "world_model/Portal.h"
 #include "world_model/PrefabCatalog.h"
 
+class PaletteListWidget;
 class QComboBox;
-class QListWidget;
 class TilesetCache;
 
 // Panel de prefabs con selector de categoria y previsualizacion completa.
@@ -32,5 +32,5 @@ private:
 	const TilesetCache& tilesets_;
 	PortalPrefabs portalPrefabs_;
 	QComboBox* categoryCombo_ = nullptr;
-	QListWidget* list_ = nullptr;
+	PaletteListWidget* list_ = nullptr;
 };

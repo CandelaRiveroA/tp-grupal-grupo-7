@@ -1,14 +1,15 @@
 #include "PortalsView.h"
 
 #include <QComboBox>
-#include <QListWidget>
 #include <QListWidgetItem>
 #include <QPainter>
 #include <QPixmap>
-#include <QSize>
+#include <QString>
 #include <QVBoxLayout>
+#include <vector>
 
 #include "Constants.h"
+#include "PaletteListWidget.h"
 #include "TilesetCache.h"
 #include "world_model/PrefabCatalog.h"
 
@@ -45,21 +46,12 @@ PortalsView::PortalsView(const worldmodel::PrefabCatalog& catalog,
 		sizeCombo_->addItem(opt.label);
 	}
 
-	list_ = new QListWidget(this);
-	list_->setObjectName("portalList");
-	list_->setViewMode(QListView::IconMode);
-	list_->setIconSize(
-		QSize(editor::kPaletteIconSize, editor::kPaletteIconSize));
-	list_->setGridSize(editor::kPaletteGridSize);
-	list_->setResizeMode(QListView::Adjust);
-	list_->setMovement(QListView::Static);
-	list_->setWordWrap(true);
-	list_->setSpacing(editor::kPaletteItemSpacing);
+	list_ = new PaletteListWidget("portalList", this);
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(editor::kPaletteMargins);
 	layout->addWidget(sizeCombo_);
-	layout->addWidget(list_);
+	layout->addWidget(list_, 1);
 
 	populatePortals();
 
@@ -115,7 +107,8 @@ void PortalsView::populatePortals() {
 	const SizeOption opt = currentSizeOption();
 	const QIcon defaultIcon = portalPreviewIcon(opt.width, opt.height);
 
-	list_->clear();
+	std::vector<PaletteListWidget::Card> cards;
+	cards.reserve(portalEntries_.size());
 	for (const PortalEntry& entry : portalEntries_) {
 		const worldmodel::PrefabDef* prefab =
 			portalPrefabs_.prefabFor(entry.kind, catalog_);
@@ -129,10 +122,9 @@ void PortalsView::populatePortals() {
 				: defaultIcon;
 		const int w = prefab != nullptr ? prefab->width : opt.width;
 		const int h = prefab != nullptr ? prefab->height : opt.height;
-		QListWidgetItem* item = new QListWidgetItem(
-			icon,
-			QString("%1\n%2x%3").arg(entry.label).arg(w).arg(h),
-			list_);
-		item->setData(Qt::UserRole, static_cast<int>(entry.kind));
+		const QString label =
+			QString("%1\n%2x%3").arg(entry.label).arg(w).arg(h);
+		cards.push_back({icon, label, static_cast<int>(entry.kind)});
 	}
+	list_->setCards(cards);
 }

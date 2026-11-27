@@ -7,7 +7,7 @@
 
 // Constantes del editor, agrupadas por archivo que las usa.
 // Sin inline: por ser const, cada unidad de traduccion que las usa se queda
-// con su propia copia (linkage interno). Hoy cada una la usa un solo archivo.
+// con su propia copia (linkage interno).
 namespace editor {
 
 // WorkspaceView.cpp / MapTreeWidget.cpp
@@ -25,11 +25,15 @@ constexpr int kToolIconSize = 32;   // iconos de editor/resources/ui a tamano na
 // Ancho minimo del boton de alta, para que no se corte su texto.
 constexpr int kAddMapButtonMinWidth = 130;
 
-// PaletteView.cpp
+// PaletteListWidget.cpp / PaletteView.cpp / PortalsView.cpp
 // Margen interno del panel y de cada grupo de la paleta.
 const QMargins kPaletteMargins{4, 4, 4, 4};
 constexpr int kPaletteIconSize = 96;
-const QSize kPaletteGridSize{132, 140};
+constexpr int kPaletteCellWidth = 148;
+constexpr int kPaletteMinCellHeight = 164;
+// Presupuesto para border-image del item (hasta 8px por lado en :selected) y padding interno.
+constexpr int kPaletteTextInset = 24;
+constexpr int kPaletteCellPadding = 34;
 constexpr int kPaletteItemSpacing = 6;
 
 // MapCanvasView.cpp / MapLayerItem.cpp

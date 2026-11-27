@@ -5,7 +5,7 @@
 #include <QtGlobal>
 
 #include "CharacterRects.h"
-#include "NineSlice.h"
+#include "qt_theme/NineSlice.h"
 
 CharacterSprites::CharacterSprites() {
     // La hoja trae dos fondos lado a lado (diurno | nocturno); se usa el diurno.

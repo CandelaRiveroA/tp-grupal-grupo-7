@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "sdl/render/SheetCache.h"
@@ -32,6 +33,17 @@ private:
 		      const world::MarketItem& item,
 		      const world::PixelBox& cell,
 		      const world::ContentCatalog& content);
+	// Ítem con calidades: encabezado y una línea por calidad.
+	void drawTiered(const world::MarketPopupStyle& style,
+			const world::MarketItem& item,
+			const world::PixelBox& cell,
+			const world::ContentCatalog& content);
+	void drawIcon(const world::PixelBox& iconBox,
+		      const std::string& contentId,
+		      const world::ContentCatalog& content);
+	void drawPrice(const world::MarketPopupStyle& style,
+		       const world::PixelBox& coinBox,
+		       const world::PixelBox& priceBox, int price);
 
 	TextRenderer& text_;
 	SheetCache sheets_;

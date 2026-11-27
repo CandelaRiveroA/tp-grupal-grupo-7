@@ -11,7 +11,7 @@ void Strawberry::harvest(Player& p, World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);
     
     // 2. Intentamos dársela al jugador
-    bool success = p.pick_up_item(std::move(product));
+    bool success = w.try_pick_up_item(p, std::move(product));
     
     // 3. Si se guardó en la mochila, aplicamos la regla del rebrote
     if (success) {

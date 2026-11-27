@@ -10,10 +10,8 @@
 #include "skeleton.h"
 #include "skull.h"
 
-// 1% de las celdas libres son puntos de aparición (5 en 30x20).
-// shortcut: densidad placeholder, ajustar con partida real; un punto de manada o
-// pareja puede generar varios enemigos.
-#define kEnemyDensityPercent 1
+// x% de las celdas libres son puntos de aparición.
+#define kEnemyDensityPercent 3
 
 // Salas de la caverna: la dificultad sube con la sala.
 #define kTotalRooms 10

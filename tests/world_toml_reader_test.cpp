@@ -44,7 +44,7 @@ tile = "outdoors:0,0"
 cell = [0, 0]
 
 [[maps.farm.markers]]
-kind = "player_spawn"
+kind = "bed"
 cell = [0, 0]
 
 [[maps.farm.portals]]
@@ -130,7 +130,7 @@ TEST(WorldTomlReaderTest, ReadsObjectMarkerAndPortal) {
 	EXPECT_EQ(object.door->row, 1);
 
 	ASSERT_EQ(farm.markers.size(), 1u);
-	EXPECT_EQ(farm.markers[0].kind, MarkerKind::PlayerSpawn);
+	EXPECT_EQ(farm.markers[0].kind, MarkerKind::Bed);
 	EXPECT_EQ(farm.markers[0].cell.column, 2);
 	EXPECT_EQ(farm.markers[0].cell.row, 1);
 
@@ -234,7 +234,7 @@ TEST(WorldTomlReaderTest, UnknownObjectRoleReportsIndexedPath) {
 }
 
 TEST(WorldTomlReaderTest, UnknownMarkerKindReportsIndexedPath) {
-	expectError(replaced(kSmallWorld, "kind = \"player_spawn\"",
+	expectError(replaced(kSmallWorld, "kind = \"bed\"",
 			     "kind = \"nope\""),
 		    FormatErrorKind::InvalidValue,
 		    "maps.farm.markers[0].kind");

@@ -44,6 +44,7 @@ struct ValidationIssue {
 	IssueCode code;
 	std::string mapId;       // vacio para problemas del mundo
 	TilePos cell{-1, -1};    // celda puntual, si aplica
+	std::string detail;      // objeto/portal/marcador especifico, si aplica
 };
 
 }

@@ -54,6 +54,10 @@ public:
 	// movimiento del mouse.
 	const game::PointerPosition& mousePosition() const;
 
+	// ¿El botón izquierdo sigue apretado? Sirve para arrastrar (el
+	// click inicial sale por takeClicks).
+	bool pointerHeld() const;
+
 	// Modo texto del chat: mientras está activo el input de juego se
 	// ignora y los caracteres se acumulan
 	void setTextMode(bool open);
@@ -108,6 +112,7 @@ private:
 	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
 	std::vector<game::PointerClick> grabs_;
 	game::PointerPosition pointerPosition_{};
+	bool pointerHeld_ = false;
 
 	// Estado del modo texto: caracteres y backspaces pendientes.
 	bool textMode_ = false;

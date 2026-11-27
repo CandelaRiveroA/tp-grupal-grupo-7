@@ -3,9 +3,9 @@
 #include <vector>
 
 #include "game/LocalWorldView.h"
+#include "sdl/render/DigitPainter.h"
 #include "sdl/render/SheetCache.h"
 #include "sdl/render/SpriteSheet.h"
-#include "world/DigitCatalog.h"
 #include "world/InventoryLayout.h"
 
 namespace sdl {
@@ -17,7 +17,7 @@ namespace sdl {
 class InventoryHud {
 public:
 	InventoryHud(SdlContext& context, const world::InventoryLayout& layout,
-		     const world::DigitCatalog& digits);
+		     DigitPainter& digits);
 
 	void draw(const std::vector<game::ViewInventorySlot>& inventory,
 		  int activeSlot, bool trashHovered);
@@ -53,10 +53,9 @@ private:
 
 	SdlContext& context_;
 	world::InventoryLayout layout_;
-	world::DigitCatalog digits_;
+	DigitPainter& digits_;
 	SpriteSheet sheet_;
 	SheetCache itemSheets_;
-	SpriteSheet digitSheet_;
 };
 
 }

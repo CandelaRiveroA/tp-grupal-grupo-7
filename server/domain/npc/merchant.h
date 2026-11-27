@@ -44,6 +44,7 @@ public:
     Merchant(Merchant&&) = default;
     Merchant& operator=(Merchant&&) = default;
 
+    bool is_in_range(uint16_t x, uint16_t y) const;
     bool is_walkable() const override;
     void interact(Player& p, ToolType tool, World& w) override;
     void update(World& w) override;

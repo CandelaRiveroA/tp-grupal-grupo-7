@@ -22,12 +22,14 @@ public:
     Inventory(Inventory&&) = default;
     Inventory& operator=(Inventory&&) = default;
 
+    bool can_add_item(const Item& item) const;
     bool add_item(std::unique_ptr<Item> new_item);
     bool is_slot_empty(uint8_t index) const;
     const Item* peek_item(uint8_t index) const;
     uint8_t get_amount(uint8_t index) const;
     uint8_t get_max_slots() const;
     void consume_item(uint8_t slot_idx);
+    std::unique_ptr<Item> remove_item(uint8_t index);
     std::unique_ptr<Item> pop_one_item(uint8_t slot_idx);
     std::vector<std::unique_ptr<Item>> extract_items(ItemID id, uint16_t qty);
     std::vector<std::unique_ptr<Item>> extract_items_with_min_quality(

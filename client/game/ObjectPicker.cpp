@@ -1,6 +1,7 @@
 #include "game/ObjectPicker.h"
 
 #include "world/DroppedItemLayout.h"
+#include "world/FurnitureLayout.h"
 #include "world/WorldConstants.h"
 
 namespace game {
@@ -39,6 +40,21 @@ PickTarget ObjectPicker::pick(const world::PixelPoint& worldPoint,
 			*visual);
 		if (contains(box, worldPoint)) {
 			return PickTarget{PickTarget::Kind::DroppedItem, index};
+		}
+	}
+
+	// Muebles enviados por el servidor: la misma caja que usa Renderer.
+	for (std::size_t i = view.placedFurniture.size(); i > 0; --i) {
+		const std::size_t index = i - 1;
+		const ViewFurniture& furniture = view.placedFurniture[index];
+		const world::SpriteVisual* visual = content_.find(furniture.contentId);
+		if (visual == nullptr) {
+			continue;
+		}
+		const world::PixelRect box = world::FurnitureLayout(mapper).box(
+			*visual, world::GridCell{furniture.cellX, furniture.cellY});
+		if (contains(box, worldPoint)) {
+			return PickTarget{PickTarget::Kind::Furniture, index};
 		}
 	}
 

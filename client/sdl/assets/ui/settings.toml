@@ -1,0 +1,99 @@
+# Popup de configuración del juego (ESC). Todo lo que se ve: textos,
+# colores, tamaños y celdas. El estado (abierto, volúmenes) vive en
+# game::SettingsState; la geometría en world::SettingsLayout y el dibujo
+# en sdl::SettingsPainter.
+#
+# Sumar una categoría de audio con volumen propio = un bloque
+# [[settings.volume]] (y su valor en world::SoundCategory / el mixer).
+
+[settings]
+# La forma del panel en slots [columnas, filas].
+grid            = [9, 5]
+text_color      = [62, 39, 17, 255]
+title           = "Configuraciones del juego"
+title_size      = 28
+subtitle_size   = 26
+label_size      = 21
+# Aire entre el borde del panel y el contenido [x, y] (px).
+padding         = [24, 14]
+# Separación vertical entre bloques y horizontal entre columnas (px).
+gap             = 2
+column_gap      = 10
+# Aire extra bajo el título principal y antes de la sección de audio (px).
+title_gap       = 8
+section_gap     = 8
+# Alto de cada bloque (px): título, subtítulos y filas.
+title_height    = 26
+subtitle_height = 26
+row_height      = 30
+# Ancho de la etiqueta de cada fila (px).
+label_width     = 175
+
+# La pestañita arriba a la izquierda del panel (celda de cursors.png).
+# size: tamaño dibujado; offset: [corrimiento en x desde el borde
+# izquierdo, cuánto se mete en el panel por abajo].
+[settings.tab]
+sheet  = "ui/cursors.png"
+cell   = [16, 16]
+at     = [6, 23]
+size   = [40, 40]
+offset = [12, 5]
+
+# Partida multiplayer: la etiqueta, un espacio reservado (donde el
+# servidor mostrará el código) y el botón OK que lo pide.
+[settings.multiplayer]
+title       = "Partida multiplayer"
+qr_label    = "Generar codigo: "
+# area_width: espacio reservado para el código; el botón va pegado a él.
+area_width  = 60
+button_size = [28, 28]
+# Corrimiento fino [x, y] del botón (px): el arte del OK tiene sombra abajo.
+button_offset = [0, -3]
+
+[settings.audio]
+title = "Audio"
+
+# Abandonar la partida: la pregunta y, a su costado, el botón de cerrar
+# ([prompt.cancel] de text.toml). Apretarlo vuelve al lobby.
+[settings.leave]
+label         = "¿Abandonar la partida?"
+label_width   = 230
+button_size   = [28, 28]
+button_offset = [0, 0]
+
+# El deslizador: línea fina y perilla (la misma del selector de color de
+# ojos, pelo y pantalón de Qt).
+[settings.slider]
+line_thickness = 3
+line_color     = [74, 42, 28, 255]
+knob           = "ui/slider_knob.png"
+knob_size      = [11, 14]
+
+# Ícono del volumen: normal, y el que se usa con volumen 0.
+[settings.icon]
+image       = "ui/volumen.png"
+muted_image = "ui/volumen_bloqueado.png"
+cell        = [16, 16]
+size        = [28, 28]
+
+# El porcentaje: dígitos de digits.png más el signo con la fuente de texto.
+# width: ancho total del bloque; digit_size/digit_step: lado de cada dígito
+# y cuánto avanza el siguiente (px).
+[settings.percent]
+width      = 108
+sign       = "%"
+sign_width = 24
+digit_size = 30
+digit_step = 17
+
+# Una fila de audio por bloque. category: "sfx" o "music".
+# default: volumen inicial (%).
+[[settings.volume]]
+category = "music"
+label    = "Sonido de fondo: "
+default  = 50
+
+[[settings.volume]]
+category = "sfx"
+label    = "Sonido de efectos: "
+default  = 100

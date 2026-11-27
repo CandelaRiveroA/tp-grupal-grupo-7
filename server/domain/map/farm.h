@@ -7,14 +7,12 @@
 
 #include "scene.h"
 
-class Animal;
 class Crop;
 class Player;
 class World;
 
 class Farm: public Scene {
 private:
-    std::vector<Animal*> animals;
     std::vector<Crop*> crops;
 
 protected:
@@ -23,11 +21,6 @@ protected:
 public:
     Farm(uint16_t width, uint16_t height);
     ~Farm() override = default;
-
-    // --- Animales ---
-    void add_animal(std::unique_ptr<Animal> animal);
-    void tick_animals(World& world);
-    bool try_hand_action_animals(Player& player, World& world);
 
     // --- Suelo y cultivos (Tell, Don't Ask sobre Cell) ---
     void till_soil(uint16_t x, uint16_t y);

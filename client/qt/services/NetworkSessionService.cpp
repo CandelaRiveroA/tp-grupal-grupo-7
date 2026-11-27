@@ -13,10 +13,6 @@ namespace {
 
 constexpr int kLobbyTimeoutSeconds = 5;
 
-// shortcut: el servidor todavía tiene un solo mundo y no lo informa en el
-// lobby; subir cuando haya mundos reales en el protocolo.
-constexpr std::uint32_t kJoinedWorldId = 1;
-
 ServiceError serviceErrorFor(LobbyStatus status) {
     static const std::unordered_map<LobbyStatus, ServiceError> statusToError = {
             {LobbyStatus::NameTaken, ServiceError::GameNameTaken},
@@ -44,13 +40,14 @@ NetworkSessionService::~NetworkSessionService() {
 
 void NetworkSessionService::createGame(const GameSelection& selection) {
     sendRequest(MatchRequest{MatchRequestType::Create, selection.gameName, selection.gameName,
-                             selection.username, selection.characterName, selection.appearance});
+                             selection.worldName, selection.username, selection.characterName,
+                             selection.appearance});
 }
 
 void NetworkSessionService::joinGame(const std::string& code, const std::string& username,
                                      const std::string& characterName,
                                      const CharacterAppearance& appearance) {
-    sendRequest(MatchRequest{MatchRequestType::Join, code, "", username, characterName, appearance});
+    sendRequest(MatchRequest{MatchRequestType::Join, code, "", "", username, characterName, appearance});
 }
 
 void NetworkSessionService::loadGame(std::uint32_t) {
@@ -99,6 +96,8 @@ void NetworkSessionService::runRequest(const MatchRequest& request) {
     if (request.type == MatchRequestType::Create) {
         emit gameCreated();
     } else {
-        emit gameJoined(request.codeMatch, kJoinedWorldId);
+        // El worldName real llega en ServerWelcome (leído por NetworkGameClient
+        // al crear el cliente); Application::runGame lo prefiere al de session.
+        emit gameJoined(request.codeMatch, "");
     }
 }

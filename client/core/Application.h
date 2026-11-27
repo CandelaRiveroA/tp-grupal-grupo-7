@@ -1,11 +1,13 @@
 #pragma once
 
 #include <QApplication>
+#include <QString>
 #include <memory>
 #include <optional>
 
 #include "common/common_socket.h"
 #include "core/SessionConfig.h"
+#include "game/NetworkGameClient.h"
 #include "core/WindowConfig.h"
 
 class LobbyWindow;
@@ -15,6 +17,7 @@ class GameClient;
 }
 
 namespace world {
+class ConfigError;
 class CharacterCatalog;
 struct CharacterPalettes;
 struct GridSpan;
@@ -42,12 +45,18 @@ private:
     std::optional<SessionConfig> runLobby();
 
     // Carga los datos de la partida y corre la sesión de juego. Validar
-    // que el lobby haya dado una sesión le corresponde a run().
-    int runGame(SessionConfig session);
+    // que el lobby haya dado una sesión le corresponde a run(). Devuelve
+    // nullopt si el jugador abandonó (hay que volver al lobby) o el
+    // código de salida del programa.
+    std::optional<int> runGame(SessionConfig session);
+    QString configErrorMessage(const world::ConfigError& error) const;
 
-    std::unique_ptr<game::GameClient> createGameClient(Socket&& socket,
-                                                       const world::CharacterCatalog& characters,
-                                                       int toolUseDurationTicks) const;
+    // characterName: nombre de personaje elegido en el lobby (se muestra
+    // bajo los pies del jugador local).
+    std::unique_ptr<game::NetworkGameClient> createGameClient(Socket&& socket,
+                                                             const world::CharacterCatalog& characters,
+                                                             int toolUseDurationTicks,
+                                                             const std::string& characterName) const;
 
     WindowConfig config_;
     QApplication app_;

@@ -34,6 +34,7 @@ class WorldSelectorWidget;
 struct CharacterSelection {
 	std::string characterName;
 	std::string gameName;
+	std::string worldName;
 	CharacterAppearance appearance;
 };
 
@@ -70,6 +71,7 @@ private:
 
 	QFrame* content_;
 	QLabel* worldLabel_;
+	QLabel* worldPlayersLabel_;
 	WorldSelectorWidget* worldSelector_;
 	QLineEdit* characterName_;
 	QLineEdit* gameName_;
@@ -97,9 +99,10 @@ private:
 	void updateValidation();
 	void submit();
 	void onCreated();
-	void onJoined(const std::string& gameName, std::uint32_t worldId);
+	void onJoined(const std::string& gameName, const std::string& worldName);
 	void onSessionFailed(ServiceError error);
 	void onWorldSelected(WorldSummary world);
+	void updateWorldInfo();
 	void resetDraft();
 	void showState(ScreenState state, const QString& message);
 	bool canSubmit() const;

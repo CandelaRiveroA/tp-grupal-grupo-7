@@ -50,6 +50,12 @@ TEST_F(WorldRepositoryTest, SaveIfValidWritesCreatesDirectoryAndListed) {
 	EXPECT_TRUE(repository.saveIfValid(world).empty());
 	EXPECT_TRUE(std::filesystem::is_regular_file(repository.filePathFor(
 		"Primavera")));
+	const std::filesystem::path farmMinimap(
+		repository.minimapPathFor("Primavera", "farm"));
+	EXPECT_EQ(farmMinimap,
+		  worldsDir() / "Primavera_minimaps" / "farm.png");
+	std::filesystem::create_directories(farmMinimap.parent_path());
+	std::ofstream(farmMinimap).close();
 
 	const std::vector<WorldName> worlds = repository.listWorlds();
 	ASSERT_EQ(worlds.size(), 1u);
@@ -102,6 +108,22 @@ TEST_F(WorldRepositoryTest, ListWorldsReportsCorruptFiles) {
 	ASSERT_EQ(worlds.size(), 2u);
 	EXPECT_EQ(worlds[0], "Primavera");
 	EXPECT_EQ(worlds[1], "broken");
+}
+
+TEST_F(WorldRepositoryTest, PrepareMinimapsDirPrunesStaleMapsAndKeepsValid) {
+	const WorldRepository repository(worldsDir().string());
+	const World world = defaultWorld();
+	const std::filesystem::path farmPng(
+		repository.minimapPathFor(world.name, "farm"));
+	const std::filesystem::path stalePng(
+		repository.minimapPathFor(world.name, "extra_borrado"));
+	std::filesystem::create_directories(farmPng.parent_path());
+	std::ofstream(farmPng).close();
+	std::ofstream(stalePng).close();
+
+	EXPECT_TRUE(repository.prepareMinimapsDir(world));
+	EXPECT_TRUE(std::filesystem::is_regular_file(farmPng));
+	EXPECT_FALSE(std::filesystem::exists(stalePng));
 }
 
 }  // namespace

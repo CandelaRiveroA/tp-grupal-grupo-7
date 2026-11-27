@@ -5,6 +5,16 @@
 
 #define kMaxChatLength 256
 
+// Hora de juego: de las 6:00 a las 2:00 del día siguiente (20 h), en saltos de 10 min.
+// Compartida entre el reloj del Match y el cheat /tiempo.
+#define kDayClockMinutes 1200
+
+// Mercaderes: el marcador del mapa indica la parte superior del cuerpo
+// de dos celdas. La entidad y el protocolo usan la celda de los pies.
+#define kMerchantFeetOffset 1
+// Distancia de Chebyshev: las 24 celdas alrededor de los pies (cuadrado 5x5).
+#define kMerchantInteractionRadius 2
+
 // Nuevos enumeradores para el Tablero
 enum class Direction : uint8_t { 
     UP = 0, 

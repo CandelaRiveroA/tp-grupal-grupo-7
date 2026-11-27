@@ -8,7 +8,9 @@
 #include "../enemies/orc.h"
 #include "../enemies/vampire.h"
 #include "../enemies/vampiress.h"
+#include "../enemies/enemy_controller.h"
 #include "../entities/i_movable.h"
+#include "../minerals/mine_controller.h"
 #include "world.h"
 
 #define kOrcPackMin 3
@@ -27,9 +29,11 @@ static Direction direction_to(uint16_t x, uint16_t y, uint16_t target_x, uint16_
 }
 
 DungeonFloor::DungeonFloor(uint8_t room_number, uint16_t width, uint16_t height,
-                           uint16_t spawn_x, uint16_t spawn_y):
+                           uint16_t spawn_x, uint16_t spawn_y,
+                           const std::string& map_id):
         Scene(width, height),
         room_number(room_number),
+        map_id(map_id.empty() ? ("dungeon_" + std::to_string(room_number)) : map_id),
         spawn_x(spawn_x),
         spawn_y(spawn_y),
         enemies(),
@@ -43,8 +47,7 @@ void DungeonFloor::on_entity_removed(IEntity* entity) {
 uint8_t DungeonFloor::get_room_number() const { return this->room_number; }
 
 SceneId DungeonFloor::get_scene_id() const {
-    return static_cast<SceneId>(static_cast<uint8_t>(SceneId::DUNGEON_1) +
-                                (this->room_number - 1));
+    return this->map_id;
 }
 
 uint16_t DungeonFloor::get_spawn_x() const { return this->spawn_x; }
@@ -57,14 +60,18 @@ void DungeonFloor::add_enemy(std::unique_ptr<Enemy> enemy, uint16_t enemy_id) {
     }
     const uint16_t x = enemy->get_x();
     const uint16_t y = enemy->get_y();
-    if (!in_bounds(x, y)) {
+    if (!can_walk_to(x, y) || !get_entity_at(x, y).empty()) {
         return;
     }
     enemy->set_id(enemy_id);
     enemy->set_room(this->room_number);
     set_entity_at(x, y, std::move(enemy));
-    set_entity_at(x, y, std::move(enemy));
     enemies.push_back(static_cast<Enemy*>(this->grid[y][x].entities.back().get()));
+}
+
+bool DungeonFloor::can_spawn_at(uint16_t x, uint16_t y) const {
+    return (x != spawn_x || y != spawn_y) && can_walk_to(x, y) &&
+           get_entity_at(x, y).empty();
 }
 
 void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_id, uint16_t group_id) {
@@ -83,7 +90,7 @@ void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_i
                 }
                 const uint16_t new_x = static_cast<uint16_t>(cell_x);
                 const uint16_t new_y = static_cast<uint16_t>(cell_y);
-                if (can_walk_to(new_x, new_y)) {
+                if (can_spawn_at(new_x, new_y)) {
                     cells.emplace_back(new_x, new_y);
                 }
             }
@@ -92,7 +99,7 @@ void DungeonFloor::spawn_orc_pack(uint16_t x, uint16_t y, uint16_t& next_enemy_i
     const size_t start = cells.empty() ? 0 : static_cast<size_t>(std::rand()) % cells.size();
     for (int i = 0; i < pack_size && static_cast<size_t>(i) < cells.size(); ++i) {
         const auto& [orc_x, orc_y] = cells[(start + i) % cells.size()];
-        if (can_walk_to(orc_x, orc_y)) {
+        if (can_spawn_at(orc_x, orc_y)) {
             auto orc = std::make_unique<Orc>(orc_x, orc_y);
             orc->set_group_id(group_id);
             add_enemy(std::move(orc), next_enemy_id++);
@@ -111,7 +118,7 @@ void DungeonFloor::spawn_vampire_pair(uint16_t x, uint16_t y, uint16_t& next_ene
             }
             const uint16_t new_x = static_cast<uint16_t>(cell_x);
             const uint16_t new_y = static_cast<uint16_t>(cell_y);
-            if (can_walk_to(new_x, new_y)) {
+            if (can_spawn_at(new_x, new_y)) {
                 cells.emplace_back(new_x, new_y);
             }
         }
@@ -218,10 +225,14 @@ bool DungeonFloor::has_blood_puddle() const { return !this->blood_puddles.empty(
 
 void DungeonFloor::clear_blood_puddle() { this->blood_puddles.clear(); }
 
-void DungeonFloor::on_new_day(World& /*world*/) {
+void DungeonFloor::on_new_day(World& world) {
     clear_blood_puddle();
     clear_flames();
     clear_enemies();
+    // World::tick_day selecciona esta escena antes de llamar al hook.
+    // Limpiar y regenerar aquí evita que el amanecer borre lo recién creado.
+    MineController(room_number).populate(world, spawn_x, spawn_y);
+    EnemyController(room_number).populate(world, spawn_x, spawn_y);
 }
 
 const std::vector<std::pair<uint16_t, uint16_t>>& DungeonFloor::blood_puddle_list() const {

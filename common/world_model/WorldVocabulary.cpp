@@ -12,20 +12,27 @@ const std::pair<MapKind, const char*> kMapKinds[] = {
 	{MapKind::Farm, "farm"},
 	{MapKind::Town, "town"},
 	{MapKind::Cabin, "cabin"},
-	{MapKind::Market, "market"},
-	{MapKind::CommunityCenter, "community_center"},
+	{MapKind::Carpentry, "carpentry"},
+	{MapKind::Blacksmith, "blacksmith"},
+	{MapKind::GeneralStore, "general_store"},
+	{MapKind::Ranch, "ranch"},
+	{MapKind::Barn, "barn"},
 	{MapKind::Dungeon, "dungeon"},
 };
 
 const std::pair<ObjectRole, const char*> kObjectRoles[] = {
 	{ObjectRole::Cabin, "cabin"},
-	{ObjectRole::Market, "market"},
+	{ObjectRole::Carpentry, "carpentry"},
+	{ObjectRole::Blacksmith, "blacksmith"},
+	{ObjectRole::GeneralStore, "general_store"},
+	{ObjectRole::Ranch, "ranch"},
+	{ObjectRole::Barn, "barn"},
 	{ObjectRole::CommunityCenter, "community_center"},
+	{ObjectRole::Building, "building"},
 	{ObjectRole::Decoration, "decoration"},
 };
 
 const std::pair<MarkerKind, const char*> kMarkerKinds[] = {
-	{MarkerKind::PlayerSpawn, "player_spawn"},
 	{MarkerKind::Bed, "bed"},
 	{MarkerKind::MerchantMarnie, "merchant_marnie"},
 	{MarkerKind::MerchantClint, "merchant_clint"},

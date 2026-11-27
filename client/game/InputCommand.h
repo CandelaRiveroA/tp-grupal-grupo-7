@@ -16,16 +16,19 @@ struct InputCommand {
         SelectSlot,
         // Alterna entre caminar 1 y 2 celdas por movimiento.
         ToggleWalking,
-        // Cambio de escenario local (tecla M): alterna mercado y
-        // dormitorio. Lo consume PlaySession; NO viaja al GameClient.
-        ToggleMarket,
+        // Alterna el mapa del mundo (tecla M). Lo consume PlaySession;
+        // NO viaja al GameClient.
+        ToggleWorldMap,
+        // Cierra overlays transitorios (ESC con chat cerrado). Lo consume
+        // PlaySession; NO viaja al GameClient.
+        CancelOverlay,
         // DEMO (tecla O): pasa a la escena siguiente (mapas del editor
         // y salas de scenes.toml). Lo consume PlaySession; NO viaja al
         // GameClient. Se borra cuando el server mande el mapa.
         CycleMap,
-        // DEMO (tecla B): abre el catálogo del mercado. Lo reemplaza el
-        // mensaje del server; borrar junto con su tecla. Lo consume
-        // PlaySession; NO viaja al GameClient.
+        // DEMO (tecla B): abre/cierra el catálogo de Pierre en cualquier
+        // escena (provisorio). Lo consume PlaySession; NO viaja al
+        // GameClient. El catálogo real lo manda el server.
         OpenCatalog,
         // DEMO (tecla N): rota el estilo del catálogo del comerciante. Lo
         // consume PlaySession; NO viaja al GameClient. Se borra cuando el
@@ -54,13 +57,13 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
-        // ESC fuera del chat: cierra el popup abierto (p. ej. el del
-        // cofre). Lo consume PlaySession; NO viaja al GameClient.
-        CloseOverlay,
         // Tecla R: gira el mueble que se está por colocar. Lo
         // consume PlaySession; NO viaja al GameClient (la orientación
         // viaja con la colocación).
         RotateFurniture,
+        // Abre/cierra el popup de configuración (ESC fuera del chat). Lo
+        // consume PlaySession; NO viaja al GameClient.
+        ToggleSettings,
     };
 
     Kind kind;

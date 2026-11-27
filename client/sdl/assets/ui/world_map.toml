@@ -1,0 +1,45 @@
+# Overlay modal del mapa del mundo (tecla M).
+[panel]
+width_fraction  = 0.75
+height_fraction = 0.75
+min_size        = [240, 200]
+frame_pad       = 20
+title_top_pad   = 14
+title_height    = 38
+title_font_size = 24
+bg_inset        = 10
+map_top_gap     = 6
+map_border      = 2
+
+[arrows]
+size           = [36, 33]
+margin         = 14
+gap            = 12
+left_sheet     = "ui/map_arrow_left.png"
+right_sheet    = "ui/map_arrow_right.png"
+left_fallback  = "<"
+right_fallback = ">"
+font_size      = 24
+
+[pins]
+size   = 24
+border = 2
+
+[text]
+unavailable           = "Minimapa no disponible"
+unavailable_font_size = 18
+
+[colors]
+backdrop    = [0, 0, 0, 140]
+parchment   = [246, 212, 158, 255]
+wood_border = [91, 43, 22, 255]
+local_ring  = [255, 215, 0, 255]
+ink         = [62, 39, 17, 255]
+
+[[exteriors]]
+id    = "farm"
+title = "Granja"
+
+[[exteriors]]
+id    = "town"
+title = "Pueblo"

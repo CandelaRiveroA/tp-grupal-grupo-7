@@ -110,9 +110,13 @@ void EntityRenderer::draw(const game::ViewEntity& entity,
 	// Qué se sostiene y en qué pose lo resolvió game::ActionResolver;
 	// esto solo lo dibuja.
 	if (actions.isHoldingPose(action) &&
-	    actions.heldContentId().has_value()) {
-		heldItem_.draw(*actions.heldContentId(), entity.kind, drawBox);
+	    actions.heldContentId(entity, entityIndex).has_value()) {
+		heldItem_.draw(*actions.heldContentId(entity, entityIndex), entity.kind, drawBox);
 	}
+}
+
+const PlayerAppearancePainter& EntityRenderer::appearancePainter() const {
+	return appearancePainter_;
 }
 
 }  // namespace sdl

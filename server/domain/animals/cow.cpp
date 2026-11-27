@@ -35,7 +35,7 @@ void Cow::interact(Player& p, ToolType tool, World& w) {
         auto milk = std::make_unique<Product>(ItemID::MILK, 30, Quality::BASE);
 
         // El jugador intenta guardarla en el inventario
-        bool success = p.pick_up_item(std::move(milk));
+        bool success = w.try_pick_up_item(p, std::move(milk));
 
         if (success) {
             this->is_ready_to_milk = false;

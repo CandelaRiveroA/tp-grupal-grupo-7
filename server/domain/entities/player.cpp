@@ -18,8 +18,13 @@
 #define kNormalSwordDamage 2
 #define kWoundedSwordDamage 1
 
-Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene)
-        : IEntity(x, y), player_id(id), current_scene(initial_scene), facing(Direction::DOWN), selected_slot(0), backpack(9),
+Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene):
+        Player(id, x, y, initial_scene, initial_scene, x, y) {}
+
+Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene,
+               SceneId home_scene, uint16_t home_x, uint16_t home_y)
+        : IEntity(x, y), player_id(id), current_scene(initial_scene), home_scene(home_scene),
+          home_x(home_x), home_y(home_y), facing(Direction::DOWN), selected_slot(0), backpack(9),
           energy(10000), max_energy(10000), hp(kMaxHealth), max_hp(kMaxHealth),
           walking(false), died_in_combat(false), fainted_by_timeout(false),
           fainted_by_energy(false) {
@@ -39,6 +44,14 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene)
 uint8_t Player::get_id() const { return this->player_id; }
 
 SceneId Player::get_scene() const { return this->current_scene; }
+SceneId Player::get_home_scene() const { return this->home_scene; }
+uint16_t Player::get_home_x() const { return this->home_x; }
+uint16_t Player::get_home_y() const { return this->home_y; }
+void Player::set_home(SceneId scene, uint16_t x, uint16_t y) {
+    this->home_scene = scene;
+    this->home_x = x;
+    this->home_y = y;
+}
 
 Direction Player::get_facing() const { return this->facing; }
 
@@ -78,7 +91,7 @@ bool Player::is_gravely_wounded() const {
 }
 
 uint8_t Player::get_movement_steps() const {
-    if (this->is_gravely_wounded() || this->walking) {
+    if (this->is_gravely_wounded() || this->is_exhausted() || this->walking) {
         return kWoundedMovementSteps;
     }
     return kNormalMovementSteps;
@@ -159,6 +172,10 @@ ToolType Player::get_equipped_tool() const {
     }
 }
 
+bool Player::can_pick_up_item(const Item& item) const {
+    return backpack.can_add_item(item);
+}
+
 bool Player::pick_up_item(std::unique_ptr<Item> item) {
     return this->backpack.add_item(std::move(item));
 }
@@ -226,7 +243,6 @@ bool Player::finalize_gift_reception(Player& receiver) {
         return true;
     }
 
-    //TODO: disparar una notificación de inventario lleno si lo deseas.
     return false;
 }
 

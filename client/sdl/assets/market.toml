@@ -7,7 +7,9 @@
 # servidor, vía LocalWorldView::marketOffer); hasta entonces valen los
 # `price` de acá. Agregar un producto = su ícono en inventory.toml + un
 # bloque [[products]]. Agregar un comerciante = un bloque [[merchants]].
-# `price` es opcional: sin él solo se muestra el nombre. `sets` es
+# `price` es opcional: sin él solo se muestra el nombre. `qualities = true`
+# (opcional) expande la entrada a una línea por calidad de [qualities.*].
+# `sets` es
 # opcional (enteros >= 0): estilos rotativos en los que aparece la
 # entrada; sin `sets` aparece en todos.
 
@@ -31,6 +33,22 @@ title_color  = [62, 39, 17, 255]
 text_color   = [62, 39, 17, 255]
 price_color  = [120, 70, 10, 255]
 
+# Ítems con calidades (los cultivos que compra Pierre): arriba el ícono y
+# el nombre del producto (`header_height`) y debajo una línea por calidad
+# (`tier_height` de alto): estrella + nombre y, a la misma altura, la
+# moneda y el monto desde `tier_price_left` px del borde izquierdo.
+header_height   = 40
+tier_height     = 20
+tier_price_left = 100
+star_gap        = 4
+
+# Hoja de estrellas de las calidades (cada celda de 16x16; la celda de
+# cada calidad se declara en [qualities.*]).
+[popup.star]
+sheet = "ui/estrellas.png"
+cell  = [16, 16]
+drawn = [16, 16]
+
 # Moneda dibujada junto al precio (hoja de una sola celda de 9x9).
 [popup.coin]
 sheet = "Ambience/Market/save_coin.png"
@@ -42,6 +60,36 @@ drawn = [12, 12]
 [sides]
 sells = "Productos en venta"
 buys  = "Productos que compro"
+
+# Calidades del producto (las claves son el vocabulario
+# world::CropQuality). `label` = nombre mostrado; `star` = celda [col, row]
+# en la hoja de estrellas (sin `star` = sin estrella, la base);
+# `multiplier` = cuánto multiplica el monto base en la oferta por defecto
+# (mock; los mismos valores que el servidor). Una oferta con
+# `qualities = true` se expande a una línea por calidad.
+[qualities.base]
+label      = "Base"
+multiplier = 1.0
+
+[qualities.good]
+label      = "Bueno"
+multiplier = 1.25
+star       = [0, 0]
+
+[qualities.excellent]
+label      = "Excelente"
+multiplier = 2.0
+star       = [1, 0]
+
+[qualities.incredible]
+label      = "Increíble"
+multiplier = 4.0
+star       = [2, 0]
+
+[qualities.perfect]
+label      = "Perfecta"
+multiplier = 8.0
+star       = [3, 0]
 
 # Cómo se llama cada producto (content_id = el del inventario).
 [[products]]
@@ -256,21 +304,25 @@ npc = "pierre"
   side = "buys"
   content_id = "strawberry"
   price = 30
+  qualities = true
 
   [[merchants.offer]]
   side = "buys"
   content_id = "onion"
   price = 22
+  qualities = true
 
   [[merchants.offer]]
   side = "buys"
   content_id = "potato"
   price = 15
+  qualities = true
 
   [[merchants.offer]]
   side = "buys"
   content_id = "pumpkin"
   price = 35
+  qualities = true
 
 # Marnie: animales y sus productos. Precios MOCK.
 [[merchants]]

@@ -6,6 +6,15 @@
 
 Inventory::Inventory(uint8_t max): max_slots(max) { this->slots.resize(this->max_slots); }
 
+bool Inventory::can_add_item(const Item& item) const {
+    for (const auto& slot: slots) {
+        if (slot.is_empty() || (!slot.is_full() && slot.item->is_stackable_with(item))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Inventory::add_item(std::unique_ptr<Item> new_item) {
     if (!new_item)
         return false;
@@ -66,6 +75,24 @@ void Inventory::consume_item(uint8_t slot_idx) {
             this->slots[slot_idx].item.reset(); 
         }
     }
+}
+
+std::unique_ptr<Item> Inventory::remove_item(uint8_t index) {
+    if (index >= this->max_slots || this->slots[index].is_empty()) {
+        return nullptr;
+    }
+
+    std::unique_ptr<Item> extracted;
+
+    if (this->slots[index].amount == 1) {
+        extracted = std::move(this->slots[index].item);
+        this->slots[index].amount = 0;
+    } else {
+        extracted = this->slots[index].item->clone();
+        this->slots[index].amount--;
+    }
+
+    return extracted;
 }
 
 std::unique_ptr<Item> Inventory::pop_one_item(uint8_t slot_idx) {

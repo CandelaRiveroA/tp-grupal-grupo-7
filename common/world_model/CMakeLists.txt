@@ -28,6 +28,7 @@ target_sources(taller_world_model
     IssueFormatter.cpp
     PUBLIC
     # .h files
+    Constants.h
     Geometry.h
     Tile.h
     TileCodec.h

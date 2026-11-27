@@ -25,10 +25,12 @@ enum class SoundId {
 	MonsterDead,
 	ColdSpell,
 	Fireball,
+	ChestOpen,
+	ChestClose,
 };
 
 inline constexpr int kSoundCount =
-	static_cast<int>(SoundId::Fireball) + 1;
+	static_cast<int>(SoundId::ChestClose) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -53,6 +55,8 @@ inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/combat/monsterdead.ogg", SoundCategory::Sfx},
 	 {"sfx/combat/coldSpell.ogg", SoundCategory::Sfx},
 	 {"sfx/combat/fireball.ogg", SoundCategory::Sfx},
+	 {"sfx/tools/doorCreak.ogg", SoundCategory::Sfx},
+	 {"sfx/tools/doorCreakReverse.ogg", SoundCategory::Sfx},
 }};
 
 }

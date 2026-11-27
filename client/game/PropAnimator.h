@@ -1,9 +1,15 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 
 namespace game {
+
+enum class PropMotion {
+	Opening,
+	Closing,
+};
 
 // Estado abierto/cerrado de los objetos animados del mundo (cofres, etc.),
 // por id. toggle() es el ÚNICO punto de entrada de estado: hoy lo llama el
@@ -12,13 +18,20 @@ namespace game {
 class PropAnimator {
 public:
 	// Alterna abierto/cerrado. Si el objeto todavía se está animando, se
-	// ignora.
-	void toggle(const std::string& id, int frameCount, int frameTicks,
+	// ignora. Devuelve el movimiento que arrancó (vacío si se ignoró).
+	std::optional<PropMotion> toggle(const std::string& id, int frameCount, int frameTicks,
 		    int iteration);
 
 	// Cuadro actual de cada objeto con estado. Un objeto sin estado se
 	// dibuja en el cuadro 0 (cerrado): no aparece en el mapa.
 	std::map<std::string, int> frames(int iteration) const;
+
+	// Olvida el estado del objeto: vuelve a dibujarse cerrado, sin animar.
+	void reset(const std::string& id);
+
+	// ¿El objeto terminó de abrirse? Falso mientras anima (abriendo o
+	// cerrando) y sin estado.
+	bool isOpen(const std::string& id, int iteration) const;
 
 private:
 	struct State {

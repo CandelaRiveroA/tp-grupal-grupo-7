@@ -171,6 +171,16 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
+    for (uint8_t id = 1; id <= 5; ++id) {
+        const auto set = static_cast<CommunitySet>(id);
+        const auto& center = world.get_community_center();
+        ServerCommunityProgress progress{id, center.is_set_completed(set), {}};
+        for (const auto& goal: center.goals_for(set)) {
+            const uint16_t current = progress.completed ? goal.total : goal.current;
+            progress.goals.push_back({goal.id, current, goal.total, current >= goal.total});
+        }
+        out.push_back(std::move(progress));
+    }
     out.push_back(ServerSyncEnd{});
     return out;
 }

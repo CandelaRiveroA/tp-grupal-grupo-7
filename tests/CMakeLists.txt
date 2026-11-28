@@ -2,6 +2,7 @@ target_sources(taller_tests
     PRIVATE
     # .cpp files
     character_layers.cpp
+    community_protocol_test.cpp
     chat_test.cpp
     index_cycle.cpp
     invite_code_format.cpp

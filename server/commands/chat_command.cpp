@@ -45,10 +45,6 @@ ChatRouter::ChatRouter() {
                                    const std::vector<std::string>& args) {
         return player_commands_.tp_info(world, sender, args);
     };
-    handlers_["/donar"] = [this](World& world, uint8_t sender,
-                                 const std::vector<std::string>& args) {
-        return community_commands_.donar(world, sender, args);
-    };
     handlers_["/completar_set"] = [this](World& world, uint8_t sender,
                                          const std::vector<std::string>& args) {
         return community_commands_.completar_set(world, sender, args);

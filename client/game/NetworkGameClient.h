@@ -52,6 +52,7 @@ public:
     void requestTransfer(const ContainerTransfer& transfer) override;
     void requestPlace(const FurniturePlacement& placement) override;
     void requestGrab(const FurnitureGrab& grab) override;
+    void donateToCommunityCenter(uint8_t setId) override;
     void requestDiscard(const InventoryDiscard& discard) override;
     void sendChat(const std::string& text) override;
     void receiveChat(std::uint8_t playerId, const std::string& characterName,

@@ -89,7 +89,7 @@ TEST(ChatRouterTest, OroCheatFloorsAtZero) {
     EXPECT_EQ(world.get_player(1).get_gold(), 0u);
 }
 
-TEST(ChatRouterTest, DonarDineroDescuentaOroYCompletaSet) {
+TEST(ChatRouterTest, DonarYaNoEsUnComandoDeChat) {
     World world(5, 5);
     world.add_player(1, std::make_unique<Player>(1, 1, 1));
     world.get_player(1).set_gold(10000);
@@ -99,8 +99,8 @@ TEST(ChatRouterTest, DonarDineroDescuentaOroYCompletaSet) {
             router.route("/donar dinero 10000", 1, world, names_with(1, "Pandamos"));
 
     ASSERT_EQ(replies.size(), 1u);
-    EXPECT_EQ(world.get_player(1).get_gold(), 0u);
-    EXPECT_TRUE(world.is_set_completed("dinero"));
+    EXPECT_EQ(world.get_player(1).get_gold(), 10000u);
+    EXPECT_FALSE(world.is_set_completed("dinero"));
 }
 
 TEST(ChatRouterTest, DonarMoneyNoEsUnComandoEspañol) {

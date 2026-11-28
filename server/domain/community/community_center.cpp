@@ -1,9 +1,25 @@
 #include "community_center.h"
 
-#include <map>
+#include <algorithm>
 #include <functional>
+#include <map>
+#include <unordered_map>
 
+namespace {
 
+using Donations = std::unordered_map<ItemID, uint32_t>;
+
+uint16_t capped_count(const Donations& donations, ItemID item, uint16_t total) {
+    const auto it = donations.find(item);
+    return static_cast<uint16_t>(it == donations.end() ? 0u :
+            std::min<uint32_t>(it->second, total));
+}
+
+CommunityGoal make_goal(const Donations& donations, ItemID item, const char* id, uint16_t total) {
+    return CommunityGoal{item, id, capped_count(donations, item, total), total};
+}
+
+}  // namespace
 
 const std::unordered_set<ItemID> CommunityCenter::kCropItems = {
         ItemID::STRAWBERRY,
@@ -90,7 +106,6 @@ void CommunityCenter::record_enemy_killed(const std::string& kind, uint16_t grou
                                           uint16_t pair_id, uint16_t room) {
     if (kind == "skeleton") {
         if (room == 0) {
-            try_complete_combat();
             return;
         }
         if (last_skeleton_room == 65535 || room == last_skeleton_room + 1) {
@@ -104,73 +119,17 @@ void CommunityCenter::record_enemy_killed(const std::string& kind, uint16_t grou
     } else if ((kind == "vampire" || kind == "vampiress") && pair_id != 0) {
         ++vampire_kills_by_pair[pair_id];
     }
-    try_complete_combat();
 }
 
 void CommunityCenter::record_skull_survival(bool survived_without_damage) {
     skull_survived_without_damage = survived_without_damage;
-    try_complete_combat();
-}
-
-bool CommunityCenter::try_complete_crops() {
-    return crop_donations[ItemID::STRAWBERRY] >= 3 &&
-           crop_donations[ItemID::GREEN_ONION] >= 3 &&
-           crop_donations[ItemID::POTATO] >= 3 &&
-           crop_donations[ItemID::PUMPKIN] >= 3;
-}
-
-bool CommunityCenter::try_complete_minerals() {
-    return mineral_donations[ItemID::COAL_ORB] >= 10 &&
-           mineral_donations[ItemID::LAPIS_ORB] >= 7 &&
-           mineral_donations[ItemID::SILVER_ORB] >= 5 &&
-           mineral_donations[ItemID::GOLD_ORB] >= 3;
-}
-
-bool CommunityCenter::try_complete_animals() {
-    return animal_donations[ItemID::MILK] >= 5 &&
-           animal_donations[ItemID::EGG] >= 10;
-}
-
-bool CommunityCenter::try_complete_combat() {
-    bool orcs_ready = false;
-    for (const auto& [group, kills]: orc_kills_by_group) {
-        (void)group;
-        if (kills >= 4) {
-            orcs_ready = true;
-        }
-    }
-    bool vampires_ready = false;
-    for (const auto& [pair, kills]: vampire_kills_by_pair) {
-        (void)pair;
-        if (kills >= 2) {
-            vampires_ready = true;
-        }
-    }
-    return consecutive_skeleton_rooms >= 3 && orcs_ready && vampires_ready &&
-           skull_survived_without_damage;
-}
-
-bool CommunityCenter::try_complete_money() {
-    return gold_donated >= 10000;
 }
 
 bool CommunityCenter::try_complete_if_ready(CommunitySet set) {
-    using CompleteMethod = bool (CommunityCenter::*)();
-
-    static const std::map<CommunitySet, CompleteMethod> methods = {
-        {CommunitySet::CROPS, &CommunityCenter::try_complete_crops},
-        {CommunitySet::MINERALS, &CommunityCenter::try_complete_minerals},
-        {CommunitySet::ANIMALS, &CommunityCenter::try_complete_animals},
-        {CommunitySet::COMBAT, &CommunityCenter::try_complete_combat},
-        {CommunitySet::MONEY, &CommunityCenter::try_complete_money}
-    };
-
-    const auto it = methods.find(set);
-    if (it == methods.end()) {
-        return false;
-    }
-
-    return (this->*(it->second))();
+    const auto goals = goals_for(set);
+    return !goals.empty() && std::all_of(goals.begin(), goals.end(), [](const CommunityGoal& goal) {
+        return goal.current >= goal.total;
+    });
 }
 
 bool CommunityCenter::complete_set(CommunitySet set) {
@@ -211,4 +170,65 @@ std::vector<uint8_t> CommunityCenter::take_completed_sets() {
     std::vector<uint8_t> taken;
     taken.swap(completed_sets);
     return taken;
+}
+
+std::vector<CommunityGoal> CommunityCenter::goals_for(CommunitySet set) const {
+    using Maker = std::vector<CommunityGoal> (*)(const CommunityCenter&);
+    static const std::map<CommunitySet, Maker> handlers = {
+        {CommunitySet::CROPS, [](const CommunityCenter& center) -> std::vector<CommunityGoal> {
+            return {
+                make_goal(center.crop_donations, ItemID::STRAWBERRY, "strawberry", 3),
+                make_goal(center.crop_donations, ItemID::GREEN_ONION, "onion", 3),
+                make_goal(center.crop_donations, ItemID::POTATO, "potato", 3),
+                make_goal(center.crop_donations, ItemID::PUMPKIN, "pumpkin", 3)
+            };
+        }},
+        {CommunitySet::MINERALS, [](const CommunityCenter& center) -> std::vector<CommunityGoal> {
+            return {
+                make_goal(center.mineral_donations, ItemID::COAL_ORB, "coal_orb", 10),
+                make_goal(center.mineral_donations, ItemID::LAPIS_ORB, "lapis_orb", 7),
+                make_goal(center.mineral_donations, ItemID::SILVER_ORB, "silver_orb", 5),
+                make_goal(center.mineral_donations, ItemID::GOLD_ORB, "gold_orb", 3)
+            };
+        }},
+        {CommunitySet::ANIMALS, [](const CommunityCenter& center) -> std::vector<CommunityGoal> {
+            return {
+                make_goal(center.animal_donations, ItemID::MILK, "milk", 5),
+                make_goal(center.animal_donations, ItemID::EGG, "egg", 10)
+            };
+        }},
+        {CommunitySet::MONEY, [](const CommunityCenter& center) -> std::vector<CommunityGoal> {
+            return {
+                {ItemID::NONE, "money",
+                 static_cast<uint16_t>(std::min<uint32_t>(center.gold_donated, 10000)),
+                 10000}
+            };
+        }},
+        {CommunitySet::COMBAT, [](const CommunityCenter& center) -> std::vector<CommunityGoal> {
+            uint16_t orcs = 0;
+            uint16_t vampires = 0;
+
+            for (const auto& entry: center.orc_kills_by_group) {
+                orcs = std::max(orcs, entry.second);
+            }
+            for (const auto& entry: center.vampire_kills_by_pair) {
+                vampires = std::max(vampires, entry.second);
+            }
+
+            return {
+                {ItemID::NONE, "skeleton",
+                 std::min<uint16_t>(center.consecutive_skeleton_rooms, 3), 3},
+                {ItemID::NONE, "vampire", std::min<uint16_t>(vampires, 2), 2},
+                {ItemID::NONE, "orc", std::min<uint16_t>(orcs, 4), 4},
+                {ItemID::NONE, "skull",
+                 static_cast<uint16_t>(center.skull_survived_without_damage), 1}
+            };
+        }}
+    };
+
+    const auto it = handlers.find(set);
+    if (it == handlers.end()) {
+        return {};
+    }
+    return it->second(*this);
 }

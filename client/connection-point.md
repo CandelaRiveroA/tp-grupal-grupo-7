@@ -40,16 +40,17 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
-- El Centro Comunitario usa chat:
-  `/donar [cultivos|minerales|animales] [item] [cantidad]`,
-  `/donar dinero [cantidad]`, `/completar_set [nombre]` y
-  `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
-  3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
-  `set_id u8`; `ServerVictory` no lleva payload.
-- Desde la UI del cartel del Centro Comunitario, el botón **Donar** llama a
-  `GameClient::donateToCommunityCenter()` (hook solo-cliente listo para
-  conectar el mensaje de donación global al servidor) y el progreso mostrado
-  sale de `LocalWorldView::communitySets`.
+- El botón **Donar** envía `DonateCommunity` (16): `type u8 | set_id u8`.
+  El servidor valida el mapa y el anillo de una celda alrededor del edificio,
+  consume los objetos válidos hasta cubrir lo pendiente y admite aportes parciales.
+  Dinero aporta hasta 1.000 por clic. El progreso compartido llega como
+  `CommunityProgress` (38) dentro de cada snapshot: `set_id u8 | completed u8 |
+  goal_count u8`, seguido por `goal_id string | current u16 | total u16 |
+  completed u8` para cada requisito.
+  `NetworkGameClient` lo traduce a `LocalWorldView::communitySets`.
+  Los sets son 1 (cultivos), 2 (minerales), 3 (productos animales), 4 (pelea,
+  automático) y 5 (dinero). Se conservan `/completar_set` y `/completar_todo`;
+  `/donar` fue eliminado. `ServerSetCompleted` y `ServerVictory` siguen siendo eventos.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la

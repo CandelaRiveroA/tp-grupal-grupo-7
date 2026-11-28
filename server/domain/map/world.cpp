@@ -194,6 +194,12 @@ World::World(const worldmodel::World& wm):
             this->town = static_cast<Town*>(raw);
         }
 
+        for (const auto& object: map.objects) {
+            if (object.role == worldmodel::ObjectRole::CommunityCenter) {
+                community_buildings[id].push_back(object);
+            }
+        }
+
         // Colisiones desde el TOML.
         const std::size_t cells = static_cast<std::size_t>(map.width) *
                                   static_cast<std::size_t>(map.height);
@@ -1251,6 +1257,44 @@ bool World::is_community_center_completed() const {
     return this->community_center.is_community_center_completed();
 }
 
+bool World::donate_to_community_center(uint8_t player_id, CommunitySet set) {
+    Player& player = get_player(player_id);
+    const auto buildings = community_buildings.find(player.get_scene());
+    if (buildings == community_buildings.end() || player.get_health() == 0 ||
+        player.faintedByEnergy() || player.faintedByTimeout()) {
+        return false;
+    }
+    const bool near = std::any_of(buildings->second.begin(), buildings->second.end(),
+            [&](const worldmodel::MapObject& building) {
+                return worldmodel::withinInteractionRange(building.cell, building.width,
+                        building.height, {player.get_x(), player.get_y()}, 1);
+            });
+    if (!near || community_center.is_set_completed(set) || set == CommunitySet::COMBAT) {
+        return false;
+    }
+    const auto goals = community_center.goals_for(set);
+    if (goals.empty()) return false;
+    const std::string& name = community_set_catalog.name_for_id(static_cast<uint8_t>(set));
+    if (set == CommunitySet::MONEY) {
+        const uint16_t amount = static_cast<uint16_t>(std::min<uint32_t>(
+                {1000u, player.get_gold(), static_cast<uint32_t>(goals[0].total - goals[0].current)}));
+        return amount != 0 && donate_to_community_center(player_id, name, ItemID::GOLD_ORB, amount);
+    }
+    bool donated = false;
+    for (const auto& goal: goals) {
+        uint16_t quantity = goal.total - goal.current;
+        while (quantity > 0 && !(set == CommunitySet::CROPS ?
+                player.can_extract_items_with_min_quality(goal.item, Quality::INCREDIBLE, quantity) :
+                player.can_extract_items(goal.item, quantity))) {
+            --quantity;
+        }
+        if (quantity > 0) {
+            donated = donate_to_community_center(player_id, name, goal.item, quantity) || donated;
+        }
+    }
+    return donated;
+}
+
 bool World::donate_to_community_center(uint8_t player_id, const std::string& set_name,
                                        ItemID item, uint16_t quantity) {
     Player& p = get_player(player_id);
@@ -1260,6 +1304,9 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
     }
 
     if (set == CommunitySet::MONEY) {
+        if (this->community_center.get_gold_donated() >= 10000) {
+            return false;
+        }
         const uint32_t missing =
                 10000u - static_cast<uint32_t>(this->community_center.get_gold_donated());
         if (missing == 0) {
@@ -1279,6 +1326,13 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
         return false;
     }
 
+    for (const auto& goal: community_center.goals_for(set)) {
+        if (goal.item == item) {
+            quantity = std::min<uint16_t>(quantity, goal.total - goal.current);
+            break;
+        }
+    }
+    if (quantity == 0) return false;
     std::vector<std::unique_ptr<Item>> donated;
     if (set == CommunitySet::CROPS) {
         if (!p.can_extract_items_with_min_quality(item, Quality::INCREDIBLE, quantity)) {

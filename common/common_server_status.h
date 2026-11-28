@@ -47,6 +47,7 @@ enum class ServerMessageType : uint8_t {
     InventoryFull = 35,
     WorldPlayers = 36,
     ContainerState = 37,
+    CommunityProgress = 38,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -275,6 +276,20 @@ struct ServerGiftRequest {
 // Evento sin payload, igual que ServerDayEnd.
 struct ServerGiftAnswered {};
 
+struct ServerCommunityGoal {
+    std::string goal_id;
+    uint16_t current;
+    uint16_t total;
+    bool completed;
+};
+
+// Estado completo de un lote; forma parte del snapshot Reset...SyncEnd.
+struct ServerCommunityProgress {
+    uint8_t set_id;
+    bool completed;
+    std::vector<ServerCommunityGoal> goals;
+};
+
 struct ServerSetCompleted {
     uint8_t set_id;
 };
@@ -352,7 +367,7 @@ using ServerMessage =
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
                      ServerSleep, ServerFurniture, ServerDayEnd, ServerDay, ServerSleepingPlayers,
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
-                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
+                     ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory, ServerCommunityProgress,
                      ServerGold, ServerNpcPlacement, ServerMarketOffer, ServerMapChange,
                      ServerPlayerHeld, ServerGiftAccepted, ServerPlayerName, ServerInventoryFull, ServerWorldPlayers, ServerContainerState>;
 

@@ -17,6 +17,13 @@ enum class CommunitySet : uint8_t {
     MONEY = 5
 };
 
+struct CommunityGoal {
+    ItemID item;
+    std::string id;
+    uint16_t current;
+    uint16_t total;
+};
+
 class CommunityCenter {
 private:
     static const std::unordered_set<ItemID> kCropItems;
@@ -35,14 +42,9 @@ private:
     uint32_t gold_donated;
     std::vector<uint8_t> completed_sets;
 
-    bool try_complete_crops();
-    bool try_complete_minerals();
-    bool try_complete_animals();
-    bool try_complete_combat();
-    bool try_complete_money();
-
 public:
     CommunityCenter();
+    std::vector<CommunityGoal> goals_for(CommunitySet set) const;
 
     bool offer_crop(ItemID item, Quality quality, uint16_t quantity);
     bool offer_mineral(ItemID item, uint16_t quantity);

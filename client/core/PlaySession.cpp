@@ -1459,7 +1459,14 @@ void PlaySession::nextCommunityPage() {
     communityPopup_.nextPage(communityCatalog_.sets().size());
 }
 
-void PlaySession::donateToCommunity() { gameClient_.donateToCommunityCenter(); }
+void PlaySession::donateToCommunity() {
+    const auto& sets = communityCatalog_.sets();
+    if (sets.empty()) return;
+    const auto& active = sets[communityPopup_.pageIndex(sets.size())];
+    if (active.donatable) {
+        gameClient_.donateToCommunityCenter(static_cast<uint8_t>(active.id));
+    }
+}
 
 void PlaySession::drawMarketCatalog() {
     if (!marketPopup_.isOpen()) {

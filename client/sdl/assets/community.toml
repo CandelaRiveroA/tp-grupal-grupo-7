@@ -241,7 +241,7 @@ creature = "skull"
 id        = 5
 title     = "Set de Dinero"
 donatable = true
-help      = "Reúne fondos vendiendo cosechas, minerales o productos en los comercios del pueblo. Cuando tengas oro disponible, pulsa Donar para contribuir a la restauración del Centro Comunitario."
+help      = "Reúne fondos vendiendo cosechas, minerales o productos en los comercios del pueblo. Cada clic en Donar aporta hasta 1.000 de oro, limitado a tu saldo y a lo que falte para completar el lote."
 
 [[sets.goals]]
 id    = "money"

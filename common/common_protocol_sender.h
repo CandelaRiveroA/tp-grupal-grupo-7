@@ -25,6 +25,8 @@ private:
 
     static void validate_direction(Direction direction);
 
+    void send_message(const protocol::DonateCommunityMessage& message);
+    void send_message(const ServerCommunityProgress& message);
     void send_message(const protocol::DiscardMessage& message);
     void send_message(const protocol::OpenContainerMessage& message);
     void send_message(const protocol::CloseContainerMessage& message);

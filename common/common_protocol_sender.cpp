@@ -437,3 +437,21 @@ void ProtocolSender::send_message(const ServerContainerState& m) {
         send_slot_payload(slot);
     }
 }
+
+void ProtocolSender::send_message(const protocol::DonateCommunityMessage& message) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::DonateCommunity));
+    send_uint8(message.set_id);
+}
+
+void ProtocolSender::send_message(const ServerCommunityProgress& message) {
+    send_uint8(static_cast<uint8_t>(ServerMessageType::CommunityProgress));
+    send_uint8(message.set_id);
+    send_uint8(message.completed ? 1 : 0);
+    send_uint8(static_cast<uint8_t>(message.goals.size()));
+    for (const auto& goal: message.goals) {
+        send_string(goal.goal_id);
+        send_uint16(goal.current);
+        send_uint16(goal.total);
+        send_uint8(goal.completed ? 1 : 0);
+    }
+}

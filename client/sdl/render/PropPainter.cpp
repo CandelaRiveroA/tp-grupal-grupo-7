@@ -17,7 +17,14 @@ void PropPainter::draw(const world::NpcDef& def, const int cellPixelSize,
 	world::PixelRect body = whole;
 	body.x += how.shift.x;
 	body.y += how.shift.y;
-	if (!viewport.intersects(viewport.toScreen(body)) || def.body.span.rows <= 0) {
+	world::PixelRect screenBody = viewport.toScreen(body);
+	if (!def.body.zoom) {
+		screenBody = world::PixelRect{
+			screenBody.x + (screenBody.width - body.width) / 2,
+			screenBody.y + (screenBody.height - body.height) / 2,
+			body.width, body.height};
+	}
+	if (!viewport.intersects(screenBody) || def.body.span.rows <= 0) {
 		return;
 	}
 	SpriteSheet& sheet = sheets_.sheet(
@@ -32,10 +39,18 @@ void PropPainter::draw(const world::NpcDef& def, const int cellPixelSize,
 		if (row < how.firstRow || row > lastRow) {
 			continue;
 		}
-		world::PixelRect dest = piece.dest;
-		dest.x += how.shift.x;
-		dest.y += how.shift.y;
-		dest = viewport.toScreen(dest);
+		world::PixelRect dest;
+		if (def.body.zoom) {
+			dest = piece.dest;
+			dest.x += how.shift.x;
+			dest.y += how.shift.y;
+			dest = viewport.toScreen(dest);
+		} else {
+			dest = world::PixelRect{
+				screenBody.x + (piece.dest.x - whole.x),
+				screenBody.y + (piece.dest.y - whole.y),
+				piece.dest.width, piece.dest.height};
+		}
 		sheet.drawBlock(piece.cell.column, piece.cell.row, 1, 1,
 				SDL2pp::Rect(dest.x, dest.y, dest.width, dest.height));
 	}

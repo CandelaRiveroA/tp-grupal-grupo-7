@@ -117,8 +117,12 @@ void InventoryHud::drawSlotContents(
 		if (entry.slotIndex < 0 || entry.slotIndex >= slots) {
 			continue;
 		}
+		// La calidad del slot decide QUÉ sprite de cosecha se dibuja
+		// (contentId calificado "strawberry:good"; fallback al plano).
+		// El estado lo trae la vista; esto solo resuelve el asset.
 		const world::SpriteVisual* visual =
-			layout_.content.find(entry.contentId);
+			layout_.content.findQualified(entry.contentId,
+						      entry.quality);
 		if (visual == nullptr) {
 			continue;
 		}

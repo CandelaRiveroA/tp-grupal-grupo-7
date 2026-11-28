@@ -295,6 +295,9 @@ NpcDef NpcCatalog::readNpc(const tomlcfg::TomlDocument& doc,
 			doc.getIntArray<2>(bodyBase + "drawn");
 		npc.body.drawn = PixelSize{drawn[0], drawn[1]};
 	}
+	if (doc.hasKey(bodyBase + "zoom")) {
+		npc.body.zoom = doc.getBool(bodyBase + "zoom");
+	}
 	const std::string framesPath = bodyBase + "frames";
 	if (doc.hasKey(framesPath)) {
 		npc.body.frames = readFrames(doc, framesPath);

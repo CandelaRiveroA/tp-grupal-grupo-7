@@ -163,6 +163,8 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         if (item != nullptr) {
             // tradable lo decide el dominio: es la única fuente de la
             // regla "herramienta no se regala" (el cliente solo la lee).
+            // get_quality() es virtual: Product devuelve la calidad real;
+            // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
             out.push_back(inventory_slot(inventory, slot));
         }
     }
@@ -177,6 +179,9 @@ ServerInventorySlot WorldView::inventory_slot(const Inventory& inventory, uint8_
     const Item* item = inventory.peek_item(slot);
     if (item == nullptr) return {slot, 0, "", false};
     const uint8_t footprint = item->get_id() == ItemID::CHEST ? 1 : 0;
+    // get_quality() es virtual: Product devuelve la calidad real;
+    // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
     return {slot, inventory.get_amount(slot), content_id_for(item->get_id()),
-            item->can_be_traded(), footprint, footprint};
+            item->can_be_traded(), static_cast<uint8_t>(item->get_quality()),
+            footprint, footprint};
 }

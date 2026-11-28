@@ -63,6 +63,11 @@ private:
     // ¿El mensaje es de otro jugador? (ni del local ni de sistema)
     bool isIncomingChat(const ServerChat& chat) const;
 
+    // Traduce la calidad del protocolo (1..5 = BASE..PERFECT, uint8_t)
+    // a world::CropQuality (enum 0..4). Guard para 0 o fuera de rango
+    // -> Base. Seam listo para cuando ServerInventorySlot.quality exista.
+    world::CropQuality qualityFor(uint8_t q) const;
+
     struct RemotePlayer {
         int cellX = 0;
         int cellY = 0;

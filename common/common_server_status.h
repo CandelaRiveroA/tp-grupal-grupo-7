@@ -108,15 +108,22 @@ struct ServerDropped {
     bool interactive;
 };
 
-// count 0 = slot vacío (content_id vacío, tradable indiferente).
+// count 0 = slot vacío (content_id vacío, tradable y quality indiferentes).
 // tradable: lo decide el servidor (Item::can_be_traded): las herramientas
 // no se regalan y el cliente ni ofrece el intercambio. Es la fuente única
 // de esa regla, así no se duplica el vocabulario en el cliente.
+// quality: 1..5 = BASE..PERFECT (el mismo orden que ServerCrop y que
+// Quality del servidor). Vale 1 (BASE) para herramientas y cualquier ítem
+// sin calidad propia.
 struct ServerInventorySlot {
     uint8_t slot;
     uint8_t count;
     std::string content_id;
     bool tradable;
+    // quality: 1..5 = BASE..PERFECT (el mismo orden que ServerCrop y que
+    // Quality del servidor). Vale 1 (BASE) para herramientas y cualquier
+    // ítem sin calidad propia.
+    uint8_t quality = 1;
     // 0,0 = no colocable; la huella del cofre es 1x1, independiente del sprite.
     uint8_t footprint_columns = 0;
     uint8_t footprint_rows = 0;

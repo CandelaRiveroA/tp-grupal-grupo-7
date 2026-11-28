@@ -27,6 +27,9 @@ struct NpcBody {
 	GridCell at{0, 0};
 	GridSpan span{1, 1};
 	PixelSize drawn{0, 0};
+	// Si false, el prop conserva su tamaño 1:1 en pantalla aunque la
+	// cámara aplique zoom (p. ej. la cama en cabañas chicas).
+	bool zoom = true;
 	std::vector<GridCell> cells;
 	// Objetos animados: un juego de celdas por cuadro (el cuadro 0 es
 	// `cells`) y los ticks que dura cada uno. Sin cuadros: cuerpo estático.

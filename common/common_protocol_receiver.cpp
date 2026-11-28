@@ -230,11 +230,16 @@ ServerInventorySlot ProtocolReceiver::receive_slot_payload() {
     if (tradable > 1) {
         throw std::invalid_argument("El indicador de transferibilidad no es valido.");
     }
+    const uint8_t quality = receive_uint8();
+    if (quality < 1 || quality > 5) {
+        throw std::invalid_argument("La calidad del slot de inventario no es valida.");
+    }
     const uint8_t columns = receive_uint8(), rows = receive_uint8();
     if ((columns == 0) != (rows == 0)) {
         throw std::invalid_argument("Huella de inventario invalida.");
     }
-    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1, columns, rows};
+    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1,
+                               quality, columns, rows};
 }
 
 ServerMessage ProtocolReceiver::receive_obtained_message() {

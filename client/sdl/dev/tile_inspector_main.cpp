@@ -14,7 +14,7 @@
 
 namespace {
 
-constexpr const char* kSheetRelPath = "Cavern/orc/orc_death.png";
+constexpr const char* kSheetRelPath = "Farm/Coop.png";
 constexpr int kCellSize = 16;
 
 const SDL2pp::Color kBackground(30, 30, 40, 255);

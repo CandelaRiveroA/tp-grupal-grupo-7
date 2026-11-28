@@ -106,6 +106,11 @@ struct ViewInventorySlot {
     std::string contentId;
     int count;
     bool tradable = true;
+    // Calidad del contenido cuando es un producto cosechado (la manda la
+    // fuente en ServerInventorySlot.quality, 1..5 BASE..PERFECT; default
+    // Base mientras el server no la mande). Va al final del struct para
+    // no romper los aggregate-init posicionales.
+    world::CropQuality quality = world::CropQuality::Base;
     // Huella de piso si el contenido es un MUEBLE colocable (celdas
     // que ocupa). La manda la fuente de estado, como tradable: qué
     // ítems del jugador son muebles no es dato fijo del cliente. Sin

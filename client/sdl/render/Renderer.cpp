@@ -213,14 +213,13 @@ void Renderer::drawElementRange(const world::SceneDescription& scene,
 		element.tileset, core::assetPath(tileset.image),
 		tileset.cellWidth, tileset.cellHeight);
 
-	const world::PixelRect area =
-		viewport.toScreen(mapper.toPixels(element.at, element.span));
+	const world::PixelRect area = mapper.toPixels(element.at, element.span);
 
-	const ElementPainter painter(tileset, element, area);
-	if (!viewport.intersects(painter.bounds())) {
+	const ElementPainter painter(tileset, element, area, viewport);
+	if (!viewport.intersects(painter.screenBounds())) {
 		return;
 	}
-	painter.paint(sheet, viewport.screenRect(), firstRow, lastRow);
+	painter.paint(sheet, viewport.visibleWorldRect(), firstRow, lastRow);
 }
 
 void Renderer::drawResource(const game::ViewResource& resource,
@@ -233,9 +232,9 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	}
 	const world::ResourceVisual& visual = *found;
 
-	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
+	const world::PixelRect cell = mapper.toPixels(
 		world::GridCell{resource.cellX, resource.cellY},
-		world::kUnitCellSpan));
+		world::kUnitCellSpan);
 
 	// Anclado a la base de la celda: al achicarse se desmorona desde
 	// arriba. scale agranda para tapar el aire transparente de arriba.
@@ -248,7 +247,8 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	const int x = cell.x + (cell.width - w) / 2;
 	const int y = cell.y + cell.height - h + resources_.offsetY;
 
-	const world::PixelRect drawRect{x, y, w, h};
+	const world::PixelRect drawRect =
+		viewport.toScreen(world::PixelRect{x, y, w, h});
 	if (!viewport.intersects(drawRect)) {
 		return;
 	}
@@ -260,7 +260,8 @@ void Renderer::drawResource(const game::ViewResource& resource,
 
 	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
 			visual.rows,
-			SDL2pp::Rect(x, y, w, h));
+			SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
+				     drawRect.height));
 }
 
 SheetCache& Renderer::sheets() { return sheetCache_; }

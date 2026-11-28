@@ -344,6 +344,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp
         client/sdl/render/Camera.cpp
+        client/sdl/render/CameraZoom.cpp
         client/sdl/render/Viewport.cpp
         client/sdl/render/TileLayout.cpp)
     target_include_directories(taller_client_world PUBLIC client)

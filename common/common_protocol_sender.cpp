@@ -141,6 +141,7 @@ void ProtocolSender::send_slot_payload(const ServerInventorySlot& slot) {
     send_uint8(slot.count);
     send_string(slot.content_id);
     send_uint8(slot.tradable ? 1 : 0);
+    send_uint8(slot.quality);
     send_uint8(slot.footprint_columns);
     send_uint8(slot.footprint_rows);
 }

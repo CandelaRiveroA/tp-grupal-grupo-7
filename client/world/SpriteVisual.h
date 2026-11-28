@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 
+#include "world/AnchorLayout.h"
 #include "world/Color.h"
 #include "world/PixelBox.h"
 
@@ -35,7 +36,9 @@ struct SheetCell {
 // (`span`, default 1x1: los muebles ocupan varias). drawn = tamaño en el
 // mapa (0 = el nativo: celda * cols/rows); offset_y = ajuste vertical al apoyarlo en el
 // piso (0 = pegado a los pies; para hojas con aire transparente
-// abajo). La hoja se resuelve por SheetCache al dibujar.
+// abajo). anchor = en qué esquina de su huella cae la celda que manda la
+// fuente de estado (solo los muebles lo usan). La hoja se resuelve por
+// SheetCache al dibujar.
 struct SpriteVisual {
 	std::string sheetImage;
 	int col = 0;
@@ -50,7 +53,16 @@ struct SpriteVisual {
 	int rows = 1;
 	int drawnWidth = 0;
 	int drawnHeight = 0;
+	// Desplazamiento opcional en px de mundo (offset_x / offset_y, default 0).
+	int offsetX = 0;
 	int offsetY = 0;
+	// En qué esquina de su huella cae la celda que manda la fuente de
+	// estado (solo los muebles lo usan). bottom_left (default) = el
+	// sprite crece hacia la derecha y hacia arriba desde esa celda;
+	// top_left = esa celda es la superior y el sprite crece hacia abajo.
+	// El vocabulario es el de AnchorLayout, uno solo para todos los
+	// lectores.
+	Anchor anchor = Anchor::BottomLeft;
 	// Tinte opcional (color modulation): los sprites claros de la hoja
 	// se dibujan multiplicados por este color. Sin tinte = tal cual.
 	std::optional<Color> tint;

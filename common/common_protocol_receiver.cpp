@@ -218,7 +218,11 @@ ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
     if (tradable > 1) {
         throw std::invalid_argument("El indicador de transferibilidad no es valido.");
     }
-    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1};
+    const uint8_t quality = receive_uint8();
+    if (quality < 1 || quality > 5) {
+        throw std::invalid_argument("La calidad del slot de inventario no es valida.");
+    }
+    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1, quality};
 }
 
 ServerMessage ProtocolReceiver::receive_obtained_message() {

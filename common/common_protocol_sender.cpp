@@ -137,6 +137,7 @@ void ProtocolSender::send_message(const ServerInventorySlot& slot) {
     send_uint8(slot.count);
     send_string(slot.content_id);
     send_uint8(slot.tradable ? 1 : 0);
+    send_uint8(slot.quality);
 }
 
 void ProtocolSender::send_message(const ServerObtained& obtained) {

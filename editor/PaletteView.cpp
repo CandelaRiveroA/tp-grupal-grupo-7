@@ -2,19 +2,34 @@
 
 #include <QComboBox>
 #include <QListWidgetItem>
+#include <QMetaType>
 #include <QPixmap>
 #include <QString>
+#include <QVariant>
 #include <QVBoxLayout>
 #include <vector>
 
 #include "Constants.h"
+#include "MarkerSprites.h"
 #include "PaletteListWidget.h"
 #include "TilesetCache.h"
 #include "world_model/PrefabCatalog.h"
 
 PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
-			 const TilesetCache& tilesets, QWidget* parent)
-	: QWidget(parent), catalog_(catalog), tilesets_(tilesets) {
+			 const TilesetCache& tilesets,
+			 const MarkerSprites& markerSprites, QWidget* parent)
+	: QWidget(parent),
+	  catalog_(catalog),
+	  tilesets_(tilesets),
+	  markerSprites_(markerSprites),
+	  markerEntries_{
+		  {"estructuras_granja", "Cama (marcador)",
+		   worldmodel::MarkerKind::Bed},
+		  {"estructuras_granja", "Ventana general (marcador)",
+		   worldmodel::MarkerKind::GeneralWindow},
+		  {"granero", "Ventana granero (marcador)",
+		   worldmodel::MarkerKind::CoopWindow},
+	  } {
 	categoryCombo_ = new QComboBox(this);
 	categoryCombo_->setObjectName("editorCombo");
 	for (const auto& [category, label] : catalog_.categories()) {
@@ -47,12 +62,14 @@ PaletteView::PaletteView(const worldmodel::PrefabCatalog& catalog,
 			if (item == nullptr) {
 				return;
 			}
-			const std::string id =
-				item->data(Qt::UserRole).toString().toStdString();
-			if (id == "__bed__") {
-				emit bedSelected();
+			const QVariant data = item->data(Qt::UserRole);
+			if (data.typeId() == QMetaType::Int) {
+				emit markerSelected(
+					static_cast<worldmodel::MarkerKind>(
+						data.toInt()));
 				return;
 			}
+			const std::string id = data.toString().toStdString();
 			if (const auto portalKind =
 				    portalPrefabs_.kindForPrefabId(id)) {
 				const worldmodel::PrefabDef* prefab =
@@ -96,13 +113,16 @@ void PaletteView::populateCategory(const std::string& category) {
 			QString::fromStdString(prefab->id),
 		});
 	}
-	if (category == "estructuras_granja") {
+	for (const MarkerEntry& entry : markerEntries_) {
+		if (entry.category != category) {
+			continue;
+		}
 		cards.push_back({
 			tilesets_.centeredIcon(
-				QPixmap(":/editor/ui/bed_marker.png"),
+				markerSprites_.sprite(entry.kind),
 				editor::kPaletteIconSize),
-			"Cama (marcador)",
-			QString("__bed__"),
+			entry.label,
+			static_cast<int>(entry.kind),
 		});
 	}
 

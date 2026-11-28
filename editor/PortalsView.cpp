@@ -18,7 +18,7 @@ PortalsView::PortalsView(const worldmodel::PrefabCatalog& catalog,
 	: QWidget(parent),
 	  catalog_(catalog),
 	  tilesets_(tilesets),
-	  rune_(":/editor/ui/portal_rune.png"),
+	  rune_(editor::kPortalSpritePath),
 	  sizeOptions_{
 		  {"1x1 (1 celda)", 1, 1},
 		  {"2x1 (horizontal)", 2, 1},

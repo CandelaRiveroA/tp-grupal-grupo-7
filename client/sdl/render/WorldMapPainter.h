@@ -49,8 +49,12 @@ private:
     void drawArrow(std::optional<SDL2pp::Texture>& texture,
                    const std::string& fallbackText,
                    const world::PixelBox& box);
-    void drawPin(const game::WorldMapPin& pin,
-                 const world::WorldMapLayout& layout) const;
+    void drawPins(const std::vector<game::WorldMapPin>& pins,
+                  const world::WorldMapLayout& layout, bool localOnly);
+    void drawPinHead(const game::WorldMapPin& pin,
+                     const world::WorldMapLayout& layout) const;
+    void drawPinLabel(const game::WorldMapPin& pin,
+                      const world::WorldMapLayout& layout);
     SDL2pp::Rect toSdlRect(const world::PixelBox& box) const;
     SDL2pp::Color toSdlColor(const world::Color& color) const;
 

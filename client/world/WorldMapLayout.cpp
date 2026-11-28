@@ -10,7 +10,10 @@ WorldMapLayout::WorldMapLayout(const int screenW, const int screenH,
     : bgInset_(config.bgInset)
     , mapBorder_(config.mapBorder)
     , pinSize_(config.pinSize)
-    , pinBorder_(config.pinBorder) {
+    , pinBorder_(config.pinBorder)
+    , pinLabelGap_(config.pinLabel.gap)
+    , pinLabelHeight_(config.pinLabel.height)
+    , pinLabelPadX_(config.pinLabel.padX) {
     const int panelW = std::max(
             config.minWidth, static_cast<int>(static_cast<double>(screenW) * config.widthFraction));
     const int panelH = std::max(
@@ -108,6 +111,23 @@ PixelBox WorldMapLayout::pinInnerBox(const PixelBox& outer) const {
             innerSize,
             std::max(1, outer.height - 2 * pinBorder_),
     };
+}
+
+PixelBox WorldMapLayout::pinLabelBox(const PixelBox& outer,
+                                     const int textWidth) const {
+    const int width = std::max(0, textWidth) + 2 * pinLabelPadX_;
+    const int rawX = outer.x + (outer.width - width) / 2;
+    const int maxX = std::max(mapRect_.x, mapRect_.x + mapRect_.width - width);
+    const int x = std::clamp(rawX, mapRect_.x, maxX);
+
+    int y = outer.y + outer.height + pinLabelGap_;
+    if (y + pinLabelHeight_ > mapRect_.y + mapRect_.height) {
+        y = outer.y - pinLabelGap_ - pinLabelHeight_;
+    }
+    const int maxY = std::max(mapRect_.y, mapRect_.y + mapRect_.height - pinLabelHeight_);
+    y = std::clamp(y, mapRect_.y, maxY);
+
+    return PixelBox{x, y, width, pinLabelHeight_};
 }
 
 bool WorldMapLayout::hitsSwitchArrow(const int x, const int y) const {

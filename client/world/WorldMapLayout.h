@@ -20,6 +20,7 @@ public:
     const PixelBox& rightArrowRect() const;
     PixelBox pinOuterBox(float normX, float normY) const;
     PixelBox pinInnerBox(const PixelBox& outer) const;
+    PixelBox pinLabelBox(const PixelBox& outer, int textWidth) const;
 
     bool hitsSwitchArrow(int x, int y) const;
 
@@ -36,6 +37,9 @@ private:
     int mapBorder_ = 0;
     int pinSize_ = 0;
     int pinBorder_ = 0;
+    int pinLabelGap_ = 0;
+    int pinLabelHeight_ = 0;
+    int pinLabelPadX_ = 0;
 };
 
 }  // namespace world

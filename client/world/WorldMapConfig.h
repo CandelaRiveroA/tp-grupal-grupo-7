@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "world/Color.h"
+#include "world/WorldConstants.h"
 
 namespace tomlcfg {
 class TomlDocument;
@@ -14,6 +15,15 @@ namespace world {
 struct WorldMapExteriorConfig {
     std::string id;
     std::string title;
+};
+
+struct WorldMapPinLabelConfig {
+    std::string font = kDefaultFontFace;
+    int fontSize = 0;
+    bool bold = false;
+    int gap = 0;
+    int height = 0;
+    int padX = 0;
 };
 
 // Configuración de presentación del mapa del mundo cargada desde el TOML
@@ -44,6 +54,7 @@ struct WorldMapConfig {
     int unavailableFontSize = 0;
     int pinSize = 0;
     int pinBorder = 0;
+    WorldMapPinLabelConfig pinLabel;
     Color backdropColor{};
     Color parchmentColor{};
     Color woodBorderColor{};

@@ -85,17 +85,7 @@ int SpriteVisual::displayHeight() const {
 }
 
 PixelBox SpriteVisual::fitIn(const PixelBox& box) const {
-	const int dispW = displayWidth();
-	const int dispH = displayHeight();
-	if (dispW <= 0 || dispH <= 0) {
-		return box;
-	}
-	const double scale = std::min(static_cast<double>(box.width) / dispW,
-				      static_cast<double>(box.height) / dispH);
-	const int width = std::max(1, static_cast<int>(dispW * scale));
-	const int height = std::max(1, static_cast<int>(dispH * scale));
-	return PixelBox{box.x + (box.width - width) / 2,
-			box.y + (box.height - height) / 2, width, height};
+	return box.fitCentered(PixelSize{displayWidth(), displayHeight()});
 }
 
 SheetRegion::SheetRegion(const SheetCell& topLeft, int colsValue,

@@ -11,6 +11,16 @@
 
 namespace world {
 
+struct CreatureSheetSpec {
+	std::string file;
+	int cellWidth = 0;
+	int cellHeight = 0;
+	int drawnWidth = 0;
+	int drawnHeight = 0;
+	int frameCols = 0;
+	int frameRows = 0;
+};
+
 class CharacterCatalog {
 public:
 	struct CreatureEntry {
@@ -44,6 +54,8 @@ public:
 	int drawnHeight(CreatureKind kind) const;
 	int frameCols(CreatureKind kind) const;
 	int frameRows(CreatureKind kind) const;
+	CreatureSheetSpec sheetFor(CreatureKind kind,
+				   const ActionData& action) const;
 
 	bool hasAppearance(CreatureKind kind) const;
 	const AppearanceData& appearanceFor(CreatureKind kind) const;

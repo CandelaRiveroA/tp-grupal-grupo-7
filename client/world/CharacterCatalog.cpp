@@ -63,6 +63,21 @@ int CharacterCatalog::frameRows(CreatureKind kind) const {
 	return entryFor(kind).frameRows;
 }
 
+CreatureSheetSpec CharacterCatalog::sheetFor(const CreatureKind kind,
+					     const ActionData& action) const {
+	const CreatureEntry& entry = entryFor(kind);
+	const bool ownSheet = !action.sheet.empty();
+	return CreatureSheetSpec{
+		ownSheet ? action.sheet : entry.sheetFile,
+		ownSheet ? action.cellWidth : entry.sheetCellWidth,
+		ownSheet ? action.cellHeight : entry.sheetCellHeight,
+		entry.drawnWidth,
+		entry.drawnHeight,
+		ownSheet ? action.frameCols : entry.frameCols,
+		ownSheet ? action.frameRows : entry.frameRows,
+	};
+}
+
 bool CharacterCatalog::hasAppearance(CreatureKind kind) const {
 	return entryFor(kind).appearance.present;
 }

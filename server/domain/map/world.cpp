@@ -8,6 +8,8 @@
 #include "../animals/animal.h"
 #include "../animals/animal_catalog.h"
 #include "../furniture/bed.h"
+#include "../furniture/chest_entity.h"
+#include "../inventory/decoration_item.h"
 #include "../inventory/product.h"
 #include "portal.h"
 #include "barn.h"
@@ -438,6 +440,7 @@ void World::transfer_player(uint8_t player_id, SceneId target_scene, uint16_t x,
     }
 
     if (player.get_scene() != target_scene) {
+        close_container(player_id);
         this->selected_merchants.erase(player_id);
     }
     player.set_scene(target_scene);
@@ -493,6 +496,7 @@ void World::add_player(uint8_t player_id, std::unique_ptr<Player> player) {
 }
 
 void World::remove_player(uint8_t player_id) {
+    close_container(player_id);
     std::erase_if(this->offered_gifts, [player_id](const auto& offer) {
         return offer.first.first == player_id || offer.first.second == player_id;
     });
@@ -811,6 +815,7 @@ bool World::damage_player(uint8_t player_id, uint8_t damage) {
 }
 
 void World::kill_player(uint8_t player_id) {
+    close_container(player_id);
     Player& player = *this->players.at(player_id);
     player.set_health(0);
     player.setDiedInCombat(true);
@@ -818,6 +823,7 @@ void World::kill_player(uint8_t player_id) {
 }
 
 void World::faint_player(uint8_t player_id) {
+    close_container(player_id);
     Player& player = *this->players.at(player_id);
     player.setFaintedByEnergy(true);
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
@@ -1084,6 +1090,7 @@ void World::clear_sleep() {
 }
 
 void World::record_sleep_request(uint8_t player_id) {
+    close_container(player_id);
     if (this->waking || this->sleepers.count(player_id) > 0) {
         return;
     }
@@ -1125,6 +1132,7 @@ void World::end_day() {
     }
     clear_sleep();
     this->waking = true;
+    this->open_containers.clear();
     this->death_to_bed.clear();
     this->woke.clear();
     this->day_ended = true;
@@ -1403,4 +1411,125 @@ std::vector<uint8_t> World::take_accepted_gifts() {
 
 void World::cancel_gift_request(uint8_t sender_id, uint8_t receiver_id) {
     this->offered_gifts.erase({sender_id, receiver_id});
+}
+
+IEntity* World::find_container(const SceneId& scene, uint16_t x, uint16_t y) const {
+    const auto found = scenes.find(scene);
+    if (found == scenes.end() || !found->second->in_bounds(x, y)) return nullptr;
+    for (IEntity* entity: found->second->get_entity_at(x, y)) {
+        if (entity->container_inventory() != nullptr) return entity;
+    }
+    return nullptr;
+}
+
+bool World::can_use_container(uint8_t player_id, uint16_t x, uint16_t y) const {
+    const auto found = players.find(player_id);
+    if (found == players.end() || waking || is_sleeping(player_id)) return false;
+    const Player& p = *found->second;
+    return p.get_health() > 0 && !p.faintedByEnergy() && !p.faintedByTimeout() &&
+           std::abs(static_cast<int>(p.get_x()) - x) <= kContainerInteractionRadius &&
+           std::abs(static_cast<int>(p.get_y()) - y) <= kContainerInteractionRadius;
+}
+
+bool World::container_in_use(const SceneId& scene, uint16_t x, uint16_t y) const {
+    for (const auto& [id, open]: open_containers) {
+        (void)id;
+        if (open.scene == scene && open.x == x && open.y == y) return true;
+    }
+    return false;
+}
+
+bool World::container_available(uint8_t player_id, uint16_t x, uint16_t y) const {
+    if (!can_use_container(player_id, x, y)) return false;
+    const SceneId& scene = get_player(player_id).get_scene();
+    return find_container(scene, x, y) != nullptr && !container_in_use(scene, x, y);
+}
+
+IEntity* World::get_open_container(uint8_t player_id) const {
+    const auto open = open_containers.find(player_id);
+    if (open == open_containers.end() || !can_use_container(player_id, open->second.x, open->second.y) ||
+        get_player(player_id).get_scene() != open->second.scene) return nullptr;
+    return find_container(open->second.scene, open->second.x, open->second.y);
+}
+
+void World::validate_containers() {
+    for (auto it = open_containers.begin(); it != open_containers.end();) {
+        if (get_open_container(it->first) == nullptr) it = open_containers.erase(it);
+        else ++it;
+    }
+}
+
+void World::open_container(uint8_t player_id, uint16_t x, uint16_t y) {
+    validate_containers();
+    const auto existing = open_containers.find(player_id);
+    if (existing != open_containers.end() && existing->second.x == x && existing->second.y == y &&
+        existing->second.scene == get_player(player_id).get_scene()) return;
+    if (!container_available(player_id, x, y)) return;
+    close_container(player_id);
+    open_containers[player_id] = {get_player(player_id).get_scene(), x, y};
+}
+
+void World::close_container(uint8_t player_id) { open_containers.erase(player_id); }
+
+void World::transfer_container_item(uint8_t player_id, uint16_t x, uint16_t y,
+                                     bool to_container, uint8_t slot, uint8_t amount) {
+    validate_containers();
+    IEntity* entity = get_open_container(player_id);
+    if (!entity || entity->get_x() != x || entity->get_y() != y || amount != 1) return;
+    Player& p = get_player(player_id);
+    Inventory& chest = *entity->container_inventory();
+    Inventory& inventory = p.get_inventory();
+    Inventory& source = to_container ? inventory : chest;
+    Inventory& destination = to_container ? chest : inventory;
+    if (slot >= source.get_max_slots()) return;
+    const Item* item = source.peek_item(slot);
+    if (!item) return;
+    if (!destination.can_add_item(*item)) {
+        if (!to_container) inventory_full.insert(player_id);
+        return;
+    }
+    source.transfer_one_to(destination, slot);
+}
+
+void World::discard_item(uint8_t player_id, uint8_t slot, uint8_t amount) {
+    const auto found = players.find(player_id);
+    if (found == players.end() || !can_use_container(player_id, found->second->get_x(), found->second->get_y())) return;
+    Inventory& inventory = found->second->get_inventory();
+    if (slot >= inventory.get_max_slots() || amount == 0 || inventory.get_amount(slot) < amount) return;
+    const Item* item = inventory.peek_item(slot);
+    if (item == nullptr || !item->can_be_traded()) return;
+    for (unsigned i = 0; i < amount; ++i) inventory.consume_item(slot);
+}
+
+void World::place_chest(uint8_t player_id, uint16_t x, uint16_t y, uint8_t slot, uint8_t facing) {
+    if (!can_use_container(player_id, x, y) || facing > 3) return;
+    Player& p = get_player(player_id);
+    if (slot >= p.get_inventory().get_max_slots()) return;
+    Scene& scene = get_scene(p.get_scene());
+    const Item* item = p.get_inventory().peek_item(slot);
+    if (!item || item->get_id() != ItemID::CHEST || !scene.in_bounds(x, y) ||
+        !scene.can_walk_to(x, y) || !scene.get_entity_at(x, y).empty()) return;
+    for (const uint8_t id: get_player_ids_in_scene(p.get_scene())) {
+        if (get_player(id).get_x() == x && get_player(id).get_y() == y) return;
+    }
+    scene.set_entity_at(x, y, std::make_unique<ChestEntity>(x, y, ItemID::CHEST, 1, facing));
+    p.get_inventory().consume_item(slot);
+}
+
+void World::grab_chest(uint8_t player_id, uint16_t x, uint16_t y) {
+    validate_containers();
+    if (!container_available(player_id, x, y)) return;
+    Player& p = get_player(player_id);
+    IEntity* entity = find_container(p.get_scene(), x, y);
+    const Inventory& storage = *entity->container_inventory();
+    for (uint8_t slot = 0; slot < storage.get_max_slots(); ++slot) {
+        if (!storage.is_slot_empty(slot)) return; // El contenido debe retirarse primero.
+    }
+    if (!try_pick_up_item(p, std::make_unique<DecorationItem>(ItemID::CHEST, 1))) return;
+    get_scene(p.get_scene()).remove_entity(entity);
+    record_pickup(player_id, ItemID::CHEST);
+}
+
+bool World::try_remove_animals(ItemID type, uint16_t quantity) {
+    return barn != nullptr && barn->try_remove_animals(type, quantity);
 }

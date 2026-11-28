@@ -24,6 +24,8 @@ private:
 
 	void readItems(world::InventoryLayout& layout) const;
 
+	void readTrash(world::InventoryLayout& layout) const;
+
 	const tomlcfg::TomlDocument& doc_;
 };
 

@@ -14,3 +14,5 @@ bool Item::is_stackable_with(const Item& other) const {
 Quality Item::get_quality() const {
     return Quality::BASE;
 }
+
+uint16_t Item::get_final_price() const { return 0; }

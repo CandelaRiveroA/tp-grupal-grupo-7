@@ -57,6 +57,10 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
+        // Tecla R: gira el mueble que se está por colocar. Lo
+        // consume PlaySession; NO viaja al GameClient (la orientación
+        // viaja con la colocación).
+        RotateFurniture,
         // Abre/cierra el popup de configuración (ESC fuera del chat). Lo
         // consume PlaySession; NO viaja al GameClient.
         ToggleSettings,

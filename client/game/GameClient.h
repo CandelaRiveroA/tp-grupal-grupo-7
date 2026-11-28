@@ -5,6 +5,10 @@
 #include <string>
 
 #include "common/common_command.h"
+#include "game/ContainerTransfer.h"
+#include "game/FurnitureGrab.h"
+#include "game/FurniturePlacement.h"
+#include "game/InventoryDiscard.h"
 #include "game/LocalWorldView.h"
 
 namespace game {
@@ -26,6 +30,16 @@ public:
     // Punto de conexión para el botón "Donar" del Centro Comunitario:
     // el cliente solo envía la intención global; el servidor valida y aplica.
     virtual void donateToCommunityCenter() {}
+
+    virtual void requestTransfer(const ContainerTransfer& /*transfer*/) {}
+
+    // Intención de colocar el mueble de un slot en una celda. Default
+    // vacío: la fuente decide si se puede (hoy solo la demo la atiende).
+    virtual void requestPlace(const FurniturePlacement& /*placement*/) {}
+
+    virtual void requestGrab(const FurnitureGrab& /*grab*/) {}
+
+    virtual void requestDiscard(const InventoryDiscard& /*discard*/) {}
 
     // RECIBIR: el estado actual del mundo que dibuja el cliente.
     virtual const LocalWorldView& worldState() const = 0;

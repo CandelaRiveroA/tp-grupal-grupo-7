@@ -7,6 +7,7 @@
 
 #include "common_command.h"
 #include "common_match_request.h"
+#include "common/model/draft/WorldSummary.h"
 #include "common_server_status.h"
 #include "common_socket_io.h"
 
@@ -19,10 +20,17 @@ private:
     // cppcheck-suppress unusedPrivateFunction
     void send_string(const std::string& value);
     // Los 8 indices de la personalizacion, siempre en el mismo orden.
+    void send_slot_payload(const ServerInventorySlot& slot);
     void send_appearance(const CharacterAppearance& appearance);
 
     static void validate_direction(Direction direction);
 
+    void send_message(const protocol::DiscardMessage& message);
+    void send_message(const protocol::OpenContainerMessage& message);
+    void send_message(const protocol::CloseContainerMessage& message);
+    void send_message(const protocol::ContainerTransferMessage& message);
+    void send_message(const protocol::PlaceFurnitureMessage& message);
+    void send_message(const protocol::GrabFurnitureMessage& message);
     void send_message(const protocol::MoveMessage& message);
     void send_message(const protocol::PickMessage& message);
     void send_message(const protocol::TakeMessage& message);
@@ -35,6 +43,8 @@ private:
     void send_message(const ServerGiftAccepted& message);
     void send_message(const ServerPlayerName& message);
     void send_message(const ServerInventoryFull& message);
+    void send_message(const ServerWorldPlayers& message);
+    void send_message(const ServerContainerState& message);
     void send_message(const ServerStatus& status);
     void send_message(const ServerLeave& leave);
     void send_message(const ServerResource& resource);
@@ -73,7 +83,7 @@ public:
     void send_match_request(const MatchRequest& request);
     void send_lobby_status(LobbyStatus status);
     void send_world_list_request();
-    void send_world_list(const std::vector<std::string>& worlds);
+    void send_world_list(const std::vector<WorldSummary>& worlds);
     void send_message(const protocol::GiftResponseMessage& message);
     void send_message(const ServerSetCompleted& completed);
     void send_message(const ServerVictory& victory);

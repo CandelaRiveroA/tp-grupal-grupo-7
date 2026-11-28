@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+#include "world/CropQualityNames.h"
+
 namespace world {
 
 int CropDefinition::finalStage() const {
@@ -46,20 +48,31 @@ const std::map<std::string, CropDefinition>& CropCatalog::entries() const {
 
 void CropCatalog::registerContents(ContentCatalog& content,
 				   ContentTraits& traits) const {
+	// El sufijo de cada calidad (contentId calificado: "strawberry:good",
+	// ...): el MISMO vocabulario de CropQualityNames (convención §4/§9,
+	// una sola tabla).
+	const CropQualityNames names;
 	for (const auto& [cropId, definition] : entries_) {
 		content.visuals.emplace(definition.sackId, definition.sack);
 		traits.set(definition.sackId,
 			   ContentTrait{definition.droppable});
-		// El producto cosechado se dibuja como la cosecha (hoy la
-		// calidad base la manda la fuente; mañana el servidor
-		// decidirá cuándo es increíble).
-		const SpriteVisual* harvest = definition.spriteForStage(
-			definition.finalStage(), CropQuality::Base);
-		if (harvest != nullptr) {
-			content.visuals.emplace(cropId, *harvest);
-			traits.set(cropId,
-				   ContentTrait{definition.droppable});
+		// El producto cosechado se dibuja como la cosecha, con su
+		// sprite POR CALIDAD: la base va bajo el contentId plano
+		// (compatibilidad: un slot sin calidad la usa) y las demás
+		// bajo contentId:sufijo. El HUD resuelve cuál con la calidad
+		// del slot (ContentCatalog::findQualified).
+		for (const auto& [name, quality] : names.entries()) {
+			const auto it = definition.qualities.find(quality);
+			if (it == definition.qualities.end()) {
+				continue;
+			}
+			std::string key = cropId;
+			if (quality != CropQuality::Base) {
+				key += ":" + name;
+			}
+			content.visuals.emplace(std::move(key), it->second);
 		}
+		traits.set(cropId, ContentTrait{definition.droppable});
 	}
 }
 

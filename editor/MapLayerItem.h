@@ -1,17 +1,18 @@
 #pragma once
 
 #include <QGraphicsItem>
-#include <QPixmap>
 #include <cstddef>
 #include <map>
 #include <optional>
 
 #include "PortalPrefabs.h"
 #include "common/world_model/Geometry.h"
+#include "common/world_model/MapRules.h"
 #include "common/world_model/Marker.h"
 #include "common/world_model/Portal.h"
 #include "common/world_model/Tile.h"
 
+class MarkerSprites;
 class QPainter;
 class QStyleOptionGraphicsItem;
 class QWidget;
@@ -37,13 +38,15 @@ struct MoveTarget {
 class MapLayerItem : public QGraphicsItem {
 public:
 	MapLayerItem(const worldmodel::PrefabCatalog& catalog,
-		     const TilesetCache& tilesets);
+		     const TilesetCache& tilesets,
+		     const MarkerSprites& markerSprites);
 
 	void setMap(const worldmodel::Map* map);
 	void setShowCollision(bool show);
 	void setTool(EditorTool tool);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
-	void setPlacingBed(bool placing);
+	void setPlacingMarker(std::optional<worldmodel::MarkerKind> kind);
+	void clearPlacement();
 	void setMoveTarget(std::optional<MoveTarget> target);
 	void setPortalPreview(worldmodel::PortalKind kind, int width,
 			      int height);
@@ -56,9 +59,9 @@ public:
 private:
 	const worldmodel::PrefabCatalog& catalog_;
 	const TilesetCache& tilesets_;
+	const MarkerSprites& markerSprites_;
 	PortalPrefabs portalPrefabs_;
-	QPixmap defaultMarkerSprite_;
-	std::map<worldmodel::MarkerKind, QPixmap> markerSprites_;
+	worldmodel::MapRules rules_;
 	QPixmap portalSprite_;
 	std::map<EditorTool, bool (MapLayerItem::*)() const> previewChecks_;
 	std::map<EditorTool, void (MapLayerItem::*)(QPainter*, int) const>
@@ -69,7 +72,7 @@ private:
 	bool showCollision_ = false;
 	EditorTool tool_ = EditorTool::Navigate;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
-	bool placingBed_ = false;
+	std::optional<worldmodel::MarkerKind> placingMarker_;
 	std::optional<MoveTarget> moveTarget_;
 	worldmodel::PortalKind portalPreviewKind_ = worldmodel::PortalKind::Link;
 	int portalPreviewW_ = 1;
@@ -83,6 +86,8 @@ private:
 	bool alwaysPreview() const;
 	void drawPlacementPreview(QPainter* painter, int ts) const;
 	void drawPrefabPreview(QPainter* painter, int ts) const;
+	void drawMarkerPreview(QPainter* painter, int ts,
+			       worldmodel::MarkerKind kind) const;
 	void drawMovePreview(QPainter* painter, int ts) const;
 	void drawMoveObjectPreview(QPainter* painter, int ts) const;
 	void drawMoveMarkerPreview(QPainter* painter, int ts) const;
@@ -98,5 +103,4 @@ private:
 			  int minRow, int maxRow) const;
 	void drawCollisionOverlay(QPainter* painter, int ts, int minCol,
 				  int maxCol, int minRow, int maxRow) const;
-	int markerHeight(worldmodel::MarkerKind kind) const;
 };

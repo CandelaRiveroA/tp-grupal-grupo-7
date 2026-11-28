@@ -10,6 +10,7 @@
 
 class World;
 class Player;
+class Inventory;
 
 // Descripción neutral de cómo se ve una celda, para que el mundo la muestre
 // sin conocer el tipo concreto de la entidad.
@@ -81,6 +82,9 @@ public:
     // jugador pueda pararse en la misma casilla que un ítem tirado antes de recogerlo.
     virtual bool is_walkable() const = 0;
     virtual bool blocks_placement() const;
+    virtual Inventory* container_inventory();
+    virtual const Inventory* container_inventory() const;
+    virtual uint8_t furniture_facing() const;
 
     virtual void interact(Player& p, ToolType tool, World& w) = 0;
 

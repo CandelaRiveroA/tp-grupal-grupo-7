@@ -27,3 +27,10 @@ sheet = "ui/cursors.png"
 cell  = [16, 16]
 at    = [3, 0]
 drawn = [32, 32]
+
+# Mueble al alcance bajo el puntero: el click derecho lo agarra.
+[grab]
+sheet = "ui/cursors.png"
+cell  = [16, 16]
+at    = [0, 1]
+drawn = [32, 32]

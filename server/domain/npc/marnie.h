@@ -6,11 +6,13 @@
 #include <map>
 
 #include "../animals/animal_purchase.h"
+#include "../animals/animal_catalog.h"
 #include "merchant.h"
 
 class Marnie: public Merchant {
 private:
     std::map<AnimalPurchaseResult, std::string> purchase_errors;
+    AnimalCatalog animal_catalog;
 
 protected:
     std::string handle_buy(Player& p, const std::string& item_name, uint16_t qty,
@@ -21,6 +23,7 @@ protected:
 public:
     Marnie(uint16_t x, uint16_t y);
     ~Marnie() override = default;
+    std::optional<uint16_t> buy_price(ItemID item, uint8_t quality = 1) const override;
 };
 
 #endif  // MARNIE_H

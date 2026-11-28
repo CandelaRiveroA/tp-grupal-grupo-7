@@ -7,7 +7,12 @@
 
 namespace worldmodel {
 
-MapRules::MapRules() {
+MapRules::MapRules()
+	: markerSpecs_{
+		  {MarkerKind::Bed, MarkerSpec{2, true, false}},
+		  {MarkerKind::GeneralWindow, MarkerSpec{2, false, true}},
+		  {MarkerKind::CoopWindow, MarkerSpec{1, false, true}},
+	  } {
 	const auto add = [this](const std::string& id, MapKind kind) -> MapRule& {
 		rules_.push_back(MapRule{});
 		MapRule& rule = rules_.back();
@@ -29,7 +34,9 @@ MapRules::MapRules() {
 
 	for (int k = kMinPlayers; k <= kMaxPlayers; ++k) {
 		MapRule& cabin = add(cabinId(k), MapKind::Cabin);
-		cabin.allowedMarkers = {MarkerKind::Bed};
+		cabin.allowedMarkers = {MarkerKind::Bed,
+					MarkerKind::GeneralWindow,
+					MarkerKind::CoopWindow};
 		cabin.requiredMarkers = {{MarkerKind::Bed, true}};
 		cabin.requiredPortals = {PortalKind::InteriorExit};
 		cabin.interiorObject = ObjectRole::Cabin;
@@ -54,7 +61,8 @@ MapRules::MapRules() {
 	};
 	for (const ShopRuleSpec& spec : shops) {
 		MapRule& shop = add(spec.id, spec.mapKind);
-		shop.allowedMarkers = {spec.merchant};
+		shop.allowedMarkers = {spec.merchant, MarkerKind::GeneralWindow,
+				       MarkerKind::CoopWindow};
 		shop.requiredMarkers = {{spec.merchant, true}};
 		shop.requiredPortals = {PortalKind::InteriorExit};
 		shop.interiorObject = spec.role;
@@ -62,6 +70,8 @@ MapRules::MapRules() {
 	}
 
 	MapRule& barn = add("barn", MapKind::Barn);
+	barn.allowedMarkers = {MarkerKind::GeneralWindow,
+			       MarkerKind::CoopWindow};
 	barn.requiredPortals = {PortalKind::InteriorExit};
 	barn.interiorObject = ObjectRole::Barn;
 	barn.interiorExitTarget = "farm";
@@ -208,6 +218,46 @@ std::optional<std::string> MapRules::expectedPortalTarget(
 		}
 	}
 	return std::nullopt;
+}
+
+MarkerSpec MapRules::markerSpec(MarkerKind kind) const {
+	const auto it = markerSpecs_.find(kind);
+	if (it != markerSpecs_.end()) {
+		return it->second;
+	}
+	return MarkerSpec{};
+}
+
+bool MapRules::markerAllowedIn(const std::string& mapId,
+			       MarkerKind kind) const {
+	const MapRule* rule = find(mapId);
+	if (rule == nullptr) {
+		return true;  // los mapas extra admiten cualquier marcador
+	}
+	return std::find(rule->allowedMarkers.begin(),
+			 rule->allowedMarkers.end(),
+			 kind) != rule->allowedMarkers.end();
+}
+
+bool MapRules::canPlaceMarker(const Map& map, MarkerKind kind,
+			      TilePos cell) const {
+	const MarkerSpec spec = markerSpec(kind);
+	return markerAllowedIn(map.id, kind) &&
+	       map.fits(cell, 1, spec.height) &&
+	       (!spec.requiresWalkable ||
+		map.isAreaWalkable(cell, 1, spec.height));
+}
+
+bool MapRules::isMarkerUnique(const std::string& mapId, MarkerKind kind) const {
+	const MapRule* rule = find(mapId);
+	if (rule == nullptr) {
+		return false;
+	}
+	return std::any_of(rule->requiredMarkers.begin(),
+			   rule->requiredMarkers.end(),
+			   [kind](const MarkerRule& req) {
+				   return req.kind == kind && req.unique;
+			   });
 }
 
 }

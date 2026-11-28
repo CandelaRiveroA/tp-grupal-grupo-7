@@ -47,6 +47,9 @@ public:
 	// juntos si hubo varios en el mismo frame.
 	std::vector<game::PointerClick> takeClicks();
 
+	// Igual, para el click derecho (agarrar).
+	std::vector<game::PointerClick> takeGrabs();
+
 	// Posición actual del puntero (px de pantalla), actualizada por el
 	// movimiento del mouse.
 	const game::PointerPosition& mousePosition() const;
@@ -107,6 +110,7 @@ private:
 	int slotCount_ = 0;
 	std::deque<game::InputCommand> pending_;  // cola de one-shot: varios por frame
 	std::vector<game::PointerClick> clicks_;  // clicks pendientes: varios por frame
+	std::vector<game::PointerClick> grabs_;
 	game::PointerPosition pointerPosition_{};
 	bool pointerHeld_ = false;
 

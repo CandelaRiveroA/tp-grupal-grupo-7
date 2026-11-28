@@ -133,10 +133,17 @@ void ProtocolSender::send_message(const ServerDropped& dropped) {
 
 void ProtocolSender::send_message(const ServerInventorySlot& slot) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::InventorySlot));
+    send_slot_payload(slot);
+}
+
+void ProtocolSender::send_slot_payload(const ServerInventorySlot& slot) {
     send_uint8(slot.slot);
     send_uint8(slot.count);
     send_string(slot.content_id);
     send_uint8(slot.tradable ? 1 : 0);
+    send_uint8(slot.quality);
+    send_uint8(slot.footprint_columns);
+    send_uint8(slot.footprint_rows);
 }
 
 void ProtocolSender::send_message(const ServerObtained& obtained) {
@@ -212,6 +219,9 @@ void ProtocolSender::send_message(const ServerFurniture& furniture) {
     send_uint16(furniture.x);
     send_uint16(furniture.y);
     send_string(furniture.content_id);
+    send_uint8(furniture.facing);
+    send_uint8(furniture.interactive ? 1 : 0);
+    send_uint8(furniture.open ? 1 : 0);
 }
 
 void ProtocolSender::send_message(const ServerDayEnd& /*day*/) {
@@ -289,6 +299,7 @@ void ProtocolSender::send_message(const ServerMarketOffer& offer) {
         send_uint8(static_cast<uint8_t>(entry.side));
         send_uint8(entry.has_price ? 1 : 0);
         send_uint16(entry.price);
+        send_uint8(entry.quality);
     }
 }
 
@@ -320,13 +331,14 @@ void ProtocolSender::send_world_list_request() {
     send_uint8(static_cast<uint8_t>(MatchRequestType::ListWorlds));
 }
 
-void ProtocolSender::send_world_list(const std::vector<std::string>& worlds) {
+void ProtocolSender::send_world_list(const std::vector<WorldSummary>& worlds) {
     if (worlds.size() > std::numeric_limits<uint16_t>::max()) {
         throw std::length_error("La lista de mundos del protocolo es demasiado larga.");
     }
     send_uint16(static_cast<uint16_t>(worlds.size()));
-    for (const std::string& world : worlds) {
-        send_string(world);
+    for (const WorldSummary& world : worlds) {
+        send_string(world.name);
+        send_uint16(world.maxPlayers);
     }
 }
 
@@ -380,4 +392,48 @@ void ProtocolSender::send_message(const ServerPlayerName& message) {
 
 void ProtocolSender::send_message(const ServerInventoryFull& /*message*/) {
     send_uint8(static_cast<uint8_t>(ServerMessageType::InventoryFull));
+}
+
+void ProtocolSender::send_message(const protocol::DiscardMessage& m) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::Discard));
+    send_uint8(m.slot); send_uint8(m.amount);
+}
+void ProtocolSender::send_message(const protocol::OpenContainerMessage& m) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::OpenContainer));
+    send_uint16(m.x); send_uint16(m.y);
+}
+void ProtocolSender::send_message(const protocol::CloseContainerMessage&) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::CloseContainer));
+}
+void ProtocolSender::send_message(const protocol::ContainerTransferMessage& m) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::ContainerTransfer));
+    send_uint16(m.x); send_uint16(m.y);
+    send_uint8(static_cast<uint8_t>(m.direction)); send_uint8(m.slot); send_uint8(m.amount);
+}
+void ProtocolSender::send_message(const protocol::PlaceFurnitureMessage& m) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::PlaceFurniture));
+    send_uint16(m.x); send_uint16(m.y); send_uint8(m.slot); send_uint8(m.facing);
+}
+void ProtocolSender::send_message(const protocol::GrabFurnitureMessage& m) {
+    send_uint8(static_cast<uint8_t>(protocol::ClientMessageType::GrabFurniture));
+    send_uint16(m.x); send_uint16(m.y);
+}
+void ProtocolSender::send_message(const ServerWorldPlayers& m) {
+    if (m.players.size() > 255) throw std::length_error("Demasiados jugadores para el mapa.");
+    send_uint8(static_cast<uint8_t>(ServerMessageType::WorldPlayers));
+    send_uint8(static_cast<uint8_t>(m.players.size()));
+    for (const auto& player: m.players) {
+        send_uint8(player.player_id); send_string(player.map_id);
+        send_uint16(player.x); send_uint16(player.y); send_appearance(player.appearance);
+    }
+}
+void ProtocolSender::send_message(const ServerContainerState& m) {
+    if (m.inventory_slots.size() > 255) throw std::length_error("Demasiados slots de contenedor.");
+    send_uint8(static_cast<uint8_t>(ServerMessageType::ContainerState));
+    send_uint8(m.open ? 1 : 0);
+    if (!m.open) return;
+    send_uint16(m.x); send_uint16(m.y); send_uint8(static_cast<uint8_t>(m.inventory_slots.size()));
+    for (const auto& slot: m.inventory_slots) {
+        send_slot_payload(slot);
+    }
 }

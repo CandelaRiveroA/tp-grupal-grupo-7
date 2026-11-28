@@ -18,7 +18,13 @@ enum class ClientMessageType : uint8_t {
     Chat = 6,
     GiftResponse = 7,
     ToggleWalking = 8,
-    SelectSlot = 9
+    SelectSlot = 9,
+    Discard = 10,
+    OpenContainer = 11,
+    CloseContainer = 12,
+    ContainerTransfer = 13,
+    PlaceFurniture = 14,
+    GrabFurniture = 15
 };
 
 // Move: camina en la dirección dada (y la fija como facing).
@@ -73,9 +79,23 @@ struct SelectSlotMessage {
     uint8_t slot;
 };
 
+struct DiscardMessage { uint8_t slot; uint8_t amount; };
+struct OpenContainerMessage { uint16_t x; uint16_t y; };
+struct CloseContainerMessage {};
+enum class ContainerDirection : uint8_t { ToInventory = 0, ToContainer = 1 };
+struct ContainerTransferMessage {
+    uint16_t x; uint16_t y;
+    ContainerDirection direction;
+    uint8_t slot; uint8_t amount;
+};
+struct PlaceFurnitureMessage { uint16_t x; uint16_t y; uint8_t slot; uint8_t facing; };
+struct GrabFurnitureMessage { uint16_t x; uint16_t y; };
+
 using ClientMessage =
         std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage,
-                     GiftResponseMessage, ToggleWalkingMessage, SelectSlotMessage>;
+                     GiftResponseMessage, ToggleWalkingMessage, SelectSlotMessage,
+                     DiscardMessage, OpenContainerMessage, CloseContainerMessage,
+                     ContainerTransferMessage, PlaceFurnitureMessage, GrabFurnitureMessage>;
 
 }  // namespace protocol
 

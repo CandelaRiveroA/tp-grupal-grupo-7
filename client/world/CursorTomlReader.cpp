@@ -26,10 +26,11 @@ struct CursorBinding {
 	bool required;
 };
 
-constexpr std::array<CursorBinding, 3> kCursorBindings = {{
+constexpr std::array<CursorBinding, 4> kCursorBindings = {{
 	{CursorKind::Normal, "normal", true},
 	{CursorKind::Interactive, "interactive", true},
 	{CursorKind::Gift, "gift", false},
+	{CursorKind::Grab, "grab", false},
 }};
 
 }

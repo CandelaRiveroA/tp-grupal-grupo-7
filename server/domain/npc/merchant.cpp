@@ -25,12 +25,14 @@ Merchant::Merchant(uint16_t x, uint16_t y, std::string name,
 
 Merchant::Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
                    std::map<std::string, CatalogEntry> sell_catalog,
-                   std::map<std::string, ItemID> buy_catalog):
+                   std::map<std::string, ItemID> buy_catalog,
+                   std::map<ItemID, uint16_t> buy_base_prices):
         IEntity(x, y),
         name(std::move(name)),
         id(std::move(id)),
         sell_catalog(std::move(sell_catalog)),
-        buy_catalog(std::move(buy_catalog)) {}
+        buy_catalog(std::move(buy_catalog)),
+        buy_base_prices(std::move(buy_base_prices)) {}
 
 bool Merchant::is_in_range(uint16_t x, uint16_t y) const {
     return std::abs(static_cast<int>(get_x()) - static_cast<int>(x)) <=
@@ -133,17 +135,32 @@ std::string Merchant::handle_sell(Player& p, const std::string& item_name, uint1
         return name + ": No tenés " + std::to_string(qty) + " unidades de " + item_name + ".";
     }
 
-    uint16_t total_earned = 0;
+    uint32_t total_earned = 0;
     for (const auto& item: sold) {
-        const Product* prod = dynamic_cast<const Product*>(item.get());
-        if (prod != nullptr) {
-            total_earned += prod->get_final_price();
-        }
+        total_earned += item->get_final_price();
     }
     if (w.is_double_sell_active()) {
-        total_earned = static_cast<uint16_t>(total_earned * 2);
+        total_earned *= 2;
+    }
+    if (total_earned > 65535u - p.get_gold()) {
+        // La extracción libera justamente el espacio necesario para restaurarlos.
+        for (auto& item: sold) p.pick_up_item(std::move(item));
+        return name + ": No podés recibir tanto oro. No se realizó la venta.";
     }
 
-    p.add_gold(total_earned);
+    p.add_gold(static_cast<uint16_t>(total_earned));
     return name + ": ¡Venta exitosa! Recibiste " + std::to_string(total_earned) + "g.";
+}
+
+std::optional<uint16_t> Merchant::buy_price(ItemID item, uint8_t quality) const {
+    const auto found = buy_base_prices.find(item);
+    if (found == buy_base_prices.end() || quality < 1 || quality > 5) {
+        return std::nullopt;
+    }
+    // Huevos, leche y minerales solo existen en calidad.base: no se ofrecen
+    // variantes superiores que el jugador nunca podría entregar.
+    if (quality > 1 && !Product::has_quality_variants(item)) {
+        return std::nullopt;
+    }
+    return Product(item, found->second, static_cast<Quality>(quality)).get_final_price();
 }

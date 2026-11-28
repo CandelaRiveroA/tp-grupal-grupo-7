@@ -25,3 +25,11 @@ scale = 1.0
 [states.placed]
 block = [4, 0, 4, 4]
 scale = 1.0
+
+# Vista previa de un mueble por colocar (game::PlacementSelection decide
+# dónde). alpha: 0 (invisible) a 255 (opaco). push: cuánto (fracción de
+# celda) se adelanta el sprite hacia el lado donde se coloca, así no se lee
+# "encima" del personaje; las celdas verde/rojo siguen en el lugar exacto.
+[ghost]
+alpha = 110
+push  = 0.5

@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 
 #include "toml/TomlDocument.h"
+#include "world/AnchorLayout.h"
 #include "world/ConfigError.h"
 
 namespace world {
@@ -60,11 +62,29 @@ SpriteVisual::SpriteVisual(const tomlcfg::TomlDocument& doc,
 		drawnHeight = drawn[1];
 	}
 
-	// Ajuste vertical al apoyarlo en el piso: opcional (default 0 =
-	// pegado a los pies). Compensa el aire transparente del sprite.
+	// Ajuste horizontal/vertical opcional en px de mundo (default 0):
+	// compensa aire transparente del sprite o alinea muebles en el mapa.
+	const std::string offsetXPath = base + ".offset_x";
+	if (doc.hasKey(offsetXPath)) {
+		offsetX = doc.getInt(offsetXPath);
+	}
 	const std::string offsetPath = base + ".offset_y";
 	if (doc.hasKey(offsetPath)) {
 		offsetY = doc.getInt(offsetPath);
+	}
+
+	// Ancla de la huella respecto de la celda base: opcional (default
+	// bottom_left). El vocabulario es el de AnchorLayout, uno solo para
+	// todos los lectores.
+	const std::string anchorPath = base + ".anchor";
+	if (doc.hasKey(anchorPath)) {
+		const std::optional<Anchor> found =
+			AnchorLayout().fromName(doc.getString(anchorPath));
+		if (!found.has_value()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  anchorPath);
+		}
+		anchor = *found;
 	}
 }
 

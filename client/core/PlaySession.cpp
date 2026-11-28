@@ -14,6 +14,7 @@
 #include "game/AreaProximity.h"
 #include "game/GameClient.h"
 #include "game/GameConstants.h"
+#include "game/SlotStacker.h"
 #include "game/EnemyTestTrigger.h"
 #include "game/LocalWorldView.h"
 #include "sdl/log/Logger.h"
@@ -75,6 +76,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         farm_(core::assetPath(core::kCropsFile), core::assetPath(core::kGroundFile),
               core::assetPath(core::kBuildPlaceFile)),
         inventory_(farm_.withCropContents(inventory)),
+        furnitureGeometry_(inventory_.content, npcs),
         sdlContext_(config),
         camera_(world::ScenePixelMapper(scenario.scene().cellPixelSize)
                         .worldBounds(scenario.scene().grid),
@@ -94,6 +96,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         actionSounds_(characters),
         farmSelection_(inventory_.traits),
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
+        enteredFronts_{{game::EnterSource::Element, &PlaySession::drawElementFront},
+                       {game::EnterSource::Furniture, &PlaySession::drawFurnitureFront}},
+        placement_(furnitureGeometry_),
         structureSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup}},
         structurePopups_{{core::kNpcIdCommunityCenter, &PlaySession::openCommunityPopup}},
@@ -107,8 +112,9 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         actionResolver_(motion_, farmSelection_.carry()),
         player_(gameClient, characters.dataFor(world::CreatureKind::Player).cadence,
                 inventory_.count),
-        picker_(inventory_.content),
+        picker_(inventory_.content, furnitureGeometry_),
         markerPainter_(sdlContext_),
+        ghostPainter_(renderer_.sheets(), furnitureGeometry_),
         cursorCatalog_(cursors),
         cursorPainter_(sdlContext_),
         dialogCatalog_(dialogs),
@@ -117,10 +123,11 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         buttonPainter_(sdlContext_, promptLayout_),
         promptPainter_(textRenderer_, promptLayout_, buttonPainter_),
         npcPopupPainter_(sdlContext_, textRenderer_),
+        closeButtonPainter_(sdlContext_),
         marketPopupPainter_(sdlContext_, textRenderer_),
         marketPopup_(market, inventory_),
         communityResolver_(community),
-        communityPopupPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.sheetCache(),
+        communityPopupPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.sheets(),
                                inventory_.content, farm_.crops(), characters_, communityCatalog_),
         communityPopup_(),
         communityActions_{
@@ -129,6 +136,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {CommunityControl::NextPage, &PlaySession::nextCommunityPage},
                 {CommunityControl::Donate, &PlaySession::donateToCommunity},
         },
+        containerSession_(inventory_),
         chatPainter_(sdlContext_, textRenderer_, chat),
         worldMapPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.appearancePainter(),
                          worldMap, minimapDir),
@@ -147,6 +155,10 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
                 {game::ResourceAudioEvent::Hit, sdl::SoundId::MineralHit},
                 {game::ResourceAudioEvent::Broke, sdl::SoundId::MineralCrack},
         },
+        propSounds_{
+                {game::PropMotion::Opening, sdl::SoundId::ChestOpen},
+                {game::PropMotion::Closing, sdl::SoundId::ChestClose},
+        },
         commandSounds_{
                 {game::InputCommand::Kind::ToggleSettings, sdl::SoundId::Cancel},
                 {game::InputCommand::Kind::ChatCancel, sdl::SoundId::Cancel},
@@ -156,6 +168,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
     audioMixer_.apply(settings_.volumes());
     renderer_.prepareScene(scene());
     renderer_.setNpcs(npcCatalog_.forRoom(sceneSwitcher_.id()));
+    renderer_.setFurniture(furnitureGeometry_);
     // Entradas del overlay que no coinciden con nada del mundo: un
     // aviso por cada una (el path dice cuál), no frena el juego.
     const sdl::Logger logger;
@@ -189,9 +202,13 @@ void PlaySession::tick(int iteration) {
                        thanks ? thanks->animation.durationTicks() : 0);
     // La presentación local del tick (desmayo incluido) es la que ven
     // el movimiento, el renderer y los diálogos.
-    game::LocalWorldView presentation =
-            presentationView(sceneSnapshot_.observe(state, sceneSwitcher_.id()));
+    const game::LocalWorldView& scoped = sceneSnapshot_.observe(state, sceneSwitcher_.id());
+    // Los muebles en los que uno se mete (la cama) se mueven: se suman
+    // a los entrables ANTES de la vista de presentación y de los clicks.
+    enterSelection_.observeFurniture(scoped, furnitureGeometry_, scene().cellPixelSize);
+    game::LocalWorldView presentation = presentationView(scoped);
     motion_.observe(presentation, iteration);
+    syncContainers(scoped, iteration);
     renderer_.setNpcFrames(props_.frames(iteration));
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
@@ -211,6 +228,7 @@ void PlaySession::tick(int iteration) {
         woke_ = false;
         dayEnding_ = true;
         npcPopup_ = nullptr;
+        dropContainer();
         lastNpcId_.clear();
         marketPopup_.close();
         communityPopup_.close();
@@ -281,6 +299,7 @@ void PlaySession::tick(int iteration) {
             closeChat();
         }
         const std::vector<game::PointerClick> clicks = input_.takeClicks();
+        input_.takeGrabs();
         const bool holding = sceneTransition_.holding();
         if (holding) {
             // Sostenida en negro: el popup del nuevo día es lo único que
@@ -340,6 +359,7 @@ void PlaySession::tick(int iteration) {
         lastSleeping_ = state.sleep.sleeping;
         lastTotal_ = state.sleep.total;
         npcPopup_ = nullptr;
+        dropContainer();
         lastNpcId_.clear();
         marketPopup_.close();
         communityPopup_.close();
@@ -421,6 +441,13 @@ void PlaySession::tick(int iteration) {
             closeChat();
             continue;
         }
+        if (command.kind == game::InputCommand::Kind::RotateFurniture) {
+            // Solo con el mundo libre; sin mueble en la mano no hace nada.
+            if (!popupState_.modal() && !isWorldBlocked()) {
+                orientation_.rotate(furnitureGeometry_.views());
+            }
+            continue;
+        }
         const auto test = testActions_.find(command.kind);
         if (test != testActions_.end()) {
             if (enemyTestTrigger_ != nullptr) {
@@ -460,7 +487,8 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         if (command.kind == game::InputCommand::Kind::OpenCatalog) {
-            if (worldMap_.isOpen() || settings_.modal() || communityPopup_.isOpen()) {
+            if (worldMap_.isOpen() || settings_.modal() || communityPopup_.isOpen() ||
+                openContainer_ != nullptr) {
                 continue;
             }
             // DEMO (tecla B): catálogo de prueba, sin pasar por el NPC.
@@ -468,23 +496,20 @@ void PlaySession::tick(int iteration) {
             continue;
         }
         if (command.kind == game::InputCommand::Kind::ToggleSettings) {
-            if (communityPopup_.isOpen()) {
-                if (communityPopup_.isHelpOpen()) {
-                    communityPopup_.closeHelp();
-                } else {
-                    communityPopup_.close();
-                }
-            } else if (worldMap_.isOpen()) {
+            if (closeOverlay(iteration)) {
+                continue;
+            }
+            if (worldMap_.isOpen()) {
                 closeWorldMap();
             } else {
                 toggleSettings();
             }
             continue;
         }
-        // Con un popup abierto (NPC, catálogo, metas o configuración) el
+        // Con un popup abierto (NPC, catálogo, metas, configuración o cofre) el
         // mundo está bloqueado: el resto de las intenciones se descartan.
         if (npcPopup_ != nullptr || marketPopup_.isOpen() || communityPopup_.isOpen() ||
-            settings_.modal()) {
+            settings_.modal() || openContainer_ != nullptr) {
             continue;
         }
         if (popupState_.modal()) {
@@ -529,6 +554,9 @@ void PlaySession::tick(int iteration) {
     const world::PixelPoint worldCursor = camera_.viewport().toWorld(
             world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
     farmSelection_.observe(state, player_.activeSlot(), cells.toCell(worldCursor));
+    orientation_.observe(farmSelection_.carry(), player_.activeSlot());
+    placement_.observe(state, farmSelection_.carry(), cells.toCell(worldCursor), scene().grid,
+                       orientation_.facing());
     // Dónde está cada NPC lo manda la fuente de estado (vista); sin eso,
     // valen las celdas por defecto de npcs.toml.
     const world::NpcCells npcCells = npcPlacements_.cellsFrom(state, scene());
@@ -589,6 +617,7 @@ void PlaySession::tick(int iteration) {
                         camera_.viewport(), dayPhase_.phase());
     drawEnteredFront(presentation, cells);
     drawPlantingMarker(cells);
+    drawPlacementGhost(cells);
 
     // Diálogos de las entidades (lo que "dicen"): la indicación viene en
     // el estado y el catálogo dice cómo se ve. Sobre el mundo, después
@@ -623,7 +652,12 @@ void PlaySession::tick(int iteration) {
     // Nombres bajo los pies: siguen a la cámara pero van después de la luz
     // nocturna, así no se oscurecen.
     drawNameplates(presentation, iteration);
-    inventoryHud_.draw(state.inventory, player_.activeSlot());
+    const bool trashHovered =
+            !popupState_.modal() && !isWorldBlocked() &&
+            inventory_.isOverTrash(
+                    sdlContext_.width(), sdlContext_.height(),
+                    world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y});
+    inventoryHud_.draw(state.inventory, player_.activeSlot(), trashHovered);
     bannerHud_.draw(bannerQueue_.active());
     noticePainter_.draw(noticeQueue_.active());
     noticeQueue_.tick();
@@ -658,8 +692,10 @@ void PlaySession::tick(int iteration) {
     } else if (iteration < chatPreviewUntilTick_) {
         chatPainter_.drawPreview(state.chatLog);
     }
+    observeContainer(state, iteration);
     drawPopup(popupBox);
     drawNpcPopup();
+    drawContainerPopup(state, iteration);
     drawMarketCatalog();
     drawCommunityPopup(state, iteration);
     dragSettingsSlider();
@@ -700,10 +736,14 @@ void PlaySession::tick(int iteration) {
         }
         const world::PixelPoint worldClick =
                 camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
-        // El popup de un NPC o el del catálogo se cierra con cualquier click.
+        // El contenedor abierto bloquea el mundo: solo su botón de cerrar
+        // responde (el resto de los clicks se descarta).
+        if (openContainer_ != nullptr) {
+            handleContainerClick(world::PixelPoint{click.x, click.y}, state, iteration);
+            continue;
+        }
+        // El popup de un NPC o el del catálogo se cierra con ESC.
         if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
-            npcPopup_ = nullptr;
-            marketPopup_.close();
             continue;
         }
         const world::PixelPoint screenClick{click.x, click.y};
@@ -771,6 +811,13 @@ void PlaySession::tick(int iteration) {
         if (popupState_.modal()) {
             continue;
         }
+        if (inventory_.isOverTrash(sdlContext_.width(), sdlContext_.height(), screenClick)) {
+            if (activeSlotOccupied(state)) {
+                gameClient_.requestDiscard(
+                        game::InventoryDiscard{player_.activeSlot(), game::kDiscardAmount});
+            }
+            continue;
+        }
         // Un NPC: abre su popup y consume el click.
         if (const world::NpcDef* npc = npcCatalog_.npcAt(sceneSwitcher_.id(), worldClick,
                                                          scene().cellPixelSize, npcCells);
@@ -780,8 +827,14 @@ void PlaySession::tick(int iteration) {
             }
             if (!npc->hasPopup()) {
                 // Objeto animado (cofre): el click lo abre o lo cierra.
-                props_.toggle(npc->id, static_cast<int>(npc->body.frames.size()),
-                              npc->body.frameTicks, iteration);
+                if (npc->isContainer()) {
+                    const auto cell = npc->cellIn(npcCells);
+                    gameClient_.sendCommand(protocol::OpenContainerMessage{
+                            static_cast<uint16_t>(cell.column),
+                            static_cast<uint16_t>(cell.row + npc->body.span.rows - 1)});
+                } else {
+                    toggleProp(npc->id, *npc, iteration);
+                }
                 continue;
             }
             npcPopup_ = npc;
@@ -816,6 +869,14 @@ void PlaySession::tick(int iteration) {
         }
         const game::PickTarget clicked =
                 picker_.pick(worldClick, state, motion_, iteration, scene().cellPixelSize);
+        // Un mueble contenedor al alcance (cofre colocado): el click lo
+        // abre. Levantarlo es con la tecla de recoger (Take), no el click.
+        // Va antes del resto de los muebles: un cofre interactivo se abre,
+        // no se camina como la cama.
+        if (clicked.kind == game::PickTarget::Kind::Furniture &&
+            openFurnitureContainer(state.placedFurniture[clicked.index], iteration)) {
+            continue;
+        }
         if (clicked.kind == game::PickTarget::Kind::Furniture) {
             if (isInteractive(clicked, state)) {
                 const game::ViewFurniture& furniture = state.placedFurniture[clicked.index];
@@ -838,15 +899,27 @@ void PlaySession::tick(int iteration) {
             player_.interact();
             continue;
         }
+        // Con un mueble en la mano el click lo coloca donde muestra la
+        // vista previa; si ese lugar no es válido no pasa nada (y no
+        // se usa la herramienta).
+        if (const std::optional<game::PlacementSpot>& spot = placement_.spot()) {
+            if (spot->valid) {
+                player_.place(spot->source, spot->facing);
+                orientation_.reset();
+            }
+            continue;
+        }
         player_.useToward(cells.toCell(worldClick), pressed);
     }
+
+    handleGrabs(state, iteration);
 
     // El puntero: mientras el popup es modal, el mundo está bloqueado y
     // solo es apretable lo del popup (las opciones o el botón de su
     // copia). Fuera del popup, otro jugador muestra el cursor de regalo.
     const world::PixelPoint mousePoint{input_.mousePosition().x, input_.mousePosition().y};
     world::CursorKind cursorKind = world::CursorKind::Normal;
-    // Con el popup de un NPC, del catálogo, metas, configuración o mapa abierto el mundo está bloqueado.
+    // Con el popup de un NPC, del catálogo, metas, configuración, mapa o cofre abierto el mundo está bloqueado.
     const bool worldBlocked = isWorldBlocked();
     const world::NpcDef* hoveredNpc = npcCatalog_.npcAt(
             sceneSwitcher_.id(), worldCursor, scene().cellPixelSize, npcCells);
@@ -874,8 +947,18 @@ void PlaySession::tick(int iteration) {
             overPopup = promptLayout_.buttonAt(prompt.button, popupBox, mousePoint);
         }
         cursorKind = overPopup ? world::CursorKind::Interactive : world::CursorKind::Normal;
+    } else if (openContainer_ != nullptr) {
+        cursorKind = overContainerTarget(mousePoint, state, iteration)
+                ? world::CursorKind::Interactive
+                : world::CursorKind::Normal;
+    } else if (!worldBlocked &&
+               inventory_.isOverTrash(sdlContext_.width(), sdlContext_.height(), mousePoint)) {
+        cursorKind = activeSlotOccupied(state) ? world::CursorKind::Interactive
+                                               : world::CursorKind::Normal;
     } else if (!worldBlocked && isGiftTarget(target, state)) {
         cursorKind = world::CursorKind::Gift;
+    } else if (!worldBlocked && isGrabbable(target, state)) {
+        cursorKind = world::CursorKind::Grab;
     } else if (!worldBlocked &&
                (isInteractive(target, state) || enterSelection_.hits(worldCursor, state) ||
                 structureSelection_.hits(worldCursor, state) ||
@@ -904,6 +987,21 @@ void PlaySession::drawPlantingMarker(const world::ScenePixelMapper& cells) {
     }
 }
 
+void PlaySession::drawPlacementGhost(const world::ScenePixelMapper& cells) {
+    const std::optional<game::PlacementSpot>& spot = placement_.spot();
+    if (!spot.has_value()) {
+        return;
+    }
+    const world::BuildPlaceState state =
+            spot->valid ? world::BuildPlaceState::Available : world::BuildPlaceState::Placed;
+    for (const world::GridCell& cell: spot->cells) {
+        markerPainter_.draw(farm_.buildPlaces(), state, cell, cells, camera_.viewport());
+    }
+    ghostPainter_.draw(spot->contentId, spot->base, spot->facing, spot->toward,
+                       farm_.buildPlaces().ghostPush(), farm_.buildPlaces().ghostAlpha(), cells,
+                       camera_.viewport());
+}
+
 void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
                                    const world::ScenePixelMapper& cells) {
     // Las filas frontales del elemento donde está metido el jugador (lo
@@ -913,8 +1011,21 @@ void PlaySession::drawEnteredFront(const game::LocalWorldView& view,
     if (!front.has_value()) {
         return;
     }
-    renderer_.drawElementFront(scene(), scene().elements[front->elementIndex], cells,
-                               camera_.viewport(), front->firstRow, front->lastRow);
+    (this->*(enteredFronts_.at(front->source)))(view, *front, cells);
+}
+
+void PlaySession::drawElementFront(const game::LocalWorldView& /*view*/,
+                                   const game::EnteredFront& front,
+                                   const world::ScenePixelMapper& cells) {
+    renderer_.drawElementFront(scene(), scene().elements[front.index], cells, camera_.viewport(),
+                               front.firstRow, front.lastRow);
+}
+
+void PlaySession::drawFurnitureFront(const game::LocalWorldView& view,
+                                     const game::EnteredFront& front,
+                                     const world::ScenePixelMapper& cells) {
+    renderer_.drawFurnitureFront(view.placedFurniture[front.index], cells, camera_.viewport(),
+                                 front.firstRow, front.lastRow);
 }
 
 void PlaySession::runStructureAction(const world::SceneStructure& structure) {
@@ -953,6 +1064,8 @@ void PlaySession::changeScene(const std::string& room) {
     sceneSwitcher_.switchTo(room);
     const world::SceneDescription& current = sceneSwitcher_.scene();
     npcPopup_ = nullptr;
+    dropContainer();
+    props_.clear();
     lastNpcId_.clear();
     marketPopup_.close();
     communityPopup_.close();
@@ -1001,7 +1114,7 @@ void PlaySession::toggleSettings() {
     // Cerrar siempre se puede; abrir no si otro popup ya bloquea el mundo.
     const bool otherPopup = npcPopup_ != nullptr || marketPopup_.isOpen() ||
                             popupState_.modal() || worldMap_.isOpen() ||
-                            communityPopup_.isOpen();
+                            communityPopup_.isOpen() || openContainer_ != nullptr;
     if (!settings_.isOpen() && otherPopup) {
         return;
     }
@@ -1097,6 +1210,134 @@ void PlaySession::drawNpcPopup() {
     npcPopupPainter_.draw(*npcPopup_, panel);
 }
 
+void PlaySession::drawContainerPopup(const game::LocalWorldView& view, const int iteration) {
+    // Mismo panel que el inventario con la grilla del contenedor: aparece
+    // cuando el cofre terminó de abrirse. Los slots los manda la vista.
+    if (openContainer_ == nullptr || !props_.isOpen(containerKey_, iteration)) {
+        return;
+    }
+    const world::GridSpan grid = openContainer_->container;
+    const world::PixelBox panel = containerPanel();
+    inventoryHud_.drawGrid(panel, grid.columns, grid.rows, view.containerSlots,
+                            containerSession_.selected());
+    closeButtonPainter_.draw(npcCatalog_.closeButton(), panel);
+}
+
+void PlaySession::syncContainers(const game::LocalWorldView& view, const int iteration) {
+    // Estado público: todos animan el mismo cofre. Estado privado: solo el
+    // propietario de la sesión recibe el contenido y abre el popup.
+    for (const auto& piece: view.placedFurniture) {
+        const world::NpcDef* def = npcCatalog_.find(piece.contentId);
+        if (def == nullptr || !def->isContainer()) continue;
+        const auto motion = props_.setOpen(game::FurnitureKey().of(piece), piece.open,
+                static_cast<int>(def->body.frames.size()), def->body.frameTicks, iteration);
+        if (motion) audio_.play(propSounds_.at(*motion));
+    }
+    if (!view.openContainer || (!view.mapId.empty() && view.mapId != sceneSwitcher_.id())) {
+        openContainer_ = nullptr;
+        containerSession_.close();
+        return;
+    }
+    const auto cell = *view.openContainer;
+    const game::ViewFurniture piece{"cofre", cell.column, cell.row};
+    const std::string key = game::FurnitureKey().of(piece);
+    if (openContainer_ != nullptr && containerKey_ == key) return;
+    const world::NpcDef* def = npcCatalog_.find("cofre");
+    if (def == nullptr || !def->isContainer()) return;
+    openContainer_ = def;
+    containerKey_ = key;
+    containerSession_.open(key);
+}
+
+void PlaySession::observeContainer(const game::LocalWorldView& view, const int iteration) {
+    if (openContainer_ == nullptr || !props_.isOpen(containerKey_, iteration)) {
+        return;
+    }
+    if (containerSession_.hover(
+                world::PixelPoint{input_.mousePosition().x, input_.mousePosition().y},
+                containerPanel(), openContainer_->container, view)) {
+        audio_.play(sdl::SoundId::ToolSwitch);
+    }
+}
+
+world::PixelBox PlaySession::containerPanel() const {
+    const world::GridSpan grid = openContainer_->container;
+    return inventory_.centeredBox(sdlContext_.width(), sdlContext_.height(), grid.columns,
+                                  grid.rows);
+}
+
+bool PlaySession::overContainerClose(const world::PixelPoint& point, const int iteration) const {
+    return openContainer_ != nullptr && props_.isOpen(containerKey_, iteration) &&
+           npcCatalog_.closeButton().contains(containerPanel(), point);
+}
+
+bool PlaySession::overContainerTarget(const world::PixelPoint& point,
+                                      const game::LocalWorldView& view,
+                                      const int iteration) const {
+    if (overContainerClose(point, iteration)) {
+        return true;
+    }
+    return openContainer_ != nullptr && props_.isOpen(containerKey_, iteration) &&
+           containerSession_.overItem(point, containerPanel(), openContainer_->container, view,
+                                      sdlContext_.width(), sdlContext_.height());
+}
+
+void PlaySession::handleContainerClick(const world::PixelPoint& point,
+                                       const game::LocalWorldView& view, const int iteration) {
+    if (overContainerClose(point, iteration)) {
+        closeContainer(iteration);
+        return;
+    }
+    if (!props_.isOpen(containerKey_, iteration)) {
+        return;
+    }
+    const std::optional<game::ContainerTransfer> transfer =
+            containerSession_.click(point, containerPanel(), openContainer_->container, view,
+                                    sdlContext_.width(), sdlContext_.height());
+    if (transfer.has_value()) {
+        gameClient_.requestTransfer(*transfer);
+    }
+}
+
+bool PlaySession::openFurnitureContainer(const game::ViewFurniture& furniture,
+                                         const int /*iteration*/) {
+    const world::NpcDef* def = npcCatalog_.find(furniture.contentId);
+    if (def == nullptr || !def->isContainer() || !furniture.interactive) return false;
+    gameClient_.sendCommand(protocol::OpenContainerMessage{
+            static_cast<uint16_t>(furniture.cellX), static_cast<uint16_t>(furniture.cellY)});
+    return true;
+}
+
+bool PlaySession::toggleProp(const std::string& key, const world::NpcDef& def,
+                             const int iteration) {
+    const std::optional<game::PropMotion> motion = props_.toggle(
+            key, static_cast<int>(def.body.frames.size()), def.body.frameTicks, iteration);
+    if (!motion.has_value()) {
+        return false;
+    }
+    audio_.play(propSounds_.at(*motion));
+    return true;
+}
+
+bool PlaySession::closeContainer(const int iteration) {
+    if (openContainer_ == nullptr || !props_.isOpen(containerKey_, iteration)) {
+        return false;
+    }
+    gameClient_.sendCommand(protocol::CloseContainerMessage{});
+    // El cierre visual espera la confirmación de la fuente, igual que la apertura.
+    return true;
+}
+
+void PlaySession::dropContainer() {
+    if (openContainer_ == nullptr) {
+        return;
+    }
+    gameClient_.sendCommand(protocol::CloseContainerMessage{});
+    props_.reset(containerKey_);
+    openContainer_ = nullptr;
+    containerSession_.close();
+}
+
 bool PlaySession::canInteractWithMerchant(const std::string& id,
                                          const game::LocalWorldView& view) const {
     const world::NpcDef* npc = npcCatalog_.find(id);
@@ -1152,7 +1393,7 @@ void PlaySession::openMarketFromView(const game::LocalWorldView& view) {
 
 bool PlaySession::isWorldBlocked() const {
     return npcPopup_ != nullptr || marketPopup_.isOpen() || communityPopup_.isOpen() ||
-           settings_.modal() || worldMap_.isOpen();
+           settings_.modal() || worldMap_.isOpen() || openContainer_ != nullptr;
 }
 
 void PlaySession::drawCommunityPopup(const game::LocalWorldView& view, const int iteration) {
@@ -1240,16 +1481,73 @@ void PlaySession::updateCamera(const game::LocalWorldView& view, const game::Vie
                                      game::kLocalPlayerIndex, iteration, scene().cellPixelSize));
 }
 
+bool PlaySession::activeSlotOccupied(const game::LocalWorldView& view) const {
+    return game::SlotStacker().find(view.inventory, player_.activeSlot()) != nullptr;
+}
+
+bool PlaySession::closeOverlay(const int iteration) {
+    if (closeContainer(iteration)) {
+        return true;
+    }
+    if (communityPopup_.isOpen()) {
+        if (communityPopup_.isHelpOpen()) {
+            communityPopup_.closeHelp();
+        } else {
+            communityPopup_.close();
+        }
+        return true;
+    }
+    if (npcPopup_ != nullptr) {
+        npcPopup_ = nullptr;
+        return true;
+    }
+    if (marketPopup_.isOpen()) {
+        marketPopup_.close();
+        return true;
+    }
+    return false;
+}
+
+bool PlaySession::isGrabbable(const game::PickTarget& target,
+                              const game::LocalWorldView& view) const {
+    return target.kind == game::PickTarget::Kind::Furniture &&
+           view.placedFurniture[target.index].interactive;
+}
+
+void PlaySession::handleGrabs(const game::LocalWorldView& view, const int iteration) {
+    const std::vector<game::PointerClick> grabs = input_.takeGrabs();
+    if (popupState_.modal() || isWorldBlocked()) {
+        return;
+    }
+    for (const game::PointerClick& grab: grabs) {
+        const world::PixelPoint worldClick =
+                camera_.viewport().toWorld(world::PixelPoint{grab.x, grab.y});
+        const game::PickTarget target =
+                picker_.pick(worldClick, view, motion_, iteration, scene().cellPixelSize);
+        if (isGrabbable(target, view)) {
+            const game::ViewFurniture& piece = view.placedFurniture[target.index];
+            gameClient_.requestGrab(game::FurnitureGrab{
+                    piece.contentId, world::GridCell{piece.cellX, piece.cellY}});
+        }
+    }
+}
+
 bool PlaySession::isInteractive(const game::PickTarget& target,
                                 const game::LocalWorldView& view) const {
     // El estado dice qué es interactivo; esto solo lo lee.
     if (target.kind == game::PickTarget::Kind::Furniture) {
+        const game::ViewFurniture& furniture = view.placedFurniture[target.index];
+        // La cama se toca solo de cerca (como los edificios): su caja es
+        // grande y el click lejos no debe caminar hasta ella. El resto de
+        // los muebles interactivos (el cofre) lo dice la vista.
+        if (furniture.contentId != "bed") {
+            return furniture.interactive;
+        }
         if (view.entities.empty()) {
             return false;
         }
-        const game::ViewFurniture& furniture = view.placedFurniture[target.index];
         const world::SpriteVisual* visual = inventory_.content.find(furniture.contentId);
-        if (furniture.contentId != "bed" || visual == nullptr) {
+        if (visual == nullptr) {
             return false;
         }
         const game::ViewEntity& local = view.entities[game::kLocalPlayerIndex];

@@ -30,6 +30,7 @@ Renderer::Renderer(SdlContext& context,
 			  content, palettes)
 	, layerPainter_(sheetCache_)
 	, npcRenderer_(context)
+	, propPainter_(sheetCache_)
 	, groundPainter_(sheetCache_, ground)
 	, cropPainter_(sheetCache_, crops) {}
 
@@ -45,6 +46,32 @@ void Renderer::setNpcs(const std::vector<const world::NpcDef*>& npcs) {
 
 void Renderer::setNpcFrames(const std::map<std::string, int>& frames) {
 	npcRenderer_.setFrames(frames);
+	propFrames_ = frames;
+}
+
+void Renderer::setFurniture(const world::FurnitureGeometry& furniture) {
+	furniture_ = &furniture;
+}
+
+void Renderer::drawFurnitureFront(const game::ViewFurniture& furniture,
+				  const world::ScenePixelMapper& mapper,
+				  const Viewport& viewport, const int firstRow,
+				  const int lastRow) {
+	if (furniture_ == nullptr) {
+		return;
+	}
+	const world::NpcDef* prop = furniture_->prop(furniture.contentId);
+	const std::optional<world::FurnitureShape> shape = furniture_->shapeOf(
+		furniture.contentId, world::GridCell{furniture.cellX, furniture.cellY},
+		mapper);
+	if (prop == nullptr || !shape.has_value()) {
+		return;
+	}
+	PropDraw how;
+	how.where = shape->topLeft;
+	how.firstRow = firstRow;
+	how.lastRow = lastRow;
+	propPainter_.draw(*prop, mapper.cellPixelSize(), how, viewport);
 }
 
 void Renderer::drawWorld(const world::SceneDescription& scene,
@@ -186,14 +213,13 @@ void Renderer::drawElementRange(const world::SceneDescription& scene,
 		element.tileset, core::assetPath(tileset.image),
 		tileset.cellWidth, tileset.cellHeight);
 
-	const world::PixelRect area =
-		viewport.toScreen(mapper.toPixels(element.at, element.span));
+	const world::PixelRect area = mapper.toPixels(element.at, element.span);
 
-	const ElementPainter painter(tileset, element, area);
-	if (!viewport.intersects(painter.bounds())) {
+	const ElementPainter painter(tileset, element, area, viewport);
+	if (!viewport.intersects(painter.screenBounds())) {
 		return;
 	}
-	painter.paint(sheet, viewport.screenRect(), firstRow, lastRow);
+	painter.paint(sheet, viewport.visibleWorldRect(), firstRow, lastRow);
 }
 
 void Renderer::drawResource(const game::ViewResource& resource,
@@ -206,9 +232,9 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	}
 	const world::ResourceVisual& visual = *found;
 
-	const world::PixelRect cell = viewport.toScreen(mapper.toPixels(
+	const world::PixelRect cell = mapper.toPixels(
 		world::GridCell{resource.cellX, resource.cellY},
-		world::kUnitCellSpan));
+		world::kUnitCellSpan);
 
 	// Anclado a la base de la celda: al achicarse se desmorona desde
 	// arriba. scale agranda para tapar el aire transparente de arriba.
@@ -221,7 +247,8 @@ void Renderer::drawResource(const game::ViewResource& resource,
 	const int x = cell.x + (cell.width - w) / 2;
 	const int y = cell.y + cell.height - h + resources_.offsetY;
 
-	const world::PixelRect drawRect{x, y, w, h};
+	const world::PixelRect drawRect =
+		viewport.toScreen(world::PixelRect{x, y, w, h});
 	if (!viewport.intersects(drawRect)) {
 		return;
 	}
@@ -233,21 +260,40 @@ void Renderer::drawResource(const game::ViewResource& resource,
 
 	sheet.drawBlock(visual.sprite.col, visual.sprite.row, visual.cols,
 			visual.rows,
-			SDL2pp::Rect(x, y, w, h));
+			SDL2pp::Rect(drawRect.x, drawRect.y, drawRect.width,
+				     drawRect.height));
 }
+
+SheetCache& Renderer::sheets() { return sheetCache_; }
 
 void Renderer::drawFurniture(const game::ViewFurniture& furniture,
 			     const world::ScenePixelMapper& mapper,
 			     const Viewport& viewport) {
-	// Un contentId sin visual no se dibuja (igual que un ítem del piso).
-	const world::SpriteVisual* visual = content_.find(furniture.contentId);
-	if (visual == nullptr) {
+	if (furniture_ == nullptr) {
 		return;
 	}
-	const world::PixelRect box = world::FurnitureLayout(mapper).box(
-		*visual, world::GridCell{furniture.cellX, furniture.cellY});
-	const world::PixelRect onScreen = viewport.toScreen(box);
-	if (!viewport.intersects(onScreen)) {
+	// La forma sale de la geometría compartida (ancla incluida): un
+	// contentId sin visual no se dibuja (igual que un ítem del piso).
+	const std::optional<world::FurnitureShape> shape = furniture_->shapeOf(
+		furniture.contentId, world::GridCell{furniture.cellX, furniture.cellY},
+		mapper, furniture.facing);
+	if (!shape.has_value()) {
+		return;
+	}
+	// Por piezas (cofre, cama): el cuadro actual de SU instancia; sin
+	// estado, el cuadro 0 (cerrado).
+	if (const world::NpcDef* prop = furniture_->prop(furniture.contentId);
+	    prop != nullptr) {
+		const auto frame = propFrames_.find(furnitureKey_.of(furniture));
+		PropDraw how;
+		how.where = shape->topLeft;
+		how.frame = frame != propFrames_.end() ? frame->second : 0;
+		propPainter_.draw(*prop, mapper.cellPixelSize(), how, viewport);
+		return;
+	}
+	const world::SpriteVisual* visual = shape->visual;
+	const world::PixelRect onScreen = viewport.toScreen(shape->box);
+	if (visual == nullptr || !viewport.intersects(onScreen)) {
 		return;
 	}
 	SpriteSheet& sheet = sheetCache_.sheet(
@@ -255,7 +301,8 @@ void Renderer::drawFurniture(const game::ViewFurniture& furniture,
 		visual->cellWidth, visual->cellHeight);
 	sheet.drawBlock(visual->col, visual->row, visual->cols, visual->rows,
 			SDL2pp::Rect(onScreen.x, onScreen.y, onScreen.width,
-				     onScreen.height));
+				     onScreen.height),
+			shape->mirrored ? Flip::Horizontal : Flip::None);
 }
 
 void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
@@ -296,7 +343,5 @@ void Renderer::drawDroppedItem(const game::ViewDroppedItem& item,
 const PlayerAppearancePainter& Renderer::appearancePainter() const {
 	return entityRenderer_.appearancePainter();
 }
-
-SheetCache& Renderer::sheetCache() { return sheetCache_; }
 
 }  // namespace sdl

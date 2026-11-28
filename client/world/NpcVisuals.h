@@ -7,6 +7,7 @@
 #include "world/Grid.h"
 #include "world/PixelBox.h"
 #include "world/ScenePixelMapper.h"
+#include "world/ViewDirection.h"
 
 namespace world {
 
@@ -26,6 +27,9 @@ struct NpcBody {
 	GridCell at{0, 0};
 	GridSpan span{1, 1};
 	PixelSize drawn{0, 0};
+	// Si false, el prop conserva su tamaño 1:1 en pantalla aunque la
+	// cámara aplique zoom (p. ej. la cama en cabañas chicas).
+	bool zoom = true;
 	std::vector<GridCell> cells;
 	// Objetos animados: un juego de celdas por cuadro (el cuadro 0 es
 	// `cells`) y los ticks que dura cada uno. Sin cuadros: cuerpo estático.
@@ -40,6 +44,16 @@ struct NpcBody {
 					 int frame) const;
 };
 
+// Mueble en el que el jugador se "mete" (la cama): las filas de la pieza
+// (desde 0, inclusive) que se dibujan ENCIMA de quien duerme y la pose.
+// La celda donde queda acostado es la celda del mueble que manda la
+// fuente (la misma que usa el server).
+struct PropEnter {
+	int firstFrontRow;
+	int lastFrontRow;
+	Direction facing;
+};
+
 struct NpcPortrait {
 	std::string sheet;
 	int cellWidth = 0;
@@ -49,6 +63,27 @@ struct NpcPortrait {
 
 	// Caja destino que contiene al retrato sin deformarlo.
 	PixelBox fit(const PixelBox& box) const;
+};
+
+// Botón de cerrar de un popup (la X arriba a la derecha, FUERA del panel,
+// pegada a su borde superior): una celda de una hoja, su tamaño en pantalla
+// y su separación del panel.
+// Es presentación: todo sale del TOML; quién lo muestra y qué cierra lo
+// decide el dueño del popup.
+struct CloseButton {
+	std::string sheet;
+	int cellWidth = 0;
+	int cellHeight = 0;
+	GridCell cell{0, 0};
+	PixelSize size{0, 0};
+	// x: distancia del borde derecho del panel hacia adentro (0 = alineado
+	// con el borde). y: separación entre el botón y el borde superior.
+	PixelPoint inset{0, 0};
+
+	// Caja del botón: encima del panel, alineada a su derecha.
+	PixelBox box(const PixelBox& panel) const;
+	// ¿El punto cae sobre el botón del panel?
+	bool contains(const PixelBox& panel, const PixelPoint& point) const;
 };
 
 // Rectángulo de slots del panel del popup.

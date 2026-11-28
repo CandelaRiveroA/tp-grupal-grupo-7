@@ -47,8 +47,10 @@ void HeldItemPainter::draw(const std::string& contentId,
 	SpriteSheet& sheet = sheets_.sheet(
 		visual->sheetImage, core::assetPath(visual->sheetImage),
 		visual->cellWidth, visual->cellHeight);
-	sheet.draw(visual->col, visual->row,
-		   SDL2pp::Rect(rect.x, rect.y, rect.width, rect.height));
+	// drawBlock: un mueble abarca varias celdas de la hoja (span); un
+	// ítem común es el bloque de 1x1 (mismo resultado que antes).
+	sheet.drawBlock(visual->col, visual->row, visual->cols, visual->rows,
+			SDL2pp::Rect(rect.x, rect.y, rect.width, rect.height));
 }
 
 }

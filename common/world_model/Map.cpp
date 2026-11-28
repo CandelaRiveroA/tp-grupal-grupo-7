@@ -30,6 +30,21 @@ bool Map::isWalkable(TilePos pos) const {
 	return !collision[index];
 }
 
+bool Map::isAreaWalkable(TilePos origin, int rectWidth, int rectHeight) const {
+	if (!fits(origin, rectWidth, rectHeight)) {
+		return false;
+	}
+	for (int row = 0; row < rectHeight; ++row) {
+		for (int col = 0; col < rectWidth; ++col) {
+			if (!isWalkable(
+				    {origin.column + col, origin.row + row})) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 std::vector<bool> Map::composeCollision() const {
 	std::vector<bool> composed = baseCollision;
 	for (const MapObject& object : objects) {

@@ -14,6 +14,16 @@ text_offset    = [-10, 10]
 line_gap       = 0
 text_color     = [62, 39, 17, 255]
 
+# Botón de cerrar de los popups de contenedor (el cofre): la X arriba a la
+# derecha, FUERA del panel. `size` es el tamaño en pantalla; `inset` =
+# [distancia al borde derecho hacia adentro, separación sobre el panel].
+[container_close]
+sheet = "ui/boton_salir.png"
+cell  = [16, 16]
+at    = [0, 0]
+size  = [32, 32]
+inset = [0, 4]
+
 [[npcs]]
 id    = "pierre"
 room  = "general_store"
@@ -141,13 +151,22 @@ Centro comunitario: aquí se juntan los vecinos del pueblo.
   cell   = [16, 16]
   region = [0, 0, 4, 4]
 
-# Cofre del Market: objeto animado (sin popup). Un click lo abre (cuadros en
+# Cofre: objeto animado (sin popup) que es un MUEBLE del jugador. Su `id` es
+# el contentId del mueble (inventory.toml): al colocarlo en cualquier mapa se
+# dibuja con estos cuadros y se abre con un click. `room` apunta a una sala
+# que no existe a propósito: no es un NPC parado en ningún mapa, solo la
+# definición del objeto (el dibujo y el click los hace el mueble colocado).
+# Objeto animado (sin popup). Un click lo abre (cuadros en
 # orden) y otro lo cierra (en orden inverso). Solo se anima la tapa (fila 32); la
 # mitad de abajo (2, 33) es la del cofre cerrado y queda fija. Posición y ritmo
 # son datos.
 [[npcs]]
 id   = "cofre"
-room = "carpentry"
+room = "container"
+
+  # Al abrirse muestra una grilla de slots (la figura del inventario).
+  [npcs.container]
+  grid = [10, 3]
 
   [npcs.body]
   sheet       = "Decorations/Craftables.png"
@@ -163,3 +182,35 @@ room = "carpentry"
     [[6, 32], [2, 33]],
     [[7, 32], [2, 33]],
   ]
+
+# Cama: MUEBLE del jugador dibujado por piezas (no es un bloque contiguo de
+# la hoja). Su `id` es el contentId del mueble. Mismas celdas que tenía la
+# decoración del dormitorio (cabecera, mitad, pie). `room = "prop"`: no es
+# un NPC de ningún mapa, solo la definición del objeto.
+[[npcs]]
+id   = "bed"
+room = "prop"
+
+  [npcs.body]
+  sheet = "Decorations/Towninterior.png"
+  cell  = [16, 16]
+  at    = [0, 0]
+  span  = [2, 4]
+  # 2x4 celdas de 16 px a escala 3 = 3x6 celdas lógicas de 32 px.
+  drawn = [96, 192]
+  zoom  = false
+  cells = [ [4,10],[5,10],
+            [4,11],[5,11],
+            [6,12],[7,12],
+            [0,10],[1,10] ]
+
+  # La celda que manda la fuente (la del server, donde se acuesta) es 1 a
+  # la derecha y 2 arriba de la base del sprite.
+  [npcs.furniture]
+  anchor = [1, 2]
+
+  # Al dormir, las filas 2-3 (mitad + pie) tapan al jugador; la cabecera
+  # queda detrás (la cabeza se ve sobre la almohada).
+  [npcs.furniture.enter]
+  rows   = [2, 3]
+  facing = "right"

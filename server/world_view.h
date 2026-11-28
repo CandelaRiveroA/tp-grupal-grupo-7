@@ -17,6 +17,9 @@ std::string content_id_for(ItemID id);
 // memoria entre llamadas: cada lote arranca con un ServerReset y describe el
 // estado completo, así que lo que no vuelve en el lote ya no existe.
 class WorldView {
+private:
+    ServerInventorySlot inventory_slot(const Inventory& inventory, uint8_t slot) const;
+
 public:
     std::vector<ServerMessage> sync(const World& world, uint8_t player_id) const;
 };

@@ -20,16 +20,27 @@ bool NpcDef::hasPopup() const {
 	return !text.empty();
 }
 
+bool NpcDef::isContainer() const {
+	return container.columns > 0 && container.rows > 0;
+}
+
 GridCell NpcDef::cellIn(const NpcCells& placed) const {
 	const auto found = placed.find(id);
 	return found != placed.end() ? found->second : body.at;
 }
 
-NpcCatalog::NpcCatalog(const std::string& path) {
+NpcCatalog::NpcCatalog(const std::string& path)
+	: directions_{
+		  {"front", Direction::Front},
+		  {"back", Direction::Back},
+		  {"left", Direction::Left},
+		  {"right", Direction::Right},
+	  } {
 	try {
 		const tomlcfg::TomlDocument doc(
 			path, tomlcfg::TomlDocument::Source::File);
 		readStyles(doc);
+		readCloseButton(doc);
 		const std::size_t count = doc.arraySize("npcs");
 		std::map<std::string, bool> ids;
 		for (std::size_t i = 0; i < count; ++i) {
@@ -60,6 +71,37 @@ void NpcCatalog::readStyles(const tomlcfg::TomlDocument& doc) {
 		throw ConfigError(ConfigErrorKind::MissingStructure,
 				  "popup_styles.default");
 	}
+}
+
+void NpcCatalog::readCloseButton(const tomlcfg::TomlDocument& doc) {
+	const std::string base = "container_close.";
+	const std::array<int, 2> cell = doc.getIntArray<2>(base + "cell");
+	const std::array<int, 2> at = doc.getIntArray<2>(base + "at");
+	const std::array<int, 2> size = doc.getIntArray<2>(base + "size");
+	const std::array<int, 2> inset = doc.getIntArray<2>(base + "inset");
+	closeButton_.sheet = doc.getString(base + "sheet");
+	closeButton_.cellWidth = cell[0];
+	closeButton_.cellHeight = cell[1];
+	closeButton_.cell = GridCell{at[0], at[1]};
+	closeButton_.size = PixelSize{size[0], size[1]};
+	closeButton_.inset = PixelPoint{inset[0], inset[1]};
+	if (closeButton_.sheet.empty()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  base + "sheet");
+	}
+	if (closeButton_.cellWidth <= 0 || closeButton_.cellHeight <= 0) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, base + "cell");
+	}
+	if (closeButton_.cell.column < 0 || closeButton_.cell.row < 0) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, base + "at");
+	}
+	if (closeButton_.size.width <= 0 || closeButton_.size.height <= 0) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, base + "size");
+	}
+}
+
+const CloseButton& NpcCatalog::closeButton() const {
+	return closeButton_;
 }
 
 NpcPopupStyle NpcCatalog::readStyle(const tomlcfg::TomlDocument& doc,
@@ -175,6 +217,32 @@ std::vector<std::vector<GridCell>> NpcCatalog::readFrames(
 	return result;
 }
 
+void NpcCatalog::readFurniture(const tomlcfg::TomlDocument& doc,
+			       const std::string& base, NpcDef& npc) const {
+	const std::string anchorPath = base + "furniture.anchor";
+	if (doc.hasKey(anchorPath)) {
+		const std::array<int, 2> anchor = doc.getIntArray<2>(anchorPath);
+		if (anchor[0] < 0 || anchor[1] < 0) {
+			throw ConfigError(ConfigErrorKind::InvalidValue, anchorPath);
+		}
+		npc.furnitureAnchor = GridCell{anchor[0], anchor[1]};
+	}
+	const std::string rowsPath = base + "furniture.enter.rows";
+	if (!doc.hasKey(rowsPath)) {
+		return;
+	}
+	const std::array<int, 2> rows = doc.getIntArray<2>(rowsPath);
+	if (rows[0] < 0 || rows[1] < rows[0]) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, rowsPath);
+	}
+	const std::string facingPath = base + "furniture.enter.facing";
+	const auto facing = directions_.find(doc.getString(facingPath));
+	if (facing == directions_.end()) {
+		throw ConfigError(ConfigErrorKind::InvalidValue, facingPath);
+	}
+	npc.furnitureEnter = PropEnter{rows[0], rows[1], facing->second};
+}
+
 NpcDef NpcCatalog::readNpc(const tomlcfg::TomlDocument& doc,
 			   const std::size_t index) const {
 	const std::string base = "npcs[" + std::to_string(index) + "].";
@@ -197,6 +265,19 @@ NpcDef NpcCatalog::readNpc(const tomlcfg::TomlDocument& doc,
 		npc.popup = style->second;
 	}
 
+	const std::string containerPath = base + "container.grid";
+	if (doc.hasKey(containerPath)) {
+		const std::array<int, 2> grid =
+			doc.getIntArray<2>(containerPath);
+		if (grid[0] <= 0 || grid[1] <= 0) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  containerPath);
+		}
+		npc.container = GridSpan{grid[0], grid[1]};
+	}
+
+	readFurniture(doc, base, npc);
+
 	const std::string bodyBase = base + "body.";
 	npc.body.sheet = doc.getString(bodyBase + "sheet");
 	const std::array<int, 2> bodyCell =
@@ -213,6 +294,9 @@ NpcDef NpcCatalog::readNpc(const tomlcfg::TomlDocument& doc,
 		const std::array<int, 2> drawn =
 			doc.getIntArray<2>(bodyBase + "drawn");
 		npc.body.drawn = PixelSize{drawn[0], drawn[1]};
+	}
+	if (doc.hasKey(bodyBase + "zoom")) {
+		npc.body.zoom = doc.getBool(bodyBase + "zoom");
 	}
 	const std::string framesPath = bodyBase + "frames";
 	if (doc.hasKey(framesPath)) {

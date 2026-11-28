@@ -348,6 +348,78 @@ TEST(WorldValidatorTest, MarkerNotWalkable) {
 	expectIssue(world, IssueCode::MarkerNotWalkable);
 }
 
+TEST(WorldValidatorTest, WindowMarkersAllowBlockedCellsAndMultiplesInInteriors) {
+	World world = defaultWorld();
+	Map& cabin = mapOf(world, "cabin_1");
+	cabin.baseCollision[0] = true;
+	cabin.baseCollision[4] = true;
+	cabin.rebuildCollision();
+	cabin.markers.push_back(Marker{MarkerKind::GeneralWindow, {0, 0}});
+	cabin.markers.push_back(Marker{MarkerKind::GeneralWindow, {4, 0}});
+	Map& barn = mapOf(world, "barn");
+	barn.baseCollision[0] = true;
+	barn.rebuildCollision();
+	barn.markers.push_back(Marker{MarkerKind::CoopWindow, {0, 0}});
+	barn.markers.push_back(Marker{MarkerKind::CoopWindow, {1, 0}});
+	EXPECT_TRUE(WorldValidator().validate(world).empty());
+}
+
+TEST(WorldValidatorTest, WindowMarkersRejectedInExteriors) {
+	World farmWorld = defaultWorld();
+	mapOf(farmWorld, "farm")
+		.markers.push_back(Marker{MarkerKind::GeneralWindow, {4, 6}});
+	expectIssue(farmWorld, IssueCode::UnexpectedMarker);
+
+	World townWorld = defaultWorld();
+	mapOf(townWorld, "town")
+		.markers.push_back(Marker{MarkerKind::CoopWindow, {4, 6}});
+	expectIssue(townWorld, IssueCode::UnexpectedMarker);
+}
+
+TEST(WorldValidatorTest, TallMarkerChecksSecondRowBoundsAndCollision) {
+	World outWorld = defaultWorld();
+	Map& outCabin = mapOf(outWorld, "cabin_1");
+	markerOf(outCabin, MarkerKind::Bed).cell = {1, outCabin.height - 1};
+	expectIssue(outWorld, IssueCode::MarkerOutOfBounds);
+
+	World blockedWorld = defaultWorld();
+	Map& blockedCabin = mapOf(blockedWorld, "cabin_1");
+	blockedCabin.baseCollision[blockedCabin.cellIndex({2, 2})] = true;
+	blockedCabin.rebuildCollision();
+	markerOf(blockedCabin, MarkerKind::Bed).cell = {2, 1};
+	expectIssue(blockedWorld, IssueCode::MarkerNotWalkable);
+
+	World windowOutWorld = defaultWorld();
+	Map& winCabin = mapOf(windowOutWorld, "cabin_1");
+	winCabin.markers.push_back(
+		Marker{MarkerKind::GeneralWindow, {0, winCabin.height - 1}});
+	expectIssue(windowOutWorld, IssueCode::MarkerOutOfBounds);
+}
+
+TEST(WorldValidatorTest, MapRulesCanPlaceAndUniqueChecks) {
+	const worldmodel::MapRules rules;
+	World world = defaultWorld();
+	Map& cabin = mapOf(world, "cabin_1");
+	cabin.baseCollision[cabin.cellIndex({0, 0})] = true;
+	cabin.baseCollision[cabin.cellIndex({2, 2})] = true;
+	cabin.rebuildCollision();
+
+	EXPECT_TRUE(rules.canPlaceMarker(cabin, MarkerKind::Bed, {1, 1}));
+	EXPECT_FALSE(rules.canPlaceMarker(cabin, MarkerKind::Bed, {2, 1}));
+	EXPECT_FALSE(rules.canPlaceMarker(
+		cabin, MarkerKind::Bed, {1, cabin.height - 1}));
+	EXPECT_TRUE(
+		rules.canPlaceMarker(cabin, MarkerKind::GeneralWindow, {0, 0}));
+	EXPECT_FALSE(rules.canPlaceMarker(
+		mapOf(world, "farm"), MarkerKind::GeneralWindow, {4, 4}));
+
+	EXPECT_TRUE(rules.isMarkerUnique("cabin_1", MarkerKind::Bed));
+	EXPECT_FALSE(
+		rules.isMarkerUnique("cabin_1", MarkerKind::GeneralWindow));
+	EXPECT_TRUE(
+		rules.isMarkerUnique("ranch", MarkerKind::MerchantMarnie));
+}
+
 TEST(WorldValidatorTest, MissingPortal) {
 	World world = defaultWorld();
 	mapOf(world, "cabin_1").portals.clear();

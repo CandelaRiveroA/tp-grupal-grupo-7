@@ -10,6 +10,8 @@ enum class MarkerKind {
 	MerchantClint,
 	MerchantPierre,
 	MerchantRobin,
+	GeneralWindow,
+	CoopWindow,
 };
 
 struct Marker {

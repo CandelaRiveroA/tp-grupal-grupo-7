@@ -8,7 +8,8 @@ void PlantingSelection::observe(const LocalWorldView& view,
 				const CarrySelection& carry,
 				const world::GridCell& hovered) {
 	spot_.reset();
-	if (!carry.held().has_value()) {
+	// Un mueble en la mano se coloca (PlacementSelection), no se siembra.
+	if (!carry.held().has_value() || carry.heldFootprint().has_value()) {
 		return;
 	}
 	// Solo se marca donde un click siembra exactamente esa celda (el

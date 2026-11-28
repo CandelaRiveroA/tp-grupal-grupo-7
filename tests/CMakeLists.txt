@@ -68,6 +68,7 @@ target_sources(taller_tests
     ../server/domain/animals/cow.cpp
     ../server/domain/furniture/furniture.cpp
     ../server/domain/furniture/bed.cpp
+    ../server/domain/furniture/chest_entity.cpp
     ../server/domain/map/world.cpp
     ../server/domain/map/cell.cpp
     ../server/domain/map/scene.cpp

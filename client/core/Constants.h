@@ -52,6 +52,7 @@ constexpr const char* kMarketRoom = "market";
 constexpr const char* kDemoCatalogMerchant = "pierre";
 constexpr const char* kNpcsFile = "npcs.toml";
 constexpr const char* kMarketFile = "market.toml";
+constexpr const char* kNpcIdCommunityCenter = "community_center";
 constexpr const char* kCommunityFile = "community.toml";
 
 constexpr const char* kCharactersFile = "characters.toml";

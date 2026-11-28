@@ -175,10 +175,19 @@ private:
     void openMarketFromView(const game::LocalWorldView& view);
     void drawMarketCatalog();
 
-    // Popup "Centro Comunitario: Metas" (tecla C, se cierra con ESC): las
-    // secciones se resuelven de la vista cada frame; el dibujo no cambia
+    // Popup del Centro Comunitario (se abre desde el edificio y se cierra con ESC):
+    // las secciones se resuelven de la vista cada frame; el dibujo no cambia
     // cuando el servidor empiece a llenarla.
-    void drawCommunityPopup(const game::LocalWorldView& view);
+    void drawCommunityPopup(const game::LocalWorldView& view, int iteration);
+    void openCommunityPopup();
+    enum class CommunityControl { None, Help, PrevPage, NextPage, Donate };
+    CommunityControl communityControlAt(const world::PixelPoint& point);
+    void handleCommunityClick(const game::PointerClick& click);
+    bool overCommunityControl(const world::PixelPoint& point);
+    void openCommunityHelp();
+    void prevCommunityPage();
+    void nextCommunityPage();
+    void donateToCommunity();
 
     // ¿Hay un popup que bloquea el mundo (NPC, catálogo, metas,
     // configuración o mapa)?
@@ -304,6 +313,7 @@ private:
     // overlay): qué hacer con cada acción es esta tabla, no un switch.
     game::StructureSelection structureSelection_;
     std::map<world::StructureAction, void (PlaySession::*)(const std::string&)> structureActions_;
+    std::map<std::string, void (PlaySession::*)()> structurePopups_;
     game::PopupState popupState_;
     // NPC con el popup abierto (nullptr = ninguno). El click lo abre y
     // cualquier click posterior lo cierra.
@@ -366,6 +376,7 @@ private:
     game::CommunityBoardResolver communityResolver_;
     sdl::CommunityPopupPainter communityPopupPainter_;
     game::CommunityPopupState communityPopup_;
+    std::map<CommunityControl, void (PlaySession::*)()> communityActions_;
     // PROVISORIO: estilo de catálogo elegido con N (el servidor lo rotará).
     game::MarketSetCycle marketCycle_;
     // Objetos animados clickeables (cofre): abierto/cerrado por id.

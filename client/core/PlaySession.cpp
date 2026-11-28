@@ -96,6 +96,7 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         enterSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         structureSelection_(scenario.scene(), scenario.scene().cellPixelSize),
         structureActions_{{world::StructureAction::Popup, &PlaySession::openStructurePopup}},
+        structurePopups_{{core::kNpcIdCommunityCenter, &PlaySession::openCommunityPopup}},
         popupState_(),
         sceneTransition_(core::kFadeTicks),
         dayPhase_(core::kLightTransitionTicks),
@@ -119,8 +120,15 @@ PlaySession::PlaySession(const WindowConfig& config, const world::Scenario& scen
         marketPopupPainter_(sdlContext_, textRenderer_),
         marketPopup_(market, inventory_),
         communityResolver_(community),
-        communityPopupPainter_(sdlContext_, textRenderer_),
-        communityPopup_(community, inventory_),
+        communityPopupPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.sheetCache(),
+                               inventory_.content, farm_.crops(), characters_, communityCatalog_),
+        communityPopup_(),
+        communityActions_{
+                {CommunityControl::Help, &PlaySession::openCommunityHelp},
+                {CommunityControl::PrevPage, &PlaySession::prevCommunityPage},
+                {CommunityControl::NextPage, &PlaySession::nextCommunityPage},
+                {CommunityControl::Donate, &PlaySession::donateToCommunity},
+        },
         chatPainter_(sdlContext_, textRenderer_, chat),
         worldMapPainter_(sdlContext_, inventoryHud_, textRenderer_, renderer_.appearancePainter(),
                          worldMap, minimapDir),
@@ -451,15 +459,6 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
-        // C alterna el popup del Centro Comunitario; abrirlo sobre otro popup
-        // no tiene sentido, cerrarlo siempre se puede. Va antes del bloqueo
-        // para que llegue con el popup abierto.
-        if (command.kind == game::InputCommand::Kind::ToggleCommunityGoals) {
-            if (communityPopup_.isOpen() || (!isWorldBlocked() && !popupState_.modal())) {
-                communityPopup_.toggle();
-            }
-            continue;
-        }
         if (command.kind == game::InputCommand::Kind::OpenCatalog) {
             if (worldMap_.isOpen() || settings_.modal() || communityPopup_.isOpen()) {
                 continue;
@@ -470,7 +469,11 @@ void PlaySession::tick(int iteration) {
         }
         if (command.kind == game::InputCommand::Kind::ToggleSettings) {
             if (communityPopup_.isOpen()) {
-                communityPopup_.close();
+                if (communityPopup_.isHelpOpen()) {
+                    communityPopup_.closeHelp();
+                } else {
+                    communityPopup_.close();
+                }
             } else if (worldMap_.isOpen()) {
                 closeWorldMap();
             } else {
@@ -658,7 +661,7 @@ void PlaySession::tick(int iteration) {
     drawPopup(popupBox);
     drawNpcPopup();
     drawMarketCatalog();
-    drawCommunityPopup(state);
+    drawCommunityPopup(state, iteration);
     dragSettingsSlider();
     drawSettings();
     if (worldMap_.isOpen()) {
@@ -690,13 +693,13 @@ void PlaySession::tick(int iteration) {
             }
             continue;
         }
-        const world::PixelPoint worldClick =
-                camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
-        // El popup del Centro Comunitario solo se cierra con ESC o C: el
-        // click se descarta para que no actúe sobre el mundo de atrás.
+        // Con el popup del Centro Comunitario abierto solo cuentan sus controles.
         if (communityPopup_.isOpen()) {
+            handleCommunityClick(click);
             continue;
         }
+        const world::PixelPoint worldClick =
+                camera_.viewport().toWorld(world::PixelPoint{click.x, click.y});
         // El popup de un NPC o el del catálogo se cierra con cualquier click.
         if (npcPopup_ != nullptr || marketPopup_.isOpen()) {
             npcPopup_ = nullptr;
@@ -855,6 +858,10 @@ void PlaySession::tick(int iteration) {
                                                      mousePoint.x, mousePoint.y)
                 ? world::CursorKind::Interactive
                 : world::CursorKind::Normal;
+    } else if (communityPopup_.isOpen()) {
+        cursorKind = overCommunityControl(mousePoint)
+                ? world::CursorKind::Interactive
+                : world::CursorKind::Normal;
     } else if (popupState_.modal()) {
         const world::PromptCopy& prompt = promptLayout_.prompt(popupState_.promptId());
         bool overPopup = false;
@@ -922,7 +929,18 @@ void PlaySession::runStructureAction(const world::SceneStructure& structure) {
 }
 
 void PlaySession::openStructurePopup(const std::string& npcId) {
+    const auto special = structurePopups_.find(npcId);
+    if (special != structurePopups_.end()) {
+        (this->*(special->second))();
+        return;
+    }
     npcPopup_ = npcCatalog_.find(npcId);
+}
+
+void PlaySession::openCommunityPopup() {
+    if (!isWorldBlocked() && !popupState_.modal()) {
+        communityPopup_.open();
+    }
 }
 
 
@@ -1137,20 +1155,70 @@ bool PlaySession::isWorldBlocked() const {
            settings_.modal() || worldMap_.isOpen();
 }
 
-void PlaySession::drawCommunityPopup(const game::LocalWorldView& view) {
+void PlaySession::drawCommunityPopup(const game::LocalWorldView& view, const int iteration) {
     if (!communityPopup_.isOpen()) {
         return;
     }
     // Los números los manda la fuente de estado y pueden cambiar con el
     // popup abierto: las secciones se resuelven en cada frame.
     const std::vector<world::CommunitySection> sections = communityResolver_.sectionsFrom(view);
-    const world::GridSpan grid = communityPopup_.panelGrid(sections);
-    const world::PixelBox panel =
-            communityPopup_.panel(sections, sdlContext_.width(), sdlContext_.height());
-    inventoryHud_.drawPanel(panel, grid.columns, grid.rows);
-    communityPopupPainter_.draw(communityCatalog_.style(), communityCatalog_.title(), sections,
-                                panel);
+    communityPopupPainter_.draw(sections, communityPopup_.pageIndex(sections.size()),
+                                communityPopup_.isHelpOpen(), iteration, sdlContext_.width(),
+                                sdlContext_.height());
 }
+
+PlaySession::CommunityControl PlaySession::communityControlAt(const world::PixelPoint& point) {
+    if (communityPopup_.isHelpOpen()) {
+        return CommunityControl::None;
+    }
+    const std::vector<world::CommunitySetDef>& sets = communityCatalog_.sets();
+    if (sets.empty()) {
+        return CommunityControl::None;
+    }
+    const world::CommunityPopupLayout layout(sdlContext_.width(), sdlContext_.height(),
+                                             communityCatalog_.style());
+    const world::CommunitySetDef& active = sets[communityPopup_.pageIndex(sets.size())];
+    if (communityPopupPainter_.hitsHelpButton(layout, active.title, point.x, point.y)) {
+        return CommunityControl::Help;
+    }
+    if (layout.modal().hitsLeftArrow(point.x, point.y)) {
+        return CommunityControl::PrevPage;
+    }
+    if (layout.modal().hitsRightArrow(point.x, point.y)) {
+        return CommunityControl::NextPage;
+    }
+    if (layout.hitsDonateButton(active.donatable, point.x, point.y)) {
+        return CommunityControl::Donate;
+    }
+    return CommunityControl::None;
+}
+
+void PlaySession::handleCommunityClick(const game::PointerClick& click) {
+    if (communityPopup_.isHelpOpen()) {
+        communityPopup_.closeHelp();
+        return;
+    }
+    const CommunityControl control = communityControlAt(world::PixelPoint{click.x, click.y});
+    if (const auto action = communityActions_.find(control); action != communityActions_.end()) {
+        (this->*(action->second))();
+    }
+}
+
+bool PlaySession::overCommunityControl(const world::PixelPoint& point) {
+    return communityControlAt(point) != CommunityControl::None;
+}
+
+void PlaySession::openCommunityHelp() { communityPopup_.openHelp(); }
+
+void PlaySession::prevCommunityPage() {
+    communityPopup_.prevPage(communityCatalog_.sets().size());
+}
+
+void PlaySession::nextCommunityPage() {
+    communityPopup_.nextPage(communityCatalog_.sets().size());
+}
+
+void PlaySession::donateToCommunity() { gameClient_.donateToCommunityCenter(); }
 
 void PlaySession::drawMarketCatalog() {
     if (!marketPopup_.isOpen()) {

@@ -57,10 +57,6 @@ struct InputCommand {
         // Con el chat abierto: Enter manda y ESC descarta.
         ChatSubmit,
         ChatCancel,
-        // Tecla C: abre/cierra el popup del Centro Comunitario. Lo consume
-        // PlaySession; NO viaja al GameClient. (El cierre con ESC se
-        // resuelve vía ToggleSettings en PlaySession.)
-        ToggleCommunityGoals,
         // Abre/cierra el popup de configuración (ESC fuera del chat). Lo
         // consume PlaySession; NO viaja al GameClient.
         ToggleSettings,

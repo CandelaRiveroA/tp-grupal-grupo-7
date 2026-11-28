@@ -116,9 +116,6 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
-    // Popup del Centro Comunitario: C lo abre/cierra (el cierre con ESC se
-    // resuelve vía ToggleSettings en PlaySession).
-    bindings.insert({SDLK_c, game::InputCommand{Kind::ToggleCommunityGoals, 0}});
     bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     // ESC fuera del chat: el popup de configuración (con el chat abierto

@@ -23,6 +23,10 @@ public:
     virtual void receiveChat(std::uint8_t /*playerId*/, const std::string& /*characterName*/,
                              const std::string& /*text*/) {}
 
+    // Punto de conexión para el botón "Donar" del Centro Comunitario:
+    // el cliente solo envía la intención global; el servidor valida y aplica.
+    virtual void donateToCommunityCenter() {}
+
     // RECIBIR: el estado actual del mundo que dibuja el cliente.
     virtual const LocalWorldView& worldState() const = 0;
 

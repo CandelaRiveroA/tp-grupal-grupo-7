@@ -46,6 +46,10 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
   `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
   3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
   `set_id u8`; `ServerVictory` no lleva payload.
+- Desde la UI del cartel del Centro Comunitario, el botón **Donar** llama a
+  `GameClient::donateToCommunityCenter()` (hook solo-cliente listo para
+  conectar el mensaje de donación global al servidor) y el progreso mostrado
+  sale de `LocalWorldView::communitySets`.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la

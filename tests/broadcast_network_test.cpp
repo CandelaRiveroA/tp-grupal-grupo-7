@@ -252,7 +252,7 @@ std::vector<uint8_t> containerSnapshotBytes() {
     sender.send_server_message(ServerStatus{1, 1, 1, Direction::DOWN, {}, 100, 100, 10000, 10000, 0});
     sender.send_server_message(ServerFurniture{2, 1, "cofre", 2, false, true});
     sender.send_server_message(ServerContainerState{true, 2, 1, {{0, 3, "milk", true}}});
-    sender.send_server_message(ServerInventorySlot{8, 1, "cofre", true, 1, 1});
+    sender.send_server_message(ServerInventorySlot{8, 1, "cofre", true, 1, 1, 1});
     sender.send_server_message(ServerWorldPlayers{{{1, "farmhouse", 1, 1, {}}, {2, "farm", 8, 9, {}}}});
     sender.send_server_message(ServerSyncEnd{});
     return buffer.sent_bytes();

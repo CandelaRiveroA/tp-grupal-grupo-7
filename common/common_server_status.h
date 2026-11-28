@@ -45,6 +45,8 @@ enum class ServerMessageType : uint8_t {
     GiftAccepted = 33,
     PlayerName = 34,
     InventoryFull = 35,
+    WorldPlayers = 36,
+    ContainerState = 37,
 };
 
 // Estado de daño visible de un recurso picable.
@@ -118,7 +120,13 @@ struct ServerInventorySlot {
     uint8_t count;
     std::string content_id;
     bool tradable;
+    // quality: 1..5 = BASE..PERFECT (el mismo orden que ServerCrop y que
+    // Quality del servidor). Vale 1 (BASE) para herramientas y cualquier
+    // ítem sin calidad propia.
     uint8_t quality = 1;
+    // 0,0 = no colocable; la huella del cofre es 1x1, independiente del sprite.
+    uint8_t footprint_columns = 0;
+    uint8_t footprint_rows = 0;
 };
 
 // El jugador local obtuvo un contenido (evento puntual, no estado).
@@ -215,6 +223,9 @@ struct ServerFurniture {
     uint16_t x;
     uint16_t y;
     std::string content_id;
+    uint8_t facing = 0;
+    bool interactive = false;
+    bool open = false;
 };
 
 // Cultivo plantado. crop_id es el contentId del producto (ej. "strawberry").
@@ -294,6 +305,8 @@ struct ServerMarketEntry {
     ServerMarketSide side;
     bool has_price;
     uint16_t price;
+    // 0 = sin variante; 1..5 = BASE..PERFECT (alineado con Quality del servidor).
+    uint8_t quality = 0;
 };
 
 struct ServerMarketOffer {
@@ -319,6 +332,21 @@ struct ServerPlayerName {
 
 struct ServerInventoryFull {};
 
+struct ServerMapPlayer {
+    uint8_t player_id;
+    std::string map_id;
+    uint16_t x;
+    uint16_t y;
+    CharacterAppearance appearance;
+};
+struct ServerWorldPlayers { std::vector<ServerMapPlayer> players; };
+struct ServerContainerState {
+    bool open = false;
+    uint16_t x = 0;
+    uint16_t y = 0;
+    std::vector<ServerInventorySlot> inventory_slots;
+};
+
 using ServerMessage =
         std::variant<ServerStatus, ServerLeave, ServerResource, ServerDropped, ServerInventorySlot,
                      ServerObtained, ServerToolUsed, ServerResourceHit, ServerReset, ServerAnimal,
@@ -326,6 +354,6 @@ using ServerMessage =
                      ServerClock, ServerSyncEnd, ServerCrop, ServerGroundEffect, ServerEnemy, ServerProjectile,
                      ServerChat, ServerGiftRequest, ServerGiftAnswered, ServerSetCompleted, ServerVictory,
                      ServerGold, ServerNpcPlacement, ServerMarketOffer, ServerMapChange,
-                     ServerPlayerHeld, ServerGiftAccepted, ServerPlayerName, ServerInventoryFull>;
+                     ServerPlayerHeld, ServerGiftAccepted, ServerPlayerName, ServerInventoryFull, ServerWorldPlayers, ServerContainerState>;
 
 #endif

@@ -23,7 +23,7 @@ MerchantCommands::MerchantCommands(): offer_names_{
         {"oro", "gold"},
         {"vacas", "cow"},
         {"gallinas", "chicken"},
-        {"cofre", "chest"},
+        {"cofre", "cofre"},
         {"decoracion_1", "mesa_1"},
         {"decoracion_2", "mesa_2"}} {}
 
@@ -97,16 +97,31 @@ std::optional<ServerMarketOffer> MerchantCommands::offer_for(
                                             catalog_entry.price});
     }
     for (const auto& [server_name, item_id]: merchant->get_buy_catalog()) {
-        (void)item_id;
         const auto name = offer_names_.find(server_name);
         if (name == offer_names_.end()) {
             continue;
         }
-        entries.push_back(ServerMarketEntry{name->second,
-                                            server_name,
-                                            ServerMarketSide::Buys,
-                                            false,
-                                            0});
+        bool priced = false;
+        for (uint8_t quality = 1; quality <= 5; ++quality) {
+            const auto price = merchant->buy_price(item_id, quality);
+            if (!price) continue;
+            priced = true;
+            const uint16_t shown_price = static_cast<uint16_t>(
+                    *price * (world.is_double_sell_active() ? 2u : 1u));
+            entries.push_back(ServerMarketEntry{name->second,
+                                                server_name,
+                                                ServerMarketSide::Buys,
+                                                true,
+                                                shown_price,
+                                                quality});
+        }
+        if (!priced) {
+            entries.push_back(ServerMarketEntry{name->second,
+                                                server_name,
+                                                ServerMarketSide::Buys,
+                                                false,
+                                                0});
+        }
     }
     return ServerMarketOffer{merchant->get_id(), std::move(entries)};
 }

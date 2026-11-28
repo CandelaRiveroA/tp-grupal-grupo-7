@@ -20,9 +20,16 @@
 #include "common/world_model/PrefabCatalog.h"
 
 MapCanvasView::MapCanvasView(const worldmodel::PrefabCatalog& catalog,
-			     const TilesetCache& tilesets, QWidget* parent)
+			     const TilesetCache& tilesets,
+			     const MarkerSprites& markerSprites,
+			     QWidget* parent)
 	: QGraphicsView(parent),
 	  catalog_(catalog),
+	  disallowedMarkerMessages_{
+		  {worldmodel::MarkerKind::Bed,
+		   "La cama solo puede colocarse en el interior de una "
+		   "cabana."},
+	  },
 	  clickHandlers_{
 		  {EditorTool::Place, &MapCanvasView::placePrefabAt},
 		  {EditorTool::Erase, &MapCanvasView::eraseAt},
@@ -48,7 +55,7 @@ MapCanvasView::MapCanvasView(const worldmodel::PrefabCatalog& catalog,
 	setScene(scene_);
 	setBackgroundBrush(QPixmap(":/editor/ui/editor_canvas_bg.png"));
 
-	layerItem_ = new MapLayerItem(catalog_, tilesets);
+	layerItem_ = new MapLayerItem(catalog_, tilesets, markerSprites);
 	scene_->addItem(layerItem_);
 }
 
@@ -74,13 +81,25 @@ void MapCanvasView::setTool(EditorTool tool) {
 }
 
 void MapCanvasView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
+	if (prefab != nullptr) {
+		placingMarker_.reset();
+	}
 	activePrefab_ = prefab;
 	layerItem_->setActivePrefab(prefab);
 }
 
-void MapCanvasView::setPlacingBed(bool placing) {
-	placingBed_ = placing;
-	layerItem_->setPlacingBed(placing);
+void MapCanvasView::setPlacingMarker(std::optional<worldmodel::MarkerKind> kind) {
+	if (kind.has_value()) {
+		activePrefab_ = nullptr;
+	}
+	placingMarker_ = kind;
+	layerItem_->setPlacingMarker(kind);
+}
+
+void MapCanvasView::clearPlacement() {
+	activePrefab_ = nullptr;
+	placingMarker_.reset();
+	layerItem_->clearPlacement();
 }
 
 void MapCanvasView::setActivePortal(worldmodel::PortalKind kind, int width,
@@ -260,33 +279,51 @@ void MapCanvasView::updateHoverCell(std::optional<worldmodel::TilePos> cell) {
 	layerItem_->setHoverCell(hoverCell_);
 }
 
-void MapCanvasView::placeBedAt(worldmodel::TilePos cell) {
+bool MapCanvasView::validateMarkerPlacement(worldmodel::MarkerKind kind,
+					    worldmodel::TilePos cell) {
 	if (!map_->contains(cell)) {
-		return;
+		return false;
 	}
-	if (!rules_.cabinIndex(map_->id).has_value()) {
-		emit placementRejected(
-			"Ubicacion no permitida",
-			"La cama solo puede colocarse en el interior "
-			"de una cabana.");
-		return;
+	if (!rules_.markerAllowedIn(map_->id, kind)) {
+		const auto it = disallowedMarkerMessages_.find(kind);
+		const QString msg =
+			it != disallowedMarkerMessages_.end()
+				? it->second
+				: "Este marcador solo puede colocarse en "
+				  "mapas interiores.";
+		emit placementRejected("Ubicacion no permitida", msg);
+		return false;
 	}
-	if (!map_->fits(cell, 1, 2) || !map_->isWalkable(cell) ||
-	    !map_->isWalkable({cell.column, cell.row + 1})) {
+	const worldmodel::MarkerSpec spec = rules_.markerSpec(kind);
+	if (!map_->fits(cell, 1, spec.height) ||
+	    (spec.requiresWalkable &&
+	     !map_->isAreaWalkable(cell, 1, spec.height))) {
 		emit placementRejected(
 			"Ubicacion no valida",
-			"La cama ocupa 1x2 celdas y ambas deben ser "
-			"transitables.");
+			spec.requiresWalkable
+				? "El marcador no entra o requiere celdas "
+				  "transitables."
+				: "El marcador no entra dentro del mapa.");
+		return false;
+	}
+	return true;
+}
+
+void MapCanvasView::placeMarkerAt(worldmodel::MarkerKind kind,
+				  worldmodel::TilePos cell) {
+	if (!validateMarkerPlacement(kind, cell)) {
 		return;
 	}
-	for (auto& marker : map_->markers) {
-		if (marker.kind == worldmodel::MarkerKind::Bed) {
-			marker.cell = cell;
-			notifyMapEdited();
-			return;
+	if (rules_.isMarkerUnique(map_->id, kind)) {
+		for (auto& marker : map_->markers) {
+			if (marker.kind == kind) {
+				marker.cell = cell;
+				notifyMapEdited();
+				return;
+			}
 		}
 	}
-	map_->markers.push_back({worldmodel::MarkerKind::Bed, cell});
+	map_->markers.push_back({kind, cell});
 	notifyMapEdited();
 }
 
@@ -345,8 +382,8 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 	if (!map_) {
 		return;
 	}
-	if (placingBed_) {
-		placeBedAt(cell);
+	if (placingMarker_.has_value()) {
+		placeMarkerAt(*placingMarker_, cell);
 		return;
 	}
 	if (!activePrefab_ ||
@@ -371,6 +408,16 @@ void MapCanvasView::placePrefabAt(worldmodel::TilePos cell) {
 void MapCanvasView::eraseAt(worldmodel::TilePos cell) {
 	if (!map_) {
 		return;
+	}
+	for (auto it = map_->markers.rbegin(); it != map_->markers.rend();
+	     ++it) {
+		const worldmodel::MarkerSpec spec = rules_.markerSpec(it->kind);
+		if (spec.erasable &&
+		    containsCell(it->cell, 1, spec.height, cell)) {
+			map_->markers.erase(std::next(it).base());
+			notifyMapEdited();
+			return;
+		}
 	}
 	for (auto it = map_->portals.rbegin(); it != map_->portals.rend();
 	     ++it) {
@@ -438,9 +485,7 @@ std::optional<MoveTarget> MapCanvasView::pickMoveTarget(
 	worldmodel::TilePos cell) const {
 	for (std::size_t i = map_->markers.size(); i-- > 0;) {
 		const int height =
-			map_->markers[i].kind == worldmodel::MarkerKind::Bed
-				? 2
-				: 1;
+			rules_.markerSpec(map_->markers[i].kind).height;
 		if (containsCell(map_->markers[i].cell, 1, height, cell)) {
 			return MoveTarget{MoveKind::Marker, i};
 		}
@@ -475,9 +520,13 @@ void MapCanvasView::moveObject(std::size_t index, worldmodel::TilePos cell) {
 }
 
 void MapCanvasView::moveMarker(std::size_t index, worldmodel::TilePos cell) {
-	if (index < map_->markers.size()) {
-		map_->markers[index].cell = cell;
+	if (index >= map_->markers.size()) {
+		return;
 	}
+	if (!validateMarkerPlacement(map_->markers[index].kind, cell)) {
+		return;
+	}
+	map_->markers[index].cell = cell;
 }
 
 void MapCanvasView::movePortal(std::size_t index, worldmodel::TilePos cell) {

@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "Constants.h"
+#include "MarkerSprites.h"
 #include "TilesetCache.h"
 #include "WorldPainter.h"
 #include "common/world_model/Map.h"
@@ -17,15 +18,12 @@
 #include "common/world_model/PrefabCatalog.h"
 
 MapLayerItem::MapLayerItem(const worldmodel::PrefabCatalog& catalog,
-			   const TilesetCache& tilesets)
+			   const TilesetCache& tilesets,
+			   const MarkerSprites& markerSprites)
 	: catalog_(catalog),
 	  tilesets_(tilesets),
-	  defaultMarkerSprite_(":/editor/ui/spawn_marker.png"),
-	  markerSprites_{
-		  {worldmodel::MarkerKind::Bed,
-		   QPixmap(":/editor/ui/bed_marker.png")},
-	  },
-	  portalSprite_(":/editor/ui/portal_rune.png"),
+	  markerSprites_(markerSprites),
+	  portalSprite_(editor::kPortalSpritePath),
 	  previewChecks_{
 		  {EditorTool::Place, &MapLayerItem::hasPrefabPreview},
 		  {EditorTool::Move, &MapLayerItem::hasMovePreview},
@@ -72,23 +70,41 @@ void MapLayerItem::setTool(EditorTool tool) {
 }
 
 void MapLayerItem::setActivePrefab(const worldmodel::PrefabDef* prefab) {
-	if (activePrefab_ == prefab) {
+	const std::optional<worldmodel::MarkerKind> nextMarker =
+		prefab != nullptr ? std::nullopt : placingMarker_;
+	if (activePrefab_ == prefab && placingMarker_ == nextMarker) {
 		return;
 	}
 	const bool hadPreview = hasPreview();
 	activePrefab_ = prefab;
+	placingMarker_ = nextMarker;
 	if (hadPreview || hasPreview()) {
 		update();
 	}
 }
 
-void MapLayerItem::setPlacingBed(bool placing) {
-	if (placingBed_ == placing) {
+void MapLayerItem::setPlacingMarker(std::optional<worldmodel::MarkerKind> kind) {
+	const worldmodel::PrefabDef* nextPrefab =
+		kind.has_value() ? nullptr : activePrefab_;
+	if (placingMarker_ == kind && activePrefab_ == nextPrefab) {
 		return;
 	}
 	const bool hadPreview = hasPreview();
-	placingBed_ = placing;
+	placingMarker_ = kind;
+	activePrefab_ = nextPrefab;
 	if (hadPreview || hasPreview()) {
+		update();
+	}
+}
+
+void MapLayerItem::clearPlacement() {
+	if (activePrefab_ == nullptr && !placingMarker_.has_value()) {
+		return;
+	}
+	const bool hadPreview = hasPreview();
+	activePrefab_ = nullptr;
+	placingMarker_.reset();
+	if (hadPreview) {
 		update();
 	}
 }
@@ -175,7 +191,7 @@ bool MapLayerItem::hasPreview() const {
 }
 
 bool MapLayerItem::hasPrefabPreview() const {
-	return activePrefab_ != nullptr || placingBed_;
+	return activePrefab_ != nullptr || placingMarker_.has_value();
 }
 
 bool MapLayerItem::hasMovePreview() const {
@@ -207,21 +223,8 @@ void MapLayerItem::drawPlacementPreview(QPainter* painter, int ts) const {
 }
 
 void MapLayerItem::drawPrefabPreview(QPainter* painter, int ts) const {
-	if (placingBed_) {
-		const QRect rect(hoverCell_->column * ts, hoverCell_->row * ts,
-				 ts, 2 * ts);
-		painter->setOpacity(editor::kGhostOpacity);
-		painter->drawPixmap(
-			rect, markerSprites_.at(worldmodel::MarkerKind::Bed));
-		painter->setOpacity(1.0);
-		const bool valid =
-			map_->fits(*hoverCell_, 1, 2) &&
-			map_->isWalkable(*hoverCell_) &&
-			map_->isWalkable(
-				{hoverCell_->column, hoverCell_->row + 1});
-		painter->setPen(QPen(
-			valid ? QColor(0, 230, 255) : QColor(240, 60, 60), 0));
-		painter->drawRect(rect);
+	if (placingMarker_.has_value()) {
+		drawMarkerPreview(painter, ts, *placingMarker_);
 		return;
 	}
 	const int x = hoverCell_->column * ts;
@@ -240,6 +243,21 @@ void MapLayerItem::drawPrefabPreview(QPainter* painter, int ts) const {
 		valid ? QColor(40, 210, 80) : QColor(220, 50, 50), 0));
 	painter->setBrush(Qt::NoBrush);
 	painter->drawRect(x, y, w, h);
+}
+
+void MapLayerItem::drawMarkerPreview(QPainter* painter, int ts,
+				     worldmodel::MarkerKind kind) const {
+	const worldmodel::MarkerSpec spec = rules_.markerSpec(kind);
+	const QRect rect(hoverCell_->column * ts, hoverCell_->row * ts, ts,
+			 spec.height * ts);
+	painter->setOpacity(editor::kGhostOpacity);
+	painter->drawPixmap(rect, markerSprites_.sprite(kind));
+	painter->setOpacity(1.0);
+	const bool valid = rules_.canPlaceMarker(*map_, kind, *hoverCell_);
+	painter->setPen(
+		QPen(valid ? QColor(0, 230, 255) : QColor(240, 60, 60), 0));
+	painter->setBrush(Qt::NoBrush);
+	painter->drawRect(rect);
 }
 
 void MapLayerItem::drawMovePreview(QPainter* painter, int ts) const {
@@ -262,17 +280,8 @@ void MapLayerItem::drawMoveObjectPreview(QPainter* painter, int ts) const {
 	painter->drawRect(x, y, obj.width * ts, obj.height * ts);
 }
 
-int MapLayerItem::markerHeight(worldmodel::MarkerKind kind) const {
-	return kind == worldmodel::MarkerKind::Bed ? 2 : 1;
-}
-
 void MapLayerItem::drawMoveMarkerPreview(QPainter* painter, int ts) const {
-	const int height =
-		markerHeight(map_->markers[moveTarget_->index].kind);
-	painter->setPen(QPen(QColor(0, 230, 255), 0));
-	painter->setBrush(QColor(0, 210, 230, 140));
-	painter->drawRect(hoverCell_->column * ts, hoverCell_->row * ts, ts,
-			  height * ts);
+	drawMarkerPreview(painter, ts, map_->markers[moveTarget_->index].kind);
 }
 
 void MapLayerItem::drawPortalPreviewBox(QPainter* painter, int ts,
@@ -315,22 +324,18 @@ void MapLayerItem::drawPickTargetPreview(QPainter* painter, int ts) const {
 void MapLayerItem::drawMarkersAndPortals(QPainter* painter, int ts, int minCol,
 					 int maxCol, int minRow,
 					 int maxRow) const {
-	// shortcut: un sprite para todos los MarkerKind; si hay que distinguirlos, std::map<MarkerKind, QPixmap> miembro (sin switch).
 	painter->setPen(QPen(QColor(0, 230, 255, 200), 0));
 	painter->setBrush(Qt::NoBrush);
 	for (const auto& marker : map_->markers) {
-		const int height = markerHeight(marker.kind);
+		const int height = rules_.markerSpec(marker.kind).height;
 		if (marker.cell.column >= minCol &&
 		    marker.cell.column <= maxCol &&
 		    marker.cell.row + height - 1 >= minRow &&
 		    marker.cell.row <= maxRow) {
 			const QRect rect(marker.cell.column * ts,
 					 marker.cell.row * ts, ts, height * ts);
-			const auto it = markerSprites_.find(marker.kind);
-			const QPixmap& sprite = it != markerSprites_.end()
-							? it->second
-							: defaultMarkerSprite_;
-			painter->drawPixmap(rect, sprite);
+			painter->drawPixmap(rect,
+					    markerSprites_.sprite(marker.kind));
 			painter->drawRect(rect);
 		}
 	}

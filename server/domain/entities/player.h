@@ -60,6 +60,7 @@ public:
     void set_home(SceneId scene, uint16_t x, uint16_t y);
     Direction get_facing() const;
     const CharacterAppearance& get_appearance() const;
+    Inventory& get_inventory();
     const Inventory& get_inventory() const;
     uint16_t get_health() const;
     uint16_t get_max_health() const;

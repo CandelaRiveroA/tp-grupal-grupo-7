@@ -7,9 +7,11 @@
 
 #include <QWidget>
 
+#include "MarkerSprites.h"
 #include "TilesetCache.h"
 #include "world_model/Geometry.h"
 #include "world_model/MapRules.h"
+#include "world_model/Marker.h"
 #include "world_model/Portal.h"
 #include "world_model/PrefabCatalog.h"
 #include "world_model/ScenarioLibrary.h"
@@ -51,10 +53,10 @@ private:
 	const worldmodel::WorldRepository& worlds_;
 	worldmodel::PrefabCatalog catalog_;
 	TilesetCache tilesets_;
+	MarkerSprites markerSprites_;
 	worldmodel::World world_;
 	worldmodel::MapRules rules_;
 	std::string activeMapId_;
-	const worldmodel::PrefabDef* activePrefab_ = nullptr;
 	std::optional<int> pendingErasedCabin_;
 	std::optional<PendingPortalTarget> pendingPortal_;
 	bool dirty_ = false;
@@ -84,8 +86,7 @@ private:
 	void removeExtraMap();
 	void replaceScenario();
 	void onPrefabSelected(const worldmodel::PrefabDef* prefab);
-	void onBedSelected();
-	void setActivePrefab(const worldmodel::PrefabDef* prefab);
+	void onMarkerSelected(worldmodel::MarkerKind kind);
 	void onPortalPicked(worldmodel::PortalKind kind, int width, int height);
 	void onPortalTargetRequested(std::size_t portalIndex);
 	void onTargetCellPicked(worldmodel::TilePos cell);

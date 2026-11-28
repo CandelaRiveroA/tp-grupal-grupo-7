@@ -15,7 +15,6 @@ public:
     std::vector<ValidationIssue> validate(const World& world) const;
 
 private:
-    bool markerAllowedIn(const std::string& mapId, MarkerKind kind) const;
     bool portalAllowedIn(const std::string& mapId, PortalKind kind) const;
     const MapObject* findBuilding(const Map& map, const MapRule& interiorRule) const;
     int countRole(const Map& map, ObjectRole role) const;

@@ -42,6 +42,8 @@ std::string markerLabel(MarkerKind kind) {
 		{MarkerKind::MerchantClint, "comerciante Clint"},
 		{MarkerKind::MerchantPierre, "comerciante Pierre"},
 		{MarkerKind::MerchantRobin, "comerciante Robin"},
+		{MarkerKind::GeneralWindow, "ventana general"},
+		{MarkerKind::CoopWindow, "ventana granero"},
 	};
 	return lookupLabel(kind, kMarkers, std::size(kMarkers));
 }
@@ -59,15 +61,6 @@ std::string portalLabel(PortalKind kind) {
 }
 
 }  // namespace
-
-bool WorldValidator::markerAllowedIn(const std::string& mapId, MarkerKind kind) const {
-    const MapRule* rule = rules_.find(mapId);
-    if (rule == nullptr) {
-        return true;  // los mapas extra admiten cualquier marcador
-    }
-    return std::find(rule->allowedMarkers.begin(), rule->allowedMarkers.end(), kind) !=
-           rule->allowedMarkers.end();
-}
 
 bool WorldValidator::portalAllowedIn(const std::string& mapId, PortalKind kind) const {
     if (kind == PortalKind::Link) {
@@ -329,12 +322,14 @@ void WorldValidator::checkObjects(const World& world, const Map& map,
 
 void WorldValidator::checkMarkers(const Map& map, std::vector<ValidationIssue>& issues) const {
     for (const Marker& marker: map.markers) {
-        if (!markerAllowedIn(map.id, marker.kind)) {
+        const MarkerSpec spec = rules_.markerSpec(marker.kind);
+        if (!rules_.markerAllowedIn(map.id, marker.kind)) {
             addIssue(issues, IssueCode::UnexpectedMarker, map.id, marker.cell);
         }
-        if (!map.contains(marker.cell)) {
+        if (!map.fits(marker.cell, 1, spec.height)) {
             addIssue(issues, IssueCode::MarkerOutOfBounds, map.id, marker.cell);
-        } else if (!map.isWalkable(marker.cell)) {
+        } else if (spec.requiresWalkable &&
+                   !map.isAreaWalkable(marker.cell, 1, spec.height)) {
             addIssue(issues, IssueCode::MarkerNotWalkable, map.id, marker.cell);
         }
     }
@@ -359,14 +354,8 @@ void WorldValidator::checkPortalArea(const Map& areaMap, TilePos origin, int wid
         addIssue(issues, outOfBoundsCode, reportMapId, reportCell);
         return;
     }
-    for (int rowOffset = 0; rowOffset < height; ++rowOffset) {
-        for (int colOffset = 0; colOffset < width; ++colOffset) {
-            const TilePos cell{origin.column + colOffset, origin.row + rowOffset};
-            if (!areaMap.isWalkable(cell)) {
-                addIssue(issues, notWalkableCode, reportMapId, reportCell);
-                return;
-            }
-        }
+    if (!areaMap.isAreaWalkable(origin, width, height)) {
+        addIssue(issues, notWalkableCode, reportMapId, reportCell);
     }
 }
 

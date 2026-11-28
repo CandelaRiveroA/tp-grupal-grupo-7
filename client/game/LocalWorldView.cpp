@@ -1,6 +1,7 @@
 #include "game/LocalWorldView.h"
 
 #include "game/GameConstants.h"
+#include "game/SlotStacker.h"
 
 namespace game {
 
@@ -13,28 +14,7 @@ void LocalWorldView::addChatLine(const ViewChatLine& line) {
 }
 
 int LocalWorldView::addInventoryContent(const std::string& contentId) {
-	for (ViewInventorySlot& slot : inventory) {
-		if (slot.contentId == contentId) {
-			++slot.count;
-			return slot.slotIndex;
-		}
-	}
-
-	// No estaba: ocupar el primer slotIndex libre.
-	int index = 0;
-	bool used = true;
-	while (used) {
-		used = false;
-		for (const ViewInventorySlot& slot : inventory) {
-			if (slot.slotIndex == index) {
-				used = true;
-				++index;
-				break;
-			}
-		}
-	}
-	inventory.push_back({index, contentId, 1});
-	return index;
+	return SlotStacker().add(inventory, contentId, 1);
 }
 
 void LocalWorldView::placeInventoryContent(const int slotIndex,

@@ -10,5 +10,5 @@ struct WorldSummary {
 	// Puede venir vacía.
 	std::string description;
 	// 0 indica que el servidor aún no informó el límite.
-	std::uint32_t maxPlayers = 0;
+	std::uint16_t maxPlayers = 0;
 };

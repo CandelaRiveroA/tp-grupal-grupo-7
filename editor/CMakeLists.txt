@@ -13,6 +13,7 @@ set(EDITOR_SOURCES
     AddExtraMapDialog.cpp
     PaletteView.cpp
     PaletteListWidget.cpp
+    MarkerSprites.cpp
     PortalPrefabs.cpp
     PortalsView.cpp
     TilesetCache.cpp
@@ -34,6 +35,7 @@ set(EDITOR_SOURCES
     AddExtraMapDialog.h
     PaletteView.h
     PaletteListWidget.h
+    MarkerSprites.h
     PortalPrefabs.h
     PortalsView.h
     TilesetCache.h

@@ -1,4 +1,5 @@
 #include <memory>
+#include <set>
 #include <string>
 #include <variant>
 
@@ -8,6 +9,8 @@
 #include "../server/domain/map/portal.h"
 #include "../server/domain/map/world.h"
 #include "../server/domain/npc/marnie.h"
+#include "../server/domain/inventory/product.h"
+#include "../server/commands/cmd/merchant_commands.h"
 #include "../server/world_view.h"
 
 namespace {
@@ -25,6 +28,11 @@ public:
     std::string buy(const std::string& item, uint16_t quantity, uint8_t playerId = 1) {
         return marnie.process_command(world.get_player(playerId),
                                      "/comprar " + item + " " + std::to_string(quantity), world);
+    }
+
+    std::string sell(const std::string& item, uint16_t quantity, uint8_t playerId = 1) {
+        return marnie.process_command(world.get_player(playerId),
+                                     "/vender " + item + " " + std::to_string(quantity), world);
     }
 
     std::size_t count(const std::string& kind, const std::string& sceneId = "barn") {
@@ -275,3 +283,140 @@ TEST(MarnieAnimalsTest, MovimientoPermaneceEnBarnYPreservaLaEscenaActiva) {
 }
 
 }  // namespace
+
+TEST(MarnieAnimalsTest, NoCompraHuevosNiLeche) {
+    AnimalShopScenario shop;
+    EXPECT_NE(shop.sell("huevo", 1).find("Solo compro vacas y gallinas"), std::string::npos);
+    EXPECT_NE(shop.sell("leche", 1).find("Solo compro vacas y gallinas"), std::string::npos);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 5000);
+}
+
+TEST(MarnieAnimalsTest, VenderAnimalesLosRetiraDelEstabloYPagaElCatalogo) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 2);
+    shop.buy("gallinas", 3);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 4780);
+    EXPECT_NE(shop.sell("vacas", 1).find("40g"), std::string::npos);
+    EXPECT_NE(shop.sell("gallinas", 2).find("20g"), std::string::npos);
+    EXPECT_EQ(shop.count("cow"), 1u);
+    EXPECT_EQ(shop.count("chicken"), 1u);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 4840);
+}
+
+TEST(MarnieAnimalsTest, VentaDeAnimalesEsCompletaONoModificaNada) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 1);
+    const auto gold = shop.world.get_player(1).get_gold();
+    EXPECT_NE(shop.sell("vacas", 2).find("No tenés"), std::string::npos);
+    EXPECT_EQ(shop.count("cow"), 1u);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), gold);
+    EXPECT_NE(shop.sell("gallinas", 1).find("No tenés"), std::string::npos);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), gold);
+}
+
+TEST(MarnieAnimalsTest, VenderSinAnimalesNoGeneraOroYNoSePuedeVenderDosVeces) {
+    AnimalShopScenario shop;
+    shop.sell("vacas", 1);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 5000);
+    shop.buy("gallinas", 1);
+    shop.sell("gallinas", 1);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 4990);
+    shop.sell("gallinas", 1);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 4990);
+    EXPECT_EQ(shop.count("chicken"), 0u);
+}
+
+TEST(MarnieAnimalsTest, VenderLiberaElCupoYElRegistroDeAnimalesSigueValido) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 5);
+    shop.sell("vacas", 2);
+    EXPECT_EQ(shop.count("cow"), 3u);
+    EXPECT_NE(shop.buy("vacas", 2).find("¡Listo!"), std::string::npos);
+    EXPECT_EQ(shop.count("cow"), 5u);
+    shop.world.tick_animals();
+    shop.world.tick_day();
+    EXPECT_EQ(shop.count("cow"), 5u);
+}
+
+TEST(MarnieAnimalsTest, BonusDuplicaElPrecioDeLosAnimales) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 1);
+    shop.world.activate_market_rewards();
+    EXPECT_NE(shop.sell("vacas", 1).find("80g"), std::string::npos);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), 5000);
+    EXPECT_EQ(shop.count("cow"), 0u);
+}
+
+TEST(MarnieAnimalsTest, OroLlenoRechazaLaVentaSinPerderElAnimal) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 1);
+    auto& p = shop.world.get_player(1);
+    p.set_gold(65530);
+    EXPECT_NE(shop.sell("vacas", 1).find("No se realizó"), std::string::npos);
+    EXPECT_EQ(shop.count("cow"), 1u);
+    EXPECT_EQ(p.get_gold(), 65530);
+}
+
+TEST(MarnieAnimalsTest, CantidadesInvalidasNoAlteranElEstablo) {
+    AnimalShopScenario shop;
+    shop.buy("vacas", 1);
+    const auto gold = shop.world.get_player(1).get_gold();
+    shop.sell("vacas", 0);
+    shop.sell("vacas", 65535);
+    EXPECT_EQ(shop.count("cow"), 1u);
+    EXPECT_EQ(shop.world.get_player(1).get_gold(), gold);
+    EXPECT_FALSE(shop.world.try_remove_animals(ItemID::EGG, 1));
+}
+
+TEST(MarnieAnimalsTest, OfertaDeRedIncluyeSoloPreciosDeRecompraDeAnimales) {
+    AnimalShopScenario shop;
+    // La Marnie del mundo está en (4,3); el jugador está a distancia 2.
+    commands::MerchantCommands commands;
+    const auto offer = commands.offer_for(shop.world, 1);
+    ASSERT_TRUE(offer.has_value());
+    EXPECT_EQ(offer->merchant_id, "marnie");
+    bool cow = false, chicken = false, other = false;
+    for (const auto& entry: offer->entries) {
+        if (entry.side != ServerMarketSide::Buys) continue;
+        cow = cow || (entry.label == "vacas" && entry.has_price && entry.price == 40);
+        chicken = chicken || (entry.label == "gallinas" && entry.has_price && entry.price == 10);
+        other = other || (entry.label != "vacas" && entry.label != "gallinas");
+    }
+    EXPECT_TRUE(cow); EXPECT_TRUE(chicken); EXPECT_FALSE(other);
+}
+
+TEST(MarnieAnimalsTest, PierrePublicaLasCincoCalidadesDeLosCultivosYPrecioBaseDeProductos) {
+    World world(16, 16);
+    world.add_player(1, std::make_unique<Player>(1, 9, 5, "town"));
+    commands::MerchantCommands commands;
+    const auto offer = commands.offer_for(world, 1);
+    ASSERT_TRUE(offer.has_value());
+    EXPECT_EQ(offer->merchant_id, "pierre");
+    std::set<uint8_t> strawberry_qualities;
+    bool egg = false, milk = false;
+    for (const auto& entry: offer->entries) {
+        if (entry.side != ServerMarketSide::Buys) continue;
+        if (entry.label == "frutilla" && entry.has_price) {
+            strawberry_qualities.insert(entry.quality);
+        }
+        egg = egg || (entry.label == "huevo" && entry.price == 3 && entry.quality == 1);
+        milk = milk || (entry.label == "leche" && entry.price == 30 && entry.quality == 1);
+        EXPECT_TRUE((entry.label != "huevo" && entry.label != "leche") || entry.quality == 1);
+    }
+    EXPECT_EQ(strawberry_qualities, (std::set<uint8_t>{1, 2, 3, 4, 5}));
+    EXPECT_TRUE(egg); EXPECT_TRUE(milk);
+}
+
+TEST(MarnieAnimalsTest, PierrePagaLaCalidadDelCultivoAlVender) {
+    World world(16, 16);
+    world.add_player(1, std::make_unique<Player>(1, 9, 5, "town"));
+    auto& p = world.get_player(1);
+    p.set_gold(5000);
+    ASSERT_TRUE(p.pick_up_item(
+            std::make_unique<Product>(ItemID::STRAWBERRY, 25, Quality::PERFECT)));
+    world.activate_market_rewards();
+    EXPECT_NE(world.process_merchant_command(1, "/vender frutilla 1").find("400g"),
+              std::string::npos);
+    EXPECT_EQ(p.get_gold(), 5400);
+    EXPECT_FALSE(p.can_extract_items(ItemID::STRAWBERRY, 1));
+}

@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QMargins>
+#include <QRect>
 #include <QSize>
 #include <string>
 
@@ -47,6 +48,18 @@ constexpr int kPortalPreviewCellPx = 32;
 // TilesetCache.cpp
 constexpr int kDefaultCellSize = 16;
 constexpr int kFallbackSquareSize = 8;
+
+// MarkerSprites.cpp / MapLayerItem.cpp / PortalsView.cpp
+constexpr const char* kPortalSpritePath = ":/editor/markers/portal_rune.png";
+constexpr const char* kDefaultMarkerSpritePath =
+	":/editor/markers/spawn_marker.png";
+constexpr const char* kBedMarkerSpritePath = ":/editor/markers/bed_marker.png";
+constexpr const char* kWindowsMarkersSpritePath =
+	":/editor/markers/windows_markers.png";
+const QRect kGeneralWindowSpriteRect{0, 0, kDefaultCellSize,
+				     2 * kDefaultCellSize};
+const QRect kCoopWindowSpriteRect{2 * kDefaultCellSize, 0, kDefaultCellSize,
+				  kDefaultCellSize};
 
 // Ruta a los assets del cliente (tilesets de los escenarios).
 const std::string kAssetsDir = TALLER_ASSETS_DIR;

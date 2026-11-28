@@ -9,6 +9,12 @@
 ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
         socket(socket),
         handlers{
+                {protocol::ClientMessageType::GrabFurniture, &ProtocolReceiver::receive_grab_furniture_message},
+                {protocol::ClientMessageType::PlaceFurniture, &ProtocolReceiver::receive_place_furniture_message},
+                {protocol::ClientMessageType::ContainerTransfer, &ProtocolReceiver::receive_container_transfer_message},
+                {protocol::ClientMessageType::CloseContainer, &ProtocolReceiver::receive_close_container_message},
+                {protocol::ClientMessageType::OpenContainer, &ProtocolReceiver::receive_open_container_message},
+                {protocol::ClientMessageType::Discard, &ProtocolReceiver::receive_discard_message},
                 {protocol::ClientMessageType::SelectSlot,
                  &ProtocolReceiver::receive_select_slot_message},
                 {protocol::ClientMessageType::Move, &ProtocolReceiver::receive_move_message},
@@ -23,6 +29,8 @@ ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
                  &ProtocolReceiver::receive_toggle_walking_message},
         },
         server_handlers{
+                {ServerMessageType::ContainerState, &ProtocolReceiver::receive_container_state_message},
+                {ServerMessageType::WorldPlayers, &ProtocolReceiver::receive_world_players_message},
                 {ServerMessageType::PlayerName, &ProtocolReceiver::receive_player_name_message},
                 {ServerMessageType::InventoryFull, &ProtocolReceiver::receive_inventory_full_message},
                 {ServerMessageType::PlayerHeld, &ProtocolReceiver::receive_player_held_message},
@@ -211,6 +219,10 @@ ServerMessage ProtocolReceiver::receive_dropped_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
+    return receive_slot_payload();
+}
+
+ServerInventorySlot ProtocolReceiver::receive_slot_payload() {
     const uint8_t slot = receive_uint8();
     const uint8_t count = receive_uint8();
     std::string content_id = receive_string();
@@ -222,7 +234,12 @@ ServerMessage ProtocolReceiver::receive_inventory_slot_message() {
     if (quality < 1 || quality > 5) {
         throw std::invalid_argument("La calidad del slot de inventario no es valida.");
     }
-    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1, quality};
+    const uint8_t columns = receive_uint8(), rows = receive_uint8();
+    if ((columns == 0) != (rows == 0)) {
+        throw std::invalid_argument("Huella de inventario invalida.");
+    }
+    return ServerInventorySlot{slot, count, std::move(content_id), tradable == 1,
+                               quality, columns, rows};
 }
 
 ServerMessage ProtocolReceiver::receive_obtained_message() {
@@ -292,10 +309,13 @@ ServerMessage ProtocolReceiver::receive_server_sleep_message() {
 }
 
 ServerMessage ProtocolReceiver::receive_furniture_message() {
-    const uint16_t x = receive_uint16();
-    const uint16_t y = receive_uint16();
-    std::string content_id = receive_string();
-    return ServerFurniture{x, y, std::move(content_id)};
+    const uint16_t x = receive_uint16(), y = receive_uint16();
+    const std::string content = receive_string();
+    const uint8_t facing = receive_uint8(), interactive = receive_uint8(), open = receive_uint8();
+    if (facing > 3 || interactive > 1 || open > 1) {
+        throw std::invalid_argument("Estado de mueble invalido.");
+    }
+    return ServerFurniture{x, y, content, facing, interactive != 0, open != 0};
 }
 
 ServerMessage ProtocolReceiver::receive_day_end_message() { return ServerDayEnd{}; }
@@ -388,10 +408,14 @@ ServerMessage ProtocolReceiver::receive_market_offer_message() {
             throw std::invalid_argument("El indicador de precio del mercado no es valido.");
         }
         const uint16_t price = receive_uint16();
+        const uint8_t quality = receive_uint8();
+        if (quality > 5) {
+            throw std::invalid_argument("La calidad del mercado no es valida.");
+        }
         entries.push_back(ServerMarketEntry{std::move(content_id),
                                             std::move(label),
                                             static_cast<ServerMarketSide>(side),
-                                            has_price == 1, price});
+                                            has_price == 1, price, quality});
     }
     return ServerMarketOffer{std::move(merchant_id), std::move(entries)};
 }
@@ -448,12 +472,13 @@ LobbyStatus ProtocolReceiver::receive_lobby_status() {
     return static_cast<LobbyStatus>(status);
 }
 
-std::vector<std::string> ProtocolReceiver::receive_world_list() {
+std::vector<WorldSummary> ProtocolReceiver::receive_world_list() {
     const uint16_t count = receive_uint16();
-    std::vector<std::string> worlds;
+    std::vector<WorldSummary> worlds;
     worlds.reserve(count);
     for (uint16_t i = 0; i < count; ++i) {
-        worlds.push_back(receive_string());
+        const std::string name = receive_string();
+        worlds.push_back({name, "", receive_uint16()});
     }
     return worlds;
 }
@@ -497,4 +522,58 @@ ServerMessage ProtocolReceiver::receive_player_name_message() {
 
 ServerMessage ProtocolReceiver::receive_inventory_full_message() {
     return ServerInventoryFull{};
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_discard_message() {
+    const uint8_t slot = receive_uint8();
+    return protocol::DiscardMessage{slot, receive_uint8()};
+}
+protocol::ClientMessage ProtocolReceiver::receive_open_container_message() {
+    const uint16_t x = receive_uint16();
+    return protocol::OpenContainerMessage{x, receive_uint16()};
+}
+protocol::ClientMessage ProtocolReceiver::receive_close_container_message() {
+    return protocol::CloseContainerMessage{};
+}
+protocol::ClientMessage ProtocolReceiver::receive_container_transfer_message() {
+    const uint16_t x = receive_uint16(), y = receive_uint16();
+    const uint8_t direction = receive_uint8();
+    if (direction > 1) throw std::invalid_argument("Direccion de transferencia invalida.");
+    const uint8_t slot = receive_uint8();
+    return protocol::ContainerTransferMessage{x, y,
+            static_cast<protocol::ContainerDirection>(direction), slot, receive_uint8()};
+}
+protocol::ClientMessage ProtocolReceiver::receive_place_furniture_message() {
+    const uint16_t x = receive_uint16(), y = receive_uint16();
+    const uint8_t slot = receive_uint8(), facing = receive_uint8();
+    if (facing > 3) throw std::invalid_argument("Orientacion de mueble invalida.");
+    return protocol::PlaceFurnitureMessage{x, y, slot, facing};
+}
+protocol::ClientMessage ProtocolReceiver::receive_grab_furniture_message() {
+    const uint16_t x = receive_uint16();
+    return protocol::GrabFurnitureMessage{x, receive_uint16()};
+}
+ServerMessage ProtocolReceiver::receive_world_players_message() {
+    ServerWorldPlayers result;
+    const uint8_t count = receive_uint8();
+    for (unsigned i = 0; i < count; ++i) {
+        const uint8_t id = receive_uint8();
+        const std::string map = receive_string();
+        const uint16_t x = receive_uint16(), y = receive_uint16();
+        result.players.push_back({id, map, x, y, receive_appearance()});
+    }
+    return result;
+}
+ServerMessage ProtocolReceiver::receive_container_state_message() {
+    ServerContainerState result;
+    const uint8_t open = receive_uint8();
+    if (open > 1) throw std::invalid_argument("Estado de contenedor invalido.");
+    result.open = open != 0;
+    if (!result.open) return result;
+    result.x = receive_uint16(); result.y = receive_uint16();
+    const uint8_t count = receive_uint8();
+    for (unsigned i = 0; i < count; ++i) {
+        result.inventory_slots.push_back(receive_slot_payload());
+    }
+    return result;
 }

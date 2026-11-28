@@ -207,6 +207,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/OverlayAudit.cpp
         client/world/DepthOrder.cpp
         client/world/FurnitureLayout.cpp
+        client/world/FurnitureFootprint.cpp
+        client/world/FurnitureGeometry.cpp
+        client/world/FurnitureViews.cpp
         client/world/SceneDescription.cpp
         client/world/CharacterCatalog.cpp
         client/world/CharacterCatalogLoader.cpp
@@ -287,6 +290,9 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/MarketPopupState.cpp
         client/game/MarketSetCycle.cpp
         client/game/PropAnimator.cpp
+        client/game/FurnitureKey.cpp
+        client/game/SlotStacker.cpp
+        client/game/ContainerSession.cpp
         client/game/InventorySelector.cpp
         # SDL: cultivos, terreno, build-place y contenido en las manos.
         client/world/ContentTraits.cpp
@@ -332,6 +338,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/core/ActionSounds.cpp
         client/game/CarrySelection.cpp
         client/game/PlantingSelection.cpp
+        client/game/PlacementSelection.cpp
+        client/game/FurnitureOrientation.cpp
         client/core/StartupSequence.cpp
         client/sdl/log/Logger.cpp
         client/sdl/loop/FrameClock.cpp

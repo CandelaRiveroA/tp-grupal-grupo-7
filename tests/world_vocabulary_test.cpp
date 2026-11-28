@@ -50,6 +50,8 @@ TEST(WorldVocabularyTest, MarkerKindRoundTrip) {
 		{"merchant_clint", worldmodel::MarkerKind::MerchantClint},
 		{"merchant_pierre", worldmodel::MarkerKind::MerchantPierre},
 		{"merchant_robin", worldmodel::MarkerKind::MerchantRobin},
+		{"general_window", worldmodel::MarkerKind::GeneralWindow},
+		{"coop_window", worldmodel::MarkerKind::CoopWindow},
 	};
 	for (const auto& [text, kind] : cases) {
 		EXPECT_EQ(kVocabulary.toText(kind), text);

@@ -11,4 +11,13 @@ PixelRect FurnitureLayout::box(const SpriteVisual& visual,
 	return mapper_.toPixels(topLeft, GridSpan{visual.cols, visual.rows});
 }
 
+PixelRect FurnitureLayout::pushed(const PixelRect& box, const GridCell& toward,
+				  const double push) const {
+	PixelRect rect = box;
+	const double shift = push * mapper_.cellPixelSize();
+	rect.x += static_cast<int>(toward.column * shift);
+	rect.y += static_cast<int>(toward.row * shift);
+	return rect;
+}
+
 }

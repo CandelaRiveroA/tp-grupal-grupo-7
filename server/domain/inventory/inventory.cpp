@@ -208,3 +208,11 @@ bool Inventory::can_extract_items_with_min_quality(
     }
     return available >= qty;
 }
+
+bool Inventory::transfer_one_to(Inventory& destination, uint8_t slot) {
+    if (&destination == this || slot >= max_slots || slots[slot].is_empty() ||
+        !destination.can_add_item(*slots[slot].item)) {
+        return false;
+    }
+    return destination.add_item(remove_item(slot));
+}

@@ -11,7 +11,7 @@ EnterSelection::EnterSelection(const world::SceneDescription& scene, const int c
 }
 
 void EnterSelection::reindex(const world::SceneDescription& scene, const int cellPixelSize) {
-    entrables_.clear();
+    sceneEntrables_.clear();
     const world::ScenePixelMapper mapper(cellPixelSize);
     for (std::size_t i = 0; i < scene.elements.size(); ++i) {
         const world::ElementPlacement& element = scene.elements[i];
@@ -22,8 +22,34 @@ void EnterSelection::reindex(const world::SceneDescription& scene, const int cel
         // lo que se toca es lo que se dibuja.
         const world::ElementLayout layout(scene.tilesets.at(element.tileset), element,
                                           mapper.toPixels(element.at, element.span));
-        entrables_.push_back(
-                Entrable{i, layout.bounds(), element.at, element.span, *element.enter});
+        sceneEntrables_.push_back(Entrable{EnterSource::Element, i, layout.bounds(), element.at,
+                                           element.span, *element.enter});
+    }
+    entrables_ = sceneEntrables_;
+}
+
+void EnterSelection::observeFurniture(const LocalWorldView& view,
+                                      const world::FurnitureGeometry& furniture,
+                                      const int cellPixelSize) {
+    entrables_ = sceneEntrables_;
+    const world::ScenePixelMapper mapper(cellPixelSize);
+    for (std::size_t i = 0; i < view.placedFurniture.size(); ++i) {
+        const ViewFurniture& piece = view.placedFurniture[i];
+        const world::NpcDef* prop = furniture.prop(piece.contentId);
+        if (prop == nullptr || !prop->furnitureEnter.has_value()) {
+            continue;
+        }
+        const world::GridCell source{piece.cellX, piece.cellY};
+        const std::optional<world::FurnitureShape> shape =
+                furniture.shapeOf(piece.contentId, source, mapper);
+        if (!shape.has_value()) {
+            continue;
+        }
+        const world::PropEnter& enter = *prop->furnitureEnter;
+        entrables_.push_back(Entrable{
+                EnterSource::Furniture, i, shape->box, shape->topLeft, shape->cells,
+                world::ElementEnter{enter.firstFrontRow, enter.lastFrontRow, source,
+                                    enter.facing}});
     }
 }
 
@@ -72,7 +98,7 @@ std::optional<EnteredFront> EnterSelection::front(const LocalWorldView& view) co
         const std::optional<std::size_t> entered = entrableFor(entity.cellX, entity.cellY);
         if (entered.has_value()) {
             const Entrable& entry = entrables_[*entered];
-            return EnteredFront{entry.elementIndex, entry.enter.firstFrontRow,
+            return EnteredFront{entry.source, entry.index, entry.enter.firstFrontRow,
                                 entry.enter.lastFrontRow};
         }
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,21 @@ struct NpcDef {
 	// Los NPCs sin texto son objetos (p. ej. el cofre): no abren popup.
 	bool hasPopup() const;
 
+	// Grilla de slots que muestra al abrirse (`[npcs.container]` del
+	// TOML). Sin ella (0×0) no es un contenedor.
+	GridSpan container{0, 0};
+
+	// ¿Es un contenedor (cofre) que muestra una grilla de slots?
+	bool isContainer() const;
+
+	// Mueble por piezas (`[npcs.furniture]`): `anchor` = a qué celda del
+	// sprite se refiere la celda que manda la fuente, en celdas desde la
+	// base (abajo-izquierda): x hacia la derecha, y hacia arriba. Default
+	// {0, 0} = la base (como cualquier mueble).
+	GridCell furnitureAnchor{0, 0};
+	// Si el jugador se "mete" en el mueble (la cama).
+	std::optional<PropEnter> furnitureEnter;
+
 	// Celda donde está parado: la que mandó la fuente de estado para este
 	// id, o la `at` por defecto del TOML si no mandó ninguna.
 	GridCell cellIn(const NpcCells& placed) const;
@@ -46,6 +62,10 @@ public:
 	// coincide con ninguna escena y nunca se dibujan).
 	const NpcDef* find(const std::string& id) const;
 
+	// Botón de cerrar compartido por los popups de contenedor
+	// (`[container_close]` de npcs.toml).
+	const CloseButton& closeButton() const;
+
 	// NPC bajo un punto de mundo (el último del archivo gana, igual que
 	// el resto de los picks). nullptr si no hay ninguno. `placed` son las
 	// celdas que mandó la fuente de estado (las mismas con que se dibuja).
@@ -54,6 +74,9 @@ public:
 
 private:
 	void readStyles(const tomlcfg::TomlDocument& doc);
+	void readCloseButton(const tomlcfg::TomlDocument& doc);
+	void readFurniture(const tomlcfg::TomlDocument& doc,
+			   const std::string& base, NpcDef& npc) const;
 	NpcPopupStyle readStyle(const tomlcfg::TomlDocument& doc,
 				const std::string& name) const;
 	std::vector<GridCell> readCells(const tomlcfg::TomlDocument& doc,
@@ -64,6 +87,8 @@ private:
 		       std::size_t index) const;
 
 	std::map<std::string, NpcPopupStyle> styles_;
+	CloseButton closeButton_;
+	std::map<std::string, Direction> directions_;
 	std::vector<NpcDef> npcs_;
 };
 

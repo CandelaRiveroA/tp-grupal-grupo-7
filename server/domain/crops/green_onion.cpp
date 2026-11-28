@@ -5,7 +5,8 @@
 #include <memory>
 
 GreenOnion::GreenOnion(uint16_t x, uint16_t y) 
-    : Crop(x, y, 2, 3, ItemID::GREEN_ONION, 12) {} // 2 días, 3 riegos, 12 oro
+    : Crop(x, y, 2, 3, ItemID::GREEN_ONION,
+           Product::base_price_for(ItemID::GREEN_ONION)) {} // 2 días, 3 riegos
 
 void GreenOnion::harvest(Player& p, World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);

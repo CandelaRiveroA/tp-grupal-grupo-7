@@ -216,8 +216,8 @@ void Renderer::drawElementRange(const world::SceneDescription& scene,
 	const world::PixelRect area =
 		viewport.toScreen(mapper.toPixels(element.at, element.span));
 
-	const ElementPainter painter(tileset, element, area);
-	if (!viewport.intersects(painter.bounds())) {
+	const ElementPainter painter(tileset, element, area, viewport);
+	if (!viewport.intersects(painter.screenBounds())) {
 		return;
 	}
 	painter.paint(sheet, viewport.screenRect(), firstRow, lastRow);

@@ -48,8 +48,8 @@ world::PixelRect Viewport::toScreen(const world::PixelRect& worldRect) const {
 world::PixelPoint Viewport::toWorld(
 	const world::PixelPoint& screenPoint) const {
 	return world::PixelPoint{
-		offsetX_ + static_cast<int>(std::floor(screenPoint.x / zoom_)),
-		offsetY_ + static_cast<int>(std::floor(screenPoint.y / zoom_))};
+		worldCoordinate(screenPoint.x, offsetX_),
+		worldCoordinate(screenPoint.y, offsetY_)};
 }
 
 bool Viewport::intersects(const world::PixelRect& screenRect) const {
@@ -67,6 +67,19 @@ bool Viewport::intersects(const world::PixelRect& screenRect) const {
 int Viewport::screenEdge(const int worldCoordinate, const int offset) const {
 	return static_cast<int>(
 		std::lround((worldCoordinate - offset) * zoom_));
+}
+
+int Viewport::worldCoordinate(const int screenCoordinate,
+			      const int offset) const {
+	int world = offset +
+		    static_cast<int>(std::floor(screenCoordinate / zoom_));
+	while (screenEdge(world + 1, offset) <= screenCoordinate) {
+		++world;
+	}
+	while (screenEdge(world, offset) > screenCoordinate) {
+		--world;
+	}
+	return world;
 }
 
 }  // namespace sdl

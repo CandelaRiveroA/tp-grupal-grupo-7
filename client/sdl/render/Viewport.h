@@ -35,6 +35,11 @@ private:
 	// exactamente el mismo píxel de pantalla y no queden costuras.
 	int screenEdge(int worldCoordinate, int offset) const;
 
+	// Inversa exacta de screenEdge para puntos: devuelve el píxel de
+	// mundo cuyo tramo [screenEdge(w), screenEdge(w + 1)) contiene a
+	// `screenCoordinate`.
+	int worldCoordinate(int screenCoordinate, int offset) const;
+
 	int offsetX_;
 	int offsetY_;
 	int width_;

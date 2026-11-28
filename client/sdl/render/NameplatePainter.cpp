@@ -15,7 +15,7 @@ void NameplatePainter::draw(const std::string& name, const world::PixelRect& dra
     }
     const int width =
             text_.textWidth(name, layout_.fontSize(), layout_.bold(), layout_.fontFace());
-    const world::PixelRect screen = viewport.toScreen(layout_.boxUnder(drawn, width));
+    const world::PixelRect screen = layout_.boxUnder(viewport.toScreen(drawn), width);
     // Culling por contrato (§11): fuera del viewport no se emite el draw.
     if (!viewport.intersects(screen)) {
         return;

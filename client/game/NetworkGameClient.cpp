@@ -212,6 +212,15 @@ bool NetworkGameClient::isIncomingChat(const ServerChat& chat) const {
     return !chat.system && chat.player_id != localPlayerId_;
 }
 
+world::CropQuality NetworkGameClient::qualityFor(const uint8_t q) const {
+    // El protocolo manda 1..5 (BASE..PERFECT), alineado con CropQuality
+    // (enum 0..4). Guard: 0 o fuera de rango -> Base.
+    if (q >= 1 && q <= 5) {
+        return static_cast<world::CropQuality>(q - 1);
+    }
+    return world::CropQuality::Base;
+}
+
 void NetworkGameClient::apply(const ServerMessage& message) {
     // El chat es un evento, no estado: se aplica ya (fuera del lote).
     if (const auto* chat = std::get_if<ServerChat>(&message)) {
@@ -504,8 +513,13 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         if (slot->count == 0) {
             inventory_.erase(slot->slot);
         } else {
-            inventory_[slot->slot] =
-                    ViewInventorySlot{slot->slot, slot->content_id, slot->count, slot->tradable};
+            // La calidad viaja en ServerInventorySlot.quality (1..5
+            // BASE..PERFECT, como ServerCrop): qualityFor la traduce al
+            // enum del cliente y el HUD dibuja el sprite de esa calidad.
+            ViewInventorySlot view{slot->slot, slot->content_id,
+                                   slot->count, slot->tradable,
+                                   qualityFor(slot->quality)};
+            inventory_[slot->slot] = std::move(view);
         }
         return;
     }

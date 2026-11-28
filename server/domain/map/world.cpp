@@ -1414,6 +1414,18 @@ bool World::take_victory() {
 // REGALOS
 // ---------------------------------------------------------
 void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    const auto sender_it = this->players.find(sender);
+    const auto receiver_it = this->players.find(receiver);
+    if (sender_it == this->players.end() || receiver_it == this->players.end()) {
+        return;
+    }
+    const Player& from = *sender_it->second;
+    const Player& to = *receiver_it->second;
+    if (sender == receiver || from.get_scene() != to.get_scene() ||
+        !worldmodel::withinInteractionRange({from.get_x(), from.get_y()}, 1, 1,
+                                            {to.get_x(), to.get_y()}, 1)) {
+        return;
+    }
     this->offered_gifts.insert_or_assign({sender, receiver}, item);
     this->pending_gifts.push_back({sender, receiver, item});
 }

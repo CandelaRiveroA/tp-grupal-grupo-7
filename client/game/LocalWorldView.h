@@ -105,6 +105,11 @@ struct ViewInventorySlot {
     std::string contentId;
     int count;
     bool tradable = true;
+    // Calidad del contenido cuando es un producto cosechado (la manda la
+    // fuente en ServerInventorySlot.quality, 1..5 BASE..PERFECT; default
+    // Base mientras el server no la mande). Va al final del struct para
+    // no romper los aggregate-init posicionales.
+    world::CropQuality quality = world::CropQuality::Base;
 };
 
 // Evento puntual del tick: la fuente informa que el jugador OBTUVO un

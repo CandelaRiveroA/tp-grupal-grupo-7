@@ -37,7 +37,7 @@ std::vector<WorldSummary> NetworkWorldService::worlds() const {
 void NetworkWorldService::fetchWorlds() {
 	try {
 		Socket socket(core::kServerHost, core::kServerPort);
-		socket.set_receive_timeout(5);
+		socket.set_receive_timeout(60);
 		ProtocolSender sender(socket);
 		ProtocolReceiver receiver(socket);
 		sender.send_world_list_request();

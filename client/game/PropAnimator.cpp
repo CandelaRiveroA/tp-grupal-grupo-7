@@ -29,6 +29,8 @@ std::optional<PropMotion> PropAnimator::toggle(const std::string& id, const int 
 	return state.opening ? PropMotion::Opening : PropMotion::Closing;
 }
 
+void PropAnimator::clear() { states_.clear(); }
+
 void PropAnimator::reset(const std::string& id) {
 	states_.erase(id);
 }
@@ -48,5 +50,19 @@ std::map<std::string, int> PropAnimator::frames(const int iteration) const {
 	}
 	return result;
 }
+
+std::optional<PropMotion> PropAnimator::setOpen(const std::string& id, bool open,
+                                              int frameCount, int frameTicks, int iteration) {
+    if (frameCount < 2 || frameTicks < 1) return std::nullopt;
+    const auto current = states_.find(id);
+    if ((current == states_.end() && !open) ||
+        (current != states_.end() && current->second.opening == open)) return std::nullopt;
+    State state;
+    state.opening = open; state.start = iteration;
+    state.frameCount = frameCount; state.frameTicks = frameTicks;
+    states_[id] = state;
+    return open ? PropMotion::Opening : PropMotion::Closing;
+}
+
 
 }

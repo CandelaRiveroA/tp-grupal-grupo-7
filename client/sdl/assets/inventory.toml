@@ -523,11 +523,3 @@ sheet = "Decorations/Towninterior.png"
 cell  = [16, 16]
 at    = [23, 15]
 span  = [1, 2]
-
-[items.bed]           # cama: se envía como ServerFurniture desde el marker Bed
-                      # del mundo (worlds/<worldName>.toml). Mismo sprite que
-                      # el tile estático viejo de scenes.toml.
-sheet = "Decorations/Towninterior.png"
-cell  = [16, 16]
-at    = [4, 10]
-span  = [2, 4]

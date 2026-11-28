@@ -245,6 +245,7 @@ struct ViewFurniture {
     // Hacia dónde mira (la vista que lo dibuja). Lo manda la fuente; la
     // huella de arriba es la de frente: de costado se gira.
     world::FurnitureFacing facing = world::FurnitureFacing::Front;
+    bool open = false;
 };
 
 // Posición global de un jugador para el mapa del mundo (tecla M).
@@ -335,6 +336,7 @@ struct LocalWorldView {
     // mismo vocabulario que el inventario del jugador. Lo llena la fuente
     // de estado (el servidor); vacío = los cuadros se ven vacíos.
     std::vector<ViewInventorySlot> containerSlots;
+    std::optional<world::GridCell> openContainer;
 
     // Vida y energía del jugador local (0..max).
     int playerHealth = 0;

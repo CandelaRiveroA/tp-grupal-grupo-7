@@ -49,6 +49,10 @@ public:
     const std::string& initialMapId() const;
 
     
+    void requestTransfer(const ContainerTransfer& transfer) override;
+    void requestPlace(const FurniturePlacement& placement) override;
+    void requestGrab(const FurnitureGrab& grab) override;
+    void requestDiscard(const InventoryDiscard& discard) override;
     void sendChat(const std::string& text) override;
     void receiveChat(std::uint8_t playerId, const std::string& characterName,
                      const std::string& text) override;
@@ -94,6 +98,7 @@ private:
     void apply(const ServerMessage& message);
     // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
     void applyNow(const ServerMessage& message);
+    ViewInventorySlot inventorySlotFor(const ServerInventorySlot& slot) const;
     // El lote es el estado completo: enemigos y proyectiles que no volvieron
     // en él ya no existen en el server (una llama que llegó a su destino o un
     // cadáver viejo tras regenerar).

@@ -15,6 +15,9 @@
 // Distancia de Chebyshev: las 24 celdas alrededor de los pies (cuadrado 5x5).
 #define kMerchantInteractionRadius 2
 
+// Cofres: alcance desde su celda física; transferencias de una unidad por click.
+#define kContainerInteractionRadius 1
+
 // Nuevos enumeradores para el Tablero
 enum class Direction : uint8_t { 
     UP = 0, 

@@ -147,9 +147,12 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         if (item != nullptr) {
             // tradable lo decide el dominio: es la única fuente de la
             // regla "herramienta no se regala" (el cliente solo la lee).
+            // get_quality() es virtual: Product devuelve la calidad real;
+            // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
             out.push_back(ServerInventorySlot{slot, inventory.get_amount(slot),
                                               content_id_for(item->get_id()),
-                                              item->can_be_traded()});
+                                              item->can_be_traded(),
+                                              static_cast<uint8_t>(item->get_quality())});
         }
     }
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});

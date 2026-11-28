@@ -11,6 +11,7 @@
 #include "world/CharacterAppearance.h"
 #include "world/CharacterCatalog.h"
 #include "world/CreatureCatalog.h"
+#include "world/CreatureKindNames.h"
 
 namespace world {
 
@@ -97,8 +98,9 @@ private:
 	void requireNonNegative(int value, const std::string& path) const;
 
 	const tomlcfg::TomlDocument& doc_;
-	// Vocabulario compartido de nombres de acción (ver ActionNames).
+	// Vocabulario compartido de nombres de acción y criaturas.
 	ActionNames actionNames_;
+	CreatureKindNames creatureNames_;
 };
 
 }

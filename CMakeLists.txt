@@ -332,6 +332,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/WorldMapLayout.cpp
         client/world/PixelBox.cpp
         client/world/TomlConfigReader.cpp
+        client/world/CreatureKindNames.cpp
         client/game/ToolUseCue.cpp
         client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp

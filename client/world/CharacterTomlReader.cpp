@@ -53,24 +53,6 @@ constexpr std::array<const char*, 3> kAppearanceSideKeys = {
 constexpr std::array<const char*, 3> kAppearanceAnchorKeys = {
 	"body", "head", "feet"};
 
-// Criatura lógica -> tabla del TOML que la describe.
-struct CreatureBinding {
-	CreatureKind kind;
-	const char* tableKey;
-};
-
-constexpr std::array<CreatureBinding, 9> kCreatureBindings = {{
-	{CreatureKind::Player, "characters.player"},
-	{CreatureKind::Chicken, "characters.chicken"},
-	{CreatureKind::Cow, "characters.cow"},
-	{CreatureKind::Orc, "characters.orc"},
-	{CreatureKind::Skeleton, "characters.skeleton"},
-	{CreatureKind::Vampire, "characters.vampire"},
-	{CreatureKind::Skull, "characters.skull"},
-	{CreatureKind::SkullFire, "characters.skull_fire"},
-	{CreatureKind::SkullFireGreen, "characters.skull_fire_green"},
-}};
-
 }
 
 CharacterTomlReader::CharacterTomlReader(const tomlcfg::TomlDocument& doc)
@@ -564,10 +546,10 @@ void CharacterTomlReader::mergeInto(CharacterCatalog& catalog) const {
 	// (enemigos), volcando sobre el MISMO catálogo. El binding
 	// nombre->kind es el vocabulario; una tabla ausente no se carga
 	// (otro archivo la trae).
-	for (const CreatureBinding& binding : kCreatureBindings) {
-		if (doc_.hasKey(binding.tableKey)) {
-			catalog.setEntry(binding.kind,
-					 readCreature(binding.tableKey));
+	for (const auto& [name, kind] : creatureNames_.entries()) {
+		const std::string tableKey = join("characters", name);
+		if (doc_.hasKey(tableKey)) {
+			catalog.setEntry(kind, readCreature(tableKey));
 		}
 	}
 }

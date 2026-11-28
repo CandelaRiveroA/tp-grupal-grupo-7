@@ -230,6 +230,7 @@ target_sources(taller_client
     world/ObtainedBannerLayout.h
     world/PixelBox.h
     world/TomlConfigReader.h
+    world/CreatureKindNames.h
     world/WorldMapConfig.h
     world/WorldMapLayout.h
     world/AnchorLayout.h

@@ -1,12 +1,11 @@
 #include "world/CommunityCatalog.h"
 
-#include <algorithm>
-#include <array>
-#include <string>
+#include <unordered_set>
 #include <utility>
 
 #include "toml/TomlDocument.h"
 #include "world/ConfigError.h"
+#include "world/TomlConfigReader.h"
 
 namespace world {
 
@@ -14,9 +13,10 @@ CommunityCatalog::CommunityCatalog(const std::string& path) {
 	try {
 		const tomlcfg::TomlDocument doc(
 			path, tomlcfg::TomlDocument::Source::File);
-		readText(doc);
-		readStyle(doc);
-		readSets(doc);
+		const TomlConfigReader root(doc);
+		readText(root);
+		readStyle(root);
+		readSets(root);
 	} catch (const tomlcfg::TomlError& error) {
 		throw ConfigError(error);
 	}
@@ -28,144 +28,233 @@ const std::string& CommunityCatalog::title() const { return title_; }
 
 const std::string& CommunityCatalog::status() const { return status_; }
 
+const std::string& CommunityCatalog::donateLabel() const {
+	return donateLabel_;
+}
+
+const std::string& CommunityCatalog::helpCloseHint() const {
+	return helpCloseHint_;
+}
+
 const std::vector<CommunitySetDef>& CommunityCatalog::sets() const {
 	return sets_;
 }
 
-void CommunityCatalog::readText(const tomlcfg::TomlDocument& doc) {
-	title_ = doc.getString("text.title");
-	status_ = doc.getString("text.status");
-	if (title_.empty()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, "text.title");
-	}
-	if (status_.empty()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, "text.status");
-	}
+void CommunityCatalog::readText(const TomlConfigReader& root) {
+	const TomlConfigReader text = root.subtable("text");
+	title_ = text.nonEmptyString("title");
+	status_ = text.nonEmptyString("status");
+	donateLabel_ = text.nonEmptyString("donate_label");
+	helpCloseHint_ = text.nonEmptyString("help_close_hint");
 }
 
-void CommunityCatalog::readStyle(const tomlcfg::TomlDocument& doc) {
-	const std::string base = "popup.";
-	const auto color = [&](const std::string& key) {
-		const std::array<int, 4> rgba = doc.getIntArray<4>(base + key);
-		return Color{rgba[0], rgba[1], rgba[2], rgba[3]};
-	};
+void CommunityCatalog::readStyle(const TomlConfigReader& root) {
+	style_.modal = PagedModalSpec(root.document());
 
-	style_.panelColumns = doc.getInt(base + "panel_columns");
-	style_.inset = doc.getInt(base + "inset");
-	style_.titleHeight = doc.getInt(base + "title_height");
-	style_.headerHeight = doc.getInt(base + "header_height");
-	style_.rowHeight = doc.getInt(base + "row_height");
-	style_.setGap = doc.getInt(base + "set_gap");
-	style_.checkboxGap = doc.getInt(base + "checkbox_gap");
-	style_.statusGap = doc.getInt(base + "status_gap");
-	style_.amountWidth = doc.getInt(base + "amount_width");
-	style_.titleSize = doc.getInt(base + "title_size");
-	style_.headerSize = doc.getInt(base + "header_size");
-	style_.textSize = doc.getInt(base + "text_size");
-	style_.titleColor = color("title_color");
-	style_.headerColor = color("header_color");
-	style_.textColor = color("text_color");
-	style_.amountColor = color("amount_color");
-	style_.checkboxEmpty = SpriteVisual(doc, "popup.checkbox_empty", "at");
-	style_.checkboxDone = SpriteVisual(doc, "popup.checkbox_done", "at");
-	style_.setDone = SpriteVisual(doc, "popup.set_done", "at");
+	const TomlConfigReader popup = root.subtable("popup");
 
-	const auto invalid = [&](const std::string& key) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, base + key);
-	};
-	if (style_.panelColumns <= 0) {
-		invalid("panel_columns");
-	}
-	if (style_.rowHeight <= 0) {
-		invalid("row_height");
-	}
-	if (style_.headerHeight <= 0) {
-		invalid("header_height");
-	}
-	if (style_.amountWidth <= 0) {
-		invalid("amount_width");
-	}
-	if (style_.inset < 0 || style_.titleHeight < 0 || style_.setGap < 0 ||
-	    style_.checkboxGap < 0 || style_.statusGap < 0) {
-		invalid("inset");
-	}
-	if (style_.titleSize <= 0 || style_.headerSize <= 0 ||
-	    style_.textSize <= 0) {
-		invalid("text_size");
-	}
+	CommunityTopBarStyle& topBar = style_.topBar;
+	topBar.superTitleTop = popup.nonNegativeInt("super_title_top");
+	topBar.superTitleHeight = popup.positiveInt("super_title_height");
+	topBar.superTitleSize = popup.positiveInt("super_title_size");
+	topBar.pageCounterWidth = popup.positiveInt("page_counter_width");
+	topBar.pageSize = popup.positiveInt("page_size");
+
+	CommunityHeaderStyle& header = style_.header;
+	header.gap = popup.nonNegativeInt("header_gap");
+	header.height = popup.positiveInt("header_height");
+	header.titleSize = popup.positiveInt("header_title_size");
+	header.statusSize = popup.positiveInt("header_status_size");
+	header.statusGap = popup.nonNegativeInt("status_gap");
+
+	CommunityCardStyle& card = style_.card;
+	card.contentGap = popup.nonNegativeInt("content_gap");
+	card.height = popup.positiveInt("card_height");
+	card.gap = popup.nonNegativeInt("card_gap");
+	card.padX = popup.nonNegativeInt("card_pad_x");
+	card.padY = popup.nonNegativeInt("card_pad_y");
+	card.border = popup.nonNegativeInt("card_border");
+	card.iconColumnWidth = popup.positiveInt("icon_column_width");
+	card.spriteSize = popup.positiveInt("sprite_size");
+	card.creatureSpriteSize = popup.positiveInt("creature_sprite_size");
+	card.spriteGap = popup.nonNegativeInt("sprite_gap");
+	card.qualitySlotSize = popup.positiveInt("quality_slot_size");
+	card.qualitySlotGap = popup.nonNegativeInt("quality_slot_gap");
+	card.qualitySlotPad = popup.nonNegativeInt("quality_slot_pad");
+	card.qualitySlotBorder = popup.nonNegativeInt("quality_slot_border");
+	card.barHeight = popup.positiveInt("bar_height");
+	card.barBorder = popup.nonNegativeInt("bar_border");
+	card.barTopGap = popup.nonNegativeInt("bar_top_gap");
+	card.amountWidth = popup.positiveInt("amount_width");
+	card.checkboxGap = popup.nonNegativeInt("checkbox_gap");
+	card.labelSize = popup.positiveInt("label_size");
+	card.amountSize = popup.positiveInt("amount_size");
+
+	CommunityFooterStyle& footer = style_.footer;
+	footer.height = popup.positiveInt("footer_height");
+	footer.margin = popup.nonNegativeInt("footer_margin");
+	footer.donateGap = popup.nonNegativeInt("donate_gap");
+	footer.dotSize = popup.positiveInt("dot_size");
+	footer.dotGap = popup.nonNegativeInt("dot_gap");
+	footer.dotBorder = popup.nonNegativeInt("dot_border");
+	footer.donateTextSize = popup.positiveInt("donate_text_size");
+	const PixelSize donateSize = popup.positiveSize("donate_button_size");
+	footer.donateButtonWidth = donateSize.width;
+	footer.donateButtonHeight = donateSize.height;
+	footer.donateButtonSheet = popup.nonEmptyString("donate_button_sheet");
+
+	CommunityPopupColors& colors = style_.colors;
+	colors.inkMuted = popup.color("ink_muted");
+	colors.cardBg = popup.color("card_bg");
+	colors.cardDoneBg = popup.color("card_done_bg");
+	colors.spriteSlotBg = popup.color("sprite_slot_bg");
+	colors.barTrack = popup.color("bar_track");
+	colors.barFill = popup.color("bar_fill");
+	colors.amountColor = popup.color("amount_color");
+	colors.donateTextColor = popup.color("donate_text_color");
+
+	readHelpStyle(popup);
+
+	style_.sprites.checkboxEmpty =
+		SpriteVisual(root.document(), "popup.checkbox_empty", "at");
+	style_.sprites.checkboxDone =
+		SpriteVisual(root.document(), "popup.checkbox_done", "at");
+	style_.sprites.setDone =
+		SpriteVisual(root.document(), "popup.set_done", "at");
+	style_.sprites.coin = SpriteVisual(root.document(), "popup.coin", "at");
 }
 
-void CommunityCatalog::readSets(const tomlcfg::TomlDocument& doc) {
-	const std::vector<tomlcfg::TomlDocument> sets = doc.getTableArray("sets");
-	if (sets.empty()) {
-		throw ConfigError(ConfigErrorKind::MissingStructure, "sets");
-	}
-	for (std::size_t i = 0; i < sets.size(); ++i) {
-		const std::string base = "sets[" + std::to_string(i) + "]";
-		CommunitySetDef set = readSet(sets[i], base);
-		const bool repeated = std::any_of(
-			sets_.begin(), sets_.end(),
-			[&](const CommunitySetDef& other) {
-				return other.id == set.id;
-			});
-		if (repeated) {
+void CommunityCatalog::readHelpStyle(const TomlConfigReader& popup) {
+	const TomlConfigReader help = popup.subtable("help");
+	HelpPopupStyle& h = style_.help;
+
+	h.buttonSheet = help.nonEmptyString("button_sheet");
+	h.buttonFallback = help.nonEmptyString("button_fallback");
+	const PixelSize btnSize = help.positiveSize("button_size");
+	h.buttonWidth = btnSize.width;
+	h.buttonHeight = btnSize.height;
+	h.buttonGap = help.nonNegativeInt("button_gap");
+
+	const PixelSize boxSize = help.positiveSize("popup_size");
+	h.popupWidth = boxSize.width;
+	h.popupHeight = boxSize.height;
+	h.pad = help.nonNegativeInt("pad");
+	h.border = help.nonNegativeInt("border");
+	h.titleHeight = help.positiveInt("title_height");
+	h.titleSize = help.positiveInt("title_size");
+	h.titleGap = help.nonNegativeInt("title_gap");
+	h.textSize = help.positiveInt("text_size");
+	h.lineGap = help.nonNegativeInt("line_gap");
+	h.hintHeight = help.positiveInt("hint_height");
+	h.hintSize = help.positiveInt("hint_size");
+	h.backdrop = help.color("backdrop");
+}
+
+void CommunityCatalog::readSets(const TomlConfigReader& root) {
+	const std::vector<TomlConfigReader> setReaders =
+		root.tableArray("sets");
+	std::unordered_set<int> seenIds;
+	sets_.reserve(setReaders.size());
+	for (const TomlConfigReader& setReader : setReaders) {
+		CommunitySetDef set = readSet(setReader);
+		if (!seenIds.insert(set.id).second) {
 			throw ConfigError(ConfigErrorKind::InvalidValue,
-					  base + ".id");
+					  setReader.pathFor("id"));
 		}
 		sets_.push_back(std::move(set));
 	}
 }
 
-CommunitySetDef CommunityCatalog::readSet(const tomlcfg::TomlDocument& doc,
-					  const std::string& base) const {
+CommunitySetDef CommunityCatalog::readSet(
+	const TomlConfigReader& setReader) const {
 	CommunitySetDef set;
-	set.id = doc.getInt("id");
-	set.title = doc.getString("title");
-	if (set.id <= 0) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, base + ".id");
-	}
-	if (set.title.empty()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue,
-				  base + ".title");
-	}
-	if (doc.hasKey("amount_prefix")) {
-		set.amountPrefix = doc.getString("amount_prefix");
-	}
-	const std::vector<tomlcfg::TomlDocument> goals =
-		doc.getTableArray("goals");
-	if (goals.empty()) {
-		throw ConfigError(ConfigErrorKind::MissingStructure,
-				  base + ".goals");
-	}
-	for (std::size_t i = 0; i < goals.size(); ++i) {
-		const std::string goalBase =
-			base + ".goals[" + std::to_string(i) + "]";
-		CommunityGoalDef goal = readGoal(goals[i], goalBase);
-		const bool repeated = std::any_of(
-			set.goals.begin(), set.goals.end(),
-			[&](const CommunityGoalDef& other) {
-				return other.id == goal.id;
-			});
-		if (repeated) {
+	set.id = setReader.positiveInt("id");
+	set.title = setReader.nonEmptyString("title");
+	set.helpText = setReader.nonEmptyString("help");
+	set.donatable = setReader.boolOr("donatable", true);
+
+	const std::vector<TomlConfigReader> goalReaders =
+		setReader.tableArray("goals");
+	std::unordered_set<std::string> seenGoalIds;
+	set.goals.reserve(goalReaders.size());
+	for (const TomlConfigReader& goalReader : goalReaders) {
+		CommunityGoalDef goal = readGoal(goalReader);
+		if (!seenGoalIds.insert(goal.id).second) {
 			throw ConfigError(ConfigErrorKind::InvalidValue,
-					  goalBase + ".id");
+					  goalReader.pathFor("id"));
 		}
 		set.goals.push_back(std::move(goal));
 	}
 	return set;
 }
 
-CommunityGoalDef CommunityCatalog::readGoal(const tomlcfg::TomlDocument& doc,
-					    const std::string& base) const {
+CommunityGoalDef CommunityCatalog::readGoal(
+	const TomlConfigReader& goalReader) const {
 	CommunityGoalDef goal;
-	goal.id = doc.getString("id");
-	if (goal.id.empty()) {
-		throw ConfigError(ConfigErrorKind::InvalidValue, base + ".id");
+	goal.id = goalReader.nonEmptyString("id");
+	goal.label = goalReader.nonEmptyString("label");
+
+	const bool hasIcon = goalReader.hasKey("icon");
+	const bool hasCreature = goalReader.hasKey("creature");
+	const bool useCoin = goalReader.boolOr("coin", false);
+
+	if (hasIcon) {
+		goal.visual.iconId = goalReader.nonEmptyString("icon");
 	}
-	if (doc.hasKey("label")) {
-		goal.label = doc.getString("label");
+	if (hasCreature) {
+		const std::string name = goalReader.nonEmptyString("creature");
+		const std::optional<CreatureKind> found =
+			creatureNames_.find(name);
+		if (!found.has_value()) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  goalReader.pathFor("creature"));
+		}
+		goal.visual.creature = found;
 	}
+
+	const int primarySources = (hasIcon ? 1 : 0) + (hasCreature ? 1 : 0) +
+				   (useCoin ? 1 : 0);
+	if (primarySources > 1) {
+		const std::string conflictKey =
+			useCoin ? "coin" : "creature";
+		throw ConfigError(ConfigErrorKind::InvalidValue,
+				  goalReader.pathFor(conflictKey));
+	}
+
+	if (goalReader.hasKey("qualities")) {
+		const std::vector<std::string> names =
+			goalReader.stringArray("qualities");
+		if (names.empty() || !hasIcon || hasCreature || useCoin) {
+			throw ConfigError(ConfigErrorKind::InvalidValue,
+					  goalReader.pathFor("qualities"));
+		}
+		for (const std::string& name : names) {
+			const std::optional<CropQuality> quality =
+				qualityNames_.find(name);
+			if (!quality.has_value()) {
+				throw ConfigError(
+					ConfigErrorKind::InvalidValue,
+					goalReader.pathFor("qualities"));
+			}
+			goal.visual.cropQualities.push_back(*quality);
+		}
+	}
+
+	if (!goal.visual.cropQualities.empty()) {
+		goal.visual.kind = CommunityVisualKind::CropQualities;
+	} else if (hasIcon) {
+		goal.visual.kind = CommunityVisualKind::ContentIcon;
+	} else if (hasCreature) {
+		goal.visual.kind = CommunityVisualKind::Creature;
+	} else if (useCoin) {
+		goal.visual.kind = CommunityVisualKind::Coin;
+	}
+
+	if (goalReader.hasKey("sprite_size")) {
+		goal.visual.spriteSize = goalReader.positiveInt("sprite_size");
+	}
+	goal.visual.spriteOffsetY = goalReader.intOr("sprite_offset_y", 0);
 	return goal;
 }
 
-}
+}  // namespace world

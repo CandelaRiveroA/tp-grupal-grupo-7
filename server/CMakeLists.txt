@@ -46,6 +46,7 @@ target_sources(taller_server
     domain/animals/cow.cpp
     domain/furniture/furniture.cpp
     domain/furniture/bed.cpp
+    domain/furniture/chest_entity.cpp
     domain/inventory/inventory.cpp
     domain/inventory/item.cpp
     domain/inventory/product.cpp

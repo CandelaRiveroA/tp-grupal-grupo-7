@@ -10,7 +10,8 @@
 // pero contiene por composición un Inventory de 30 espacios.
 class ChestEntity : public Furniture {
 private:
-    Inventory storage; 
+    Inventory storage;
+    uint8_t facing;
 
 protected:
     // Se ejecuta cuando el jugador interactúa con las manos vacías
@@ -18,7 +19,7 @@ protected:
 
 public:
     // El cofre se inicializa siempre con 30 casilleros.
-    ChestEntity(uint16_t x, uint16_t y, ItemID drop_id, uint16_t model_id);
+    ChestEntity(uint16_t x, uint16_t y, ItemID drop_id, uint16_t model_id, uint8_t facing = 0);
     ~ChestEntity() override = default;
 
     ChestEntity(const ChestEntity&) = delete;
@@ -33,6 +34,9 @@ public:
     const Inventory& get_inventory() const;
 
     bool is_empty() const;
+    Inventory* container_inventory() override;
+    const Inventory* container_inventory() const override;
+    uint8_t furniture_facing() const override;
 };
 
 #endif // CHEST_ENTITY_H

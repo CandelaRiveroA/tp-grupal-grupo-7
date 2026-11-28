@@ -685,7 +685,7 @@ void PlaySession::tick(int iteration) {
         }
         if (worldMap_.isOpen()) {
             if (worldMapPainter_.hitsSwitchArrow(sdlContext_.width(), sdlContext_.height(),
-                                                 worldMap_.activeExterior(), click.x, click.y)) {
+                                                 click.x, click.y)) {
                 worldMap_.switchExterior();
             }
             continue;
@@ -852,8 +852,7 @@ void PlaySession::tick(int iteration) {
                                                        world::CursorKind::Normal;
     } else if (worldMap_.isOpen()) {
         cursorKind = worldMapPainter_.hitsSwitchArrow(sdlContext_.width(), sdlContext_.height(),
-                                                     worldMap_.activeExterior(), mousePoint.x,
-                                                     mousePoint.y)
+                                                     mousePoint.x, mousePoint.y)
                 ? world::CursorKind::Interactive
                 : world::CursorKind::Normal;
     } else if (popupState_.modal()) {

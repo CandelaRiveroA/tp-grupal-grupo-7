@@ -78,6 +78,7 @@ public:
 			      int lastRow);
 
 	const PlayerAppearancePainter& appearancePainter() const;
+	SheetCache& sheetCache();
 
 private:
 	void drawResource(const game::ViewResource& resource,

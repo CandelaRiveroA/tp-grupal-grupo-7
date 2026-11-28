@@ -2,6 +2,7 @@
 
 #include <SDL2pp/SDL2pp.hh>
 
+#include <optional>
 #include <string>
 
 #include "sdl/context/SdlConstants.h"
@@ -29,6 +30,7 @@ public:
 			      const SDL2pp::Color& color);
 
 	SDL2pp::Texture createTexture(const std::string& path);
+	std::optional<SDL2pp::Texture> tryLoadTexture(const std::string& path);
 
 	// Igual, pero desde una superficie ya renderizada (p. ej. texto):
 	// la convierte en textura sin dibujarla todavía.

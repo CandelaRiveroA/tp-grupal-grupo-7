@@ -297,4 +297,6 @@ const PlayerAppearancePainter& Renderer::appearancePainter() const {
 	return entityRenderer_.appearancePainter();
 }
 
+SheetCache& Renderer::sheetCache() { return sheetCache_; }
+
 }  // namespace sdl

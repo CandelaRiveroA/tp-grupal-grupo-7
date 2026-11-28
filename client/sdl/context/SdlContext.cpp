@@ -2,6 +2,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <exception>
+
 #include "core/WindowConfig.h"
 #include "sdl/context/SdlConstants.h"
 
@@ -66,6 +68,18 @@ int SdlContext::height() const { return window_.GetSize().y; }
 
 SDL2pp::Texture SdlContext::createTexture(const std::string& path) {
 	return SDL2pp::Texture(renderer_, path);
+}
+
+std::optional<SDL2pp::Texture> SdlContext::tryLoadTexture(
+	const std::string& path) {
+	if (path.empty()) {
+		return std::nullopt;
+	}
+	try {
+		return createTexture(path);
+	} catch (const std::exception&) {
+		return std::nullopt;
+	}
 }
 
 SDL2pp::Texture SdlContext::createTexture(SDL2pp::Surface& surface) {

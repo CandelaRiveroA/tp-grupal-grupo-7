@@ -5,10 +5,10 @@
 
 AnimalCatalog::AnimalCatalog():
         entries{
-                {ItemID::COW, {"vacas", "cow", 5, 80, [](uint16_t x, uint16_t y) {
+                {ItemID::COW, {"vacas", "cow", 5, 80, 40, [](uint16_t x, uint16_t y) {
                                    return std::make_unique<Cow>(x, y);
                                }}},
-                {ItemID::CHICKEN, {"gallinas", "chicken", 10, 20, [](uint16_t x, uint16_t y) {
+                {ItemID::CHICKEN, {"gallinas", "chicken", 10, 20, 10, [](uint16_t x, uint16_t y) {
                                        return std::make_unique<Chicken>(x, y);
                                    }}},
         } {}

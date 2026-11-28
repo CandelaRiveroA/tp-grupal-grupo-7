@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -14,6 +15,8 @@
 #include "common/common_protocol_receiver.h"
 #include "common/common_protocol_sender.h"
 #include "game/NetworkGameClient.h"
+#include "game/CarrySelection.h"
+#include "protocol/mock_socket.h"
 
 namespace {
 
@@ -23,9 +26,11 @@ private:
     std::string port_;
     std::thread worker_;
     std::atomic<bool> matched_{false};
+    std::atomic<bool> afterMatched_{false};
 
 public:
-    BroadcastPeer(std::vector<uint8_t> outgoing, std::vector<uint8_t> expected = {}) {
+    BroadcastPeer(std::vector<uint8_t> outgoing, std::vector<uint8_t> expected = {},
+                  std::vector<uint8_t> expectedAfter = {}) {
         listener_ = ::socket(AF_INET, SOCK_STREAM, 0);
         sockaddr_in address{};
         address.sin_family = AF_INET;
@@ -40,7 +45,7 @@ public:
         }
         port_ = std::to_string(ntohs(address.sin_port));
         worker_ = std::thread([this, outgoing = std::move(outgoing),
-                               expected = std::move(expected)]() {
+                               expected = std::move(expected), expectedAfter = std::move(expectedAfter)]() {
             const int peer = ::accept(listener_, nullptr, nullptr);
             if (peer < 0) return;
             const timeval timeout{5, 0};
@@ -58,6 +63,14 @@ public:
                 for (uint8_t byte: outgoing) {
                     if (::send(peer, &byte, 1, MSG_NOSIGNAL) != 1) break;
                 }
+                for (uint8_t expectedByte: expectedAfter) {
+                    uint8_t byte = 0;
+                    if (::recv(peer, &byte, 1, MSG_WAITALL) != 1 || byte != expectedByte) {
+                        matched = false;
+                        break;
+                    }
+                }
+                afterMatched_ = matched;
                 char ignored;
                 while (::recv(peer, &ignored, 1, 0) > 0) {}
             }
@@ -73,6 +86,7 @@ public:
 
     const char* port() const { return port_.c_str(); }
     bool matched() const { return matched_; }
+    bool afterMatched() const { return afterMatched_; }
 };
 
 class BroadcastPackets {
@@ -226,6 +240,74 @@ TEST(BroadcastNetworkTest, NombresPublicosYAvisoRealLleganALaVista) {
     client.update(1);
     EXPECT_TRUE(client.worldState().notices.empty());
     EXPECT_EQ(client.worldState().entities[1].displayName, "Miguel");
+}
+
+
+std::vector<uint8_t> containerSnapshotBytes() {
+    MockSocket buffer;
+    ProtocolSender sender(buffer);
+    sender.send_welcome(ServerWelcome{1, "ad"});
+    sender.send_server_message(ServerReset{});
+    sender.send_server_message(ServerMapChange{"farmhouse"});
+    sender.send_server_message(ServerStatus{1, 1, 1, Direction::DOWN, {}, 100, 100, 10000, 10000, 0});
+    sender.send_server_message(ServerFurniture{2, 1, "cofre", 2, false, true});
+    sender.send_server_message(ServerContainerState{true, 2, 1, {{0, 3, "milk", true}}});
+    sender.send_server_message(ServerInventorySlot{8, 1, "cofre", true, 1, 1});
+    sender.send_server_message(ServerWorldPlayers{{{1, "farmhouse", 1, 1, {}}, {2, "farm", 8, 9, {}}}});
+    sender.send_server_message(ServerSyncEnd{});
+    return buffer.sent_bytes();
+}
+
+TEST(BroadcastNetworkTest, ClienteDeRedLlenaElCofrePrivadoYElMapaGlobal) {
+    BroadcastPeer peer(containerSnapshotBytes());
+    const world::CharacterCatalog characters;
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "Ana");
+    client.update(0);
+    const auto& state = client.worldState();
+    ASSERT_TRUE(state.openContainer.has_value());
+    EXPECT_EQ(state.openContainer->column, 2);
+    ASSERT_EQ(state.containerSlots.size(), 1u);
+    EXPECT_EQ(state.containerSlots[0].contentId, "milk");
+    EXPECT_EQ(state.containerSlots[0].count, 3);
+    ASSERT_EQ(state.worldMapPlayers.size(), 2u);
+    EXPECT_TRUE(state.worldMapPlayers[0].isLocal);
+    EXPECT_FALSE(state.worldMapPlayers[1].isLocal);
+    EXPECT_EQ(state.worldMapPlayers[1].mapId, "farm");
+    ASSERT_EQ(state.placedFurniture.size(), 1u);
+    EXPECT_TRUE(state.placedFurniture[0].open);
+    EXPECT_EQ(state.placedFurniture[0].facing, world::FurnitureFacing::Back);
+    const world::ContentTraits traits;
+    game::CarrySelection carry(traits);
+    carry.observe(state, 8);
+    ASSERT_TRUE(carry.heldFootprint().has_value());
+    EXPECT_EQ(carry.heldFootprint()->columns, 1);
+    EXPECT_EQ(carry.held(), std::optional<std::string>{"cofre"});
+}
+
+TEST(BroadcastNetworkTest, IntencionesSDLSeEncolanComoMensajesDelProtocolo) {
+    const std::vector<uint8_t> expected{
+        10, 4, 1,                       // tacho
+        14, 0, 3, 0, 4, 8, 2,         // colocar cofre
+        15, 0, 2, 0, 1,               // recoger cofre
+        13, 0, 2, 0, 1, 1, 4, 1,     // depositar una unidad
+        11, 0, 2, 0, 1,               // abrir
+        12                            // cerrar
+    };
+    BroadcastPeer peer(containerSnapshotBytes(), {}, expected);
+    const world::CharacterCatalog characters;
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "Ana");
+    client.update(0);
+    client.requestDiscard({4, 1});
+    client.requestPlace({{3, 4}, 8, world::FurnitureFacing::Back});
+    client.requestGrab({"cofre", {2, 1}});
+    client.requestTransfer({"cofre@2,1", game::TransferDirection::ToContainer, 4, 1});
+    client.sendCommand(protocol::OpenContainerMessage{2, 1});
+    client.sendCommand(protocol::CloseContainerMessage{});
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!peer.afterMatched() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+    EXPECT_TRUE(peer.afterMatched());
 }
 
 }  // namespace

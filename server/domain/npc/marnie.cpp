@@ -15,8 +15,7 @@ Marnie::Marnie(uint16_t x, uint16_t y):
                 {AnimalPurchaseResult::BarnUnavailable, "No hay un establo disponible."},
         } {
     // Los animales se crean en el establo, no van al inventario.
-    const AnimalCatalog animals;
-    for (const auto& [id, offer]: animals.offers()) {
+    for (const auto& [id, offer]: animal_catalog.offers()) {
         sell_catalog[offer.command_name] = {id, offer.price, nullptr};
         buy_catalog[offer.command_name] = id;
     }
@@ -45,22 +44,29 @@ std::string Marnie::handle_buy(Player& p, const std::string& item_name, uint16_t
 
 std::string Marnie::handle_sell(Player& p, const std::string& item_name, uint16_t qty,
                                 World& w) {
-    const auto it = sell_catalog.find(item_name);
-    if (it == sell_catalog.end()) {
-        return "Marnie: Solo compro animales de granja.";
+    const auto wanted = buy_catalog.find(item_name);
+    if (wanted == buy_catalog.end()) {
+        return "Marnie: Solo compro vacas y gallinas.";
     }
-
-    // TODO (al crear Farm):
-    // if (!w.try_remove_animals(it->second.id, qty)) {
-    //     return "Marnie: No tenés " + std::to_string(qty) + " " + item_name + " en tu granja.";
-    // }
-
-    const uint16_t sell_price = static_cast<uint16_t>(it->second.price / 2);
-    uint16_t total_earned = static_cast<uint16_t>(sell_price * qty);
-    if (w.is_double_sell_active()) {
-        total_earned = static_cast<uint16_t>(total_earned * 2);
+    const AnimalOffer* offer = animal_catalog.find(wanted->second);
+    uint32_t total_earned = static_cast<uint32_t>(offer->sell_price) * qty;
+    if (w.is_double_sell_active()) total_earned *= 2;
+    if (total_earned > 65535u - p.get_gold()) {
+        return "Marnie: No podés recibir tanto oro. No se realizó la venta.";
     }
-    p.add_gold(total_earned);
-
+    if (!w.try_remove_animals(wanted->second, qty)) {
+        return "Marnie: No tenés " + std::to_string(qty) + " " + item_name + " en tu establo.";
+    }
+    p.add_gold(static_cast<uint16_t>(total_earned));
     return "Marnie: ¡Gracias! Te pagué " + std::to_string(total_earned) + "g.";
+}
+
+std::optional<uint16_t> Marnie::buy_price(ItemID item, uint8_t quality) const {
+    // Los animales y sus productos solo existen en calidad.base: publicar
+    // variantes superiores sería un precio que nadie podría cobrar.
+    if (quality != 1) return std::nullopt;
+    if (const AnimalOffer* offer = animal_catalog.find(item)) {
+        return offer->sell_price;
+    }
+    return std::nullopt;
 }

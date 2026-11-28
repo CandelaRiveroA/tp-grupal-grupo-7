@@ -23,7 +23,8 @@ void Chicken::update(World& w) {
 }
 
 void Chicken::produce(World& w) {
-    auto egg = std::make_unique<Product>(ItemID::EGG, 3, Quality::BASE);
+    auto egg = std::make_unique<Product>(ItemID::EGG, Product::base_price_for(ItemID::EGG),
+                                         Quality::BASE);
 
     // El huevo queda en la celda de la gallina, apilado con lo que ya haya.
     auto dropped_egg = std::make_unique<DroppedItem>(std::move(egg), this->get_x(), this->get_y());

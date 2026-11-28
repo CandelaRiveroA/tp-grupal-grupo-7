@@ -17,10 +17,11 @@ struct AnimalOffer {
     std::string kind;
     std::size_t limit;
     uint16_t price;
+    uint16_t sell_price;
     std::function<std::unique_ptr<Animal>(uint16_t, uint16_t)> create;
 };
 
-// Precios, topes y creación compartidos por compras y recompensas.
+// Precios, topes y creación compartidos por compras, ventas y recompensas.
 class AnimalCatalog {
 private:
     std::map<ItemID, AnimalOffer> entries;

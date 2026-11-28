@@ -5,6 +5,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "../entities/i_entity.h"
@@ -24,6 +25,7 @@ protected:
     std::string id;
     std::map<std::string, CatalogEntry> sell_catalog;
     std::map<std::string, ItemID> buy_catalog;
+    std::map<ItemID, uint16_t> buy_base_prices;
 
     virtual std::string handle_buy(Player& p, const std::string& item_name, uint16_t qty, World& w);
     virtual std::string handle_sell(Player& p, const std::string& item_name, uint16_t qty, World& w);
@@ -36,7 +38,8 @@ public:
          std::map<std::string, ItemID> buy_catalog);
     Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
          std::map<std::string, CatalogEntry> sell_catalog,
-         std::map<std::string, ItemID> buy_catalog);
+         std::map<std::string, ItemID> buy_catalog,
+         std::map<ItemID, uint16_t> buy_base_prices = {});
     ~Merchant() override = default;
 
     Merchant(const Merchant&) = delete;
@@ -54,6 +57,7 @@ public:
     const std::string& get_name() const;
     const std::map<std::string, CatalogEntry>& get_sell_catalog() const;
     const std::map<std::string, ItemID>& get_buy_catalog() const;
+    virtual std::optional<uint16_t> buy_price(ItemID item, uint8_t quality = 1) const;
 
     virtual void on_new_day() {}
 };

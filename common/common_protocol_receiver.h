@@ -9,6 +9,7 @@
 
 #include "common_command.h"
 #include "common_match_request.h"
+#include "common/model/draft/WorldSummary.h"
 #include "common_server_status.h"
 #include "common_socket_io.h"
 
@@ -26,6 +27,13 @@ private:
     std::string receive_string();
     // Inverso de ProtocolSender::send_appearance: mismo orden, 8 bytes.
     CharacterAppearance receive_appearance();
+    ServerInventorySlot receive_slot_payload();
+    protocol::ClientMessage receive_discard_message();
+    protocol::ClientMessage receive_open_container_message();
+    protocol::ClientMessage receive_close_container_message();
+    protocol::ClientMessage receive_container_transfer_message();
+    protocol::ClientMessage receive_place_furniture_message();
+    protocol::ClientMessage receive_grab_furniture_message();
     protocol::ClientMessage receive_move_message();
     protocol::ClientMessage receive_pick_message();
     protocol::ClientMessage receive_take_message();
@@ -38,6 +46,8 @@ private:
     ServerMessage receive_gift_accepted_message();
     ServerMessage receive_player_name_message();
     ServerMessage receive_inventory_full_message();
+    ServerMessage receive_world_players_message();
+    ServerMessage receive_container_state_message();
     ServerMessage receive_status_message();
     ServerMessage receive_leave_message();
     ServerMessage receive_resource_message();
@@ -81,7 +91,7 @@ public:
     ServerWelcome receive_welcome();
     MatchRequest receive_match_request();
     LobbyStatus receive_lobby_status();
-    std::vector<std::string> receive_world_list();
+    std::vector<WorldSummary> receive_world_list();
 };
 
 #endif

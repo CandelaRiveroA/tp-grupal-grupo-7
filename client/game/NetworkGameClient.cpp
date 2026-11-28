@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 
 #include "game/GameConstants.h"
+#include "game/FurnitureKey.h"
 #include "world/ConfigError.h"
 #include "world/ContentIds.h"
 #include "world/CreatureCatalog.h"
@@ -258,6 +259,23 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 }
 
 void NetworkGameClient::applyNow(const ServerMessage& message) {
+    if (const auto* players = std::get_if<ServerWorldPlayers>(&message)) {
+        view_.worldMapPlayers.clear();
+        for (const auto& p: players->players) {
+            view_.worldMapPlayers.push_back({p.player_id, p.map_id, p.x, p.y,
+                                             p.appearance, p.player_id == localPlayerId_});
+        }
+        return;
+    }
+    if (const auto* container = std::get_if<ServerContainerState>(&message)) {
+        view_.containerSlots.clear();
+        view_.openContainer = container->open ?
+                std::optional<world::GridCell>{{container->x, container->y}} : std::nullopt;
+        for (const auto& slot: container->inventory_slots) {
+            view_.containerSlots.push_back(inventorySlotFor(slot));
+        }
+        return;
+    }
     if (const auto* name = std::get_if<ServerPlayerName>(&message)) {
         names_[name->player_id] = name->characterName;
         return;
@@ -285,6 +303,9 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
+        view_.worldMapPlayers.clear();
+        view_.containerSlots.clear();
+        view_.openContainer.reset();
         animals_.clear();
         view_.npcPlacements.clear();
         // enemigos_ y projectiles_ NO se borran acá: cada uno guarda la
@@ -317,6 +338,9 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
             marketEntry.price = entry.has_price
                     ? std::optional<int>(entry.price)
                     : std::nullopt;
+            if (entry.quality != 0) {
+                marketEntry.quality = static_cast<world::CropQuality>(entry.quality - 1);
+            }
             marketOffer.entries.push_back(std::move(marketEntry));
         }
         view_.marketOffer = std::move(marketOffer);
@@ -492,7 +516,9 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
     }
     if (const auto* furniture = std::get_if<ServerFurniture>(&message)) {
         furniture_.push_back(
-                ViewFurniture{furniture->content_id, furniture->x, furniture->y});
+                ViewFurniture{furniture->content_id, furniture->x, furniture->y,
+                              {1, 1}, furniture->interactive,
+                              static_cast<world::FurnitureFacing>(furniture->facing), furniture->open});
         return;
     }
     if (const auto* dropped = std::get_if<ServerDropped>(&message)) {
@@ -505,7 +531,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
             inventory_.erase(slot->slot);
         } else {
             inventory_[slot->slot] =
-                    ViewInventorySlot{slot->slot, slot->content_id, slot->count, slot->tradable};
+                    inventorySlotFor(*slot);
         }
         return;
     }
@@ -698,6 +724,46 @@ const std::string& NetworkGameClient::initialMapId() const { return initialMapId
 
 bool NetworkGameClient::connected() const {
     return !clientSender_.failed() && !clientReceiver_.failed();
+}
+
+
+void NetworkGameClient::requestDiscard(const InventoryDiscard& discard) {
+    if (discard.slot < 0 || discard.slot > 255 || discard.amount <= 0 || discard.amount > 255) return;
+    commands_.push(protocol::DiscardMessage{static_cast<uint8_t>(discard.slot),
+                                            static_cast<uint8_t>(discard.amount)});
+}
+void NetworkGameClient::requestPlace(const FurniturePlacement& placement) {
+    if (placement.slot < 0 || placement.slot > 255 || placement.cell.column < 0 ||
+        placement.cell.column > 65535 || placement.cell.row < 0 || placement.cell.row > 65535) return;
+    commands_.push(protocol::PlaceFurnitureMessage{
+            static_cast<uint16_t>(placement.cell.column), static_cast<uint16_t>(placement.cell.row),
+            static_cast<uint8_t>(placement.slot), static_cast<uint8_t>(placement.facing)});
+}
+void NetworkGameClient::requestGrab(const FurnitureGrab& grab) {
+    if (grab.cell.column < 0 || grab.cell.column > 65535 || grab.cell.row < 0 || grab.cell.row > 65535) return;
+    commands_.push(protocol::GrabFurnitureMessage{static_cast<uint16_t>(grab.cell.column),
+                                                 static_cast<uint16_t>(grab.cell.row)});
+}
+void NetworkGameClient::requestTransfer(const ContainerTransfer& transfer) {
+    if (!view_.openContainer || transfer.slotIndex < 0 || transfer.slotIndex > 255 ||
+        transfer.amount <= 0 || transfer.amount > 255) return;
+    const auto cell = *view_.openContainer;
+    const std::string key = FurnitureKey().of(ViewFurniture{"cofre", cell.column, cell.row});
+    if (transfer.containerId != key) return;
+    commands_.push(protocol::ContainerTransferMessage{
+            static_cast<uint16_t>(cell.column), static_cast<uint16_t>(cell.row),
+            transfer.direction == TransferDirection::ToContainer ?
+                protocol::ContainerDirection::ToContainer : protocol::ContainerDirection::ToInventory,
+            static_cast<uint8_t>(transfer.slotIndex), static_cast<uint8_t>(transfer.amount)});
+}
+
+
+ViewInventorySlot NetworkGameClient::inventorySlotFor(const ServerInventorySlot& slot) const {
+    ViewInventorySlot view{slot.slot, slot.content_id, slot.count, slot.tradable};
+    if (slot.footprint_columns > 0 && slot.footprint_rows > 0) {
+        view.footprint = world::GridSpan{slot.footprint_columns, slot.footprint_rows};
+    }
+    return view;
 }
 
 }  // namespace game

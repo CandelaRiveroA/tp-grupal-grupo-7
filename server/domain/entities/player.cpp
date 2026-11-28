@@ -33,7 +33,7 @@ Player::Player(uint8_t id, uint16_t x, uint16_t y, SceneId initial_scene,
     this->backpack.add_item(std::make_unique<Tool>(ItemID::SHOVEL));
     this->backpack.add_item(std::make_unique<Tool>(ItemID::WATERING_CAN));
     this->backpack.add_item(std::make_unique<Tool>(ItemID::SWORD));
-        // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
+    // shortcut: una semilla de cada cultivo fija para probar el ciclo; subir = que
     // se compren o se cosechen semillas (hoy no hay tienda).
     this->backpack.add_item(std::make_unique<Product>(ItemID::STRAWBERRY_SEED, 20, Quality::BASE));
     this->backpack.add_item(std::make_unique<Product>(ItemID::ONION_SEED, 20, Quality::BASE));
@@ -56,6 +56,8 @@ void Player::set_home(SceneId scene, uint16_t x, uint16_t y) {
 Direction Player::get_facing() const { return this->facing; }
 
 const CharacterAppearance& Player::get_appearance() const { return this->appearance; }
+
+Inventory& Player::get_inventory() { return backpack; }
 
 const Inventory& Player::get_inventory() const { return this->backpack; }
 

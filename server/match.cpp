@@ -334,6 +334,7 @@ void Match::handle(const PlayerLeft& left) {
     sync_day();
     push_sleep_state();
     broadcast(ServerLeave{left.player_id});
+    sync_all();
     leaving->close();
 }
 
@@ -347,6 +348,7 @@ void Match::closeOutputs() {
 }
 
 void Match::sync_all() {
+    world.validate_containers();
     for (const auto& [id, statuses]: outputs) {
         for (const ServerMessage& message: views.sync(world, id)) {
             try {
@@ -356,6 +358,14 @@ void Match::sync_all() {
             }
         }
     }
+    // El mapa global es el mismo para todos: se arma una vez y se broadcast a
+    // todos. Va despues del SyncEnd de cada vista, que borra y rellena el mapa.
+    ServerWorldPlayers players;
+    for (const uint8_t id: world.get_player_ids()) {
+        const Player& p = world.get_player(id);
+        players.players.push_back({id, p.get_scene(), p.get_x(), p.get_y(), p.get_appearance()});
+    }
+    broadcast(players);
 }
 
 void Match::broadcast(const ServerMessage& message) {

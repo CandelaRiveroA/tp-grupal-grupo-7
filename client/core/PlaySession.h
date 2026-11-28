@@ -182,6 +182,7 @@ private:
     void drawContainerPopup(const game::LocalWorldView& view, int iteration);
 
     void observeContainer(const game::LocalWorldView& view, int iteration);
+    void syncContainers(const game::LocalWorldView& view, int iteration);
 
     // Caja del panel del contenedor abierto (centrada, con su grilla):
     // donde se dibuja y donde se toca su botón de cerrar.

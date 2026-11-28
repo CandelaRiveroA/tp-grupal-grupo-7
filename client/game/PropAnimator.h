@@ -28,6 +28,9 @@ public:
 
 	// Olvida el estado del objeto: vuelve a dibujarse cerrado, sin animar.
 	void reset(const std::string& id);
+    void clear();
+    std::optional<PropMotion> setOpen(const std::string& id, bool open,
+                                      int frameCount, int frameTicks, int iteration);
 
 	// ¿El objeto terminó de abrirse? Falso mientras anima (abriendo o
 	// cerrando) y sin estado.

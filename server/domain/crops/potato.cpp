@@ -5,7 +5,7 @@
 #include <memory>
 
 Potato::Potato(uint16_t x, uint16_t y) 
-    : Crop(x, y, 3, 2, ItemID::POTATO, 18) {} // 3 días, 2 riegos, 18 oro[cite: 1]
+    : Crop(x, y, 3, 2, ItemID::POTATO, Product::base_price_for(ItemID::POTATO)) {} // 3 días, 2 riegos
 
 void Potato::harvest(Player& p, World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);

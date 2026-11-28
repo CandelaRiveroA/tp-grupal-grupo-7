@@ -39,7 +39,7 @@ void ClientHandler::serve() {
     try {
         const MatchRequest request = protocol_receiver.receive_match_request();
         if (request.type == MatchRequestType::ListWorlds) {
-            protocol_sender.send_world_list(matches.validWorldNames());
+            protocol_sender.send_world_list(matches.validWorldSummaries());
             return;
         }
         codeMatch = request.codeMatch;

@@ -162,7 +162,7 @@ Centro comunitario: aquí se juntan los vecinos del pueblo.
 # son datos.
 [[npcs]]
 id   = "cofre"
-room = "carpentry"
+room = "container"
 
   # Al abrirse muestra una grilla de slots (la figura del inventario).
   [npcs.container]

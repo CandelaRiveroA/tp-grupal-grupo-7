@@ -195,6 +195,7 @@ void PlaySession::tick(int iteration) {
     enterSelection_.observeFurniture(scoped, furnitureGeometry_, scene().cellPixelSize);
     game::LocalWorldView presentation = presentationView(scoped);
     motion_.observe(presentation, iteration);
+    syncContainers(scoped, iteration);
     renderer_.setNpcFrames(props_.frames(iteration));
     updateCamera(presentation, motion_, iteration);
     // El reloj del server decide la etapa del día y lo que muestra el HUD.
@@ -808,11 +809,13 @@ void PlaySession::tick(int iteration) {
             }
             if (!npc->hasPopup()) {
                 // Objeto animado (cofre): el click lo abre o lo cierra.
-                const bool started = toggleProp(npc->id, *npc, iteration);
-                if (started && npc->isContainer()) {
-                    openContainer_ = npc;
-                    containerKey_ = npc->id;
-                    containerSession_.open(npc->id);
+                if (npc->isContainer()) {
+                    const auto cell = npc->cellIn(npcCells);
+                    gameClient_.sendCommand(protocol::OpenContainerMessage{
+                            static_cast<uint16_t>(cell.column),
+                            static_cast<uint16_t>(cell.row + npc->body.span.rows - 1)});
+                } else {
+                    toggleProp(npc->id, *npc, iteration);
                 }
                 continue;
             }
@@ -1032,6 +1035,7 @@ void PlaySession::changeScene(const std::string& room) {
     const world::SceneDescription& current = sceneSwitcher_.scene();
     npcPopup_ = nullptr;
     dropContainer();
+    props_.clear();
     lastNpcId_.clear();
     marketPopup_.close();
     renderer_.prepareScene(current);
@@ -1187,6 +1191,32 @@ void PlaySession::drawContainerPopup(const game::LocalWorldView& view, const int
     closeButtonPainter_.draw(npcCatalog_.closeButton(), panel);
 }
 
+void PlaySession::syncContainers(const game::LocalWorldView& view, const int iteration) {
+    // Estado público: todos animan el mismo cofre. Estado privado: solo el
+    // propietario de la sesión recibe el contenido y abre el popup.
+    for (const auto& piece: view.placedFurniture) {
+        const world::NpcDef* def = npcCatalog_.find(piece.contentId);
+        if (def == nullptr || !def->isContainer()) continue;
+        const auto motion = props_.setOpen(game::FurnitureKey().of(piece), piece.open,
+                static_cast<int>(def->body.frames.size()), def->body.frameTicks, iteration);
+        if (motion) audio_.play(propSounds_.at(*motion));
+    }
+    if (!view.openContainer || (!view.mapId.empty() && view.mapId != sceneSwitcher_.id())) {
+        openContainer_ = nullptr;
+        containerSession_.close();
+        return;
+    }
+    const auto cell = *view.openContainer;
+    const game::ViewFurniture piece{"cofre", cell.column, cell.row};
+    const std::string key = game::FurnitureKey().of(piece);
+    if (openContainer_ != nullptr && containerKey_ == key) return;
+    const world::NpcDef* def = npcCatalog_.find("cofre");
+    if (def == nullptr || !def->isContainer()) return;
+    openContainer_ = def;
+    containerKey_ = key;
+    containerSession_.open(key);
+}
+
 void PlaySession::observeContainer(const game::LocalWorldView& view, const int iteration) {
     if (openContainer_ == nullptr || !props_.isOpen(containerKey_, iteration)) {
         return;
@@ -1238,17 +1268,11 @@ void PlaySession::handleContainerClick(const world::PixelPoint& point,
 }
 
 bool PlaySession::openFurnitureContainer(const game::ViewFurniture& furniture,
-                                         const int iteration) {
+                                         const int /*iteration*/) {
     const world::NpcDef* def = npcCatalog_.find(furniture.contentId);
-    if (def == nullptr || !def->isContainer() || !furniture.interactive) {
-        return false;
-    }
-    const std::string key = game::FurnitureKey().of(furniture);
-    if (toggleProp(key, *def, iteration)) {
-        openContainer_ = def;
-        containerKey_ = key;
-        containerSession_.open(def->id);
-    }
+    if (def == nullptr || !def->isContainer() || !furniture.interactive) return false;
+    gameClient_.sendCommand(protocol::OpenContainerMessage{
+            static_cast<uint16_t>(furniture.cellX), static_cast<uint16_t>(furniture.cellY)});
     return true;
 }
 
@@ -1267,9 +1291,8 @@ bool PlaySession::closeContainer(const int iteration) {
     if (openContainer_ == nullptr || !props_.isOpen(containerKey_, iteration)) {
         return false;
     }
-    toggleProp(containerKey_, *openContainer_, iteration);
-    openContainer_ = nullptr;
-    containerSession_.close();
+    gameClient_.sendCommand(protocol::CloseContainerMessage{});
+    // El cierre visual espera la confirmación de la fuente, igual que la apertura.
     return true;
 }
 
@@ -1277,6 +1300,7 @@ void PlaySession::dropContainer() {
     if (openContainer_ == nullptr) {
         return;
     }
+    gameClient_.sendCommand(protocol::CloseContainerMessage{});
     props_.reset(containerKey_);
     openContainer_ = nullptr;
     containerSession_.close();

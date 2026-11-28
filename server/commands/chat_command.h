@@ -11,6 +11,7 @@
 #include "common/common_command.h"
 #include "domain/map/world.h"
 #include "commands/cmd/player_commands.h"
+#include "commands/cmd/item_commands.h"
 #include "commands/cmd/community_commands.h"
 #include "commands/cmd/merchant_commands.h"
 
@@ -37,6 +38,7 @@ private:
                                               const std::vector<std::string>&)>;
     std::map<std::string, Handler> handlers_;
     commands::PlayerCommands player_commands_;
+    commands::ItemCommands item_commands_;
     commands::CommunityCommands community_commands_;
     commands::MerchantCommands merchant_commands_;
     std::vector<ChatReply> route_slash(const std::string& text, uint8_t sender,

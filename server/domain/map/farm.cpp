@@ -77,3 +77,10 @@ void Farm::on_new_day(World& world) {
         }
     }
 }
+
+std::size_t Farm::mature_crops() {
+    for (Crop* crop: crops) {
+        crop->mature();
+    }
+    return crops.size();
+}

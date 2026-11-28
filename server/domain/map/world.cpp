@@ -804,6 +804,7 @@ bool World::damage_players_at(SceneId scene_id, uint16_t x, uint16_t y, uint8_t 
 
 bool World::damage_player(uint8_t player_id, uint8_t damage) {
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return false;
     const uint16_t hp_before = player.get_health();
     this->skull_survived_without_damage = false;
     const bool killed = player.take_damage(damage);
@@ -821,16 +822,18 @@ bool World::damage_player(uint8_t player_id, uint8_t damage) {
 }
 
 void World::kill_player(uint8_t player_id) {
-    close_container(player_id);
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return;
+    close_container(player_id);
     player.set_health(0);
     player.setDiedInCombat(true);
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
 }
 
 void World::faint_player(uint8_t player_id) {
-    close_container(player_id);
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return;
+    close_container(player_id);
     player.setFaintedByEnergy(true);
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
 }
@@ -1586,4 +1589,22 @@ void World::grab_chest(uint8_t player_id, uint16_t x, uint16_t y) {
 
 bool World::try_remove_animals(ItemID type, uint16_t quantity) {
     return barn != nullptr && barn->try_remove_animals(type, quantity);
+}
+
+std::size_t World::care_animals() {
+    if (!this->barn) return 0;
+    const SceneId previous = this->active_scene;
+    this->active_scene = this->barn_scene_id_;
+    try {
+        const std::size_t count = this->barn->prepare_production(*this);
+        this->active_scene = previous;
+        return count;
+    } catch (...) {
+        this->active_scene = previous;
+        throw;
+    }
+}
+
+std::size_t World::care_crops() {
+    return this->farm ? this->farm->mature_crops() : 0;
 }

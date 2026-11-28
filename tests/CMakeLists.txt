@@ -3,6 +3,8 @@ target_sources(taller_tests
     # .cpp files
     character_layers.cpp
     community_protocol_test.cpp
+    give_invincibility_cheats_test.cpp
+    care_cheats_test.cpp
     chat_test.cpp
     index_cycle.cpp
     invite_code_format.cpp
@@ -41,6 +43,7 @@ target_sources(taller_tests
     ../server/commands/take_command.cpp
     ../server/commands/sleep_command.cpp
     ../server/commands/chat_command.cpp
+    ../server/commands/cmd/item_commands.cpp
     ../server/commands/cmd/player_commands.cpp
     ../server/commands/cmd/community_commands.cpp
     ../server/commands/cmd/merchant_commands.cpp

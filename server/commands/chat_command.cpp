@@ -17,6 +17,32 @@ void apply(World& /*world*/, uint8_t /*player_id*/, const protocol::ChatMessage&
 }  // namespace commands
 
 ChatRouter::ChatRouter() {
+    handlers_["/dar"] = [this](World& world, uint8_t sender, const std::vector<std::string>& args) {
+        return item_commands_.dar(world, sender, args);
+    };
+    handlers_["/dar_info"] = [this](World& world, uint8_t sender, const std::vector<std::string>& args) {
+        return item_commands_.dar_info(world, sender, args);
+    };
+    handlers_["/invencibilidad"] = [this](World& world, uint8_t sender, const std::vector<std::string>& args) {
+        return player_commands_.invencibilidad(world, sender, args);
+    };
+    handlers_["/info"] = [this](World&, uint8_t, const std::vector<std::string>& args) {
+        if (!args.empty()) return std::string("uso: /info");
+        std::string response = "Comandos disponibles: ";
+        for (const auto& entry: handlers_) {
+            if (response.back() != ' ') response += ", ";
+            response += entry.first;
+        }
+        return response;
+    };
+    handlers_["/cuidar_animales"] = [this](World& world, uint8_t sender,
+                                          const std::vector<std::string>& args) {
+        return player_commands_.cuidar_animales(world, sender, args);
+    };
+    handlers_["/cuidar_cultivos"] = [this](World& world, uint8_t sender,
+                                          const std::vector<std::string>& args) {
+        return player_commands_.cuidar_cultivos(world, sender, args);
+    };
     handlers_["/vida"] = [this](World& world, uint8_t sender,
                                 const std::vector<std::string>& args) {
         return player_commands_.vida(world, sender, args);

@@ -185,6 +185,8 @@ public:
 
     // --- Animales (delegados al establo) ---
     void add_animal(std::unique_ptr<Animal> animal);
+    std::size_t care_animals();
+    std::size_t care_crops();
     void tick_animals();
     AnimalPurchaseResult buy_animals(Player& player, ItemID type, uint16_t quantity,
                                      uint16_t cost);

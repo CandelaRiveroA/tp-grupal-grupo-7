@@ -28,6 +28,7 @@ public:
     bool try_plant_seed(Player& player, uint16_t tx, uint16_t ty) override;
 
     // --- Fin / inicio de día ---
+    std::size_t mature_crops();
     void on_new_day(World& world) override;
 };
 

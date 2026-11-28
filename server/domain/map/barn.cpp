@@ -144,3 +144,10 @@ bool Barn::try_remove_animals(ItemID type, uint16_t quantity) {
     }
     return true;
 }
+
+std::size_t Barn::prepare_production(World& world) {
+    for (Animal* animal: animals) {
+        animal->produce(world);
+    }
+    return animals.size();
+}

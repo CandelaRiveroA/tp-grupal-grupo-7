@@ -14,6 +14,11 @@ private:
     bool parse_int(const std::string& text, int& value) const;
 
 public:
+    std::string invencibilidad(World& world, uint8_t sender, const std::vector<std::string>& args);
+    std::string cuidar_animales(World& world, uint8_t sender,
+                                const std::vector<std::string>& args);
+    std::string cuidar_cultivos(World& world, uint8_t sender,
+                                const std::vector<std::string>& args);
     std::string vida(World& world, uint8_t sender,
                      const std::vector<std::string>& args);
     std::string energia(World& world, uint8_t sender,

@@ -34,6 +34,7 @@ private:
     // Vida: hp actual y max_hp tope (kMaxHealth). No hay otro campo de vida.
     uint16_t hp;
     uint16_t max_hp;
+    bool invincible = false;
     bool walking;
     bool died_in_combat;
     bool fainted_by_timeout;
@@ -62,6 +63,8 @@ public:
     const CharacterAppearance& get_appearance() const;
     Inventory& get_inventory();
     const Inventory& get_inventory() const;
+    bool is_invincible() const;
+    void set_invincible(bool active);
     uint16_t get_health() const;
     uint16_t get_max_health() const;
     void set_health(uint16_t hp);

@@ -37,6 +37,7 @@ public:
             Player& player, ItemID type, uint16_t quantity, uint16_t cost,
             const std::vector<std::pair<uint16_t, uint16_t>>& occupied);
     bool try_remove_animals(ItemID type, uint16_t quantity);
+    std::size_t prepare_production(World& world);
     void tick_animals(World& world);
     bool try_hand_action_animals(Player& player, World& world);
     void on_new_day(World& world) override;

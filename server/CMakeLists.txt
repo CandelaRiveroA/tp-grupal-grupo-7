@@ -15,6 +15,7 @@ target_sources(taller_server
     commands/take_command.cpp
     commands/sleep_command.cpp
     commands/chat_command.cpp
+    commands/cmd/item_commands.cpp
     commands/cmd/player_commands.cpp
     commands/cmd/community_commands.cpp
     commands/cmd/merchant_commands.cpp

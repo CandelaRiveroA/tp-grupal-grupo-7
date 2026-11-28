@@ -12,6 +12,7 @@
 
 // Vocabulario compartido con el cliente (inventory.toml y resources.toml).
 std::string content_id_for(ItemID id);
+std::string content_id_for(const Item& item);
 
 // Traduce el estado del mundo a mensajes para un cliente. sync() no guarda
 // memoria entre llamadas: cada lote arranca con un ServerReset y describe el

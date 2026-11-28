@@ -28,6 +28,8 @@ private:
     // Inverso de ProtocolSender::send_appearance: mismo orden, 8 bytes.
     CharacterAppearance receive_appearance();
     ServerInventorySlot receive_slot_payload();
+    protocol::ClientMessage receive_donate_community_message();
+    ServerMessage receive_community_progress_message();
     protocol::ClientMessage receive_discard_message();
     protocol::ClientMessage receive_open_container_message();
     protocol::ClientMessage receive_close_container_message();

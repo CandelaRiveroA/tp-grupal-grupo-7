@@ -1,11 +1,11 @@
 #include "barn.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <utility>
 
 #include "../animals/animal.h"
 #include "../entities/player.h"
+#include "world_model/Geometry.h"
 
 Barn::Barn(uint16_t width, uint16_t height): Scene(width, height) {}
 
@@ -111,9 +111,9 @@ void Barn::tick_animals(World& world) {
 
 bool Barn::try_hand_action_animals(Player& player, World& world) {
     for (Animal* animal: animals) {
-        const int dx = static_cast<int>(animal->get_x()) - static_cast<int>(player.get_x());
-        const int dy = static_cast<int>(animal->get_y()) - static_cast<int>(player.get_y());
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1 && animal->try_hand_action(player, world)) {
+        if (worldmodel::withinInteractionRange({player.get_x(), player.get_y()}, 1, 1,
+                                               {animal->get_x(), animal->get_y()}, 1) &&
+            animal->try_hand_action(player, world)) {
             return true;
         }
     }
@@ -143,4 +143,11 @@ bool Barn::try_remove_animals(ItemID type, uint16_t quantity) {
         }
     }
     return true;
+}
+
+std::size_t Barn::prepare_production(World& world) {
+    for (Animal* animal: animals) {
+        animal->produce(world);
+    }
+    return animals.size();
 }

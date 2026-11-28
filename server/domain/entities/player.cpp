@@ -62,12 +62,19 @@ Inventory& Player::get_inventory() { return backpack; }
 const Inventory& Player::get_inventory() const { return this->backpack; }
 
 uint16_t Player::get_health() const { return this->hp; }
-void Player::set_health(uint16_t hp) { this->hp = hp; }
+void Player::set_health(uint16_t hp) {
+    if (!this->invincible || hp >= this->hp) this->hp = hp;
+}
+
+bool Player::is_invincible() const { return this->invincible; }
+void Player::set_invincible(bool active) { this->invincible = active; }
 uint16_t Player::get_gold() const { return this->gold; }
 void Player::set_gold(uint16_t g) { this->gold = g; }
 uint16_t Player::get_max_health() const { return this->max_hp; }
 uint16_t Player::get_energy() const { return this->energy; }
-void Player::set_energy(uint16_t e) { this->energy = e; }
+void Player::set_energy(uint16_t e) {
+    if (!this->invincible || e >= this->energy) this->energy = e;
+}
 uint16_t Player::get_max_energy() const { return this->max_energy; }
 void Player::set_max_health(uint16_t value) { this->max_hp = value; }
 void Player::set_max_energy(uint16_t value) { this->max_energy = value; }
@@ -110,6 +117,7 @@ uint8_t Player::get_sword_damage() const {
 }
 
 bool Player::take_damage(uint8_t incoming) {
+    if (this->invincible) return false;
     // shortcut: llegar a 0 vida no tiene consecuencia todavía (el jugador
     // sigue jugando); la muerte y el respawn quedan para cuando exista ese
     // sistema.
@@ -201,6 +209,7 @@ bool Player::can_extract_items_with_min_quality(
 }
 
 void Player::consume_energy(uint16_t amount) {
+    if (this->invincible) return;
     if (this->energy >= amount) {
         this->energy -= amount;
     } else {

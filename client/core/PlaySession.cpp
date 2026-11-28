@@ -1459,7 +1459,14 @@ void PlaySession::nextCommunityPage() {
     communityPopup_.nextPage(communityCatalog_.sets().size());
 }
 
-void PlaySession::donateToCommunity() { gameClient_.donateToCommunityCenter(); }
+void PlaySession::donateToCommunity() {
+    const auto& sets = communityCatalog_.sets();
+    if (sets.empty()) return;
+    const auto& active = sets[communityPopup_.pageIndex(sets.size())];
+    if (active.donatable) {
+        gameClient_.donateToCommunityCenter(static_cast<uint8_t>(active.id));
+    }
+}
 
 void PlaySession::drawMarketCatalog() {
     if (!marketPopup_.isOpen()) {
@@ -1577,6 +1584,15 @@ bool PlaySession::isGiftTarget(const game::PickTarget& target,
         return false;
     }
     if (view.entities[target.index].kind != world::CreatureKind::Player) {
+        return false;
+    }
+    // El regalo es cuerpo a cuerpo: el mismo anillo que usa el servidor
+    // para armar el pedido. Sin esto el click lejano abre el popup y el
+    // emisor se queda esperando una respuesta que nunca llega.
+    const game::ViewEntity& local = view.entities[game::kLocalPlayerIndex];
+    const game::ViewEntity& other = view.entities[target.index];
+    if (!game::AreaProximity(game::kInteractRing).around(
+            {local.cellX, local.cellY}, {1, 1}, other.cellX, other.cellY)) {
         return false;
     }
     // Solo se ofrece con algo transferible en el casillero activo: lo dice

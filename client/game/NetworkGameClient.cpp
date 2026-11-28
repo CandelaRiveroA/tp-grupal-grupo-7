@@ -312,6 +312,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
+        view_.communitySets.clear();
         view_.worldMapPlayers.clear();
         view_.containerSlots.clear();
         view_.openContainer.reset();
@@ -321,6 +322,19 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         // ventana de animación del último golpe y vaciarla en cada lote
         // (cada 400 ms) la reiniciaría sin parar. Se podan en SyncEnd con
         // lo que el lote no volvió.
+        return;
+    }
+    if (const auto* progress = std::get_if<ServerCommunityProgress>(&message)) {
+        ViewCommunitySet set;
+        set.setId = progress->set_id;
+        set.completed = progress->completed;
+        for (const auto& goal: progress->goals) {
+            set.goals.push_back({goal.goal_id, goal.current, goal.total, goal.completed});
+        }
+        const auto existing = std::find_if(view_.communitySets.begin(), view_.communitySets.end(),
+                [&](const ViewCommunitySet& candidate) { return candidate.setId == set.setId; });
+        if (existing == view_.communitySets.end()) view_.communitySets.push_back(std::move(set));
+        else *existing = std::move(set);
         return;
     }
     if (const auto* gold = std::get_if<ServerGold>(&message)) {
@@ -735,6 +749,10 @@ bool NetworkGameClient::connected() const {
     return !clientSender_.failed() && !clientReceiver_.failed();
 }
 
+
+void NetworkGameClient::donateToCommunityCenter(uint8_t setId) {
+    commands_.push(protocol::DonateCommunityMessage{setId});
+}
 
 void NetworkGameClient::requestDiscard(const InventoryDiscard& discard) {
     if (discard.slot < 0 || discard.slot > 255 || discard.amount <= 0 || discard.amount > 255) return;

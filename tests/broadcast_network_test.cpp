@@ -310,4 +310,43 @@ TEST(BroadcastNetworkTest, IntencionesSDLSeEncolanComoMensajesDelProtocolo) {
     EXPECT_TRUE(peer.afterMatched());
 }
 
+TEST(BroadcastNetworkTest, CentroSincronizaProgresoYEnviaLaDonacionDelLote) {
+    MockSocket wire;
+    ProtocolSender sender(wire);
+    sender.send_welcome(ServerWelcome{1, "ad"});
+    sender.send_server_message(ServerReset{});
+    sender.send_server_message(ServerMapChange{"town"});
+    sender.send_server_message(ServerCommunityProgress{3, false,
+            {{"milk", 2, 5, false}, {"egg", 10, 10, true}}});
+    sender.send_server_message(ServerCommunityProgress{5, true, {{"money", 10000, 10000, true}}});
+    sender.send_server_message(ServerSyncEnd{});
+    sender.send_server_message(ServerWorldPlayers{{{1, "town", 11, 13, {}}}});
+    BroadcastPeer peer(wire.sent_bytes(), {}, {16, 3});
+    const world::CharacterCatalog characters;
+    game::NetworkGameClient client(Socket("127.0.0.1", peer.port()), 1, characters, "Ana");
+    client.update(0);
+    const auto& sets = client.worldState().communitySets;
+    ASSERT_EQ(sets.size(), 2u);
+    EXPECT_EQ(sets[0].setId, 3);
+    EXPECT_FALSE(sets[0].completed);
+    ASSERT_EQ(sets[0].goals.size(), 2u);
+    EXPECT_EQ(sets[0].goals[0].goalId, "milk");
+    EXPECT_EQ(sets[0].goals[0].current, 2);
+    EXPECT_EQ(sets[0].goals[0].total, 5);
+    EXPECT_TRUE(sets[0].goals[1].completed);
+    EXPECT_TRUE(sets[1].completed);
+    client.donateToCommunityCenter(3);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!peer.afterMatched() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+    EXPECT_TRUE(peer.afterMatched());
+    while (client.worldState().worldMapPlayers.empty() && std::chrono::steady_clock::now() < deadline) {
+        client.update(1);
+        std::this_thread::yield();
+    }
+    ASSERT_EQ(client.worldState().worldMapPlayers.size(), 1u);
+    EXPECT_EQ(client.worldState().communitySets.size(), 2u);
+}
+
 }  // namespace

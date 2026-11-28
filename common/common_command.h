@@ -24,7 +24,8 @@ enum class ClientMessageType : uint8_t {
     CloseContainer = 12,
     ContainerTransfer = 13,
     PlaceFurniture = 14,
-    GrabFurniture = 15
+    GrabFurniture = 15,
+    DonateCommunity = 16
 };
 
 // Move: camina en la dirección dada (y la fija como facing).
@@ -91,11 +92,14 @@ struct ContainerTransferMessage {
 struct PlaceFurnitureMessage { uint16_t x; uint16_t y; uint8_t slot; uint8_t facing; };
 struct GrabFurnitureMessage { uint16_t x; uint16_t y; };
 
+// Intención: el servidor elige y consume los objetos pendientes del lote.
+struct DonateCommunityMessage { uint8_t set_id; };
+
 using ClientMessage =
         std::variant<MoveMessage, PickMessage, TakeMessage, SleepMessage, WakeMessage, ChatMessage,
                      GiftResponseMessage, ToggleWalkingMessage, SelectSlotMessage,
                      DiscardMessage, OpenContainerMessage, CloseContainerMessage,
-                     ContainerTransferMessage, PlaceFurnitureMessage, GrabFurnitureMessage>;
+                     ContainerTransferMessage, PlaceFurnitureMessage, GrabFurnitureMessage, DonateCommunityMessage>;
 
 }  // namespace protocol
 

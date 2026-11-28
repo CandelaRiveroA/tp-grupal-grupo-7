@@ -11,6 +11,8 @@
 // alternativo a protocol::ClientMessage sin su overload, Match no compila.
 namespace commands {
 
+void apply(World& world, uint8_t player_id, const protocol::DonateCommunityMessage& message);
+
 void apply(World& world, uint8_t player_id, const protocol::DiscardMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::OpenContainerMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::CloseContainerMessage& message);

@@ -2,6 +2,10 @@
 
 namespace commands {
 
+void apply(World& world, uint8_t player_id, const protocol::DonateCommunityMessage& message) {
+    world.donate_to_community_center(player_id, static_cast<CommunitySet>(message.set_id));
+}
+
 void apply(World& world, uint8_t player_id, const protocol::SelectSlotMessage& message) {
     world.select_slot(player_id, message.slot);
 }

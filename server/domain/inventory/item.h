@@ -22,6 +22,7 @@ public:
     
     virtual bool is_stackable_with(const Item& other) const;
     virtual Quality get_quality() const;
+    virtual uint16_t get_model_id() const;
     virtual uint16_t get_final_price() const;
     virtual std::unique_ptr<Item> clone() const = 0;
 };

@@ -7,3 +7,7 @@ uint16_t DecorationItem::get_model_id() const { return this->model_id; }
 std::unique_ptr<Item> DecorationItem::clone() const {
     return std::make_unique<DecorationItem>(this->id, this->model_id);
 }
+
+bool DecorationItem::is_stackable_with(const Item& other) const {
+    return Item::is_stackable_with(other) && this->model_id == other.get_model_id();
+}

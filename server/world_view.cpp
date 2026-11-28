@@ -40,6 +40,13 @@ std::string content_id_for(ItemID id) {
     return it != content_ids.end() ? it->second : "";
 }
 
+std::string content_id_for(const Item& item) {
+    if (item.get_id() == ItemID::DECORATION) {
+        return "mesa_" + std::to_string(item.get_model_id());
+    }
+    return content_id_for(item.get_id());
+}
+
 static ResourceDamage damage_for(uint8_t hits_taken, uint8_t hits_to_destroy) {
     if (hits_taken == 0) {
         return ResourceDamage::Intact;
@@ -81,7 +88,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
         const Player& player = world.get_player(id);
         const Item* held = player.peek_equipped_item();
         out.push_back(ServerPlayerHeld{
-                id, held && held->can_be_traded() ? content_id_for(held->get_id()) : ""});
+                id, held && held->can_be_traded() ? content_id_for(*held) : ""});
         out.push_back(ServerStatus(id, player.get_x(), player.get_y(), player.get_facing(),
                                    player.get_appearance(),
                                    player.get_health(), player.get_max_health(),
@@ -171,6 +178,16 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
+    for (uint8_t id = 1; id <= 5; ++id) {
+        const auto set = static_cast<CommunitySet>(id);
+        const auto& center = world.get_community_center();
+        ServerCommunityProgress progress{id, center.is_set_completed(set), {}};
+        for (const auto& goal: center.goals_for(set)) {
+            const uint16_t current = progress.completed ? goal.total : goal.current;
+            progress.goals.push_back({goal.id, current, goal.total, current >= goal.total});
+        }
+        out.push_back(std::move(progress));
+    }
     out.push_back(ServerSyncEnd{});
     return out;
 }
@@ -181,7 +198,7 @@ ServerInventorySlot WorldView::inventory_slot(const Inventory& inventory, uint8_
     const uint8_t footprint = item->get_id() == ItemID::CHEST ? 1 : 0;
     // get_quality() es virtual: Product devuelve la calidad real;
     // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
-    return {slot, inventory.get_amount(slot), content_id_for(item->get_id()),
+    return {slot, inventory.get_amount(slot), content_id_for(*item),
             item->can_be_traded(), static_cast<uint8_t>(item->get_quality()),
             footprint, footprint};
 }

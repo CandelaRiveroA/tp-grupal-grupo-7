@@ -76,10 +76,7 @@ void Crop::update(World& /*w*/) {
     this->times_watered_today = 0;
 
     if (this->days_alive >= this->required_days_to_harvest) {
-        this->is_ready_to_harvest = true;
-        // La calidad se decide al llegar la cosecha (riego + suerte) y mientras
-        // espera se pudre (degrade_quality_over_time).
-        this->current_quality = this->calculate_quality();
+        this->mature();
     }
 }
 
@@ -106,4 +103,11 @@ void Crop::interact(Player& p, ToolType tool, World& w) {
     else if (tool == ToolType::HAND && this->is_ready_to_harvest) {
         this->harvest(p, w);
     }
+}
+
+void Crop::mature() {
+    if (this->is_ready_to_harvest) return;
+    this->days_alive = this->required_days_to_harvest;
+    this->is_ready_to_harvest = true;
+    this->current_quality = this->calculate_quality();
 }

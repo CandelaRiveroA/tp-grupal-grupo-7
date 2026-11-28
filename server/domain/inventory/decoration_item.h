@@ -21,7 +21,8 @@ public:
     DecorationItem(DecorationItem&&) = default;
     DecorationItem& operator=(DecorationItem&&) = default;
 
-    uint16_t get_model_id() const;
+    uint16_t get_model_id() const override;
+    bool is_stackable_with(const Item& other) const override;
     std::unique_ptr<Item> clone() const override;
 };
 

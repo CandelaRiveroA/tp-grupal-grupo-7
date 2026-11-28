@@ -44,6 +44,7 @@ public:
 
     bool is_walkable() const override;
     bool blocks_placement() const override;
+    void mature();
     void update(World& w) override; 
     void interact(Player& p, ToolType tool, World& w) override;
     // Un Take sobre un cultivo listo lo cosecha (ver World::take_item).

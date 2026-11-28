@@ -16,3 +16,5 @@ Quality Item::get_quality() const {
 }
 
 uint16_t Item::get_final_price() const { return 0; }
+
+uint16_t Item::get_model_id() const { return 0; }

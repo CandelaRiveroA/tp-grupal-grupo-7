@@ -17,17 +17,20 @@ std::optional<AnimalSnapshot> Cow::animal_snapshot() const {
     return AnimalSnapshot{get_id(), kind_name(), is_ready_to_milk, wander_dir};
 }
 
-void Cow::update(World& /*w*/) {
+void Cow::update(World& w) {
     // Se ejecuta con cada día del juego
     this->days_passed++;
     // TODO: Sacar numeros mágicos a constantes o configuraciones externas
     if (this->days_passed >= 2) {
         // La vaca da leche cada 2 días
-        this->is_ready_to_milk = true;
+        this->produce(w);
     }
 }
 
-void Cow::produce(World& /*w*/) {}
+void Cow::produce(World& /*w*/) {
+    this->days_passed = 2;
+    this->is_ready_to_milk = true;
+}
 
 void Cow::interact(Player& p, ToolType tool, World& w) {
     if (this->is_ready_to_milk && tool == ToolType::HAND) {

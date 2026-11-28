@@ -9,6 +9,7 @@
 ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
         socket(socket),
         handlers{
+                {protocol::ClientMessageType::DonateCommunity, &ProtocolReceiver::receive_donate_community_message},
                 {protocol::ClientMessageType::GrabFurniture, &ProtocolReceiver::receive_grab_furniture_message},
                 {protocol::ClientMessageType::PlaceFurniture, &ProtocolReceiver::receive_place_furniture_message},
                 {protocol::ClientMessageType::ContainerTransfer, &ProtocolReceiver::receive_container_transfer_message},
@@ -29,6 +30,7 @@ ProtocolReceiver::ProtocolReceiver(SocketIO& socket):
                  &ProtocolReceiver::receive_toggle_walking_message},
         },
         server_handlers{
+                {ServerMessageType::CommunityProgress, &ProtocolReceiver::receive_community_progress_message},
                 {ServerMessageType::ContainerState, &ProtocolReceiver::receive_container_state_message},
                 {ServerMessageType::WorldPlayers, &ProtocolReceiver::receive_world_players_message},
                 {ServerMessageType::PlayerName, &ProtocolReceiver::receive_player_name_message},
@@ -576,4 +578,24 @@ ServerMessage ProtocolReceiver::receive_container_state_message() {
         result.inventory_slots.push_back(receive_slot_payload());
     }
     return result;
+}
+
+protocol::ClientMessage ProtocolReceiver::receive_donate_community_message() {
+    return protocol::DonateCommunityMessage{receive_uint8()};
+}
+
+ServerMessage ProtocolReceiver::receive_community_progress_message() {
+    ServerCommunityProgress progress;
+    progress.set_id = receive_uint8();
+    progress.completed = receive_uint8() != 0;
+    const uint8_t count = receive_uint8();
+    for (uint8_t i = 0; i < count; ++i) {
+        ServerCommunityGoal goal;
+        goal.goal_id = receive_string();
+        goal.current = receive_uint16();
+        goal.total = receive_uint16();
+        goal.completed = receive_uint8() != 0;
+        progress.goals.push_back(std::move(goal));
+    }
+    return progress;
 }

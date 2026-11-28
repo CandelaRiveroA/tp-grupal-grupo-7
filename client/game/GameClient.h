@@ -28,8 +28,8 @@ public:
                              const std::string& /*text*/) {}
 
     // Punto de conexión para el botón "Donar" del Centro Comunitario:
-    // el cliente solo envía la intención global; el servidor valida y aplica.
-    virtual void donateToCommunityCenter() {}
+    // el cliente solo envía la intención del lote visible; el servidor valida y aplica.
+    virtual void donateToCommunityCenter(uint8_t /*setId*/) {}
 
     virtual void requestTransfer(const ContainerTransfer& /*transfer*/) {}
 

@@ -34,7 +34,7 @@ std::string PlayerCommands::vida(World& world, uint8_t sender,
         player.set_health(static_cast<uint16_t>(value));
         player.setDiedInCombat(false);
     }
-    return "vida: " + std::to_string(value);
+    return "vida: " + std::to_string(player.get_health());
 }
 
 std::string PlayerCommands::energia(World& world, uint8_t sender,
@@ -47,12 +47,12 @@ std::string PlayerCommands::energia(World& world, uint8_t sender,
     value = std::clamp(value, 0, max_percent);
     const uint16_t scaled = static_cast<uint16_t>(value * 100);
     player.set_energy(scaled);
-    if (scaled == 0) {
+    if (player.is_energy_depleted()) {
         world.faint_player(sender);
     } else {
         player.setFaintedByEnergy(false);
     }
-    return "energia: " + std::to_string(value);
+    return "energia: " + std::to_string(player.get_energy() / 100);
 }
 
 std::string PlayerCommands::oro(World& world, uint8_t sender,
@@ -132,6 +132,28 @@ std::string PlayerCommands::tp_info(World& world, uint8_t sender,
         out += (i == 0 ? " " : ", ") + ids[i];
     }
     return out;
+}
+
+std::string PlayerCommands::cuidar_animales(
+        World& world, uint8_t /*sender*/, const std::vector<std::string>& args) {
+    if (!args.empty()) return "uso: /cuidar_animales";
+    return "animales con produccion lista: " + std::to_string(world.care_animals());
+}
+
+std::string PlayerCommands::cuidar_cultivos(
+        World& world, uint8_t /*sender*/, const std::vector<std::string>& args) {
+    if (!args.empty()) return "uso: /cuidar_cultivos";
+    return "cultivos listos para cosechar: " + std::to_string(world.care_crops());
+}
+
+std::string PlayerCommands::invencibilidad(
+        World& world, uint8_t sender, const std::vector<std::string>& args) {
+    if (args.size() != 1 || (args[0] != "0" && args[0] != "1")) {
+        return "uso: /invencibilidad [1|0]";
+    }
+    const bool active = args[0] == "1";
+    world.get_player(sender).set_invincible(active);
+    return active ? "invencibilidad activada" : "invencibilidad desactivada";
 }
 
 }  // namespace commands

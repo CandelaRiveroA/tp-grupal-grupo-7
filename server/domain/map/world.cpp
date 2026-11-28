@@ -18,6 +18,7 @@
 #include "../npc/merchant.h"
 #include "../npc/robin.h"
 
+#include "world_model/Geometry.h"
 #include "world_model/Map.h"
 #include "world_model/MapObject.h"
 #include "world_model/MapRules.h"
@@ -192,6 +193,12 @@ World::World(const worldmodel::World& wm):
         }
         if (map.kind == worldmodel::MapKind::Town) {
             this->town = static_cast<Town*>(raw);
+        }
+
+        for (const auto& object: map.objects) {
+            if (object.role == worldmodel::ObjectRole::CommunityCenter) {
+                community_buildings[id].push_back(object);
+            }
         }
 
         // Colisiones desde el TOML.
@@ -798,6 +805,7 @@ bool World::damage_players_at(SceneId scene_id, uint16_t x, uint16_t y, uint8_t 
 
 bool World::damage_player(uint8_t player_id, uint8_t damage) {
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return false;
     const uint16_t hp_before = player.get_health();
     this->skull_survived_without_damage = false;
     const bool killed = player.take_damage(damage);
@@ -815,16 +823,18 @@ bool World::damage_player(uint8_t player_id, uint8_t damage) {
 }
 
 void World::kill_player(uint8_t player_id) {
-    close_container(player_id);
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return;
+    close_container(player_id);
     player.set_health(0);
     player.setDiedInCombat(true);
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
 }
 
 void World::faint_player(uint8_t player_id) {
-    close_container(player_id);
     Player& player = *this->players.at(player_id);
+    if (player.is_invincible()) return;
+    close_container(player_id);
     player.setFaintedByEnergy(true);
     this->death_to_bed.emplace(player_id, kDeathToBedSteps);
 }
@@ -980,9 +990,8 @@ void World::take_item(uint8_t player_id) {
         if (id == player_id || other->get_scene() != this->active_scene) {
             continue;
         }
-        const int dx = static_cast<int>(other->get_x()) - static_cast<int>(p.get_x());
-        const int dy = static_cast<int>(other->get_y()) - static_cast<int>(p.get_y());
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+        if (worldmodel::withinInteractionRange({p.get_x(), p.get_y()}, 1, 1,
+                                               {other->get_x(), other->get_y()}, 1)) {
             other->interact(p, ToolType::HAND, *this);
             return;
         }
@@ -1251,6 +1260,44 @@ bool World::is_community_center_completed() const {
     return this->community_center.is_community_center_completed();
 }
 
+bool World::donate_to_community_center(uint8_t player_id, CommunitySet set) {
+    Player& player = get_player(player_id);
+    const auto buildings = community_buildings.find(player.get_scene());
+    if (buildings == community_buildings.end() || player.get_health() == 0 ||
+        player.faintedByEnergy() || player.faintedByTimeout()) {
+        return false;
+    }
+    const bool near = std::any_of(buildings->second.begin(), buildings->second.end(),
+            [&](const worldmodel::MapObject& building) {
+                return worldmodel::withinInteractionRange(building.cell, building.width,
+                        building.height, {player.get_x(), player.get_y()}, 1);
+            });
+    if (!near || community_center.is_set_completed(set) || set == CommunitySet::COMBAT) {
+        return false;
+    }
+    const auto goals = community_center.goals_for(set);
+    if (goals.empty()) return false;
+    const std::string& name = community_set_catalog.name_for_id(static_cast<uint8_t>(set));
+    if (set == CommunitySet::MONEY) {
+        const uint16_t amount = static_cast<uint16_t>(std::min<uint32_t>(
+                {1000u, player.get_gold(), static_cast<uint32_t>(goals[0].total - goals[0].current)}));
+        return amount != 0 && donate_to_community_center(player_id, name, ItemID::GOLD_ORB, amount);
+    }
+    bool donated = false;
+    for (const auto& goal: goals) {
+        uint16_t quantity = goal.total - goal.current;
+        while (quantity > 0 && !(set == CommunitySet::CROPS ?
+                player.can_extract_items_with_min_quality(goal.item, Quality::INCREDIBLE, quantity) :
+                player.can_extract_items(goal.item, quantity))) {
+            --quantity;
+        }
+        if (quantity > 0) {
+            donated = donate_to_community_center(player_id, name, goal.item, quantity) || donated;
+        }
+    }
+    return donated;
+}
+
 bool World::donate_to_community_center(uint8_t player_id, const std::string& set_name,
                                        ItemID item, uint16_t quantity) {
     Player& p = get_player(player_id);
@@ -1260,6 +1307,9 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
     }
 
     if (set == CommunitySet::MONEY) {
+        if (this->community_center.get_gold_donated() >= 10000) {
+            return false;
+        }
         const uint32_t missing =
                 10000u - static_cast<uint32_t>(this->community_center.get_gold_donated());
         if (missing == 0) {
@@ -1279,6 +1329,13 @@ bool World::donate_to_community_center(uint8_t player_id, const std::string& set
         return false;
     }
 
+    for (const auto& goal: community_center.goals_for(set)) {
+        if (goal.item == item) {
+            quantity = std::min<uint16_t>(quantity, goal.total - goal.current);
+            break;
+        }
+    }
+    if (quantity == 0) return false;
     std::vector<std::unique_ptr<Item>> donated;
     if (set == CommunitySet::CROPS) {
         if (!p.can_extract_items_with_min_quality(item, Quality::INCREDIBLE, quantity)) {
@@ -1357,6 +1414,18 @@ bool World::take_victory() {
 // REGALOS
 // ---------------------------------------------------------
 void World::notify_gift_request(uint8_t sender, uint8_t receiver, ItemID item) {
+    const auto sender_it = this->players.find(sender);
+    const auto receiver_it = this->players.find(receiver);
+    if (sender_it == this->players.end() || receiver_it == this->players.end()) {
+        return;
+    }
+    const Player& from = *sender_it->second;
+    const Player& to = *receiver_it->second;
+    if (sender == receiver || from.get_scene() != to.get_scene() ||
+        !worldmodel::withinInteractionRange({from.get_x(), from.get_y()}, 1, 1,
+                                            {to.get_x(), to.get_y()}, 1)) {
+        return;
+    }
     this->offered_gifts.insert_or_assign({sender, receiver}, item);
     this->pending_gifts.push_back({sender, receiver, item});
 }
@@ -1389,8 +1458,8 @@ void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
     const Player& receiver = *receiver_it->second;
     const Item* held = sender.peek_equipped_item();
     if (!held || held->get_id() != offered_item || sender.get_scene() != receiver.get_scene() ||
-        std::abs(static_cast<int>(sender.get_x()) - receiver.get_x()) > 1 ||
-        std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
+        !worldmodel::withinInteractionRange({sender.get_x(), sender.get_y()}, 1, 1,
+                                            {receiver.get_x(), receiver.get_y()}, 1)) {
         return;
     }
     if (sender_id == receiver_id || !held->can_be_traded()) {
@@ -1427,8 +1496,8 @@ bool World::can_use_container(uint8_t player_id, uint16_t x, uint16_t y) const {
     if (found == players.end() || waking || is_sleeping(player_id)) return false;
     const Player& p = *found->second;
     return p.get_health() > 0 && !p.faintedByEnergy() && !p.faintedByTimeout() &&
-           std::abs(static_cast<int>(p.get_x()) - x) <= kContainerInteractionRadius &&
-           std::abs(static_cast<int>(p.get_y()) - y) <= kContainerInteractionRadius;
+           worldmodel::withinInteractionRange({p.get_x(), p.get_y()}, 1, 1,
+                                              {x, y}, kContainerInteractionRadius);
 }
 
 bool World::container_in_use(const SceneId& scene, uint16_t x, uint16_t y) const {
@@ -1532,4 +1601,22 @@ void World::grab_chest(uint8_t player_id, uint16_t x, uint16_t y) {
 
 bool World::try_remove_animals(ItemID type, uint16_t quantity) {
     return barn != nullptr && barn->try_remove_animals(type, quantity);
+}
+
+std::size_t World::care_animals() {
+    if (!this->barn) return 0;
+    const SceneId previous = this->active_scene;
+    this->active_scene = this->barn_scene_id_;
+    try {
+        const std::size_t count = this->barn->prepare_production(*this);
+        this->active_scene = previous;
+        return count;
+    } catch (...) {
+        this->active_scene = previous;
+        throw;
+    }
+}
+
+std::size_t World::care_crops() {
+    return this->farm ? this->farm->mature_crops() : 0;
 }

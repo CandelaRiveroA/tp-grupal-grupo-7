@@ -308,6 +308,21 @@ void llenarInventario(Player& player) {
 }
 }
 
+TEST(GameplayBugsTest, RegaloFueraDelRadioNoSeOfrece) {
+    World world(10, 10);
+    world.add_player(1, std::make_unique<Player>(1, 2, 2));
+    world.add_player(2, std::make_unique<Player>(2, 5, 5));
+
+    world.notify_gift_request(1, 2, ItemID::STRAWBERRY_SEED);
+    EXPECT_TRUE(world.take_gift_requests().empty());
+    world.process_gift_acceptance(1, 2);
+    EXPECT_TRUE(world.take_accepted_gifts().empty());
+
+    world.transfer_player(2, "town", 2, 3);
+    world.notify_gift_request(1, 2, ItemID::STRAWBERRY_SEED);
+    EXPECT_TRUE(world.take_gift_requests().empty());
+}
+
 TEST(GameplayBugsTest, RegaloConInventarioLlenoAvisaSinQuitarElItem) {
     World world(6, 6);
     world.add_player(1, std::make_unique<Player>(1, 2, 2));

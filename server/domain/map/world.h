@@ -103,6 +103,7 @@ private:
 
     // Centro Comunitario (estado global cooperativo).
     CommunityCenter community_center;
+    std::map<SceneId, std::vector<worldmodel::MapObject>> community_buildings;
     bool community_victory;
     uint8_t current_room;
     bool market_discount_active;
@@ -184,6 +185,8 @@ public:
 
     // --- Animales (delegados al establo) ---
     void add_animal(std::unique_ptr<Animal> animal);
+    std::size_t care_animals();
+    std::size_t care_crops();
     void tick_animals();
     AnimalPurchaseResult buy_animals(Player& player, ItemID type, uint16_t quantity,
                                      uint16_t cost);
@@ -262,6 +265,7 @@ public:
     void set_current_room(uint8_t room);
     void leave_dungeon();
     uint8_t get_current_room() const;
+    bool donate_to_community_center(uint8_t player_id, CommunitySet set);
     bool donate_to_community_center(uint8_t player_id, const std::string& set_name,
                                     ItemID item, uint16_t quantity);
     bool complete_set(const std::string& set_name);

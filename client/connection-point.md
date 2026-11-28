@@ -40,16 +40,17 @@ using ClientMessage = std::variant<MoveMessage, PickMessage, TakeMessage, SleepM
 ```
 
 - `Direction` (global, `common/common_constants.h`): `UP=0, DOWN=1, LEFT=2, RIGHT=3`.
-- El Centro Comunitario usa chat:
-  `/donar [cultivos|minerales|animales] [item] [cantidad]`,
-  `/donar dinero [cantidad]`, `/completar_set [nombre]` y
-  `/completar_todo`. Los sets tienen IDs 1 (`cultivos`), 2 (`minerales`),
-  3 (`animales`), 4 (`pelea`) y 5 (`dinero`). `ServerSetCompleted` lleva
-  `set_id u8`; `ServerVictory` no lleva payload.
-- Desde la UI del cartel del Centro Comunitario, el botón **Donar** llama a
-  `GameClient::donateToCommunityCenter()` (hook solo-cliente listo para
-  conectar el mensaje de donación global al servidor) y el progreso mostrado
-  sale de `LocalWorldView::communitySets`.
+- El botón **Donar** envía `DonateCommunity` (16): `type u8 | set_id u8`.
+  El servidor valida el mapa y el anillo de una celda alrededor del edificio,
+  consume los objetos válidos hasta cubrir lo pendiente y admite aportes parciales.
+  Dinero aporta hasta 1.000 por clic. El progreso compartido llega como
+  `CommunityProgress` (38) dentro de cada snapshot: `set_id u8 | completed u8 |
+  goal_count u8`, seguido por `goal_id string | current u16 | total u16 |
+  completed u8` para cada requisito.
+  `NetworkGameClient` lo traduce a `LocalWorldView::communitySets`.
+  Los sets son 1 (cultivos), 2 (minerales), 3 (productos animales), 4 (pelea,
+  automático) y 5 (dinero). Se conservan `/completar_set` y `/completar_todo`;
+  `/donar` fue eliminado. `ServerSetCompleted` y `ServerVictory` siguen siendo eventos.
 - Quedarse parado **no envía nada**.
 - Serialización: `Move`: `type (u8) | direction (u8)`; `Pick` y `Take`:
   `type (u8) | direction (u8) | slot (u8)` (el casillero elegido: la
@@ -101,6 +102,9 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 
 | 34 | `PlayerName` | `player_id u8, characterName str` | Nombre público. Al entrar se reciben los nombres existentes y se transmite el del nuevo a todos, incluso en otros mapas. Se conserva entre lotes y se elimina con `Leave` |
 | 35 | `InventoryFull` | (sin payload) | Evento privado de recogida rechazada por capacidad. Se traduce a `ViewNotice{"inventory_full"}` y usa el cartel real de SDL; la tecla I de demo fue retirada |
+| 36 | `WorldPlayers` | `count u8, (player_id u8, map_id str, x u16, y u16, appearance 8×u8) × count` | Posición y mapa de todos los jugadores, para los nombres sobre el mapa. Va a todos y se reenvía al entrar |
+| 37 | `ContainerState` | `open u8`, si abierto: `x u16, y u16, count u8, (slot u8, count u8, content_id str, tradable u8, quality u8, footprint_columns u8, footprint_rows u8) × count` | Estado del contenedor abierto por el jugador; va solo a él |
+| 38 | `CommunityProgress` | `set_id u8, completed u8, goal_count u8, (goal_id str, current u16, total u16, completed u8) × goal_count` | Progreso de un lote del Centro Comunitario. Va dentro del lote Reset…SyncEnd, cinco mensajes por snapshot |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

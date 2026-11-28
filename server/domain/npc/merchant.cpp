@@ -1,6 +1,5 @@
 #include "merchant.h"
 
-#include <cstdlib>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -8,6 +7,7 @@
 #include "../entities/player.h"
 #include "../inventory/product.h"
 #include "../map/world.h"
+#include "world_model/Geometry.h"
 
 Merchant::Merchant(uint16_t x, uint16_t y, std::string name):
         IEntity(x, y), name(std::move(name)), id() {}
@@ -35,10 +35,8 @@ Merchant::Merchant(uint16_t x, uint16_t y, std::string name, std::string id,
         buy_base_prices(std::move(buy_base_prices)) {}
 
 bool Merchant::is_in_range(uint16_t x, uint16_t y) const {
-    return std::abs(static_cast<int>(get_x()) - static_cast<int>(x)) <=
-                   kMerchantInteractionRadius &&
-           std::abs(static_cast<int>(get_y()) - static_cast<int>(y)) <=
-                   kMerchantInteractionRadius;
+    return worldmodel::withinInteractionRange({get_x(), get_y()}, 1, 1, {x, y},
+                                              kMerchantInteractionRadius);
 }
 
 bool Merchant::is_walkable() const { return false; }

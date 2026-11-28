@@ -28,6 +28,14 @@ constexpr const char* kFrame = "frame";
 constexpr const char* kSlotFrame = "slot_frame";
 constexpr const char* kActiveSlotFrame = "active_slot_frame";
 
+constexpr const char* kTrash = "trash";
+constexpr const char* kTrashImage = "trash.image";
+constexpr const char* kTrashCell = "trash.cell";
+constexpr const char* kTrashSize = "trash.size";
+constexpr const char* kTrashGap = "trash.gap";
+constexpr const char* kTrashIconPad = "trash.icon_pad";
+constexpr const char* kTrashHoverTint = "trash.hover_tint";
+
 constexpr const char* kBorderCells = "border_cells";
 constexpr const char* kThickness = "thickness";
 constexpr const char* kInset = "inset";
@@ -151,6 +159,10 @@ InventoryLayout InventoryTomlReader::read() const {
 		readItems(layout);
 	}
 
+	if (doc_.hasKey(kTrash)) {
+		readTrash(layout);
+	}
+
 	return layout;
 }
 
@@ -193,6 +205,43 @@ void InventoryTomlReader::readItems(world::InventoryLayout& layout) const {
 			}
 			layout.slotDrawn.emplace(name, PixelSize{size[0], size[1]});
 		}
+	}
+}
+
+void InventoryTomlReader::readTrash(world::InventoryLayout& layout) const {
+	TrashButton& trash = layout.trash;
+	trash.enabled = true;
+	trash.sheetImage = doc_.getString(kTrashImage);
+	if (trash.sheetImage.empty()) {
+		throw ConfigError(Kind::InvalidValue, kTrashImage);
+	}
+	const std::array<int, 2> cell = doc_.getIntArray<2>(kTrashCell);
+	trash.cellWidth = cell[0];
+	trash.cellHeight = cell[1];
+	if (trash.cellWidth <= 0 || trash.cellHeight <= 0) {
+		throw ConfigError(Kind::InvalidValue, kTrashCell);
+	}
+	trash.size = doc_.getDouble(kTrashSize);
+	if (trash.size <= 0.0) {
+		throw ConfigError(Kind::InvalidValue, kTrashSize);
+	}
+	trash.gap = doc_.getInt(kTrashGap);
+	if (trash.gap < 0) {
+		throw ConfigError(Kind::InvalidValue, kTrashGap);
+	}
+	trash.iconPad =
+		doc_.hasKey(kTrashIconPad) ? doc_.getInt(kTrashIconPad) : 0;
+	if (trash.iconPad < 0) {
+		throw ConfigError(Kind::InvalidValue, kTrashIconPad);
+	}
+	if (doc_.hasKey(kTrashHoverTint)) {
+		const std::array<int, 3> tint = doc_.getIntArray<3>(kTrashHoverTint);
+		for (const int channel : tint) {
+			if (channel < 0 || channel > 255) {
+				throw ConfigError(Kind::InvalidValue, kTrashHoverTint);
+			}
+		}
+		trash.hoverTint = Color{tint[0], tint[1], tint[2], 255};
 	}
 }
 

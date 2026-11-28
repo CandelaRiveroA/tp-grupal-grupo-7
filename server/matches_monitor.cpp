@@ -79,18 +79,8 @@ MatchSeat MatchesMonitor::create(const std::string& codeMatch, const std::string
         if (!issues.empty()) {
             return MatchSeat{LobbyStatus::Invalid, 0, nullptr, {}};
         }
-        int cabins = 0;
-        const auto farmIt = world.maps.find("farm");
-        if (farmIt != world.maps.end()) {
-            for (const worldmodel::MapObject& o : farmIt->second.objects) {
-                if (o.role == worldmodel::ObjectRole::Cabin) {
-                    ++cabins;
-                }
-            }
-        }
-        if (cabins > 0 && cabins <= MAX_JUGADORES) {
-            capacity = static_cast<uint8_t>(cabins);
-        }
+        capacity = capacityFor(world);
+        if (capacity == 0) return MatchSeat{LobbyStatus::Invalid, 0, nullptr, {}};
     } catch (const std::exception&) {
         return MatchSeat{LobbyStatus::Invalid, 0, nullptr, {}};
     }
@@ -129,25 +119,40 @@ MatchSeat MatchesMonitor::join(const std::string& codeMatch, const std::string& 
     return seat;
 }
 
-std::vector<std::string> MatchesMonitor::validWorldNames() const {
+uint8_t MatchesMonitor::capacityFor(const worldmodel::World& world) const {
+    unsigned cabins = 0;
+    const auto farm = world.maps.find("farm");
+    if (farm != world.maps.end()) {
+        for (const auto& object: farm->second.objects) {
+            if (object.role == worldmodel::ObjectRole::Cabin) ++cabins;
+        }
+    }
+    return static_cast<uint8_t>(std::min(cabins, static_cast<unsigned>(MAX_JUGADORES)));
+}
+
+std::vector<WorldSummary> MatchesMonitor::validWorldSummaries() const {
     const worldmodel::WorldRepository repository(worldsDir);
     const worldmodel::WorldValidator validator;
     const worldmodel::MapRules rules;
-    std::vector<std::string> result;
-    for (const std::string& name : repository.listWorlds()) {
-        if (!rules.isValidWorldName(name) ||
-            std::find(result.begin(), result.end(), name) != result.end()) {
-            continue;
-        }
+    std::vector<WorldSummary> result;
+    for (const std::string& name: repository.listWorlds()) {
+        if (!rules.isValidWorldName(name)) continue;
         try {
             const worldmodel::World world = repository.load(name);
-            if (validator.validate(world).empty()) {
-                result.push_back(world.name);
+            const uint8_t capacity = capacityFor(world);
+            if (capacity > 0 && validator.validate(world).empty()) {
+                result.push_back({world.name, "", capacity});
             }
         } catch (const worldmodel::FormatError&) {
-            // Los archivos ilegibles o corruptos no se ofrecen en el lobby.
+            // Los mundos corruptos no se ofrecen en el lobby.
         }
     }
+    return result;
+}
+
+std::vector<std::string> MatchesMonitor::validWorldNames() const {
+    std::vector<std::string> result;
+    for (const auto& world: validWorldSummaries()) result.push_back(world.name);
     return result;
 }
 

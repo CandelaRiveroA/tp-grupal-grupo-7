@@ -183,6 +183,13 @@ void SpriteSheet::setColorMod(std::uint8_t r, std::uint8_t g,
 
 void SpriteSheet::clearColorMod() { texture_.SetColorMod(255, 255, 255); }
 
+void SpriteSheet::setAlphaMod(std::uint8_t alpha) {
+	texture_.SetBlendMode(SDL_BLENDMODE_BLEND);
+	texture_.SetAlphaMod(alpha);
+}
+
+void SpriteSheet::clearAlphaMod() { texture_.SetAlphaMod(255); }
+
 void SpriteSheet::drawBlock(int col, int row, int cols, int rows,
 			    const SDL2pp::Rect& dest, Flip flip,
 			    double fracW, double fracH, double angle,

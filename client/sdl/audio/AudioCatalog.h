@@ -28,10 +28,12 @@ enum class SoundId {
 	Fireball,
 	NewMessage,
 	Cancel,
+	ChestOpen,
+	ChestClose,
 };
 
 inline constexpr int kSoundCount =
-	static_cast<int>(SoundId::Cancel) + 1;
+	static_cast<int>(SoundId::ChestClose) + 1;
 
 struct SoundSpec {
 	const char* file;
@@ -58,6 +60,8 @@ inline constexpr std::array<SoundSpec, kSoundCount> kSounds = {{
 	 {"sfx/combat/fireball.ogg", SoundCategory::Sfx},
 	 {"sfx/ui/new_message.ogg", SoundCategory::Sfx},
 	 {"sfx/ui/cancel.ogg", SoundCategory::Sfx},
+	 {"sfx/tools/doorCreak.ogg", SoundCategory::Sfx},
+	 {"sfx/tools/doorCreakReverse.ogg", SoundCategory::Sfx},
 }};
 
 }

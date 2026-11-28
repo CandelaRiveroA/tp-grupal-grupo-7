@@ -23,6 +23,7 @@ public:
     Inventory& operator=(Inventory&&) = default;
 
     bool can_add_item(const Item& item) const;
+    bool transfer_one_to(Inventory& destination, uint8_t slot);
     bool add_item(std::unique_ptr<Item> new_item);
     bool is_slot_empty(uint8_t index) const;
     const Item* peek_item(uint8_t index) const;

@@ -30,3 +30,7 @@ std::optional<EnemySnapshot> IEntity::enemy_snapshot() const { return std::nullo
 std::optional<CropSnapshot> IEntity::crop_snapshot() const { return std::nullopt; }
 
 void IEntity::update(World& /*w*/) {}
+
+Inventory* IEntity::container_inventory() { return nullptr; }
+const Inventory* IEntity::container_inventory() const { return nullptr; }
+uint8_t IEntity::furniture_facing() const { return 0; }

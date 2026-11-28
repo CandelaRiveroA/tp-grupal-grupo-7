@@ -38,6 +38,8 @@ const std::pair<MarkerKind, const char*> kMarkerKinds[] = {
 	{MarkerKind::MerchantClint, "merchant_clint"},
 	{MarkerKind::MerchantPierre, "merchant_pierre"},
 	{MarkerKind::MerchantRobin, "merchant_robin"},
+	{MarkerKind::GeneralWindow, "general_window"},
+	{MarkerKind::CoopWindow, "coop_window"},
 };
 
 const std::pair<PortalKind, const char*> kPortalKinds[] = {

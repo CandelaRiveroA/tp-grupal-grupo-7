@@ -38,7 +38,13 @@ static std::unique_ptr<Merchant> make_pierre(uint16_t x, uint16_t y) {
         {"leche",    ItemID::MILK},
         {"huevo",    ItemID::EGG},
     };
-    return std::make_unique<Merchant>(x, y, "Pierre", "pierre", std::move(sell), std::move(buy));
+    std::map<ItemID, uint16_t> buy_prices;
+    for (const ItemID id: {ItemID::STRAWBERRY, ItemID::GREEN_ONION, ItemID::POTATO,
+                           ItemID::PUMPKIN, ItemID::MILK, ItemID::EGG}) {
+        buy_prices[id] = Product::base_price_for(id);
+    }
+    return std::make_unique<Merchant>(x, y, "Pierre", "pierre", std::move(sell), std::move(buy),
+                                      std::move(buy_prices));
 }
 
 static std::unique_ptr<Merchant> make_clint(uint16_t x, uint16_t y) {

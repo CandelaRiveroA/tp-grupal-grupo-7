@@ -72,6 +72,8 @@ target_sources(taller_client
     sdl/render/GroundEffectPainter.cpp
     sdl/render/CropPainter.cpp
     sdl/render/BuildPlacePainter.cpp
+    sdl/render/FurnitureGhostPainter.cpp
+    sdl/render/PropPainter.cpp
     sdl/render/InventoryHud.cpp
     sdl/render/ObtainedBannerHud.cpp
     sdl/render/NoticePainter.cpp
@@ -86,6 +88,7 @@ target_sources(taller_client
     sdl/render/SettingsPainter.cpp
     sdl/render/NpcRenderer.cpp
     sdl/render/NpcPopupPainter.cpp
+    sdl/render/CloseButtonPainter.cpp
     sdl/render/MarketPopupPainter.cpp
     sdl/render/WorldMapPainter.cpp
     sdl/render/ChatPainter.cpp
@@ -187,6 +190,20 @@ target_sources(taller_client
     game/WorldMapState.h
     game/MarketSetCycle.h
     game/PropAnimator.h
+    game/SlotStacker.h
+    game/ContainerSession.h
+    game/ContainerTransfer.h
+    game/FurnitureGrab.h
+    game/InventoryDiscard.h
+    game/FurniturePlacement.h
+    game/FurnitureKey.h
+    sdl/render/PropPainter.h
+    game/PlacementSelection.h
+    world/FurnitureFootprint.h
+    world/FurnitureGeometry.h
+    world/FurnitureViews.h
+    world/FurnitureFacing.h
+    game/FurnitureOrientation.h
     game/InventorySelector.h
     world/ActionNames.h
     world/CharacterAppearance.h
@@ -265,6 +282,7 @@ target_sources(taller_client
     sdl/render/GroundEffectPainter.h
     sdl/render/CropPainter.h
     sdl/render/BuildPlacePainter.h
+    sdl/render/FurnitureGhostPainter.h
     sdl/render/InventoryHud.h
     sdl/render/ObtainedBannerHud.h
     sdl/render/NoticePainter.h

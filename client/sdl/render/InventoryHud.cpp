@@ -36,13 +36,13 @@ void InventoryHud::drawFrame(const world::FrameLayout& fl, bool drawEdges) {
 }
 
 void InventoryHud::draw(
-	const std::vector<game::ViewInventorySlot>& inventory, int activeSlot) {
+	const std::vector<game::ViewInventorySlot>& inventory, int activeSlot,
+	const bool trashHovered) {
 	const std::vector<world::PixelBox> boxes =
 		layout_.slotBoxes(context_.width(), context_.height());
 
 	for (const world::PixelBox& box : boxes) {
-		sheet_.draw(layout_.slotCol, layout_.slotRow,
-			    SDL2pp::Rect(box.x, box.y, box.width, box.height));
+		drawSlotBackground(box);
 	}
 
 	if (layout_.frame.enabled) {
@@ -50,6 +50,43 @@ void InventoryHud::draw(
 					      context_.height()));
 	}
 
+	drawSlotContents(boxes, inventory, activeSlot);
+	drawTrash(trashHovered);
+}
+
+void InventoryHud::drawSlotBackground(const world::PixelBox& box) {
+	sheet_.draw(layout_.slotCol, layout_.slotRow,
+		    SDL2pp::Rect(box.x, box.y, box.width, box.height));
+}
+
+void InventoryHud::drawTrash(const bool hovered) {
+	const world::TrashButton& trash = layout_.trash;
+	if (!trash.enabled) {
+		return;
+	}
+	const int width = context_.width();
+	const int height = context_.height();
+	const world::PixelBox inner = layout_.trashInnerBox(width, height);
+	drawSlotBackground(inner);
+	const world::PixelBox icon = layout_.trashIconBox(width, height);
+	SpriteSheet& sheet = itemSheets_.sheet(trash.sheetImage,
+					       core::assetPath(trash.sheetImage),
+					       trash.cellWidth, trash.cellHeight);
+	sheet.draw(0, 0, SDL2pp::Rect(icon.x, icon.y, icon.width, icon.height));
+	if (hovered) {
+		const world::Color& tint = trash.hoverTint;
+		context_.fillRectMultiply(
+			SDL2pp::Rect(inner.x, inner.y, inner.width, inner.height),
+			SDL2pp::Color(tint.r, tint.g, tint.b, 255));
+	}
+	if (layout_.frame.enabled) {
+		drawFrame(layout_.frameLayout(layout_.trashBox(width, height)));
+	}
+}
+
+void InventoryHud::drawSlotContents(
+	const std::vector<world::PixelBox>& boxes,
+	const std::vector<game::ViewInventorySlot>& inventory, int activeSlot) {
 	if (layout_.slotFrame.enabled) {
 		const bool drawEdges = !layout_.slotFrame.cornersOnly;
 		for (const world::PixelBox& box : boxes) {
@@ -128,6 +165,16 @@ void InventoryHud::draw(
 	}
 }
 
+void InventoryHud::drawGrid(
+	const world::PixelBox& box, const int columns, const int rows,
+	const std::vector<game::ViewInventorySlot>& slots, int activeSlot) {
+	// La figura del inventario en la caja pedida: fondo y marco del
+	// panel y, encima, lo mismo que dibuja la barra en cada slot.
+	drawPanel(box, columns, rows);
+	drawSlotContents(layout_.slotBoxes(box, columns, rows), slots,
+			 activeSlot);
+}
+
 void InventoryHud::drawPanel(const world::PixelBox& box, const int columns,
 			     const int rows) {
 	// La figura del inventario "vacía": los cuadros de los slots (el
@@ -135,9 +182,7 @@ void InventoryHud::drawPanel(const world::PixelBox& box, const int columns,
 	// Sin el borde interior de cada slot (la profundidad) y sin ítems.
 	for (const world::PixelBox& slot : layout_.slotBoxes(box, columns,
 								rows)) {
-		sheet_.draw(layout_.slotCol, layout_.slotRow,
-			    SDL2pp::Rect(slot.x, slot.y, slot.width,
-					 slot.height));
+		drawSlotBackground(slot);
 	}
 	if (layout_.frame.enabled) {
 		drawFrame(layout_.frameLayout(box));

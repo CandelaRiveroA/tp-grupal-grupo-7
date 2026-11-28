@@ -193,7 +193,7 @@ TEST(ProtocolMockTest, LosNueveComandosDeClienteMantienenSuFormato) {
     }
 }
 
-// Ningún byte fuera del rango válido (0 o 10) debería pasar por el receiver
+// Ningún byte fuera del rango válido (0 o 255) debería pasar por el receiver
 // como si fuera un comando de cliente: hay que rechazarlos.
 TEST(ProtocolMockTest, RechazaComandoDeClienteDesconocido) {
     MockSocket socket;
@@ -203,8 +203,8 @@ TEST(ProtocolMockTest, RechazaComandoDeClienteDesconocido) {
     socket.set_input({0});
     EXPECT_THROW(receiver.receive_command(), std::invalid_argument);
 
-    // {10}: 10 es un byte después de SelectSlot (el último tipo válido es 9).
-    socket.set_input({10});
+    // {255}: no corresponde a ninguno de los comandos definidos.
+    socket.set_input({255});
     EXPECT_THROW(receiver.receive_command(), std::invalid_argument);
 }
 
@@ -233,4 +233,25 @@ TEST(ProtocolMockTest, RechazaCamposInvalidosDelLadoDelCliente) {
     // {7, 1, 2}: GiftResponse (tipo 7) con sender_id 1 y accept = 2.
     socket.set_input({7, 1, 2});
     EXPECT_THROW(receiver.receive_command(), std::invalid_argument);
+}
+
+TEST(ProtocolMockTest, OfertaDelMercadoConservaLaCalidadYRechazaValoresInvalidos) {
+    MockSocket socket;
+    ProtocolSender sender(socket);
+    ProtocolReceiver receiver(socket);
+    sender.send_server_message(ServerMarketOffer{"pierre", {
+            ServerMarketEntry{"strawberry", "frutilla", ServerMarketSide::Buys, true, 50, 3},
+            ServerMarketEntry{"egg", "huevo", ServerMarketSide::Buys, true, 3, 0}}});
+    auto bytes = socket.sent_bytes();
+    socket.set_input(bytes);
+    const auto message = receiver.receive_server_message();
+    const auto* offer = std::get_if<ServerMarketOffer>(&message);
+    ASSERT_NE(offer, nullptr);
+    ASSERT_EQ(offer->entries.size(), 2u);
+    EXPECT_EQ(offer->entries[0].quality, 3);
+    EXPECT_EQ(offer->entries[1].quality, 0);
+
+    bytes.back() = 6;
+    socket.set_input(bytes);
+    EXPECT_THROW(receiver.receive_server_message(), std::invalid_argument);
 }

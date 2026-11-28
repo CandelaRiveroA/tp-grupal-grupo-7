@@ -26,6 +26,7 @@ std::string content_id_for(ItemID id) {
             {ItemID::EGG, "egg"},
             {ItemID::MILK, "milk"},
             {ItemID::BED, "bed"},
+            {ItemID::CHEST, "cofre"},
             {ItemID::STRAWBERRY, "strawberry"},
             {ItemID::GREEN_ONION, "onion"},
             {ItemID::POTATO, "potato"},
@@ -58,6 +59,19 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     out.push_back(ServerReset{});
 
     out.push_back(ServerMapChange{world.get_player(player_id).get_scene()});
+
+    ServerContainerState container;
+    if (const IEntity* entity = world.get_open_container(player_id)) {
+        container.open = true;
+        container.x = entity->get_x(); container.y = entity->get_y();
+        const Inventory& storage = *entity->container_inventory();
+        for (uint8_t slot = 0; slot < storage.get_max_slots(); ++slot) {
+            if (storage.peek_item(slot) != nullptr) {
+                container.inventory_slots.push_back(inventory_slot(storage, slot));
+            }
+        }
+    }
+    out.push_back(std::move(container));
 
     const SceneId scene_id = world.get_player(player_id).get_scene();
     const Scene& scene = world.get_scene(scene_id);
@@ -117,7 +131,9 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
                 } else if (snap->kind == CellSnapshot::Kind::Furniture) {
                     // El mueble va como ServerFurniture: el cliente no debe
                     // tratarlo como un ítem del piso recogible.
-                    out.push_back(ServerFurniture{x, y, content_id_for(snap->item)});
+                    out.push_back(ServerFurniture{x, y, content_id_for(snap->item),
+                            entity->furniture_facing(), world.container_available(player_id, x, y),
+                            world.container_in_use(scene_id, x, y)});
                 } else {
                     const bool interactive = entity->pickup_on_take();
                     out.push_back(ServerDropped{x, y, content_id_for(snap->item), interactive});
@@ -149,10 +165,7 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
             // regla "herramienta no se regala" (el cliente solo la lee).
             // get_quality() es virtual: Product devuelve la calidad real;
             // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
-            out.push_back(ServerInventorySlot{slot, inventory.get_amount(slot),
-                                              content_id_for(item->get_id()),
-                                              item->can_be_traded(),
-                                              static_cast<uint8_t>(item->get_quality())});
+            out.push_back(inventory_slot(inventory, slot));
         }
     }
     out.push_back(ServerGold{world.get_player(player_id).get_gold()});
@@ -160,4 +173,15 @@ std::vector<ServerMessage> WorldView::sync(const World& world, uint8_t player_id
     // Cierra el lote: el cliente aplica todo recién al ver este mensaje.
     out.push_back(ServerSyncEnd{});
     return out;
+}
+
+ServerInventorySlot WorldView::inventory_slot(const Inventory& inventory, uint8_t slot) const {
+    const Item* item = inventory.peek_item(slot);
+    if (item == nullptr) return {slot, 0, "", false};
+    const uint8_t footprint = item->get_id() == ItemID::CHEST ? 1 : 0;
+    // get_quality() es virtual: Product devuelve la calidad real;
+    // Item base devuelve Quality::BASE = 1 (herramientas, minerales).
+    return {slot, inventory.get_amount(slot), content_id_for(item->get_id()),
+            item->can_be_traded(), static_cast<uint8_t>(item->get_quality()),
+            footprint, footprint};
 }

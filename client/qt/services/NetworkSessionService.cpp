@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr int kLobbyTimeoutSeconds = 5;
+constexpr int kLobbyTimeoutSeconds = 60;
 
 ServiceError serviceErrorFor(LobbyStatus status) {
     static const std::unordered_map<LobbyStatus, ServiceError> statusToError = {

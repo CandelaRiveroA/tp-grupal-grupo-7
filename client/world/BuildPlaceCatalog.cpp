@@ -13,4 +13,12 @@ const BuildPlaceVisual* BuildPlaceCatalog::find(
 	return it == states_.end() ? nullptr : &it->second;
 }
 
+void BuildPlaceCatalog::setGhostAlpha(const int alpha) { ghostAlpha_ = alpha; }
+
+int BuildPlaceCatalog::ghostAlpha() const { return ghostAlpha_; }
+
+void BuildPlaceCatalog::setGhostPush(const double push) { ghostPush_ = push; }
+
+double BuildPlaceCatalog::ghostPush() const { return ghostPush_; }
+
 }

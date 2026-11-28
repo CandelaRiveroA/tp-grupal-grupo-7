@@ -40,6 +40,12 @@ struct GiftOffer {
     ItemID item;
 };
 
+struct OpenContainer {
+    SceneId scene;
+    uint16_t x;
+    uint16_t y;
+};
+
 class World {
 private:
     // Dueño de todos los escenarios de la partida (FARMHOUSE, FARM, TOWN, DUNGEON_1..10).
@@ -59,6 +65,10 @@ private:
 
     // Último comerciante seleccionado por cada jugador al interactuar.
     std::unordered_map<uint8_t, Merchant*> selected_merchants;
+
+    std::map<uint8_t, OpenContainer> open_containers;
+    IEntity* find_container(const SceneId& scene, uint16_t x, uint16_t y) const;
+    bool can_use_container(uint8_t player_id, uint16_t x, uint16_t y) const;
 
     // Contadores globales de IDs (únicos en toda la partida).
     uint16_t next_enemy_id;
@@ -151,6 +161,17 @@ public:
     void add_player(uint8_t player_id, std::unique_ptr<Player> player);
     void remove_player(uint8_t player_id);
     void move_player(uint8_t player_id, Direction dir);
+    void discard_item(uint8_t player_id, uint8_t slot, uint8_t amount);
+    void open_container(uint8_t player_id, uint16_t x, uint16_t y);
+    void close_container(uint8_t player_id);
+    void validate_containers();
+    IEntity* get_open_container(uint8_t player_id) const;
+    bool container_in_use(const SceneId& scene, uint16_t x, uint16_t y) const;
+    bool container_available(uint8_t player_id, uint16_t x, uint16_t y) const;
+    void transfer_container_item(uint8_t player_id, uint16_t x, uint16_t y,
+                                 bool to_container, uint8_t slot, uint8_t amount);
+    void place_chest(uint8_t player_id, uint16_t x, uint16_t y, uint8_t slot, uint8_t facing);
+    void grab_chest(uint8_t player_id, uint16_t x, uint16_t y);
     void toggle_player_walking(uint8_t player_id);
     const Player& get_player(uint8_t player_id) const;
     Player& get_player(uint8_t player_id);
@@ -167,6 +188,7 @@ public:
     AnimalPurchaseResult buy_animals(Player& player, ItemID type, uint16_t quantity,
                                      uint16_t cost);
     void reward_animals(Player& player, ItemID type, uint16_t quantity);
+    bool try_remove_animals(ItemID type, uint16_t quantity);
 
     // --- Comerciantes (delegados a Town) ---
     void place_merchant(std::unique_ptr<Merchant> merchant);

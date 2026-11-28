@@ -37,16 +37,11 @@ std::vector<WorldSummary> NetworkWorldService::worlds() const {
 void NetworkWorldService::fetchWorlds() {
 	try {
 		Socket socket(core::kServerHost, core::kServerPort);
-		socket.set_receive_timeout(5);
+		socket.set_receive_timeout(60);
 		ProtocolSender sender(socket);
 		ProtocolReceiver receiver(socket);
 		sender.send_world_list_request();
-		const std::vector<std::string> names = receiver.receive_world_list();
-		std::vector<WorldSummary> summaries;
-		summaries.reserve(names.size());
-		for (const std::string& name : names) {
-			summaries.push_back(WorldSummary{name, ""});
-		}
+		std::vector<WorldSummary> summaries = receiver.receive_world_list();
 		{
 			const std::lock_guard<std::mutex> lock(worldsMutex_);
 			worlds_ = summaries;

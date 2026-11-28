@@ -5,7 +5,7 @@
 #include <memory>
 
 Pumpkin::Pumpkin(uint16_t x, uint16_t y) 
-    : Crop(x, y, 7, 1, ItemID::PUMPKIN, 50) {} // 7 días, 1 riego, 50 oro[cite: 1]
+    : Crop(x, y, 7, 1, ItemID::PUMPKIN, Product::base_price_for(ItemID::PUMPKIN)) {} // 7 días, 1 riego
 
 void Pumpkin::harvest(Player& p, World& w) {
     auto product = std::make_unique<Product>(this->product_id, this->base_price, this->current_quality);

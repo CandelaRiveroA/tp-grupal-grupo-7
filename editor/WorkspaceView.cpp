@@ -54,8 +54,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 	tilesets_.loadTilesets(catalog_.tilesets());
 
 	tree_ = new MapTreeWidget(this);
-	canvas_ = new MapCanvasView(catalog_, tilesets_, this);
-	palette_ = new PaletteView(catalog_, tilesets_, this);
+	canvas_ = new MapCanvasView(catalog_, tilesets_, markerSprites_, this);
+	palette_ = new PaletteView(catalog_, tilesets_, markerSprites_, this);
 	portals_ = new PortalsView(catalog_, tilesets_, this);
 	rightTabs_ = new QTabWidget(this);
 	rightTabs_->setObjectName("rightTabs");
@@ -103,8 +103,8 @@ WorkspaceView::WorkspaceView(const worldmodel::ScenarioLibrary& scenarios,
 		});
 	connect(palette_, &PaletteView::prefabSelected, this,
 		&WorkspaceView::onPrefabSelected);
-	connect(palette_, &PaletteView::bedSelected, this,
-		&WorkspaceView::onBedSelected);
+	connect(palette_, &PaletteView::markerSelected, this,
+		&WorkspaceView::onMarkerSelected);
 	connect(palette_, &PaletteView::portalPicked, this,
 		&WorkspaceView::onPortalPicked);
 	connect(canvas_, &MapCanvasView::placementRejected, this,
@@ -267,7 +267,7 @@ void WorkspaceView::setWorld(const worldmodel::World& world) {
 	dirty_ = false;
 	palette_->clearSelection();
 	portals_->clearSelection();
-	setActivePrefab(nullptr);
+	canvas_->clearPlacement();
 	navigateButton_->setChecked(true);
 	canvas_->setTool(EditorTool::Navigate);
 	tilesets_.loadTilesets(world_.tilesets);
@@ -435,24 +435,19 @@ std::vector<const worldmodel::Scenario*> WorkspaceView::scenarioOptions()
 }
 
 void WorkspaceView::onPrefabSelected(const worldmodel::PrefabDef* prefab) {
-	canvas_->setPlacingBed(false);
-	setActivePrefab(prefab);
-	if (prefab != nullptr) {
-		placeButton_->setChecked(true);
-		canvas_->setTool(EditorTool::Place);
+	if (prefab == nullptr) {
+		canvas_->clearPlacement();
+		return;
 	}
-}
-
-void WorkspaceView::onBedSelected() {
-	setActivePrefab(nullptr);
-	canvas_->setPlacingBed(true);
+	canvas_->setActivePrefab(prefab);
 	placeButton_->setChecked(true);
 	canvas_->setTool(EditorTool::Place);
 }
 
-void WorkspaceView::setActivePrefab(const worldmodel::PrefabDef* prefab) {
-	activePrefab_ = prefab;
-	canvas_->setActivePrefab(prefab);
+void WorkspaceView::onMarkerSelected(worldmodel::MarkerKind kind) {
+	canvas_->setPlacingMarker(kind);
+	placeButton_->setChecked(true);
+	canvas_->setTool(EditorTool::Place);
 }
 
 void WorkspaceView::onPortalPicked(worldmodel::PortalKind kind, int width,

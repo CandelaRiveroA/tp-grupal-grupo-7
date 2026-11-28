@@ -5,6 +5,7 @@
 #include "game/LocalWorldView.h"
 #include "game/ViewMotion.h"
 #include "world/ContentCatalog.h"
+#include "world/FurnitureGeometry.h"
 #include "world/ScenePixelMapper.h"
 
 namespace game {
@@ -37,7 +38,10 @@ public:
 	// El catálogo define cómo se dibuja cada ítem del piso (por
 	// contentId, con su tamaño y ajuste al suelo); el pick lo necesita
 	// para medir su caja igual que el pintor.
-	explicit ObjectPicker(const world::ContentCatalog& content);
+	// `furniture`: la geometría de los muebles colocados (la misma del
+	// dibujo).
+	ObjectPicker(const world::ContentCatalog& content,
+		     const world::FurnitureGeometry& furniture);
 
 	// Objetivo bajo el punto de mundo (Kind::None si no hay ninguno).
 	// Si varios se superponen, gana el de más arriba en el orden de
@@ -52,6 +56,7 @@ private:
 		      const world::PixelPoint& point) const;
 
 	const world::ContentCatalog& content_;
+	const world::FurnitureGeometry& furniture_;
 };
 
 }  // namespace game

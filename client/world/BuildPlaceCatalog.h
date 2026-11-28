@@ -37,7 +37,18 @@ public:
 	// nullptr si el estado no tiene bloque cargado.
 	const BuildPlaceVisual* find(BuildPlaceState state) const;
 
+	// Opacidad (0..255) de la vista previa de un mueble por colocar.
+	void setGhostAlpha(int alpha);
+	int ghostAlpha() const;
+
+	// Cuánto (fracción de celda) se adelanta la vista previa hacia el
+	// lado donde se coloca, para que no se lea "encima" del personaje.
+	void setGhostPush(double push);
+	double ghostPush() const;
+
 private:
+	int ghostAlpha_ = 110;
+	double ghostPush_ = 0.5;
 	std::map<BuildPlaceState, BuildPlaceVisual> states_;
 };
 

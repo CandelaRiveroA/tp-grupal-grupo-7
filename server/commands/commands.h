@@ -11,6 +11,12 @@
 // alternativo a protocol::ClientMessage sin su overload, Match no compila.
 namespace commands {
 
+void apply(World& world, uint8_t player_id, const protocol::DiscardMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::OpenContainerMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::CloseContainerMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::ContainerTransferMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::PlaceFurnitureMessage& message);
+void apply(World& world, uint8_t player_id, const protocol::GrabFurnitureMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::MoveMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::PickMessage& message);
 void apply(World& world, uint8_t player_id, const protocol::TakeMessage& message);

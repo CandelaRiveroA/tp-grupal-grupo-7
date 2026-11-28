@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -15,6 +16,12 @@ namespace worldmodel {
 struct MarkerRule {
 	MarkerKind kind;
 	bool unique;
+};
+
+struct MarkerSpec {
+	int height = 1;
+	bool requiresWalkable = true;
+	bool erasable = false;
 };
 
 struct MapRule {
@@ -48,9 +55,15 @@ public:
 	std::optional<int> dungeonLevel(const std::string& id) const;
 	std::optional<std::string> expectedPortalTarget(
 		const std::string& mapId, PortalKind kind) const;
+	MarkerSpec markerSpec(MarkerKind kind) const;
+	bool markerAllowedIn(const std::string& mapId, MarkerKind kind) const;
+	bool canPlaceMarker(const Map& map, MarkerKind kind,
+			    TilePos cell) const;
+	bool isMarkerUnique(const std::string& mapId, MarkerKind kind) const;
 
 private:
 	std::vector<MapRule> rules_;
+	std::map<MarkerKind, MarkerSpec> markerSpecs_;
 };
 
 }

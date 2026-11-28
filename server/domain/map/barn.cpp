@@ -126,3 +126,21 @@ void Barn::on_new_day(World& world) {
         animal->update(world);
     }
 }
+
+bool Barn::try_remove_animals(ItemID type, uint16_t quantity) {
+    const AnimalOffer* offer = animal_catalog.find(type);
+    if (!offer || quantity == 0 || count_kind(offer->kind) < quantity) return false;
+
+    // remove_entity actualiza también animals mediante on_entity_removed.
+    // Iterar una copia evita invalidar el recorrido al borrar del registro.
+    const std::vector<Animal*> available = animals;
+    uint16_t remaining = quantity;
+    for (Animal* animal: available) {
+        if (remaining == 0) break;
+        if (animal->kind_name() == offer->kind) {
+            remove_entity(animal);
+            --remaining;
+        }
+    }
+    return true;
+}

@@ -60,6 +60,11 @@ void InputManager::handleEvent(const SDL_Event& event) {
         clicks_.push_back(game::PointerClick{event.button.x, event.button.y});
         return;
     }
+    if (!textMode_ && event.type == SDL_MOUSEBUTTONDOWN &&
+        event.button.button == SDL_BUTTON_RIGHT) {
+        grabs_.push_back(game::PointerClick{event.button.x, event.button.y});
+        return;
+    }
 
     // Modo texto: caracteres, backspace y los one-shots Enter/ESC.
     if (textMode_) {
@@ -116,10 +121,12 @@ auto InputManager::defaultCommandBindings() const
     // vuelva un disparador.
     // Abrir el chatbox: one-shot que consume PlaySession (T).
     bindings.insert({SDLK_t, game::InputCommand{Kind::OpenChat, 0}});
+    bindings.insert({SDLK_r, game::InputCommand{Kind::RotateFurniture, 0}});
     bindings.insert({SDLK_LSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
     bindings.insert({SDLK_RSHIFT, game::InputCommand{Kind::ToggleWalking, 0}});
-    // ESC fuera del chat: el popup de configuración (con el chat abierto
-    // ESC lo resuelve handleTextEvent como ChatCancel).
+    // ESC fuera del chat: cierra el popup abierto (cofre, NPC, catálogo)
+    // o abre/cierra la configuración (con el chat abierto ESC lo resuelve
+    // handleTextEvent como ChatCancel).
     bindings.insert({SDLK_ESCAPE, game::InputCommand{Kind::ToggleSettings, 0}});
     const int bound = std::min(slotCount_, static_cast<int>(slotKeys_.size()));
     for (int i = 0; i < bound; ++i) {
@@ -148,6 +155,12 @@ std::vector<game::PointerClick> InputManager::takeClicks() {
     std::vector<game::PointerClick> clicks;
     clicks.swap(clicks_);
     return clicks;
+}
+
+std::vector<game::PointerClick> InputManager::takeGrabs() {
+    std::vector<game::PointerClick> grabs;
+    grabs.swap(grabs_);
+    return grabs;
 }
 
 void InputManager::setTextMode(bool open) {

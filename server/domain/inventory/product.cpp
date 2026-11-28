@@ -4,6 +4,23 @@
 Product::Product(ItemID id, uint16_t base_price, Quality quality) 
     : Item(id, true), base_price(base_price), quality(quality) {}
 
+uint16_t Product::base_price_for(ItemID id) {
+    switch (id) {
+        case ItemID::STRAWBERRY: return 25;
+        case ItemID::GREEN_ONION: return 12;
+        case ItemID::POTATO: return 18;
+        case ItemID::PUMPKIN: return 50;
+        case ItemID::EGG: return 3;
+        case ItemID::MILK: return 30;
+        default: return 0;
+    }
+}
+
+bool Product::has_quality_variants(ItemID id) {
+    return id == ItemID::STRAWBERRY || id == ItemID::GREEN_ONION ||
+           id == ItemID::POTATO || id == ItemID::PUMPKIN;
+}
+
 uint16_t Product::get_final_price() const {
     float multipliers[] = {1.0f, 1.25f, 2.0f, 4.0f, 8.0f};
     return static_cast<uint16_t>(this->base_price * multipliers[static_cast<int>(this->quality) - 1]);

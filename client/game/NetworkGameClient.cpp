@@ -260,11 +260,7 @@ void NetworkGameClient::apply(const ServerMessage& message) {
 
 void NetworkGameClient::applyNow(const ServerMessage& message) {
     if (const auto* players = std::get_if<ServerWorldPlayers>(&message)) {
-        view_.worldMapPlayers.clear();
-        for (const auto& p: players->players) {
-            view_.worldMapPlayers.push_back({p.player_id, p.map_id, p.x, p.y,
-                                             p.appearance, p.player_id == localPlayerId_});
-        }
+        worldMapPlayers_ = players->players;
         return;
     }
     if (const auto* container = std::get_if<ServerContainerState>(&message)) {
@@ -303,7 +299,7 @@ void NetworkGameClient::applyNow(const ServerMessage& message) {
         furniture_.clear();
         groundEffects_.clear();
         inventory_.clear();
-        view_.worldMapPlayers.clear();
+        worldMapPlayers_.clear();
         view_.containerSlots.clear();
         view_.openContainer.reset();
         animals_.clear();
@@ -649,9 +645,7 @@ void NetworkGameClient::update(int) {
         entity.id = id;
         entity.appearance = player.appearance;
         entity.carriedContent = player.carriedContent;
-        if (const auto name = names_.find(id); name != names_.end()) {
-            entity.displayName = name->second;
-        }
+        entity.displayName = nameFor(id);
         if (usingTool) {
             entity.action = world::ActionKind::UseTool;
             entity.activeTool = player.activeTool;
@@ -714,6 +708,19 @@ void NetworkGameClient::update(int) {
     view_.obtained = std::move(obtained_);
     obtained_.clear();
     view_.giftRequest = std::exchange(giftRequest_, std::nullopt);
+    view_.worldMapPlayers.clear();
+    view_.worldMapPlayers.reserve(worldMapPlayers_.size());
+    for (const ServerMapPlayer& player: worldMapPlayers_) {
+        view_.worldMapPlayers.push_back(ViewMapPlayer{
+                player.player_id, player.map_id, player.x, player.y,
+                player.appearance, player.player_id == localPlayerId_,
+                nameFor(player.player_id)});
+    }
+}
+
+std::string NetworkGameClient::nameFor(const uint8_t playerId) const {
+    const auto name = names_.find(playerId);
+    return name != names_.end() ? name->second : std::string{};
 }
 
 const LocalWorldView& NetworkGameClient::worldState() const { return view_; }

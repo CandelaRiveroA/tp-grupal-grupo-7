@@ -257,6 +257,7 @@ struct ViewMapPlayer {
     int cellY = 0;
     CharacterAppearance appearance{};
     bool isLocal = false;
+    std::string displayName{};
 };
 
 // Aviso puntual para el jugador (evento, no estado): "qué pasó" por id

@@ -38,6 +38,7 @@ struct WorldMapPin {
     float normY = 0.0f;
     CharacterAppearance appearance{};
     bool isLocal = false;
+    std::string displayName{};
 };
 
 // Estado puro (sin SDL) del mapa del mundo desplegable con la tecla M:

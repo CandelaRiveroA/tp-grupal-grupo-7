@@ -18,6 +18,7 @@
 #include "../npc/merchant.h"
 #include "../npc/robin.h"
 
+#include "world_model/Geometry.h"
 #include "world_model/Map.h"
 #include "world_model/MapObject.h"
 #include "world_model/MapRules.h"
@@ -989,9 +990,8 @@ void World::take_item(uint8_t player_id) {
         if (id == player_id || other->get_scene() != this->active_scene) {
             continue;
         }
-        const int dx = static_cast<int>(other->get_x()) - static_cast<int>(p.get_x());
-        const int dy = static_cast<int>(other->get_y()) - static_cast<int>(p.get_y());
-        if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+        if (worldmodel::withinInteractionRange({p.get_x(), p.get_y()}, 1, 1,
+                                               {other->get_x(), other->get_y()}, 1)) {
             other->interact(p, ToolType::HAND, *this);
             return;
         }
@@ -1446,8 +1446,8 @@ void World::process_gift_acceptance(uint8_t sender_id, uint8_t receiver_id) {
     const Player& receiver = *receiver_it->second;
     const Item* held = sender.peek_equipped_item();
     if (!held || held->get_id() != offered_item || sender.get_scene() != receiver.get_scene() ||
-        std::abs(static_cast<int>(sender.get_x()) - receiver.get_x()) > 1 ||
-        std::abs(static_cast<int>(sender.get_y()) - receiver.get_y()) > 1) {
+        !worldmodel::withinInteractionRange({sender.get_x(), sender.get_y()}, 1, 1,
+                                            {receiver.get_x(), receiver.get_y()}, 1)) {
         return;
     }
     if (sender_id == receiver_id || !held->can_be_traded()) {
@@ -1484,8 +1484,8 @@ bool World::can_use_container(uint8_t player_id, uint16_t x, uint16_t y) const {
     if (found == players.end() || waking || is_sleeping(player_id)) return false;
     const Player& p = *found->second;
     return p.get_health() > 0 && !p.faintedByEnergy() && !p.faintedByTimeout() &&
-           std::abs(static_cast<int>(p.get_x()) - x) <= kContainerInteractionRadius &&
-           std::abs(static_cast<int>(p.get_y()) - y) <= kContainerInteractionRadius;
+           worldmodel::withinInteractionRange({p.get_x(), p.get_y()}, 1, 1,
+                                              {x, y}, kContainerInteractionRadius);
 }
 
 bool World::container_in_use(const SceneId& scene, uint16_t x, uint16_t y) const {

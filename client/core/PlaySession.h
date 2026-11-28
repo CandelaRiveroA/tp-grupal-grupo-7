@@ -10,6 +10,8 @@
 #include "core/ToolUseSounds.h"
 #include "core/WindowConfig.h"
 #include "game/ActionResolver.h"
+#include "game/CommunityBoardResolver.h"
+#include "game/CommunityPopupState.h"
 #include "game/ContainerSession.h"
 #include "game/ChatCue.h"
 #include "game/DayPhase.h"
@@ -45,6 +47,7 @@
 #include "sdl/render/ButtonPainter.h"
 #include "sdl/render/Camera.h"
 #include "sdl/render/ChatPainter.h"
+#include "sdl/render/CommunityPopupPainter.h"
 #include "sdl/render/CursorPainter.h"
 #include "sdl/render/DialogPainter.h"
 #include "sdl/render/DigitPainter.h"
@@ -61,6 +64,7 @@
 #include "sdl/render/Renderer.h"
 #include "sdl/render/SettingsPainter.h"
 #include "sdl/render/TextRenderer.h"
+#include "world/CommunityCatalog.h"
 #include "sdl/render/WorldMapPainter.h"
 #include "world/CursorCatalog.h"
 #include "world/CreatureCatalog.h"
@@ -111,6 +115,7 @@ public:
     PlaySession(const WindowConfig& config, const world::Scenario& scenario,
                 game::GameClient& gameClient, const world::CharacterCatalog& characters,
                 const world::NpcCatalog& npcs, const world::MarketCatalog& market,
+                const world::CommunityCatalog& community,
                 const world::InventoryLayout& inventory,
                 const world::ToolOverlayCatalog& toolOverlay,
                 const world::ResourceCatalog& resources, const world::ObtainedBannerCatalog& banner,
@@ -225,6 +230,24 @@ private:
     void openMarketFromView(const game::LocalWorldView& view);
     void drawMarketCatalog();
 
+    // Popup del Centro Comunitario (se abre desde el edificio y se cierra con ESC):
+    // las secciones se resuelven de la vista cada frame; el dibujo no cambia
+    // cuando el servidor empiece a llenarla.
+    void drawCommunityPopup(const game::LocalWorldView& view, int iteration);
+    void openCommunityPopup();
+    enum class CommunityControl { None, Help, PrevPage, NextPage, Donate };
+    CommunityControl communityControlAt(const world::PixelPoint& point);
+    void handleCommunityClick(const game::PointerClick& click);
+    bool overCommunityControl(const world::PixelPoint& point);
+    void openCommunityHelp();
+    void prevCommunityPage();
+    void nextCommunityPage();
+    void donateToCommunity();
+
+    // ¿Hay un popup que bloquea el mundo (NPC, catálogo, metas,
+    // configuración, mapa o cofre)?
+    bool isWorldBlocked() const;
+
     // Popup de configuración (ESC): se abre y se cierra con el mismo
     // comando, salvo que otro popup ya tenga el mundo bloqueado. QUÉ
     // contiene lo dicen SettingsLayout/SettingsState; esto solo compone.
@@ -311,6 +334,7 @@ private:
     const world::NpcCatalog& npcCatalog_;
     game::NpcPlacementResolver npcPlacements_;
     const world::MarketCatalog& marketCatalog_;
+    const world::CommunityCatalog& communityCatalog_;
 
     // El campo (cultivos, terreno, lugar de plantado) y el inventario
     // con los sacos y la cosecha ya registrados. Van ANTES de todo lo
@@ -364,6 +388,7 @@ private:
     // overlay): qué hacer con cada acción es esta tabla, no un switch.
     game::StructureSelection structureSelection_;
     std::map<world::StructureAction, void (PlaySession::*)(const std::string&)> structureActions_;
+    std::map<std::string, void (PlaySession::*)()> structurePopups_;
     game::PopupState popupState_;
     // NPC con el popup abierto (nullptr = ninguno). El click lo abre y
     // cualquier click posterior lo cierra.
@@ -429,6 +454,12 @@ private:
     // Popup del catálogo del comerciante: se declara después de
     // marketCatalog_ y de inventory_ (guarda referencias a ambos).
     game::MarketPopupState marketPopup_;
+    // Popup de las metas del Centro Comunitario: se declara después de
+    // communityCatalog_ y de inventory_ (guarda referencias a ambos).
+    game::CommunityBoardResolver communityResolver_;
+    sdl::CommunityPopupPainter communityPopupPainter_;
+    game::CommunityPopupState communityPopup_;
+    std::map<CommunityControl, void (PlaySession::*)()> communityActions_;
     // PROVISORIO: estilo de catálogo elegido con N (el servidor lo rotará).
     game::MarketSetCycle marketCycle_;
     // Objetos animados clickeables (cofre): abierto/cerrado por id.

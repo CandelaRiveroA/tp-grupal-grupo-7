@@ -1,0 +1,249 @@
+# Tablón paginado del Centro Comunitario, descrito como DATOS.
+#
+# Reutiliza las tablas [panel], [arrows] y [colors] de PagedModalSpec (mismo
+# formato que ui/world_map.toml) y suma la configuración propia de las
+# tarjetas, sprites, calidades de cultivos, barras de progreso, ayuda y
+# botón Donar.
+
+[panel]
+width_fraction  = 0.66
+height_fraction = 0.76
+min_size        = [580, 460]
+max_size        = [760, 560]
+frame_pad       = 22
+bg_inset        = 10
+
+[arrows]
+size           = [36, 33]
+margin         = 14
+gap            = 12
+left_sheet     = "ui/map_arrow_left.png"
+right_sheet    = "ui/map_arrow_right.png"
+left_fallback  = "<"
+right_fallback = ">"
+font_size      = 24
+
+[colors]
+backdrop    = [0, 0, 0, 140]
+parchment   = [246, 212, 158, 255]
+wood_border = [91, 43, 22, 255]
+ink         = [62, 39, 17, 255]
+
+[text]
+title           = "Centro Comunitario"
+status          = "- En curso"
+donate_label    = "Donar"
+help_close_hint = "Haz clic en cualquier parte para cerrar"
+
+[popup]
+super_title_top      = 16
+super_title_height   = 24
+super_title_size     = 18
+page_counter_width   = 80
+page_size            = 17
+header_gap           = 6
+header_height        = 38
+header_title_size    = 26
+header_status_size   = 18
+status_gap           = 10
+content_gap          = 12
+card_height          = 64
+card_gap             = 10
+card_pad_x           = 12
+card_pad_y           = 4
+card_border          = 2
+icon_column_width    = 76
+sprite_size          = 38
+creature_sprite_size = 48
+sprite_gap           = 12
+quality_slot_size    = 36
+quality_slot_gap     = 6
+quality_slot_pad     = 2
+quality_slot_border  = 1
+bar_height           = 10
+bar_border           = 1
+bar_top_gap          = 6
+amount_width         = 120
+checkbox_gap         = 10
+label_size           = 19
+amount_size          = 18
+footer_height        = 54
+footer_margin        = 14
+donate_gap           = 12
+dot_size             = 10
+dot_gap              = 10
+dot_border           = 1
+donate_text_size     = 20
+donate_button_size   = [136, 40]
+donate_button_sheet  = "ui/donate_button.png"
+
+ink_muted         = [122, 82, 48, 255]
+card_bg           = [253, 232, 196, 255]
+card_done_bg      = [228, 235, 194, 255]
+sprite_slot_bg    = [196, 154, 102, 255]
+bar_track         = [216, 179, 124, 255]
+bar_fill          = [120, 70, 10, 255]
+amount_color      = [120, 70, 10, 255]
+donate_text_color = [62, 39, 17, 255]
+
+[popup.help]
+button_sheet    = "ui/help_icon.png"
+button_fallback = "?"
+button_size     = [26, 26]
+button_gap      = 8
+popup_size      = [460, 240]
+pad             = 20
+border          = 3
+title_height    = 30
+title_size      = 22
+title_gap       = 8
+text_size    = 18
+line_gap     = 4
+hint_height  = 20
+hint_size    = 15
+backdrop     = [0, 0, 0, 110]
+
+[popup.checkbox_empty]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [0, 0]
+drawn = [22, 22]
+
+[popup.checkbox_done]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [1, 0]
+drawn = [22, 22]
+
+[popup.set_done]
+sheet = "ui/checkboxes.png"
+cell  = [16, 16]
+at    = [2, 0]
+span  = [2, 1]
+drawn = [48, 24]
+
+[popup.coin]
+sheet = "Ambience/Market/save_coin.png"
+cell  = [9, 9]
+at    = [0, 0]
+drawn = [34, 34]
+
+[[sets]]
+id        = 1
+title     = "Set de Cultivos"
+donatable = true
+help      = "Siembra, riega y cosecha los cuatro cultivos de la granja hasta obtener ejemplares de calidad Increíble (estrella violeta) o Perfecta (borde blanco). Reúnelos en tu inventario y pulsa Donar para completar la ofrenda."
+
+[[sets.goals]]
+id        = "strawberry"
+label     = "Frutillas"
+icon      = "strawberry"
+qualities = ["incredible", "perfect"]
+
+[[sets.goals]]
+id        = "onion"
+label     = "Cebollas de Verdeo"
+icon      = "onion"
+qualities = ["incredible", "perfect"]
+
+[[sets.goals]]
+id        = "potato"
+label     = "Papas"
+icon      = "potato"
+qualities = ["incredible", "perfect"]
+
+[[sets.goals]]
+id        = "pumpkin"
+label     = "Calabazas"
+icon      = "pumpkin"
+qualities = ["incredible", "perfect"]
+
+[[sets]]
+id        = 2
+title     = "Set de Metales"
+donatable = true
+help      = "Adéntrate en la cueva y extrae con tu pico carbón, lapislázuli, plata y oro de las vetas minerales. Cuando lleves los minerales requeridos en tu inventario, pulsa Donar para entregarlos."
+
+[[sets.goals]]
+id    = "coal_orb"
+label = "Carbón"
+icon  = "coal"
+
+[[sets.goals]]
+id    = "lapis_orb"
+label = "Lapislázuli"
+icon  = "lapis"
+
+[[sets.goals]]
+id    = "silver_orb"
+label = "Plata"
+icon  = "silver"
+
+[[sets.goals]]
+id    = "gold_orb"
+label = "Oro"
+icon  = "gold"
+
+[[sets]]
+id        = 3
+title     = "Set de Productos Animales"
+donatable = true
+help      = "Cuida a tus vacas y gallinas en el granero para recolectar tarros de leche fresca y huevos. Lleva los productos en tu inventario y pulsa Donar para completar el lote."
+
+[[sets.goals]]
+id    = "milk"
+label = "Tarros de leche"
+icon  = "milk"
+
+[[sets.goals]]
+id    = "egg"
+label = "Huevos"
+icon  = "egg"
+
+[[sets]]
+id        = 4
+title     = "Set de Pelea"
+donatable = false
+help      = """
+Demuestra tu temple en la mazmorra superando cuatro pruebas:
+  - Derrota esqueletos en 3 salas consecutivas.
+  - Vence a un grupo completo de 4 orcos.
+  - Acaba con una pareja de vampiros.
+  - Sobrevive al Skull sin recibir daño."""
+
+[[sets.goals]]
+id              = "skeleton"
+label           = "Esqueletos"
+creature        = "skeleton"
+sprite_size     = 76
+sprite_offset_y = -8
+
+[[sets.goals]]
+id              = "vampire"
+label           = "Vampiros"
+creature        = "vampire"
+sprite_size     = 76
+sprite_offset_y = -8
+
+[[sets.goals]]
+id              = "orc"
+label           = "Orcos"
+creature        = "orc"
+sprite_size     = 76
+sprite_offset_y = -8
+
+[[sets.goals]]
+id       = "skull"
+label    = "Skull"
+creature = "skull"
+
+[[sets]]
+id        = 5
+title     = "Set de Dinero"
+donatable = true
+help      = "Reúne fondos vendiendo cosechas, minerales o productos en los comercios del pueblo. Cuando tengas oro disponible, pulsa Donar para contribuir a la restauración del Centro Comunitario."
+
+[[sets.goals]]
+id    = "money"
+label = "Oro"
+coin  = true

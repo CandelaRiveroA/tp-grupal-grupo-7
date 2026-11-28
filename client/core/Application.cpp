@@ -35,6 +35,7 @@
 #include "world/Grid.h"
 #include "world/InventoryConfigLoader.h"
 #include "world/InventoryLayout.h"
+#include "world/CommunityCatalog.h"
 #include "world/MapSceneAdapter.h"
 #include "world/MarketCatalog.h"
 #include "world/NpcCatalog.h"
@@ -133,6 +134,7 @@ std::optional<int> Application::runGame(SessionConfig session) {
                 core::assetPath(core::kCharactersFile));
         const world::NpcCatalog npcs(core::assetPath(core::kNpcsFile));
         const world::MarketCatalog market(core::assetPath(core::kMarketFile));
+        const world::CommunityCatalog community(core::assetPath(core::kCommunityFile));
         const world::CharacterPalettes palettes = loadPalettes();
         // Los enemigos viven en su propio archivo (se fusionan sobre el
         // mismo catálogo): mantiene characters.toml chico (contrato §9).
@@ -208,7 +210,8 @@ std::optional<int> Application::runGame(SessionConfig session) {
         const std::string initialMap = gameClient->initialMapId();
         world::SceneDescription scene = world::MapSceneAdapter(overlay).adapt(world, initialMap);
         world::Scenario scenario(config_, std::move(scene));
-        PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market, inventory,
+        PlaySession playSession(config_, scenario, *gameClient, characters, npcs, market,
+                                community, inventory,
                                 toolOverlay, resources, banner, digits, cursors, dialogs, font,
                                 prompt, chat, notice, nameplate, settings, worldMap,
                                 // Sin envoltura MockWorldClient: los enemigos

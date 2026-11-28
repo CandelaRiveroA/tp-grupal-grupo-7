@@ -90,6 +90,8 @@ target_sources(taller_client
     sdl/render/NpcPopupPainter.cpp
     sdl/render/CloseButtonPainter.cpp
     sdl/render/MarketPopupPainter.cpp
+    sdl/render/CommunityPopupPainter.cpp
+    sdl/render/PagedModalPainter.cpp
     sdl/render/WorldMapPainter.cpp
     sdl/render/ChatPainter.cpp
     sdl/input/InputManager.cpp
@@ -245,8 +247,11 @@ target_sources(taller_client
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
     world/PixelBox.h
+    world/TomlConfigReader.h
+    world/CreatureKindNames.h
     world/WorldMapConfig.h
     world/WorldMapLayout.h
+    world/PagedModal.h
     world/AnchorLayout.h
     world/HudOverlayCatalog.h
     world/HudOverlayTomlReader.h
@@ -296,6 +301,7 @@ target_sources(taller_client
     sdl/render/ButtonPainter.h
     sdl/render/DigitPainter.h
     sdl/render/SettingsPainter.h
+    sdl/render/PagedModalPainter.h
     sdl/render/WorldMapPainter.h
     sdl/render/ChatPainter.h
     sdl/input/InputManager.h

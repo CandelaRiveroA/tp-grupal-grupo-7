@@ -225,6 +225,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/world/NpcCatalog.cpp
         client/world/NpcVisuals.cpp
         client/world/MarketCatalog.cpp
+        client/world/CommunityCatalog.cpp
+        client/world/CommunityPopupStyle.cpp
         client/world/MarketPopupStyle.cpp
         client/world/MarketSideNames.cpp
         client/world/CropQualityNames.cpp
@@ -288,6 +290,8 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/ActionResolver.cpp
         client/game/NpcPlacementResolver.cpp
         client/game/MarketPopupState.cpp
+        client/game/CommunityBoardResolver.cpp
+        client/game/CommunityPopupState.cpp
         client/game/MarketSetCycle.cpp
         client/game/PropAnimator.cpp
         client/game/FurnitureKey.cpp
@@ -332,6 +336,10 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/SettingsState.cpp
         client/world/WorldMapConfig.cpp
         client/world/WorldMapLayout.cpp
+        client/world/PagedModal.cpp
+        client/world/PixelBox.cpp
+        client/world/TomlConfigReader.cpp
+        client/world/CreatureKindNames.cpp
         client/game/ToolUseCue.cpp
         client/game/ActionStartCue.cpp
         client/core/ToolUseSounds.cpp

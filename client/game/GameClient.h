@@ -27,6 +27,10 @@ public:
     virtual void receiveChat(std::uint8_t /*playerId*/, const std::string& /*characterName*/,
                              const std::string& /*text*/) {}
 
+    // Punto de conexión para el botón "Donar" del Centro Comunitario:
+    // el cliente solo envía la intención global; el servidor valida y aplica.
+    virtual void donateToCommunityCenter() {}
+
     virtual void requestTransfer(const ContainerTransfer& /*transfer*/) {}
 
     // Intención de colocar el mueble de un slot en una celda. Default

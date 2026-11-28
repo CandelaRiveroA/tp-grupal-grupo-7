@@ -60,6 +60,14 @@ TEST(MapTest, IsWalkableRejectsMissingCollision) {
 	EXPECT_FALSE(map.isWalkable({1, 0}));
 }
 
+TEST(MapTest, IsAreaWalkableChecksBoundsAndAllCells) {
+	const worldmodel::Map map = makeMap();
+	EXPECT_TRUE(map.isAreaWalkable({1, 0}, 2, 2));
+	EXPECT_FALSE(map.isAreaWalkable({0, 0}, 2, 2));
+	EXPECT_FALSE(map.isAreaWalkable({3, 0}, 2, 1));
+	EXPECT_FALSE(map.isAreaWalkable({1, 2}, 1, 2));
+}
+
 TEST(MapTest, ComposeAddsBlockedFootprintWithoutMutating) {
 	worldmodel::Map map = makeMap();
 	map.objects.push_back(makeObject(worldmodel::ObjectRole::Cabin, {1, 1},

@@ -2,6 +2,7 @@
 
 #include <QGraphicsView>
 #include <QPoint>
+#include <QString>
 #include <cstddef>
 #include <map>
 #include <optional>
@@ -11,8 +12,10 @@
 #include "common/world_model/Geometry.h"
 #include "common/world_model/MapObject.h"
 #include "common/world_model/MapRules.h"
+#include "common/world_model/Marker.h"
 #include "common/world_model/Portal.h"
 
+class MarkerSprites;
 class QEvent;
 class QKeyEvent;
 class TilesetCache;
@@ -29,13 +32,16 @@ class MapCanvasView : public QGraphicsView {
 
 public:
 	MapCanvasView(const worldmodel::PrefabCatalog& catalog,
-		      const TilesetCache& tilesets, QWidget* parent = nullptr);
+		      const TilesetCache& tilesets,
+		      const MarkerSprites& markerSprites,
+		      QWidget* parent = nullptr);
 
 	void setMap(worldmodel::Map* map);
 	void setShowCollision(bool show);
 	void setTool(EditorTool tool);
 	void setActivePrefab(const worldmodel::PrefabDef* prefab);
-	void setPlacingBed(bool placing);
+	void setPlacingMarker(std::optional<worldmodel::MarkerKind> kind);
+	void clearPlacement();
 	void setActivePortal(worldmodel::PortalKind kind, int width, int height);
 	void setPickTargetSize(int width, int height);
 	void zoomIn();
@@ -65,7 +71,9 @@ private:
 	std::optional<worldmodel::TilePos> cellAt(const QPoint& pos) const;
 	void updateHoverCell(std::optional<worldmodel::TilePos> cell);
 	void placePrefabAt(worldmodel::TilePos cell);
-	void placeBedAt(worldmodel::TilePos cell);
+	void placeMarkerAt(worldmodel::MarkerKind kind, worldmodel::TilePos cell);
+	bool validateMarkerPlacement(worldmodel::MarkerKind kind,
+				     worldmodel::TilePos cell);
 	bool canPlacePrefab(const worldmodel::PrefabDef& prefab);
 	void eraseAt(worldmodel::TilePos cell);
 	void moveAt(worldmodel::TilePos cell);
@@ -97,7 +105,8 @@ private:
 	PortalPrefabs portalPrefabs_;
 	worldmodel::Map* map_ = nullptr;
 	const worldmodel::PrefabDef* activePrefab_ = nullptr;
-	bool placingBed_ = false;
+	std::optional<worldmodel::MarkerKind> placingMarker_;
+	std::map<worldmodel::MarkerKind, QString> disallowedMarkerMessages_;
 	std::optional<MoveTarget> moveTarget_;
 	std::map<EditorTool, void (MapCanvasView::*)(worldmodel::TilePos)>
 		clickHandlers_;

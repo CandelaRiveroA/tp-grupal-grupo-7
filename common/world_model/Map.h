@@ -44,6 +44,8 @@ struct Map {
 	bool fits(TilePos origin, int rectWidth, int rectHeight) const;
 	std::size_t cellIndex(TilePos pos) const;
 	bool isWalkable(TilePos pos) const;
+	bool isAreaWalkable(TilePos origin, int rectWidth,
+			    int rectHeight) const;
 	std::vector<bool> composeCollision() const;   // no muta
 	void rebuildCollision();                      // collision = composeCollision()
 };

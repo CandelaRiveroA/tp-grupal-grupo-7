@@ -98,6 +98,7 @@ private:
     void apply(const ServerMessage& message);
     // Aplica un mensaje al estado ya (sin pasar por el buffer de lote).
     void applyNow(const ServerMessage& message);
+    std::string nameFor(uint8_t playerId) const;
     ViewInventorySlot inventorySlotFor(const ServerInventorySlot& slot) const;
     // El lote es el estado completo: enemigos y proyectiles que no volvieron
     // en él ya no existen en el server (una llama que llegó a su destino o un
@@ -137,6 +138,7 @@ private:
     bool pendingDayChanged_ = false;
     // Nombres públicos recibidos del servidor, conservados entre mapas.
     std::map<uint8_t, std::string> names_;
+    std::vector<ServerMapPlayer> worldMapPlayers_;
     int toolUseDurationTicks_;
     const world::CharacterCatalog* characters_;
     // Tabla de traducción protocolo -> vista (convención §4: diccionario

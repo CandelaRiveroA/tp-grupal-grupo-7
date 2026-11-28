@@ -130,6 +130,7 @@ std::vector<WorldMapPin> WorldMapState::pinsForActive(
                 std::clamp(rawY, 0.0f, 1.0f),
                 player.appearance,
                 player.isLocal,
+                player.displayName,
         });
     }
     return pins;

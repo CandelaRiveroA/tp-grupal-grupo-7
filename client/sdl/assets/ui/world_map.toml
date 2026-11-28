@@ -22,8 +22,14 @@ right_fallback = ">"
 font_size      = 24
 
 [pins]
-size   = 24
-border = 2
+size            = 24
+border          = 2
+label_font      = "pixel_operator"
+label_font_size = 14
+label_bold      = true
+label_gap       = 2
+label_height    = 18
+label_pad_x     = 4
 
 [text]
 unavailable           = "Minimapa no disponible"

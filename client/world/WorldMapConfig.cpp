@@ -63,6 +63,16 @@ void WorldMapConfig::loadArrows(const tomlcfg::TomlDocument& arrows) {
 void WorldMapConfig::loadPins(const tomlcfg::TomlDocument& pins) {
     pinSize = readPositive(pins, "size");
     pinBorder = readNonNegative(pins, "border");
+    if (pins.hasKey("label_font")) {
+        pinLabel.font = readNonEmpty(pins, "label_font");
+    }
+    pinLabel.fontSize = readPositive(pins, "label_font_size");
+    if (pins.hasKey("label_bold")) {
+        pinLabel.bold = pins.getBool("label_bold");
+    }
+    pinLabel.gap = readNonNegative(pins, "label_gap");
+    pinLabel.height = readPositive(pins, "label_height");
+    pinLabel.padX = readNonNegative(pins, "label_pad_x");
 }
 
 void WorldMapConfig::loadText(const tomlcfg::TomlDocument& text) {

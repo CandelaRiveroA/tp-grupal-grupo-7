@@ -85,18 +85,11 @@ void WorldMapPainter::draw(const std::string& activeExterior,
     drawArrow(leftArrowTex_, config_.arrowLeftFallback, layout.leftArrowRect());
     drawArrow(rightArrowTex_, config_.arrowRightFallback, layout.rightArrowRect());
 
-    // Dibujar primero compañeros y al final al jugador local para que su aro
-    // dorado quede visible incluso compartiendo puerta o portal.
-    for (const game::WorldMapPin& pin : pins) {
-        if (!pin.isLocal) {
-            drawPin(pin, layout);
-        }
-    }
-    for (const game::WorldMapPin& pin : pins) {
-        if (pin.isLocal) {
-            drawPin(pin, layout);
-        }
-    }
+    // Compañeros primero (cabezas y luego nombres para que una cabeza no
+    // tape otro nombre); el jugador local al final para que su aro dorado
+    // y su nombre queden siempre visibles.
+    drawPins(pins, layout, false);
+    drawPins(pins, layout, true);
 }
 
 std::optional<SDL2pp::Texture> WorldMapPainter::tryLoadTexture(
@@ -124,8 +117,23 @@ void WorldMapPainter::drawArrow(std::optional<SDL2pp::Texture>& texture,
     text_.draw(fallbackText, box, config_.inkColor, config_.arrowFontSize, true);
 }
 
-void WorldMapPainter::drawPin(const game::WorldMapPin& pin,
-                              const world::WorldMapLayout& layout) const {
+void WorldMapPainter::drawPins(const std::vector<game::WorldMapPin>& pins,
+                               const world::WorldMapLayout& layout,
+                               const bool localOnly) {
+    for (const game::WorldMapPin& pin : pins) {
+        if (pin.isLocal == localOnly) {
+            drawPinHead(pin, layout);
+        }
+    }
+    for (const game::WorldMapPin& pin : pins) {
+        if (pin.isLocal == localOnly) {
+            drawPinLabel(pin, layout);
+        }
+    }
+}
+
+void WorldMapPainter::drawPinHead(const game::WorldMapPin& pin,
+                                  const world::WorldMapLayout& layout) const {
     const world::PixelBox outerBox = layout.pinOuterBox(pin.normX, pin.normY);
     const world::PixelBox innerBox = layout.pinInnerBox(outerBox);
 
@@ -134,6 +142,20 @@ void WorldMapPainter::drawPin(const game::WorldMapPin& pin,
     context_.fillRect(toSdlRect(outerBox), ringColor);
     context_.fillRect(toSdlRect(innerBox), toSdlColor(config_.parchmentColor));
     appearancePainter_.drawHead(pin.appearance, toSdlRect(innerBox));
+}
+
+void WorldMapPainter::drawPinLabel(const game::WorldMapPin& pin,
+                                   const world::WorldMapLayout& layout) {
+    if (pin.displayName.empty()) {
+        return;
+    }
+    const world::PixelBox outerBox = layout.pinOuterBox(pin.normX, pin.normY);
+    const int textWidth = text_.textWidth(pin.displayName, config_.pinLabel.fontSize,
+                                          config_.pinLabel.bold, config_.pinLabel.font);
+    const world::PixelBox box = layout.pinLabelBox(outerBox, textWidth);
+    context_.fillRect(toSdlRect(box), toSdlColor(config_.parchmentColor));
+    text_.draw(pin.displayName, box, config_.inkColor, config_.pinLabel.fontSize,
+               config_.pinLabel.bold, config_.pinLabel.font);
 }
 
 SDL2pp::Rect WorldMapPainter::toSdlRect(const world::PixelBox& box) const {

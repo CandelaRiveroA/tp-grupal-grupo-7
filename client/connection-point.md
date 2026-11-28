@@ -102,6 +102,9 @@ mundo vacío = el parpadeo). Lo que no vuelve en el lote ya no existe.
 
 | 34 | `PlayerName` | `player_id u8, characterName str` | Nombre público. Al entrar se reciben los nombres existentes y se transmite el del nuevo a todos, incluso en otros mapas. Se conserva entre lotes y se elimina con `Leave` |
 | 35 | `InventoryFull` | (sin payload) | Evento privado de recogida rechazada por capacidad. Se traduce a `ViewNotice{"inventory_full"}` y usa el cartel real de SDL; la tecla I de demo fue retirada |
+| 36 | `WorldPlayers` | `count u8, (player_id u8, map_id str, x u16, y u16, appearance 8×u8) × count` | Posición y mapa de todos los jugadores, para los nombres sobre el mapa. Va a todos y se reenvía al entrar |
+| 37 | `ContainerState` | `open u8`, si abierto: `x u16, y u16, count u8, (slot u8, count u8, content_id str, tradable u8, quality u8, footprint_columns u8, footprint_rows u8) × count` | Estado del contenedor abierto por el jugador; va solo a él |
+| 38 | `CommunityProgress` | `set_id u8, completed u8, goal_count u8, (goal_id str, current u16, total u16, completed u8) × goal_count` | Progreso de un lote del Centro Comunitario. Va dentro del lote Reset…SyncEnd, cinco mensajes por snapshot |
 
 - `str` = `u16` de longitud + bytes.
 - Enteros en big-endian (`htons`/`ntohs`).

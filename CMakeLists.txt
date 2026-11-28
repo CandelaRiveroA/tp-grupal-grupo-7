@@ -330,6 +330,7 @@ if(TALLER_CLIENT OR TALLER_TESTS OR TALLER_QT_HARNESS)
         client/game/SettingsState.cpp
         client/world/WorldMapConfig.cpp
         client/world/WorldMapLayout.cpp
+        client/world/PagedModal.cpp
         client/world/PixelBox.cpp
         client/world/TomlConfigReader.cpp
         client/world/CreatureKindNames.cpp

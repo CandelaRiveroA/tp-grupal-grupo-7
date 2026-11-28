@@ -13,6 +13,7 @@ CommunityBoardResolver::CommunityBoardResolver(
 std::vector<world::CommunitySection> CommunityBoardResolver::sectionsFrom(
 	const LocalWorldView& view) const {
 	std::vector<world::CommunitySection> sections;
+	sections.reserve(catalog_.sets().size());
 	for (const world::CommunitySetDef& def : catalog_.sets()) {
 		const auto reported = std::find_if(
 			view.communitySets.begin(), view.communitySets.end(),
@@ -23,8 +24,10 @@ std::vector<world::CommunitySection> CommunityBoardResolver::sectionsFrom(
 
 		world::CommunitySection section;
 		section.title = def.title;
-		section.status = catalog_.status();
+		section.helpText = def.helpText;
 		section.done = known && reported->completed;
+		section.donatable = def.donatable;
+		section.rows.reserve(def.goals.size());
 		for (const world::CommunityGoalDef& goalDef : def.goals) {
 			ViewCommunityGoal progress;
 			if (known) {
@@ -40,16 +43,13 @@ std::vector<world::CommunitySection> CommunityBoardResolver::sectionsFrom(
 				}
 			}
 			world::CommunityRow row;
-			row.amount = def.amountPrefix +
-				     std::to_string(progress.current) + " / " +
-				     def.amountPrefix +
-				     std::to_string(progress.total);
 			row.label = goalDef.label;
+			row.amount = std::to_string(progress.current) + " / " +
+				     std::to_string(progress.total);
 			row.done = progress.completed;
-			if (row.label.empty()) {
-				row.label = row.amount;
-				row.amount.clear();
-			}
+			row.visual = goalDef.visual;
+			row.current = progress.current;
+			row.total = progress.total;
 			section.rows.push_back(std::move(row));
 		}
 		sections.push_back(std::move(section));
@@ -57,4 +57,4 @@ std::vector<world::CommunitySection> CommunityBoardResolver::sectionsFrom(
 	return sections;
 }
 
-}
+}  // namespace game

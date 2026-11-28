@@ -2,31 +2,42 @@
 
 namespace game {
 
-CommunityPopupState::CommunityPopupState(
-	const world::CommunityCatalog& catalog,
-	const world::InventoryLayout& inventory)
-	: catalog_(catalog), inventory_(inventory) {}
+void CommunityPopupState::open() { open_ = true; }
 
-void CommunityPopupState::toggle() { open_ = !open_; }
-
-void CommunityPopupState::close() { open_ = false; }
+void CommunityPopupState::close() {
+	open_ = false;
+	helpOpen_ = false;
+}
 
 bool CommunityPopupState::isOpen() const { return open_; }
 
-world::GridSpan CommunityPopupState::panelGrid(
-	const std::vector<world::CommunitySection>& sections) const {
-	const world::CommunityPopupStyle& style = catalog_.style();
-	return world::GridSpan{
-		style.panelColumns,
-		inventory_.rowsFitting(style.contentHeight(sections))};
+void CommunityPopupState::openHelp() { helpOpen_ = true; }
+
+void CommunityPopupState::closeHelp() { helpOpen_ = false; }
+
+bool CommunityPopupState::isHelpOpen() const { return helpOpen_; }
+
+std::size_t CommunityPopupState::pageIndex(const std::size_t pageCount) const {
+	if (pageCount == 0) {
+		return 0;
+	}
+	return pageIndex_ % pageCount;
 }
 
-world::PixelBox CommunityPopupState::panel(
-	const std::vector<world::CommunitySection>& sections,
-	const int windowWidth, const int windowHeight) const {
-	const world::GridSpan grid = panelGrid(sections);
-	return inventory_.centeredBox(windowWidth, windowHeight, grid.columns,
-				      grid.rows);
+void CommunityPopupState::nextPage(const std::size_t pageCount) {
+	if (pageCount == 0) {
+		return;
+	}
+	helpOpen_ = false;
+	pageIndex_ = (pageIndex_ + 1) % pageCount;
 }
 
+void CommunityPopupState::prevPage(const std::size_t pageCount) {
+	if (pageCount == 0) {
+		return;
+	}
+	helpOpen_ = false;
+	pageIndex_ = (pageIndex_ % pageCount + pageCount - 1) % pageCount;
 }
+
+}  // namespace game

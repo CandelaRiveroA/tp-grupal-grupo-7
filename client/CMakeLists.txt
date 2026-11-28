@@ -229,6 +229,7 @@ target_sources(taller_client
     world/ObtainedBannerTomlReader.h
     world/ObtainedBannerLayout.h
     world/PixelBox.h
+    world/TomlConfigReader.h
     world/WorldMapConfig.h
     world/WorldMapLayout.h
     world/AnchorLayout.h

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "common_match_request.h"
+#include "common/model/draft/WorldSummary.h"
 #include "common_queue.h"
 #include "common_server_status.h"
 #include "match.h"
@@ -49,6 +50,7 @@ private:
     std::mutex mtx;
     std::map<std::string, std::unique_ptr<MatchEntry>> matches;
 
+    uint8_t capacityFor(const worldmodel::World& world) const;
     std::optional<LobbyStatus> identityError(const std::string& username,
                                              const std::string& characterName) const;
     MatchSeat joinLocked(MatchEntry& entry, const std::string& username,
@@ -75,6 +77,7 @@ public:
                    const std::shared_ptr<Queue<ServerMessage>>& statuses,
                    const CharacterAppearance& appearance = CharacterAppearance{});
     std::vector<std::string> validWorldNames() const;
+    std::vector<WorldSummary> validWorldSummaries() const;
     void leave(const std::string& codeMatch, uint8_t player_id);
     void closeAll();
 };

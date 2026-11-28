@@ -198,6 +198,7 @@ room = "prop"
   span  = [2, 4]
   # 2x4 celdas de 16 px a escala 3 = 3x6 celdas lógicas de 32 px.
   drawn = [96, 192]
+  zoom  = false
   cells = [ [4,10],[5,10],
             [4,11],[5,11],
             [6,12],[7,12],
